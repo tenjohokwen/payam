@@ -1,0 +1,310 @@
+package com.softropic.payam.security.service;
+
+import com.softropic.payam.common.Gender;
+import com.softropic.payam.common.dto.PhoneNumberDto;
+import com.softropic.payam.common.validation.CamMobileValidator;
+import com.softropic.payam.common.validation.PhoneNumber;
+import com.softropic.payam.email.api.Recipient;
+import com.softropic.payam.security.audit.shared.event.AccountChangeEvent;
+import com.softropic.payam.security.common.util.SecurityConstants;
+import com.softropic.payam.security.domain.Address;
+import com.softropic.payam.security.domain.User;
+import com.softropic.payam.security.exception.ProfileActionException;
+import com.softropic.payam.security.exposed.exception.SecurityError;
+import com.softropic.payam.security.exposed.util.SecurityUtil;
+import com.softropic.payam.security.repository.UserRepository;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Service for handling user profile management operations.
+ */
+@Slf4j
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class UserProfileService {
+
+    private final UserRepository userRepository;
+    private final SecurityUtil securityUtil;
+    private final PasswordEncoder passwordEncoder;
+    private final ApplicationEventPublisher publisher;
+
+    /**
+     * Updates the current user's basic information (name and language preference).
+     *
+     * @param firstname the first name
+     * @param lastname the last name
+     * @param langKey the language key
+     * @return the updated user if found, empty otherwise
+     */
+    @PreAuthorize(SecurityConstants.HAS_ANY_ROLE)
+    public Optional<User> updateUserInformation(String firstname, String lastname, String langKey, String nationalId, Gender gender, String title) {
+        return userRepository.findOneByLogin(securityUtil.getCurrentUser().getUsername()).map(u -> {
+            u.setFirstName(firstname);
+            u.setLastName(lastname);
+            u.setLangKey(langKey);
+            u.setNationalId(nationalId);
+            u.setGender(gender);
+            u.setTitle(title);
+            log.debug("Changed Information for User: {}", u);
+            return u;
+        });
+    }
+
+    /**
+     * Updates the current user's postal address.
+     *
+     * @param address the new address
+     * @return the updated user if found, empty otherwise
+     */
+    @PreAuthorize(SecurityConstants.HAS_ANY_ROLE)
+    public Optional<User> updatePostalAddress(Address address) {
+        return userRepository.findOneByLogin(securityUtil.getCurrentUser().getUsername())
+                .map(u -> {
+                    // Capture old address before update
+                    Address oldAddress = u.getAddresses().stream().findFirst().orElse(null);
+                    String oldAddressStr = formatAddress(oldAddress);
+
+                    u.addOrReplaceAddress(address);
+                    String newAddressStr = formatAddress(address);
+
+                    // Publish event for notification and audit
+                    Recipient recipient = buildRecipient(u);
+                    AccountChangeEvent event = new AccountChangeEvent(
+                            AccountChangeEvent.Action.ADDRESS_CHANGED,
+                            oldAddressStr,
+                            newAddressStr,
+                            recipient
+                    );
+                    publisher.publishEvent(event);
+
+                    return u;
+                });
+    }
+
+    /**
+     * Updates the current user's email address.
+     * Requires the old email and current password for verification.
+     *
+     * @param oldEmail the current email address
+     * @param newEmail the new email address
+     * @param password the current password (for verification)
+     * @return the updated user if successful
+     * @throws ProfileActionException if email or password doesn't match
+     */
+    @PreAuthorize(SecurityConstants.HAS_ANY_ROLE)
+    public Optional<User> updateUserEmail(String oldEmail, final String newEmail, String password) {
+        return userRepository.findOneByLogin(securityUtil.getCurrentUser().getUsername()).map(u -> {
+            if (passwordEncoder.matches(password, u.getPassword()) && StringUtils.equals(oldEmail, u.getEmail())) {
+                String capturedOldEmail = u.getEmail();
+                u.setEmail(newEmail);
+                u.setLogin(newEmail);
+                log.debug("Changed email for User: {}", u);
+
+                // Publish event for notification and audit (send to old email address)
+                Recipient recipient = buildRecipient(u);
+                recipient.setEmail(capturedOldEmail);  // Override to send notification to OLD email for security
+                AccountChangeEvent event = new AccountChangeEvent(
+                        AccountChangeEvent.Action.EMAIL_CHANGED,
+                        capturedOldEmail,
+                        newEmail,
+                        recipient
+                );
+                publisher.publishEvent(event);
+
+                return u;
+            }
+            final Map<String, Object> ctx = Map.of("oldEmail", oldEmail,
+                    "newEmail", newEmail,
+                    "passwordMatch", passwordEncoder.matches(password, u.getPassword()),
+                    "emailMatch", StringUtils.equals(oldEmail, u.getEmail()));
+            throw new ProfileActionException("Cannot update email address", ctx, SecurityError.EMAIL_OR_PW_MISMATCH);
+        });
+    }
+
+    /**
+     * Changes the current user's password.
+     * Requires the current password for verification.
+     *
+     * @param currentPassword the current password
+     * @param newPassword the new password
+     * @return the updated user if successful
+     * @throws ProfileActionException if current password doesn't match
+     */
+    @PreAuthorize(SecurityConstants.HAS_ANY_ROLE)
+    public Optional<User> changePassword(String currentPassword, String newPassword) {
+        return userRepository.findOneByLogin(securityUtil.getCurrentUser().getUsername())
+                .map(user -> {
+                    if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+                        throw new ProfileActionException("Current password does not match",
+                                Map.of("login", user.getLogin()),
+                                SecurityError.EMAIL_OR_PW_MISMATCH);
+                    }
+                    user.setPassword(passwordEncoder.encode(newPassword));
+                    log.debug("Changed password for User: {}", user.getLogin());
+
+                    // Publish event for notification and audit
+                    Recipient recipient = buildRecipient(user);
+                    AccountChangeEvent event = new AccountChangeEvent(
+                            AccountChangeEvent.Action.PASSWORD_CHANGED,
+                            null,  // oldValue not applicable for password
+                            null,  // newValue not applicable for password
+                            recipient
+                    );
+                    publisher.publishEvent(event);
+
+                    return user;
+                });
+    }
+
+    /**
+     * Updates the current user's phone number.
+     *
+     * @param phone the new phone number string
+     * @return the updated user if found
+     */
+    @PreAuthorize(SecurityConstants.HAS_ANY_ROLE)
+    public Optional<User> updatePhone(String phone) {
+        return userRepository.findOneByLogin(securityUtil.getCurrentUser().getUsername())
+                .map(user -> {
+                    // Capture old phone before update
+                    String oldPhone = user.getPhone() != null ? user.getPhone().getPhone() : null;
+
+                    PhoneNumber phoneNumber = toPhoneNumber(phone);
+                    user.setPhone(phoneNumber);
+                    log.debug("Changed phone for User: {}", user.getLogin());
+
+                    // Publish event for notification and audit
+                    Recipient recipient = buildRecipient(user);
+                    AccountChangeEvent event = new AccountChangeEvent(
+                            AccountChangeEvent.Action.PHONE_CHANGED,
+                            oldPhone,
+                            phone,
+                            recipient
+                    );
+                    publisher.publishEvent(event);
+
+                    return user;
+                });
+    }
+
+    /**
+     * Toggles two-factor authentication for the current user.
+     * Requires password verification for security.
+     *
+     * @param enabled the desired 2FA state
+     * @param password the current password for verification
+     * @return the updated user if successful
+     * @throws ProfileActionException if password doesn't match
+     */
+    @PreAuthorize(SecurityConstants.HAS_ANY_ROLE)
+    public Optional<User> toggle2fa(boolean enabled, String password) {
+        return userRepository.findOneByLogin(securityUtil.getCurrentUser().getUsername())
+                .map(user -> {
+                    if (!passwordEncoder.matches(password, user.getPassword())) {
+                        throw new ProfileActionException("Password does not match",
+                                                         Map.of("login", user.getLogin()),
+                                                         SecurityError.EMAIL_OR_PW_MISMATCH);
+                    }
+                    user.setOtpEnabled(enabled);
+                    log.debug("Changed 2FA status for User: {} to {}", user.getLogin(), enabled);
+
+                    // Publish event for notification and audit
+                    Recipient recipient = buildRecipient(user);
+                    AccountChangeEvent.Action action = enabled
+                            ? AccountChangeEvent.Action.TWO_FACTOR_AUTH_ENABLED
+                            : AccountChangeEvent.Action.TWO_FACTOR_AUTH_DISABLED;
+                    AccountChangeEvent event = new AccountChangeEvent(
+                            action,
+                            String.valueOf(!enabled),  // oldValue: previous state
+                            String.valueOf(enabled),   // newValue: new state
+                            recipient
+                    );
+                    publisher.publishEvent(event);
+
+                    return user;
+                });
+    }
+
+    /**
+     * Converts a phone string to a PhoneNumber entity using CamMobileValidator.
+     *
+     * @param phone the phone string
+     * @return the PhoneNumber entity, or null if phone is blank
+     */
+    private PhoneNumber toPhoneNumber(String phone) {
+        if (phone == null || phone.isBlank()) {
+            return null;
+        }
+
+        PhoneNumber phoneNumber = new PhoneNumber();
+        final PhoneNumberDto phoneNoDto = CamMobileValidator.validate(phone);
+
+        phoneNumber.setPhone(phoneNoDto.getPhone());
+        phoneNumber.setIso2Country(phoneNoDto.getIso2Country());
+        phoneNumber.setPhoneType(Objects.equals(phoneNoDto.getPhoneType(), PhoneNumberDto.PhoneType.MOBILE)
+                ? PhoneNumber.PhoneType.MOBILE : PhoneNumber.PhoneType.FIXED);
+        phoneNumber.setProvider(phoneNoDto.getProvider());
+
+        return phoneNumber;
+    }
+
+    /**
+     * Builds a Recipient object from a User entity for email notifications.
+     *
+     * @param user the user entity
+     * @return the populated Recipient
+     */
+    private Recipient buildRecipient(User user) {
+        Recipient recipient = new Recipient();
+        recipient.setFirstname(user.getFirstName());
+        recipient.setLastname(user.getLastName());
+        recipient.setEmail(user.getEmail());
+        recipient.setLangKey(user.getLangKey());
+        recipient.setTitle(user.getTitle());
+        recipient.setGender(user.getGender() != null ? user.getGender().name() : null);
+        return recipient;
+    }
+
+    /**
+     * Formats an Address entity as a string for audit trail purposes.
+     *
+     * @param address the address entity
+     * @return formatted address string, or null if address is null
+     */
+    private String formatAddress(Address address) {
+        if (address == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        if (StringUtils.isNotBlank(address.getAddressLine1())) {
+            sb.append(address.getAddressLine1());
+        }
+        if (StringUtils.isNotBlank(address.getCity())) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(address.getCity());
+        }
+        if (StringUtils.isNotBlank(address.getStateProvince())) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(address.getStateProvince());
+        }
+        if (StringUtils.isNotBlank(address.getCountry())) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(address.getCountry());
+        }
+        return sb.length() > 0 ? sb.toString() : null;
+    }
+}

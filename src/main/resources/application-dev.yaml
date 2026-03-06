@@ -1,0 +1,204 @@
+baseurl: http://localhost
+server:
+  port: "${port:9990}"
+  error:
+    whitelabel:
+      enabled: false
+  tomcat:
+    accesslog:
+      enabled: true
+      pattern: "%{yyyy-MM-dd HH:mm:ss.SSS}t %a (%{X-Forwarded-For}i) > %A:%p '%r' %{requestBodyLength}r %D %s %B %I '%{Referer}i' '%{User-Agent}i' %u %{username}s %{sessionTracker}s"
+      directory: /usr/local/var/ledger
+      prefix: payam_access
+      suffix: .ledger
+    remote-ip-header: x-forwarded-for  #tomcat: configure the RemoteIpValve for more sophisticated Forwarded header handling
+    protocol-header: x-forwarded-proto #tomcat: configure the RemoteIpValve for more sophisticated Forwarded header handling
+  forward-headers-strategy: native  #spring: config to get client ip in compliance with the RFC 7239 specification. see ForwardedHeaderFilter bean.
+
+spring:
+  jackson:
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+  application.name: payam #custom field
+  autoconfigure.exclude: org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration
+  main.allow-circular-references: true
+  jmx.enabled: false
+  jpa:
+    generate-ddl: true
+    hibernate.ddl-auto: create-drop #none #update #create #create-drop #validate
+    open-in-view: false #is enabled by default. Therefore, database queries may be performed during view rendering.
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        #type.java_time_use_direct_jdbc: true # There is no need for this. new policy is to use just Instant for dates. using jdbc.time_zone just in case
+        default_schema: main
+        enable_lazy_load_no_trans: false    #This is false by default. do not make it true. see  https://vladmihalcea.com/the-hibernate-enable_lazy_load_no_trans-anti-pattern/
+        jdbc:
+          batch_size: 15
+          time_zone: UTC
+        connection.provider_disables_autocommit: true   # GOAL: delay the connection acquisition. It tells Hibernate that the underlying JDBC Connections have already disabled the auto-commit mode. Do not forget to also set hikari.auto-commit to false
+        query.fail_on_pagination_over_collection_fetch: true
+      org.hibernate.envers.store_data_at_delete: true
+  datasource:
+    url: jdbc:postgresql://localhost/payam?TimeZone=UTC
+    username: postgres
+    password: postgres
+    hikari:
+      pool-name: hikari-db-pool
+      connection-timeout: 50000
+      idle-timeout: 300000
+      max-lifetime: 900000    #It?s not a very good idea to keep connections open for a very long time since a connection could be closed unexpectedly by a networking failure without the pool knowing of it.
+      maximum-pool-size: 25   #postgress puts a limit of 100 connections (so we can have up to 4 nodes, i.e. 25 for each)
+      minimum-idle: 8
+      auto-commit: false  #needed to be false in order to group statements in a single txn
+      #connection-test-query: select 1   # For other dbs use select 1 from dual
+      data-source-properties:
+        reWriteBatchedInserts: true #optimize postgres batch
+        serverTimezone: UTC
+        useTimezone: true
+        useLegacyDatetimeCode: false
+        useServerPrepStmts: false  #Mysql optimization
+        cachePrepStmts: true  #Mysql optimization
+        prepStmtCacheSize: 500 #Mysql optimization
+        prepStmtCacheSqlLimit: 1024 #Mysql optimization
+  flyway:
+    enabled: true
+    validateMigrationNaming: true
+    baseline-on-migrate: true
+    defaultSchema: main
+  mail:
+    host: mail.gmx.net
+    port: 587
+    username: blue-bone@gmx.de
+    password: ${SPRING_MAIL_PASSWORD:dev_mail_password} #BEQMN6SITHUDQEGIDWKZ
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+custom:
+  flyway:
+    check-schema: true
+  cors: #Just for dev
+    allowed-origins: 'http://localhost:8080,https://localhost:9090,http://localhost:5175,http://localhost:9000'
+    allowed-methods: '*'
+    allowed-headers: '*'
+    allow-credentials: true  #specifies if cookies and credentials are allowed.
+    max-age: 1800
+email:
+  providerConfigs:
+    -
+      name: gmx
+      host: mail.gmx.net
+      port: 587
+      username: blue-bone@gmx.de
+      password: ${GMX_PASSWORD:dev_gmx_password}
+    -
+      name: gmail
+      host: smtp.gmail.com
+      port: 587
+      username: enkap24@gmail.com
+      password: ${GMAIL_PASSWORD:dev_gmail_password}
+    -
+      name: mail
+      host: smtp.mail.de
+      port: 587
+      username: blue-bone@mail.de
+      password: ${MAIL_DE_PASSWORD:dev_mail_de_password}
+
+
+#log configuration
+# default location is directly in the classpath (root of resources folder)
+#logging.config: classpath:config/logback-spring.xml
+##logback.access.config: classpath:config/logback-access-spring.xml ##using custom LoggingFilter for access logging because it logs payload
+
+
+# hibernate logs
+log:
+  database:
+    spy: true
+allowed:
+  clients: myClientId,hisClientId,herClientId,ourClientId #do not put spaces between entries
+
+datasource.container: true #use container connection config to connect to the container db
+
+##Actuator config
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,env
+      base-path: /manage  #actuator root path
+  endpoint:
+    health:
+      show-details: when-authorized
+      roles: ROLE_ADMIN
+    info:
+      show-details: when-authorized
+      roles: ROLE_ADMIN
+    env:
+      show-details: when-authorized
+      show-values: when-authorized
+      roles: ROLE_ADMIN
+defaultTcpConfig: &DEFAULT_TCP
+  readTimeout: 15000
+  connectionTimeout: 15000
+  connectionRequestTimeout: 2000
+  maxConnections: 50
+  maxConnectionsPerRoute: 25
+  checkCertificate: false
+
+client:
+  momo:
+    host: https://sandbox.momodeveloper.mtn.com/collection
+    headers:
+      X-Target-Environment: sandbox
+      Ocp-Apim-Subscription-Key: ${MOMO_SUBSCRIPTION_KEY:dev_momo_subscription_key}
+    tcpConfig:
+      <<: *DEFAULT_TCP
+    endpoints:
+      requestToPay:
+        uri: https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay
+        method: POST
+      getRequestToPayTransactionStatus:
+        uri: https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay/{referenceId}
+        method: GET
+      getAccountBalance:
+        uri: https://sandbox.momodeveloper.mtn.com/collection/v1_0/account/balance
+        method: GET
+      getBasicUserInfo:
+        uri: https://sandbox.momodeveloper.mtn.com/collection/v1_0/accountholder/{accountHolderIdType}/{accountHolderId}/basicuserinfo
+        method: GET
+      requestAuthToken:
+        uri: https://sandbox.momodeveloper.mtn.com/collection/token/
+        method: POST
+
+# Immutable Log Component Configuration
+immutable-log:
+  enabled: true
+
+  performance:
+    enabled: true
+    log-interval-seconds: 300
+    reset-after-log: false
+
+  verification:
+    auto-verify-enabled: false
+    auto-verify-interval-seconds: 3600
+    quick-verify-entry-count: 10
+    throw-on-violation: false
+
+  concurrency:
+    default-retry-attempts: 5
+    retry-delay-ms: 100
+    retry-multiplier: 2.0
+    max-retry-delay-ms: 1000
+    use-fair-locking: true
+
+  health:
+    enabled: true
+    verify-entry-count: 5
+    timeout-ms: 5000
+    include-verification: true

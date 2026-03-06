@@ -1,0 +1,7 @@
+delete from main.persistent_token;
+delete from main.user_addresses;
+delete from main.user_authority;
+delete from main.audit_log;
+delete from main.user;
+delete from main.envelope_entity_recipients;
+delete from main.envelope_entity;

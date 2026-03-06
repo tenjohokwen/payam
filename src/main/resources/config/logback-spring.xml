@@ -1,0 +1,69 @@
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <springProperty name="appName" source="spring.application.name" />
+    <springProperty name="logLevel" source="logging.level.root" />
+    <springProperty name="logPattern" source="logging.pattern.file" />
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>${logPattern}</Pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+    </appender>
+
+    <!-- Log Rotation Appender -->
+    <appender name="ROLLING_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/payam/spring.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>/var/log/payam/spring.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${logPattern}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Loki Appender -->
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <metricsEnabled>true</metricsEnabled>
+        <!--verbose>true</verbose-->
+        <http>
+            <url>https://logs-prod-012.grafana.net/loki/api/v1/push</url>
+            <auth>
+                <username>1350490</username>
+                <password>${LOKI_API_KEY}</password>
+            </auth>
+        </http>
+        <format>
+            <label>
+                <pattern>application=${appName},host=${HOSTNAME},level=%level</pattern>
+            </label>
+            <message>
+                <pattern>
+                    {
+                    "@timestamp":"%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd'T'HH:mm:ss.SSSXXX}}",
+                    "level":"%level",
+                    "class":"%logger{36}",
+                    "thread":"%thread",
+                    "message":"%message",
+                    "traceId": "%X{traceId:-}",
+                    "spanId":"%X{spanId:-}",
+                    "pid":"${PID:-}"
+                    }
+                </pattern>
+            </message>
+            <sortByTime>true</sortByTime>
+        </format>
+    </appender>
+
+    <root level="${logLevel}">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="LOKI"/>
+        <appender-ref ref="ROLLING_FILE"/>
+    </root>
+
+</configuration>
