@@ -66,7 +66,9 @@ public class MailService {
             message.setSubject(subject);
             message.setText(content, isHtml);
 
-            //TODO handle send failure. Could fail because quota exceeded, network issue
+        // Any MessagingException (quota, network, SMTP auth) propagates to MailManager, which
+        // catches it, marks the envelope FAILED with retry=true, and persists it. The
+        // EmailRetryScheduler then picks it up via SELECT FOR UPDATE SKIP LOCKED.
             javaMailSender.send(mimeMessage);
             log.debug("Sent e-mail to User '{}'", to);
     }

@@ -29,7 +29,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -82,7 +83,7 @@ public class AccountManagementFacade {
                               final Map<String, Object> dataMap = ClientContextProvider.getClientContextMap();
                               dataMap.put("resetKey", user.getResetKey());
                               return sendMail(EmailTemplate.PASSWORD_RESET,
-                                              LocalDateTime.now(ClockProvider.getClock()).plusDays(1),
+                                              Instant.now(ClockProvider.getClock()).plus(Duration.ofDays(1)),
                                               dataMap,
                                               user);
                           }
@@ -172,7 +173,7 @@ public class AccountManagementFacade {
                     dataMap.put("oldValue", oldEmail);
                     dataMap.put("newValue", newEmail);
                     return sendMail(EmailTemplate.PROFILE_CHANGE,
-                            LocalDateTime.now(ClockProvider.getClock()).plusDays(7),
+                                    Instant.now(ClockProvider.getClock()).plus(Duration.ofDays(7)),
                             dataMap,
                             user);
                 })
@@ -182,7 +183,7 @@ public class AccountManagementFacade {
     }
 
     private String sendMail(EmailTemplate emailTemplate,
-                          LocalDateTime deadline,
+                          Instant deadline,
                           Map<String, Object> dataMap,
                           User user) {
         final String shortCode = ShortCode.shortenInt(UUID.randomUUID().hashCode());

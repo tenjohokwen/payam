@@ -8,7 +8,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +37,7 @@ public class EnvelopeEntity implements Serializable {
     @Enumerated(EnumType.STRING)
     private EmailTemplate emailTemplate;
 
-    private LocalDateTime deadline;
+    private Instant deadline;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
@@ -89,11 +89,11 @@ public class EnvelopeEntity implements Serializable {
         this.emailTemplate = emailTemplate;
     }
 
-    public LocalDateTime getDeadline() {
+    public Instant getDeadline() {
         return deadline;
     }
 
-    public void setDeadline(LocalDateTime deadline) {
+    public void setDeadline(Instant deadline) {
         this.deadline = deadline;
     }
 

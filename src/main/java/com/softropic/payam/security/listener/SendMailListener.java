@@ -14,6 +14,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import java.time.ZoneOffset;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +49,7 @@ public class SendMailListener {
         final List<Recipient> recipients = users.stream().map(this::buildRecipient).toList();
         final Envelope envelope = new Envelope(recipients,
                                                sendMailEvent.emailTemplate(),
-                                               sendMailEvent.deadline(),
+                                               sendMailEvent.deadline().toInstant(ZoneOffset.UTC),
                                                sendMailEvent.data(),
                                                sendMailEvent.sendId());
         publisher.publishEvent(envelope);

@@ -14,7 +14,7 @@ import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.retry.support.RetryTemplate;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -81,7 +81,7 @@ public class MailManagerResilienceTest {
         envelope = new Envelope(
                 List.of(recipient),
                 EmailTemplate.ACTIVATION,
-                LocalDateTime.now(),
+                Instant.now(),
                 Map.of(),
                 UUID.randomUUID().toString()
         );

@@ -15,7 +15,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -74,7 +75,7 @@ public class EmailRegistrationStrategy implements RegistrationNotificationStrate
         dataMap.put("lang", user.getLangKey());
 
         return sendEmail(EmailTemplate.ACTIVATION,
-                         LocalDateTime.now(ClockProvider.getClock()),
+                         Instant.now(ClockProvider.getClock()),
                          dataMap,
                          user);
     }
@@ -101,7 +102,7 @@ public class EmailRegistrationStrategy implements RegistrationNotificationStrate
         final Map<String, Object> dataMap = ClientContextProvider.getClientContextMap();
 
         return sendEmail(EmailTemplate.CREATION_DUP,
-                         LocalDateTime.now(ClockProvider.getClock()).plusDays(7),
+                         Instant.now(ClockProvider.getClock()),
                          dataMap,
                          user);
     }
@@ -128,7 +129,7 @@ public class EmailRegistrationStrategy implements RegistrationNotificationStrate
      * @return a short tracking code for support reference
      */
     private String sendEmail(final EmailTemplate emailTemplate,
-                             final LocalDateTime deadline,
+                             final Instant deadline,
                              final Map<String, Object> dataMap,
                              final User user) {
         final String shortCode = ShortCode.shortenInt(UUID.randomUUID().hashCode());

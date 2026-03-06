@@ -14,7 +14,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,7 +66,7 @@ public class AccountChangeEmailListener {
         final Envelope envelope = new Envelope(
                 List.of(recipient),
                 EmailTemplate.PROFILE_CHANGE,
-                LocalDateTime.now(ClockProvider.getClock()).plusDays(7),
+                Instant.now(ClockProvider.getClock()).plus(Duration.ofDays(7)),
                 data,
                 helpCode
         );

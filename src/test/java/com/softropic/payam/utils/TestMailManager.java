@@ -32,4 +32,8 @@ public class TestMailManager extends MailManager {
     public Envelope getEnvelope(String referenceId) {
         return sentMails.get(referenceId);
     }
+
+    public void clear() {
+        sentMails.clear();
+    }
 }

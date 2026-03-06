@@ -8,5 +8,7 @@ public enum EmailDeliveryStatus {
     SENT,
     FAILED,
     SENDING,
-    DELETE
+    DELETE,
+    DEADLINE_EXPIRED,
+    ATTEMPTS_EXHAUSTED
 }

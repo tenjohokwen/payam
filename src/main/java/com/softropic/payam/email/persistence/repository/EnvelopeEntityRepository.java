@@ -16,8 +16,10 @@ import jakarta.persistence.LockModeType;
 
 public interface EnvelopeEntityRepository extends JpaRepository<EnvelopeEntity, UUID> {
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE) // keep the @Lock annotation as a matter of best practice and framework/code clarity, even though the FOR UPDATE SKIP LOCKED clause is doing the heavy lifting in the native SQL
-    @Query(value = "SELECT * FROM main.envelope_entity e WHERE e.retry = 'true' AND e.deadline > now()  AND e.status = 'FAILED' ORDER BY e.deadline LIMIT 10 FOR UPDATE SKIP LOCKED", nativeQuery = true)
+    //@Lock(LockModeType.PESSIMISTIC_WRITE) // keep the @Lock annotation as a matter of best practice and framework/code clarity, even though the FOR UPDATE SKIP LOCKED clause is doing the heavy lifting in the native SQL //Actually you will get "Illegal attempt to set lock mode for a native query"
+    // deadline filter is intentionally absent: the scheduler reads all retryable FAILED rows
+    // (including those past their deadline) so it can mark them DEADLINE_EXPIRED in-process.
+    @Query(value = "SELECT * FROM main.envelope_entity e WHERE e.retry = 'true' AND e.status = 'FAILED' ORDER BY e.deadline LIMIT 10 FOR UPDATE SKIP LOCKED", nativeQuery = true)
     List<EnvelopeEntity> fetchFailedEmails();
 
     @Lock(LockModeType.PESSIMISTIC_WRITE) // keep the @Lock annotation as a matter of best practice and framework/code clarity, even though the FOR UPDATE SKIP LOCKED clause is doing the heavy lifting in the native SQL

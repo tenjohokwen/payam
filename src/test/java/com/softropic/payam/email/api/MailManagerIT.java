@@ -9,7 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -46,7 +46,7 @@ public class MailManagerIT {
         Envelope envelope = new Envelope(
                 List.of(recipient),
                 EmailTemplate.ACTIVATION,
-                LocalDateTime.now(),
+                Instant.now(),
                 Map.of("activationKey", "12345"),
                 sendId
         );
@@ -73,7 +73,7 @@ public class MailManagerIT {
         Envelope envelope = new Envelope(
                 List.of(recipient),
                 EmailTemplate.ACTIVATION,
-                LocalDateTime.now(),
+                Instant.now(),
                 Map.of("activationKey", "12345"),
                 sendId
         );
