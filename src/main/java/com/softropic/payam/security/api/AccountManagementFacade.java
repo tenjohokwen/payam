@@ -2,8 +2,7 @@ package com.softropic.payam.security.api;
 
 
 import com.softropic.payam.common.ClockProvider;
-import com.softropic.payam.common.dto.PhoneNumberDto;
-import com.softropic.payam.common.validation.CamMobileValidator;
+import com.softropic.payam.common.util.PhoneNumberUtil;
 import com.softropic.payam.common.validation.PhoneNumber;
 import com.softropic.payam.email.api.EmailTemplate;
 import com.softropic.payam.email.api.Envelope;
@@ -236,20 +235,7 @@ public class AccountManagementFacade {
     }
 
     protected PhoneNumber toPhoneNumber(String phone) {
-        if (phone == null || phone.isBlank()) {
-            return null;
-        }
-
-        PhoneNumber phoneNumber = new PhoneNumber();
-        //TODO elegantly extract the phone number building logic from CamMobileValidator to a dedicated class
-        final PhoneNumberDto phoneNoDto = CamMobileValidator.validate(phone);
-
-        phoneNumber.setPhone(phoneNoDto.getPhone());
-        phoneNumber.setIso2Country(phoneNoDto.getIso2Country());
-        phoneNumber.setPhoneType(Objects.equals(phoneNoDto.getPhoneType(), PhoneNumberDto.PhoneType.MOBILE) ? PhoneNumber.PhoneType.MOBILE : PhoneNumber.PhoneType.FIXED);
-        phoneNumber.setProvider(phoneNoDto.getProvider());
-
-        return phoneNumber;
+        return PhoneNumberUtil.fromString(phone);
     }
 
 

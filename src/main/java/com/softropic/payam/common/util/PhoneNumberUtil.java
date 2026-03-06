@@ -1,5 +1,11 @@
 package com.softropic.payam.common.util;
 
+import com.softropic.payam.common.dto.PhoneNumberDto;
+import com.softropic.payam.common.validation.CamMobileValidator;
+import com.softropic.payam.common.validation.PhoneNumber;
+
+import java.util.Objects;
+
 /**
  * Utility class for phone number validation and normalization.
  * Provides common operations needed across payment providers and other services.
@@ -8,6 +14,27 @@ public final class PhoneNumberUtil {
 
     private PhoneNumberUtil() {
         // Prevent instantiation
+    }
+
+    /**
+     * Converts a raw phone string into a {@link PhoneNumber} entity,
+     * enriching it with provider, country code, and phone type via {@link CamMobileValidator}.
+     *
+     * @param phone the raw phone string
+     * @return a populated {@link PhoneNumber}, or {@code null} if the input is blank
+     */
+    public static PhoneNumber fromString(String phone) {
+        if (phone == null || phone.isBlank()) {
+            return null;
+        }
+        PhoneNumberDto phoneNoDto = CamMobileValidator.validate(phone);
+        PhoneNumber phoneNumber = new PhoneNumber();
+        phoneNumber.setPhone(phoneNoDto.getPhone());
+        phoneNumber.setIso2Country(phoneNoDto.getIso2Country());
+        phoneNumber.setPhoneType(Objects.equals(phoneNoDto.getPhoneType(), PhoneNumberDto.PhoneType.MOBILE)
+                                         ? PhoneNumber.PhoneType.MOBILE : PhoneNumber.PhoneType.FIXED);
+        phoneNumber.setProvider(phoneNoDto.getProvider());
+        return phoneNumber;
     }
 
     /**
