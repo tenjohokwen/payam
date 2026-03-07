@@ -23,7 +23,16 @@ public class TestMailManager extends MailManager {
         sentMails.put(envelope.sendId(), envelope);
     }
 
+    /**
+     * Captures envelope events synchronously regardless of transaction state.
+     * Uses a distinct method name so Spring's TransactionalEventListenerFactory
+     * cannot claim it via the parent's @TransactionalEventListener annotation.
+     */
     @EventListener
+    public void onEnvelope(final Envelope envelope) {
+        sendEmailSync(envelope);
+    }
+
     @Override
     public void sendEmailFromTemplate(final Envelope envelope) {
         sendEmailSync(envelope);
