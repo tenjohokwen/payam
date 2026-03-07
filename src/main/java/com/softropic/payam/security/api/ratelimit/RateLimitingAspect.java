@@ -5,21 +5,28 @@ import com.softropic.payam.security.exposed.util.RequestMetadataProvider;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
-import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import static com.softropic.payam.security.exposed.exception.SecurityError.TOO_MANY_REQUESTS;
 
 /**
  * Aspect for enforcing rate limits on methods annotated with {@link RateLimited}.
+ * <p>
+ * Rate limiting can be disabled entirely via the {@code rate.limiting.enabled} property
+ * (defaults to {@code true}). Setting it to {@code false} is useful in integration tests
+ * where the same method is called multiple times without triggering the limit.
  */
 @Aspect
 @Component
 public class RateLimitingAspect {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RateLimitingAspect.class);
+
+    @Value("${rate.limiting.enabled:true}")
+    private boolean enabled;
 
     private final RateLimitingService rateLimitingService;
 
@@ -29,6 +36,9 @@ public class RateLimitingAspect {
 
     @Before("@annotation(rateLimited)")
     public void enforceRateLimit(JoinPoint joinPoint, RateLimited rateLimited) {
+        if (!enabled) {
+            return;
+        }
         String identifier = getClientIdentifier();
         
         boolean allowed = rateLimitingService.tryConsume(
