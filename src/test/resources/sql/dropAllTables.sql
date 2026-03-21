@@ -1,0 +1,10 @@
+drop table main.persistent_token;
+drop table main.user_authority;
+drop table main.user;
+drop table main.authority;
+drop table main.inventory;
+drop table main.inventory_log;
+drop table main.payment;
+drop table main.mobile_pay_data;
+drop table main.envelope_entity_recipients;
+drop table main.envelope_entity;

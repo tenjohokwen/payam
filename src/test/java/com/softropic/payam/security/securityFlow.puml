@@ -1,0 +1,52 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+actor User
+
+participant JWTAuthenticationFilter
+participant LoginTokenManager
+participant ApplicationPublisher
+participant FraudAwareAuthenticationManager
+participant LoginDecisionManager
+participant AuthenticationManager
+participant DaoProvider
+participant LoadUserByUserNameService
+participant TwoFactorLoginManager
+
+User -> JWTAuthenticationFilter: Sends request
+
+JWTAuthenticationFilter -> LoginTokenManager: ensureClientHasPreLoginId()
+
+JWTAuthenticationFilter -> ApplicationPublisher: publish(PreAuthEvent)
+
+JWTAuthenticationFilter -> FraudAwareAuthenticationManager: authenticate()
+
+FraudAwareAuthenticationManager -> LoginDecisionManager: isAllowed()
+alt User is not allowed
+    LoginDecisionManager --> FraudAwareAuthenticationManager: false
+    FraudAwareAuthenticationManager -> JWTAuthenticationFilter: throw LockedException
+    JWTAuthenticationFilter -> User: Return Locked
+    return
+else User is allowed
+    LoginDecisionManager --> FraudAwareAuthenticationManager: true
+    FraudAwareAuthenticationManager -> AuthenticationManager: authenticate()
+    AuthenticationManager -> DaoProvider: authenticate()
+    DaoProvider -> LoadUserByUserNameService: loadUserByUsername()
+    LoadUserByUserNameService --> DaoProvider: user details
+    DaoProvider --> AuthenticationManager: authentication
+    AuthenticationManager --> FraudAwareAuthenticationManager: authentication
+    FraudAwareAuthenticationManager --> JWTAuthenticationFilter: authentication
+
+    alt OTP enabled
+        JWTAuthenticationFilter -> TwoFactorLoginManager: processLogin()
+        TwoFactorLoginManager --> JWTAuthenticationFilter: OTP info
+        JWTAuthenticationFilter -> LoginTokenManager: addLoginInfoIdCookie()
+        LoginTokenManager --> JWTAuthenticationFilter: done
+        JWTAuthenticationFilter -> User: Return OTP
+    else OTP not enabled
+        JWTAuthenticationFilter -> LoginTokenManager: createLoginToken()
+        LoginTokenManager --> JWTAuthenticationFilter: token
+        JWTAuthenticationFilter -> User: Return Success
+    end
+end
+@enduml
