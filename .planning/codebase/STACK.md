@@ -1,143 +1,133 @@
 # Technology Stack
 
-**Analysis Date:** 2026-03-06
+**Analysis Date:** 2026-03-21
 
 ## Languages
 
 **Primary:**
-- Java 17 - Backend application (`src/main/java/`)
-- JavaScript (ES Modules) - Frontend SPA (`src/frontend/src/`)
-- Vue 3 (`.vue` SFCs) - Frontend components (`src/frontend/src/components/`, `src/frontend/src/pages/`)
+- Java 17 - Backend application server (`src/main/java/`)
+- JavaScript (ES Module) - Frontend SPA (`src/frontend/src/`)
 
 **Secondary:**
-- SQL - Database migrations via Flyway (`src/main/resources/db/`)
-- YAML - Spring configuration (`src/main/resources/application.yaml`, `src/main/resources/application-dev.yaml`)
-- HTML (Thymeleaf) - Email templates (`src/main/resources/mails/`)
+- SQL - Database migrations via Flyway (`src/main/resources/db/migration/`)
+- YAML - Application configuration (`src/main/resources/application.yaml`, `application-dev.yaml`)
+- HTML/Thymeleaf - Email templates (`src/main/resources/mails/`)
+- SCSS - Frontend styles (`src/frontend/src/css/`)
 
 ## Runtime
 
-**Backend Environment:**
-- JVM (Java 17+)
-- Embedded Tomcat (via Spring Boot)
-- Default port: `9990`
+**Environment:**
+- JVM (Java 17) - Backend
+- Node.js v22.16.0 - Frontend build (managed by `frontend-maven-plugin`)
 
-**Frontend Environment:**
-- Node.js v22.16.0 (pinned in `pom.xml` via `frontend-maven-plugin`)
-- npm 11.4.2
-
-## Package Manager
-
-**Backend:**
-- Maven (wrapper at `mvnw` / `mvnw.cmd`)
-- Lockfile: `pom.xml`
-
-**Frontend:**
-- npm
-- Lockfile: `src/frontend/package-lock.json` (standard npm)
-- Node engine requirement: `^20 || ^22 || ^24 || ^26 || ^28` (`src/frontend/package.json`)
+**Package Manager:**
+- Maven (wrapper: `mvnw`) - Backend and unified build
+- npm 11.4.2 - Frontend (managed via Maven plugin, lockfile: `src/frontend/package-lock.json`)
 
 ## Frameworks
 
-**Backend Core:**
-- Spring Boot 3.5.11 - Application framework (`pom.xml`, parent BOM)
-- Spring Cloud 2025.0.1 - Cloud features (Resilience4j circuit breaker)
-- Spring Security 6 - Authentication and authorization (`src/main/java/com/softropic/payam/security/`)
-- Spring Data JPA - ORM layer (`src/main/java/com/softropic/payam/common/persistence/`)
-- Spring MVC (Web) - REST API
-- Spring Mail - Email sending
-- Spring Cache - Caching abstraction
-- Spring AOP - Aspect-oriented programming (rate limiting, audit)
-- Spring Actuator - Health and metrics endpoints at `/manage`
-- Spring Retry - Retry logic for resilience
-- Thymeleaf 6 - Email template rendering (`src/main/java/com/softropic/payam/email/service/MailService.java`)
+**Core Backend:**
+- Spring Boot 3.5.11 - Application framework (`pom.xml`, parent POM)
+- Spring Security - Authentication and authorization (`src/main/java/com/softropic/payam/security/`)
+- Spring Data JPA / Hibernate 6 - ORM and persistence (`src/main/java/com/softropic/payam/*/repo/`)
+- Spring Web MVC - REST API layer (`src/main/java/com/softropic/payam/security/api/`)
+- Spring Boot Actuator - Health and metrics endpoints at `/manage`
+- Spring Boot Mail - SMTP email sending
+- Spring Cloud CircuitBreaker (Resilience4j) - Fault tolerance for email sending (`src/main/java/com/softropic/payam/email/service/MailManager.java`)
+- Spring Retry - Retry logic for email delivery
+- Spring Boot AOP - Aspect-oriented cross-cutting concerns
 
-**Frontend Core:**
-- Vue 3.5.22 - UI framework
-- Quasar 2.16.0 - Vue UI component library and build system (`src/frontend/quasar.config.js`)
-- Vite (via `@quasar/app-vite`) - Dev server and bundler
-- Vue Router 4 - Client-side routing (`src/frontend/src/router/`)
-- Pinia 3 - State management (`src/frontend/src/stores/`)
-- vue-i18n 11 - Internationalization; locales: en-US, fr-FR (`src/frontend/src/i18n/`)
-
-**Testing:**
-- Spring Boot Test + JUnit Jupiter - Unit/integration tests
-- Testcontainers (PostgreSQL) - Database integration testing (`src/test/java/com/softropic/payam/config/CustomPostgresContainer.java`)
-- Mockito - Mocking
-- AssertJ 3.24.2 - Fluent assertions
-- Instancio 2.10.0 - Test data generation
-- Awaitility 4.2.0 - Async test assertions
-- json-unit-assertj 4.1.0 - JSON assertions
-- datasource-proxy 1.10 - SQL query recording in tests (`src/test/java/com/softropic/payam/utils/sql/`)
-- Guava TestLib - Additional test utilities
+**Core Frontend:**
+- Vue 3.5.22 - UI framework (`src/frontend/src/`)
+- Quasar 2.16.0 - Vue component library and build system (`src/frontend/quasar.config.js`)
+- Pinia 3.0.1 - State management (`src/frontend/src/stores/`)
+- Vue Router 4 - SPA routing (`src/frontend/src/router/`)
+- vue-i18n 11 - Internationalization with en-US and fr-FR (`src/frontend/src/i18n/`)
 
 **Build/Dev:**
-- `frontend-maven-plugin` 1.15.1 - Installs Node/npm, runs Quasar build during Maven lifecycle
-- Maven Failsafe Plugin - Integration test execution
-- ESLint 9 + `eslint-plugin-vue` - Frontend linting (`src/frontend/eslint.config.js`)
-- Prettier 3.3.3 - Frontend formatting
-- `vite-plugin-checker` - ESLint in Vite dev server
+- Vite (via `@quasar/app-vite 2.1.0`) - Frontend bundler
+- `frontend-maven-plugin 1.15.1` - Downloads Node/npm, builds frontend, copies built SPA into `target/classes/static/`
+- MapStruct 1.6.3 - DTO/entity mapping code generation
+- Lombok - Boilerplate reduction for Java classes
+
+**Testing:**
+- Spring Boot Test / JUnit 5 - Backend testing
+- Testcontainers (PostgreSQL) - Integration tests with real DB
+- Mockito - Mocking framework
+- AssertJ 3.24.2 - Fluent assertions
+- json-unit-assertj 4.1.0 - JSON assertion
+- Awaitility 4.2.0 - Async test assertions
+- Instancio 2.10.0 - Test data generation
+- Guava TestLib 33.4.8 - Additional test utilities
+- datasource-proxy / sql-table-name-parser - SQL query inspection in tests
 
 ## Key Dependencies
 
 **Critical:**
-- `spring-boot-starter-security` - JWT-based auth with custom filter chain
-- `io.jsonwebtoken:jjwt-api` 0.13.0 - JWT creation and validation (`src/main/java/com/softropic/payam/security/jwt/`)
-- `spring-cloud-starter-circuitbreaker-resilience4j` - Circuit breaker for external HTTP calls
-- `org.flywaydb:flyway-core` + `flyway-database-postgresql` - Database schema migrations
-- `org.postgresql:postgresql` - PostgreSQL JDBC driver
-- `org.mapstruct:mapstruct` 1.6.3 - DTO/entity mapping (`src/main/java/com/softropic/payam/security/core/mapper/`)
-- `org.projectlombok:lombok` - Boilerplate reduction
-- `com.bucket4j:bucket4j-core` 8.10.1 - Token-bucket rate limiting (`src/main/java/com/softropic/payam/security/api/ratelimit/`)
-- `axios` 1.2.1 - HTTP client for frontend API calls (`src/frontend/src/boot/axios.js`)
+- `spring-boot-starter-security` - Full custom JWT security stack with 2FA
+- `io.jsonwebtoken:jjwt-api 0.13.0` - JWT creation and validation (`src/main/java/com/softropic/payam/security/infrastructure/jwt/`)
+- `org.flywaydb:flyway-database-postgresql` - Schema versioning; migrations in `src/main/resources/db/migration/`
+- `org.postgresql:postgresql` - JDBC driver (runtime)
+- `com.zaxxer:HikariCP` - Connection pool (bundled with Spring Boot, configured via `spring.datasource.hikari`)
 
 **Infrastructure:**
+- `io.hypersistence:hypersistence-utils-hibernate-63 3.9.10` - Advanced Hibernate type mappings (JSON columns etc.)
+- `com.vladmihalcea:hibernate-types-60 2.21.1` - Additional Hibernate type support
+- `org.hibernate.orm:hibernate-envers 6.6.14.Final` - Audit trail via entity versioning
+- `com.bucket4j:bucket4j-core 8.10.1` - Token-bucket rate limiting (`src/main/java/com/softropic/payam/security/api/ratelimit/`)
+- `com.github.ua-parser:uap-java 1.6.1` - User-agent parsing for request metadata
+- `com.googlecode.libphonenumber:libphonenumber 9.0.25` - Phone number validation (`src/main/java/com/softropic/payam/common/validation/`)
+- `org.sqids:sqids 0.1.0` - Short unique ID generation
+- `org.jasypt:jasypt 1.9.3` - Symmetric encryption utilities
+- `commons-codec 1.19.0` - Encoding/hashing
+- `org.apache.commons:commons-lang3 3.20.0` + `commons-text 1.13.1` - String utilities
+- `commons-validator 1.9.0` - Input validation
+- `com.google.guava 33.4.8-jre` - General utilities
+- `net.logstash.logback:logstash-logback-encoder 8.1` - Structured JSON log output
+- `com.github.loki4j:loki-logback-appender 1.6.0` - Log shipping to Grafana Loki
 - `io.micrometer:micrometer-registry-prometheus` - Prometheus metrics export
-- `net.logstash.logback:logstash-logback-encoder` 8.1 - JSON structured logging
-- `org.hibernate.orm:hibernate-envers` 6.6.14 - Entity audit history
-- `io.hypersistence:hypersistence-utils-hibernate-63` 3.9.10 - Advanced Hibernate utilities (JSON column types)
-- `com.vladmihalcea:hibernate-types-60` 2.21.1 - Additional Hibernate type mappings
-- `net.ttddyy:datasource-proxy` 1.10 - SQL statement interception
-- `org.jasypt:jasypt` 1.9.3 - String encryption utility
-- `com.googlecode.libphonenumber:libphonenumber` 9.0.25 - Phone number validation (`src/main/java/com/softropic/payam/common/util/PhoneNumberUtil.java`)
-- `org.sqids:sqids` 0.1.0 - Short ID generation
-- `com.github.ua-parser:uap-java` 1.6.1 - User-agent parsing
-- `@rajesh896/broprint.js` 2.2.0 - Browser fingerprinting for fraud prevention (`src/frontend/src/boot/axios.js`)
+- `io.micrometer:micrometer-tracing-bridge-otel` + `opentelemetry-exporter-otlp` - Distributed tracing via OpenTelemetry
+
+**Frontend:**
+- `axios 1.2.1` - HTTP client with interceptors for auth and loading state (`src/frontend/src/boot/axios.js`)
+- `@rajesh896/broprint.js 2.2.0` - Browser fingerprinting for fraud detection
+- `@quasar/extras 1.16.4` - Roboto font, Material Icons
 
 ## Configuration
 
-**Environment Variables Required (production):**
-- `SPRING_MAIL_PASSWORD` - Default SMTP mail password
+**Environment:**
+- Active profile selected at runtime (default, `dev`)
+- `application.yaml` - Base config (production-oriented)
+- `application-dev.yaml` - Development overrides (Testcontainers DB, relaxed actuator, `create-drop` DDL)
+- Server port: `9990` (configurable via `${port}`)
+
+**Required env vars (production):**
+- `SPRING_MAIL_PASSWORD` - Primary SMTP password
 - `GMX_PASSWORD` - GMX email provider password
-- `GMAIL_PASSWORD` - Gmail email provider password
-- `MAIL_DE_PASSWORD` - Mail.de email provider password
+- `GMAIL_PASSWORD` - Gmail provider password
 - `MOMO_SUBSCRIPTION_KEY` - MTN MoMo API subscription key
-- `LOKI_API_KEY` - Grafana Loki logging API key
-- `port` - Server port (defaults to 9990)
+- `LOKI_API_KEY` - Grafana Loki log shipping key
 
-**Spring Profiles:**
-- Default (`application.yaml`) - Production-oriented settings; Flyway `ddl-auto: none`
-- `dev` (`application-dev.yaml`) - Development; `ddl-auto: create-drop`; relaxed Actuator exposure
-
-**Build Configuration:**
-- `pom.xml` - Maven build; frontend build integrated via `frontend-maven-plugin`
-- `src/frontend/quasar.config.js` - Quasar/Vite build, dev proxy, plugins
-- `src/main/resources/config/logback-spring.xml` - Logback configuration (console, file, Loki)
+**Build:**
+- `pom.xml` - Maven build; runs frontend build as part of `generate-resources` phase
+- `src/frontend/quasar.config.js` - Vite/Quasar build config; router mode is `hash`
+- Built frontend SPA copied to `target/classes/static/` and served as Spring Boot static resources
+- `src/main/resources/config/logback-spring.xml` - Logback config (Loki + rolling file + console)
 
 ## Platform Requirements
 
 **Development:**
 - Java 17+
-- Maven 3.x (or use `mvnw`)
-- Node.js v22.16.0 (auto-installed by Maven build) or managed locally
-- PostgreSQL (local or Docker container; `datasource.container: true` connects to test container config)
+- Maven (or `./mvnw`) - handles Node/npm installation automatically
+- PostgreSQL instance (or Docker via Testcontainers for tests)
+- Optional: Docker Compose (`docker-compose-lgtm.yaml`) for local observability stack (Prometheus, Loki, Tempo, Grafana)
 
 **Production:**
-- Deployable as a fat JAR (Spring Boot executable)
-- Frontend SPA is bundled into `target/classes/static/` and served by the embedded Tomcat
-- Logs written to `/var/log/payam/spring.log` (rolling) and pushed to Grafana Loki
-- Tomcat access logs written to `/usr/local/var/ledger/payam_access.ledger`
-- PostgreSQL database required
+- JVM 17+, deployed as a Spring Boot fat JAR (`target/payam-*.jar`)
+- PostgreSQL database
+- SMTP relay (GMX, Gmail, or mail.de)
+- Optional: LGTM observability stack (Prometheus on port 9090, Loki on 3100, Tempo on 3200/4317/4318, Grafana on 3000)
 
 ---
 
-*Stack analysis: 2026-03-06*
+*Stack analysis: 2026-03-21*

@@ -1,216 +1,277 @@
 # Codebase Concerns
 
-**Analysis Date:** 2026-03-06
-
----
+**Analysis Date:** 2026-03-21
 
 ## Security Considerations
 
-**Leaked credential hint in config files:**
-- Risk: A commented-out password value `#BEQMN6SITHUDQEGIDWKZ` appears in the `spring.mail.password` line in both `application.yaml` (line 73) and `application-dev.yaml` (line 73). Even though it is a comment, it is committed to version control and represents a credential leak for the GMX mail account `blue-bone@gmx.de`.
-- Files: `src/main/resources/application.yaml`, `src/main/resources/application-dev.yaml`
-- Current mitigation: The active value uses `${SPRING_MAIL_PASSWORD}` env var interpolation; the comment is residual.
-- Recommendations: Remove the comment from both files immediately. Rotate the GMX password if this repository has ever been pushed to a shared remote.
+**Hardcoded Credentials in application.yaml:**
+- Risk: Production `application.yaml` has a commented-out plaintext password next to the `${SPRING_MAIL_PASSWORD}` placeholder: `#BEQMN6SITHUDQEGIDWKZ`. If uncommented or copied incorrectly, real credentials are exposed in source control.
+- Files: `src/main/resources/application.yaml` (line 73), `src/main/resources/application-dev.yaml` (line 73)
+- Current mitigation: Actual secrets use env-var placeholders (`${SPRING_MAIL_PASSWORD}`). Dev profile uses `dev_*` fallback values.
+- Recommendations: Remove all plaintext credential comments. Add git-secrets or detect-secrets pre-commit hook to prevent future leakage.
 
-**nationalId stored as plain text:**
-- Risk: `Customer.nationalId` is a plain `String` column (`@Size(max = 3)`) with no encryption, hashing, or `@Convert` annotation. National identification numbers are PII and may be subject to data-protection regulations (GDPR, etc.).
-- Files: `src/main/java/com/softropic/payam/security/domain/Customer.java` (line 81)
-- Current mitigation: None.
-- Recommendations: Apply JPA `@Convert` with an `AttributeConverter` that encrypts the value at rest, or store a salted hash and only compare — never display — the raw value.
+**All Actuator Endpoints Exposed (application.yaml):**
+- Risk: `management.endpoints.web.exposure.include: "*"` in the main `application.yaml` exposes every actuator endpoint including `/manage/env`, `/manage/beans`, `/manage/heapdump`. The dev profile correctly narrows this to `health,info,env` — but the main profile is the fallback.
+- Files: `src/main/resources/application.yaml` (line 126), `src/main/resources/application-dev.yaml` (lines 130-144)
+- Current mitigation: Dev profile is more restrictive. Some actuator endpoints require ROLE_ADMIN.
+- Recommendations: Restrict the base `application.yaml` to `health,info` and protect remaining endpoints. Never expose `heapdump`, `shutdown`, or `beans` without authentication.
 
-**TLS certificate verification disabled globally for outbound HTTP clients:**
-- Risk: `checkCertificate: false` is set in the `defaultTcpConfig` anchor in both config files, which is the base config for the MoMo API client. `TcpConfiguration.checkCertificate` defaults to `true` in the Java class, but the YAML overrides it to `false`. This disables server certificate verification for outbound REST calls, making MitM attacks trivial in any environment where this profile is active.
-- Files: `src/main/resources/application.yaml` (line 138), `src/main/resources/application-dev.yaml` (line 151), `src/main/java/com/softropic/payam/common/client/TcpConfiguration.java` (lines 13, 56-60)
-- Current mitigation: Only affects sandbox MoMo endpoint today.
-- Recommendations: Set `checkCertificate: true` (or remove the override) in production config. Keep `false` only in an isolated sandbox profile with a clear comment.
+**JMX Enabled in Main Profile:**
+- Risk: `spring.jmx.enabled: true` in `application.yaml` exposes management beans over JMX, which can allow remote code execution if JMX is not properly firewalled.
+- Files: `src/main/resources/application.yaml` (line 25)
+- Current mitigation: Dev profile disables JMX (`spring.jmx.enabled: false`).
+- Recommendations: Disable JMX in `application.yaml` by default; enable only where specifically needed with authentication.
 
-**Spring circular references enabled in production config:**
-- Risk: `spring.main.allow-circular-references: true` is set in both `application.yaml` and `application-dev.yaml`. This suppresses a Spring Boot 2.6+ safeguard and hides design flaws that could cause unpredictable startup failures or proxy mis-wiring.
-- Files: `src/main/resources/application.yaml` (line 24), `src/main/resources/application-dev.yaml` (line 24)
-- Current mitigation: None.
-- Recommendations: Identify the circular dependency causing this flag to be needed and break it. Remove the flag once resolved.
+**SSL Certificate Verification Disabled for MoMo Client:**
+- Risk: `checkCertificate: false` in `defaultTcpConfig` means TLS certificate verification is disabled for the MoMo payment API client. This allows man-in-the-middle attacks against all payment API calls.
+- Files: `src/main/resources/application.yaml` (line 147), `src/main/java/com/softropic/payam/common/client/TcpConfiguration.java`
+- Current mitigation: Only applies to sandbox environment (`X-Target-Environment: sandbox`).
+- Recommendations: Enable certificate checking (`checkCertificate: true`) before any production deployment. Create a separate production profile config.
 
-**Plaintext database credentials in dev config:**
-- Risk: `application-dev.yaml` contains literal `username: postgres` / `password: postgres` (lines 44-45). If this profile is ever active in a shared or cloud environment, the database is trivially accessible.
-- Files: `src/main/resources/application-dev.yaml` (lines 44-45)
-- Current mitigation: Only used locally during development per convention.
-- Recommendations: Use env var interpolation (`${DB_PASSWORD:postgres}`) consistently so the pattern is not accidentally promoted.
+**Session ID Not Validated Against JWT Claims:**
+- Risk: The `getSessionId()` method in `RequestMetadataProvider` reads the JWT session cookie value but contains a TODO noting session ID validation against JWT claims is not yet implemented. Session fixation attacks are possible.
+- Files: `src/main/java/com/softropic/payam/security/common/util/RequestMetadataProvider.java` (line 81)
+- Current mitigation: Session cookie is tracked but not cryptographically bound to the JWT.
+- Recommendations: Extract session ID from JWT claims and compare with cookie value in `getSessionId()`.
+
+**CORS Allows All Methods and Headers:**
+- Risk: Both `application.yaml` and `application-dev.yaml` set `allowed-methods: '*'` and `allowed-headers: '*'`. In production this may allow cross-origin requests with dangerous HTTP methods.
+- Files: `src/main/resources/application.yaml` (lines 84-89)
+- Current mitigation: Config is commented as "Just for dev"; allowed origins are still localhost-scoped.
+- Recommendations: Create a production profile that lists explicit allowed methods (GET, POST, PUT, DELETE) and required headers only.
+
+**Allowed Machine Clients Hardcoded in Config:**
+- Risk: `allowed.clients: myClientId,hisClientId,herClientId,ourClientId` in both config files uses placeholder values. `ClientIdAccessDecisionManager` reads this list at startup and cannot change it without restarting the service.
+- Files: `src/main/resources/application.yaml` (line 117), `src/main/java/com/softropic/payam/security/service/ClientIdAccessDecisionManager.java` (lines 29, 32)
+- Current mitigation: The list is externalized to config rather than hardcoded in Java.
+- Recommendations: Move allowed client list to database as noted in the TODO comments, so it can be managed at runtime without restarts.
+
+**Fingerprint Cookie Missing HttpOnly/Secure Flags:**
+- Risk: The browser fingerprint cookie (`fcookie`) is set via `document.cookie` in JavaScript without `HttpOnly` or `Secure` flags, making it readable by any JavaScript on the page and susceptible to theft over HTTP.
+- Files: `src/frontend/src/boot/axios.js` (line 69)
+- Current mitigation: Cookie is used for fraud detection only, not authentication.
+- Recommendations: Set the cookie via the backend response with `HttpOnly` and `Secure` flags, or accept the limitation and document it.
 
 ---
 
 ## Tech Debt
 
-**SMS registration strategy is a complete stub:**
-- Issue: `SmsRegistrationStrategy` is injected into `AccountManagementFacade` and registered as a Spring `@Component`, but both `notifyNewUser()` and `notifyUserExists()` contain only TODO comments and return a random UUID. Phone-based registration will silently succeed without actually sending any SMS.
-- Files: `src/main/java/com/softropic/payam/security/api/registration/SmsRegistrationStrategy.java` (lines 54, 79)
-- Impact: Users registering via phone number never receive an activation code. No error is raised; callers believe notification succeeded.
-- Fix approach: Integrate an SMS gateway (Twilio, AWS SNS, etc.) and implement the two methods, or make the class throw `UnsupportedOperationException` so failures are explicit until then.
+**In-Memory Login Attempt Tracking (Not Multi-Node Ready):**
+- Issue: `LoginAttemptsService` uses Guava in-memory `LoadingCache` for all login attempt tracking (by user, IP, and client). This state is local to each JVM instance.
+- Files: `src/main/java/com/softropic/payam/security/service/LoginAttemptsService.java` (line 38)
+- Impact: In a multi-node deployment, an attacker can bypass brute-force protection by distributing login attempts across application nodes. Each node sees only its own failure count.
+- Fix approach: Replace in-memory caches with distributed cache (Redis/Hazelcast) or a database-backed approach as documented in the class-level TODO.
 
-**MoMo payment integration configured but not implemented:**
-- Issue: Full MoMo API endpoint configuration exists in both YAML files (5 endpoints: `requestToPay`, `getRequestToPayTransactionStatus`, `getAccountBalance`, `getBasicUserInfo`, `requestAuthToken`). `MomoError` error codes are defined in `common/client/exception`. `MobilePaymentProvider` enum (MTN, ORANGE, NEXTTEL) and `PaymentMethod` enum exist. However, there is no `MomoClient` class, no service that uses these configs, and no integration test for any payment flow.
-- Files: `src/main/java/com/softropic/payam/common/client/exception/MomoError.java`, `src/main/java/com/softropic/payam/common/payment/MobilePaymentProvider.java`, `src/main/java/com/softropic/payam/common/payment/PaymentMethod.java`; config: `src/main/resources/application.yaml` (lines 140-176)
-- Impact: Payment functionality is dead code. The `MOMO_SUBSCRIPTION_KEY` env var is required at startup but never consumed.
-- Fix approach: Implement a `MomoClient extends AbstractClient` or explicitly remove the payment scaffolding if out of scope.
+**In-Memory Client Blacklisting Not Persisted:**
+- Issue: `blacklistClient()` in `LoginAttemptsService` stores blacklisted clients in a Guava `LoadingCache` with a 30-day expiry. Blacklisting is lost on restart and not shared between nodes.
+- Files: `src/main/java/com/softropic/payam/security/service/LoginAttemptsService.java` (lines 183-191)
+- Impact: Blacklisted clients regain access after application restart or in multi-node deployments.
+- Fix approach: Persist blacklisted clients to the database as noted in the TODO comment.
 
-**In-memory login-attempt cache is not multi-node safe:**
-- Issue: `LoginAttemptsService` uses Guava `LoadingCache` to track failed login attempts, blacklisted clients, and per-IP counters. The TODO on line 37 explicitly acknowledges this cannot be used in a multi-node deployment.
-- Files: `src/main/java/com/softropic/payam/security/manager/LoginAttemptsService.java` (line 37)
-- Impact: Brute-force protection evaporates the moment more than one instance is running (e.g., horizontal scaling or rolling deploys).
-- Fix approach: Replace the in-memory cache with a distributed cache (Redis via Spring Cache abstraction) or a database-backed rate-limit table.
-
-**`blacklistClient()` records but does not enforce:**
-- Issue: `LoginAttemptsService.blacklistClient()` (line 142) is explicitly noted as "only recording." It populates a cache entry but `ClientIdAccessDecisionManager.isClientIdAllowed()` does not consult the blacklist.
-- Files: `src/main/java/com/softropic/payam/security/manager/LoginAttemptsService.java` (line 142), `src/main/java/com/softropic/payam/security/manager/ClientIdAccessDecisionManager.java` (line 46)
-- Impact: Clients can be blacklisted with no actual effect on access.
-- Fix approach: Wire `LoginAttemptsService.isBlacklisted()` into `ClientIdAccessDecisionManager.isClientIdAllowed()`.
-
-**Allowed machine clients hardcoded in config, not database:**
-- Issue: `allowed.clients: myClientId,hisClientId,herClientId,ourClientId` in both YAML files. `ClientIdAccessDecisionManager` loads this list at startup. Any change requires a config change and redeploy. The TODO (line 29) acknowledges this should be in a DB.
-- Files: `src/main/resources/application.yaml` (line 117), `src/main/resources/application-dev.yaml` (line 123), `src/main/java/com/softropic/payam/security/manager/ClientIdAccessDecisionManager.java` (line 29)
-- Impact: Cannot revoke or add clients without redeployment.
-- Fix approach: Persist allowed clients in a DB table and load them via a `@Refreshable` bean or Spring Cloud Config.
-
-**Duplicate phone-number parsing logic:**
-- Issue: The same `CamMobileValidator.validate()` to build-`PhoneNumber` entity pattern appears in both `UserMapper.stringToPhoneNumber()` and `UserProfileService.toPhoneNumber()`. The TODO in `AccountManagementFacade` (line 244) also calls this out.
-- Files: `src/main/java/com/softropic/payam/security/core/mapper/UserMapper.java` (line 83), `src/main/java/com/softropic/payam/security/service/UserProfileService.java` (line 248), `src/main/java/com/softropic/payam/security/api/AccountManagementFacade.java` (line 244)
-- Impact: Maintenance risk; a bug fix or validation change must be applied in multiple places.
-- Fix approach: Extract into a single `PhoneNumberFactory` or `PhoneNumberConverter` utility class.
-
-**`AccountChangeEventListener` couples audit package to email package:**
-- Issue: The audit listener directly depends on email types. The TODO (line 29) notes this is a design flaw that should be corrected.
-- Files: `src/main/java/com/softropic/payam/security/audit/listener/AccountChangeEventListener.java` (line 29)
-- Impact: Audit cannot be used independently; testing the audit trail requires wiring in email infrastructure.
-- Fix approach: Redesign `AccountChangeEvent` to carry only primitive/value data; let a separate email listener translate it into an email command.
-
-**Hibernate DDL auto config risk:**
-- Issue: `spring.jpa.generate-ddl: true` appears in `application.yaml` (line 27), which is the base config. `application-dev.yaml` further sets `hibernate.ddl-auto: create-drop`. While `application.yaml` has `ddl-auto: none`, having `generate-ddl: true` in a base config is a footgun.
-- Files: `src/main/resources/application.yaml` (line 27), `src/main/resources/application-dev.yaml` (line 28)
-- Impact: Misconfiguration risk: if a profile is missing the `ddl-auto: none` override the schema could be mutated or dropped in production.
-- Fix approach: Set `generate-ddl: false` in the base `application.yaml`; override only in the dev profile.
-
----
-
-## Null Returns in Production Code
-
-The following production methods return raw `null` instead of `Optional` or throwing, which can cause `NullPointerException` at call sites:
-
-**`ClaimsExtractorImpl.extractDbRefreshToken()`** — returns `null` if token is blank or claim is absent.
-- File: `src/main/java/com/softropic/payam/security/jwt/api/ClaimsExtractorImpl.java` (lines 105, 109)
-- Risk: Any caller that does not null-check will NPE at runtime.
-- Fix approach: Change return type to `Optional<Long>`.
-
-**`ClaimsExtractorImpl.extractUserNameSilently()`** — returns `null` via `orElse(null)`.
-- File: `src/main/java/com/softropic/payam/security/jwt/api/ClaimsExtractorImpl.java` (line 114)
-- Risk: Callers expecting a non-null username string will NPE.
-- Fix approach: Return `Optional<String>` and update callers.
-
-**`JWTAuthenticationFilter.toCreds()`** — returns `null` if `LoginIdType` code is exhausted.
-- File: `src/main/java/com/softropic/payam/security/jwt/api/filter/JWTAuthenticationFilter.java` (line 180)
-- Risk: `toCreds()` result is used immediately; a null leads to NPE in the login filter, which is a security-critical path.
-- Fix approach: Add a `default` branch that throws `AuthenticationServiceException` or falls back to `LoginIdType.EMAIL`.
-
-**`AuthenticationManagerSimulator.authenticate()`** — always returns `null` intentionally.**
-- File: `src/main/java/com/softropic/payam/security/manager/AuthenticationManagerSimulator.java` (line 24)
-- Risk: This is a timing-attack mitigation simulator, but any code path that dereferences the return value will NPE. There is no `@Nullable` annotation or Javadoc.
-- Fix approach: Add `@Nullable` annotation and verify every call site handles null.
-
-**`SecurityAuditListener.extractMessage()`** — returns `null` when exception is `null`.
-- File: `src/main/java/com/softropic/payam/security/audit/listener/SecurityAuditListener.java` (line 130)
-- Risk: `auditTrail.setMsg(null)` propagates a null into the audit DB column; depending on schema constraints this may cause an INSERT failure.
-- Fix approach: Return an empty string or a default `"(no message)"`.
-
-**`AccountManagementFacade` (line 240)** — returns `null` from phone-number builder when validator result is missing.
-- File: `src/main/java/com/softropic/payam/security/api/AccountManagementFacade.java` (line 240)
-- Risk: Null propagated to callers expecting a `PhoneNumber` entity.
-- Fix approach: Return `Optional<PhoneNumber>` or throw a domain exception.
-
-**`UserProfileService.toPhoneNumber()` and `formatAddress()`** — return `null` for blank/null input.
-- File: `src/main/java/com/softropic/payam/security/service/UserProfileService.java` (lines 250, 290)
-- Risk: Acceptable for optional fields, but undocumented; callers must know to null-check.
-- Fix approach: Add `@Nullable` annotation or return `Optional<T>` for consistency.
-
----
-
-## Missing Critical Features
-
-**Email send-failure retry mechanism absent:**
-- Problem: `MailService.sendEmailFromTemplate()` has a TODO (line 69) for handling send failures. The circuit-breaker in `MailManager` catches exceptions and marks rows `FAILED` in DB with `retry: true`, but there is no scheduled job to retry those rows.
-- Blocks: Reliable email delivery in production.
-- Files: `src/main/java/com/softropic/payam/email/service/MailService.java` (line 69), `src/main/java/com/softropic/payam/email/api/MailManager.java`
-
-**Session ID not included in JWT claims:**
-- Problem: `Principal` has a TODO noting the session ID should be added to claims (line 23). `RequestMetadataProvider` has a TODO to validate session ID is present in claims to prevent fraud (line 79).
-- Blocks: Session-bound JWT validation and protection against token replay after logout.
-- Files: `src/main/java/com/softropic/payam/security/exposed/Principal.java` (line 23), `src/main/java/com/softropic/payam/security/exposed/util/RequestMetadataProvider.java` (line 79)
-
-**IP whitelist check never implemented:**
-- Problem: `LoginAttemptsService` has a TODO (line 226): "also verify that ip is in whitelist."
-- Blocks: IP-based access control for trusted machine clients.
-- Files: `src/main/java/com/softropic/payam/security/manager/LoginAttemptsService.java` (line 226)
-
-**`SecondFactorLoginFilter` response status unresolved:**
-- Problem: The HTTP status returned after successful 2FA is left as a TODO with open question (`//TODO 201? 200? 202?`).
-- Files: `src/main/java/com/softropic/payam/security/core/filter/SecondFactorLoginFilter.java` (line 101)
-- Impact: API contract for 2FA completion is undefined and unstable.
-
----
-
-## Test Coverage Gaps
-
-**`UserProfileService` — no dedicated unit or integration tests:**
-- What's not tested: `updateUserEmail()`, `updatePhone()`, `toggle2fa()`, `changePassword()`, `updatePostalAddress()`.
-- Files: `src/main/java/com/softropic/payam/security/service/UserProfileService.java`
-- Risk: Profile update logic, including `AccountChangeEvent` publishing and old-value capture, could regress silently.
-- Priority: High
-
-**`AccountManagementFacade` — no dedicated tests:**
-- What's not tested: Password reset flow, registration dispatch to SMS vs email strategy, phone-number building.
-- Files: `src/main/java/com/softropic/payam/security/api/AccountManagementFacade.java`
-- Risk: Facade orchestrates multiple services; failures in delegation are invisible.
-- Priority: High
-
-**`SmsRegistrationStrategy` — no tests:**
-- What's not tested: The stub silently returns a UUID. No test verifies that a warning is logged or that the channel type is `"SMS"`.
+**SMS Registration Strategy Is a Stub:**
+- Issue: `SmsRegistrationStrategy` has no real implementation. Both `notifyNewUser()` and `notifyUserExists()` log a warning and return a random UUID. Phone-based registration cannot actually deliver activation codes.
 - Files: `src/main/java/com/softropic/payam/security/api/registration/SmsRegistrationStrategy.java`
-- Priority: Low (stub), must be High once real implementation lands.
+- Impact: Any user who registers with a phone number (`LoginIdType.PHONE`) will never receive an activation SMS, leaving their account stuck in inactive state.
+- Fix approach: Integrate an SMS gateway (Twilio, AWS SNS, etc.) as described in the class-level Javadoc requirements list.
 
-**`AuthorizationFailureListener` — explicitly untested:**
-- What's not tested: The listener body has `//TODO test this` on line 28.
-- Files: `src/main/java/com/softropic/payam/security/listener/AuthorizationFailureListener.java`
-- Risk: Authorization-failure audit path is unverified.
-- Priority: Medium
+**`InputValidator.isValidName()` Not Used in Registration:**
+- Issue: `isValidName()` is implemented and tested but has a TODO noting it "should be used in the registration process as well." User-submitted names are validated only by JPA annotations, not by the full name validation logic.
+- Files: `src/main/java/com/softropic/payam/common/validation/InputValidator.java` (line 70)
+- Impact: Names with reserved/blocked words, pure hyphens, or malformed Unicode may be accepted at registration.
+- Fix approach: Call `InputValidator.isValidName()` within the registration request DTO validation or add it to `NameValidator`.
 
-**`LoginInfoService` scenarios not tested:**
-- What's not tested: `//TODO test the scenarios` on line 59.
-- Files: `src/main/java/com/softropic/payam/security/service/LoginInfoService.java`
-- Priority: Medium
+**`RequestIdProvider` and `RequestMetadataProvider` Overlap:**
+- Issue: Two parallel classes handle request context propagation. `RequestMetadataProvider` calls `RequestIdProvider` internally and contains two TODOs to merge the two.
+- Files: `src/main/java/com/softropic/payam/security/common/util/RequestMetadataProvider.java` (lines 41, 52), `src/main/java/com/softropic/payam/security/common/util/RequestIdProvider.java`
+- Impact: Duplicated cleanup paths; risk of a future developer cleaning up one but not the other in async contexts.
+- Fix approach: Consolidate `RequestIdProvider` into `RequestMetadataProvider` as the TODO comments prescribe.
+
+**`TimeGuru` Static Utility Not Using Injected Clock:**
+- Issue: `TimeGuru` is a static utility class with a TODO noting it should be moved to a `DateTimeService` if possible. It does not accept a `ClockProvider`, making time-based tests harder to write.
+- Files: `src/main/java/com/softropic/payam/common/TimeGuru.java` (line 12)
+- Impact: Code depending on `TimeGuru` cannot be tested with a controllable clock.
+- Fix approach: Move time logic into an injectable `DateTimeService` that accepts `ClockProvider`.
+
+**`CommonConfig` Not Using `ClockProvider`:**
+- Issue: A TODO in `CommonConfig` notes it should "consider using clockProvider" but does not yet, creating inconsistency — some code uses `ClockProvider`, other code uses `LocalDateTime.now()` directly.
+- Files: `src/main/java/com/softropic/payam/common/config/CommonConfig.java` (line 20)
+- Impact: Time-dependent beans created in `CommonConfig` cannot be controlled in tests.
+- Fix approach: Inject `ClockProvider` into `CommonConfig`.
+
+**`DbSchemaChecker` Using `@PostConstruct` Instead of Constructor:**
+- Issue: A TODO notes that schema-check logic in `@PostConstruct` should be moved to the parameterless constructor with the annotation removed.
+- Files: `src/main/java/com/softropic/payam/common/persistence/DbSchemaChecker.java` (line 32)
+- Impact: Minor: `@PostConstruct` works but is harder to test and creates a hidden initialization dependency.
+- Fix approach: Move logic to the constructor and remove `@PostConstruct`.
+
+**`RestTemplate` Used Instead of `RestClient`/`WebClient`:**
+- Issue: `AbstractClient` constructs a synchronous `RestTemplate` directly (`new RestTemplate(new SimpleClientHttpRequestFactory())`). `RestTemplate` is in maintenance mode as of Spring 6.
+- Files: `src/main/java/com/softropic/payam/common/client/AbstractClient.java` (line 49)
+- Impact: No functional breakage now, but diverges from the Spring-recommended reactive/non-blocking `RestClient` pattern and will require migration eventually.
+- Fix approach: Migrate to `RestClient` (synchronous, Spring 6.1+) or `WebClient` for reactive use cases.
+
+**Duplicate Notification Guard Missing:**
+- Issue: `AccountManagementFacade.registerAccount()` has a TODO noting the messaging module "should avoid sending duplicate notifications to the same user within 5 minutes." No deduplication guard is implemented.
+- Files: `src/main/java/com/softropic/payam/security/api/AccountManagementFacade.java` (line 122)
+- Impact: A user or attacker could trigger multiple activation emails/SMS within seconds by calling `/v1/account/register` repeatedly.
+- Fix approach: Add a time-based deduplication check in `AccountManagementFacade` or within each `RegistrationNotificationStrategy`.
+
+---
+
+## Known Bugs
+
+**User Not Assigned ROLE_USER on Registration (Open Issue):**
+- Symptoms: Documented in `readme_checklist.md` — "When a user registers, he should be assigned the ROLE_USER authority."
+- Files: `src/main/java/com/softropic/payam/security/service/UserRegistrationService.java` (line 44)
+- Trigger: `authorityRepository.findOneByName(SecurityConstants.ROLE_USER).orElse(null)` returns `null` if the `ROLE_USER` row is absent from the `authority` table (e.g., on a fresh database without seed data). The `null` authority is added to the user's authority set and persisted, resulting in a user with no valid role.
+- Workaround: Ensure the authority seed data is present in the database before registration.
+
+**`LoginAttemptsService.isAllowed()` Fails Open on Cache Error:**
+- Symptoms: Any `ExecutionException` from the Guava cache causes `isAllowed()` to return `true`, bypassing brute-force protection entirely.
+- Files: `src/main/java/com/softropic/payam/security/service/LoginAttemptsService.java` (lines 131-134)
+- Trigger: `ExecutionException` thrown by `cache.get()` on a cache loading error.
+- Workaround: None. The fail-open is intentional but undocumented as a risk.
+
+**`SecondFactorLoginFilter` Returns 200 Instead of Proper Status for 2FA:**
+- Symptoms: A TODO marks the HTTP status code for the second-factor response as unresolved (`//TODO 201? 200? 202?`), suggesting the current 200 may not be semantically correct for all clients.
+- Files: `src/main/java/com/softropic/payam/security/infrastructure/filter/SecondFactorLoginFilter.java` (line 101)
+- Trigger: When 2FA login completes.
+- Workaround: Frontend currently handles this as a 200, so it works in practice.
+
+---
+
+## Performance Bottlenecks
+
+**Synchronous Email Sending with Circuit Breaker on Request Thread:**
+- Problem: `MailManager.sendEmailSync()` is called by `EmailRetryScheduler` on a scheduler thread, but the `CircuitBreaker.run()` call inside is synchronous and blocking. In the scheduler's transaction, any slow SMTP provider holds a DB transaction open.
+- Files: `src/main/java/com/softropic/payam/email/service/MailManager.java` (lines 58-112), `src/main/java/com/softropic/payam/email/infrastructure/EmailRetryScheduler.java`
+- Cause: The circuit breaker and retry logic are synchronous within `@Transactional` context.
+- Improvement path: Decouple SMTP send from the DB transaction; update status after send completes outside the transaction boundary.
+
+**`FETCH EAGER` on `addresses` Element Collection:**
+- Problem: `Customer.addresses` is declared `FetchType.EAGER` as an `@ElementCollection`. Every query loading a `Customer` or `User` entity will always join and load all addresses, even when only login or email is needed.
+- Files: `src/main/java/com/softropic/payam/security/repo/Customer.java` (line 76)
+- Cause: `@ElementCollection` defaults to `EAGER` in some contexts; here it is made explicit.
+- Improvement path: Change to `FetchType.LAZY` and load addresses only when needed.
+
+**Batch Size for DB Operations is 15:**
+- Problem: `hibernate.jdbc.batch_size: 15` is a conservative batch size. For bulk operations (e.g., email envelope inserts), this results in many round trips.
+- Files: `src/main/resources/application.yaml` (line 37)
+- Cause: Conservative default.
+- Improvement path: Profile bulk insert workloads and tune upward (50-100 is common for PostgreSQL).
 
 ---
 
 ## Fragile Areas
 
-**`SecurityConfiguration` role-prefix assumption:**
-- Files: `src/main/java/com/softropic/payam/security/config/SecurityConfiguration.java` (line 94)
-- Why fragile: A TODO notes that `hasAnyRole` is used with roles that do not carry the `ROLE_` prefix. If the Spring Security default behavior changes or roles are renamed, authorization checks will silently fail open or closed.
-- Safe modification: Audit all `hasAnyRole` / `hasRole` calls and standardize prefix usage before adding new roles.
-- Test coverage: Partial — `SecurityIT` and `SecurityFilterChainIT` exist but do not cover all role branches.
+**`SecurityConfiguration.fraudAwareAuthenticationManager()` Missing `@Bean`:**
+- Files: `src/main/java/com/softropic/payam/security/config/SecurityConfiguration.java` (line 106)
+- Why fragile: `fraudAwareAuthenticationManager()` is called directly by `filterChain()` as a plain method call rather than being a Spring bean. If Spring tries to proxy or instrument this method, the `@SuppressWarnings("PMD")` suppression suggests the author knows this is unusual. Spring Security filter chain wiring is complex; this manual wiring is easy to break when refactoring.
+- Safe modification: Do not add `@Bean` without first understanding why it was omitted. Test the full auth chain in integration tests after any `SecurityConfiguration` changes.
+- Test coverage: `SecurityIT.java` and `SecurityFilterChainIT.java` cover the chain, but coverage of the 2FA and refresh paths may be incomplete.
 
-**`node_modules` committed to version control:**
-- Files: `src/frontend/node_modules/` (407 subdirectories)
-- Why fragile: The root `.gitignore` (line 65) contains `!**/src/frontend/node_modules/`, a negation that un-ignores `node_modules` for the entire repo, overriding the frontend's own `.gitignore` which correctly excludes it. As a result the full `node_modules` tree (~400 packages) is tracked by git, causing massive repo size, merge conflicts on dependency changes, and potential supply-chain risk from committed binaries.
-- Safe modification: Remove the `!**/src/frontend/node_modules/` line from the root `.gitignore`. Run `git rm -r --cached src/frontend/node_modules` to stop tracking existing entries.
+**`LoginAttemptsService` In-Memory State During Tests:**
+- Files: `src/main/java/com/softropic/payam/security/service/LoginAttemptsService.java`
+- Why fragile: Tests inject a `Ticker` to control time, but the caches are created in the constructor; if the Spring container caches a `@Service` singleton across tests, attempt counts from one test bleed into the next.
+- Safe modification: Reset caches between integration tests via `unlockUser()` and `unblacklistClient()` or use `@DirtiesContext`.
+- Test coverage: `LoginAttemptsServiceTest.java` covers unit behavior; no obvious integration-level reset between tests was found.
 
-**`Customer.nationalId` used as equality key without unique DB constraint:**
-- Files: `src/main/java/com/softropic/payam/security/domain/Customer.java` (line 81)
-- Why fragile: `equals()` uses `nationalId` as the primary business key, but no `@Column(unique = true)` is declared, and the TODO on line 35 notes that a composite unique constraint on `(firstName, lastName, dateOfBirth)` is also missing. Duplicate customers can be inserted.
-- Safe modification: Add a unique index on `national_id` via a Flyway migration before making the field mandatory.
-- Test coverage: None for duplicate-prevention logic.
+**`activation_key` Still Present in JWT `toString()` Output:**
+- Files: `src/main/java/com/softropic/payam/security/repo/User.java` (line 336)
+- Why fragile: `User.toString()` logs `activationKey` and `resetKey` in plaintext. Any code path that logs a `User` object leaks sensitive keys to the log output. `BodySanitizer` handles JSON request/response sanitization but does not cover entity `toString()` calls in logs.
+- Safe modification: Override `toString()` to redact both `activationKey` and `resetKey`.
+- Test coverage: No test verifies that `User.toString()` does not log sensitive fields.
 
-**`MailManager` `@Async` + `@EventListener` + `@Transactional` combination:**
-- Files: `src/main/java/com/softropic/payam/email/api/MailManager.java` (lines 52-55)
-- Why fragile: The three annotations interact in non-obvious ways. `@Async` moves execution off the calling thread, which means the `@Transactional` context from the event publisher is not inherited. The async thread opens its own transaction. If the outer transaction rolls back after publishing, the email may still be sent (or recorded as sent) for a rolled-back business operation.
-- Safe modification: Adopt a transactional outbox pattern — write to `EnvelopeEntity` within the same transaction as the business operation; a scheduled poller sends emails — instead of direct async dispatch.
+**Duplicate `equals()` / `hashCode()` Contracts Across Entity Hierarchy:**
+- Files: `src/main/java/com/softropic/payam/common/persistence/BaseEntity.java`, `src/main/java/com/softropic/payam/security/repo/Customer.java`, `src/main/java/com/softropic/payam/security/repo/User.java`
+- Why fragile: Three different `equals()`/`hashCode()` strategies are in use across the entity hierarchy. `BaseEntity` uses `id`-based equality. `Customer` uses `nationalId` or name+DOB. `User` overrides again to use `login`. `hashCode()` returns `getClass().hashCode()` (constant) in `Customer` and `User`, but `Objects.hashCode(id)` in `BaseEntity`. Mixing entities across collections that use different equality definitions is unpredictable.
+- Safe modification: Choose one equality contract per entity and document it. Consider using only `id`-based equality once IDs are guaranteed to be assigned before collection insertion.
 
 ---
 
-*Concerns audit: 2026-03-06*
+## Scaling Limits
+
+**PostgreSQL Connection Pool Assumes Max 4 Nodes:**
+- Current capacity: `maximum-pool-size: 25` per application instance.
+- Limit: PostgreSQL default is 100 connections. With 25 per node, the current config supports exactly 4 nodes. Adding a fifth node exhausts the PostgreSQL connection limit.
+- Scaling path: Introduce PgBouncer connection pooler in front of PostgreSQL, or increase `max_connections` in PostgreSQL configuration.
+
+**In-Memory Rate Limiting Not Shared Across Nodes:**
+- Current capacity: `@RateLimited` aspect uses in-memory token buckets (see `RateLimitingService`).
+- Limit: Each application instance tracks its own rate limit counts. In a multi-node setup, an attacker can bypass per-IP/per-key rate limits by distributing requests across nodes.
+- Scaling path: Replace in-memory buckets with Redis-backed rate limiting (Bucket4j Redis or similar).
+
+---
+
+## Dependencies at Risk
+
+**`axios ^1.2.1` Has Multiple Known Vulnerabilities:**
+- Risk: As documented in `docs/owasp-violations.md`, axios 1.2.1 is vulnerable to SSRF, DoS, ReDoS, and CSRF.
+- Impact: Frontend HTTP requests are exposed to these vulnerabilities; SSRF in particular could be exploited to make server-side requests to internal services.
+- Migration plan: Upgrade to the latest stable axios release (1.7.x or newer). Run `npm audit` after upgrading to confirm resolution.
+
+**Spring Boot 3.5.11 (Active; Watch for 3.6+ Advice):**
+- Risk: The OWASP violations doc references CVE-2024-38807 for Spring Boot before 3.6.0. The current `pom.xml` uses `3.5.11` which is not yet 3.6.0.
+- Impact: Signature forgery vulnerability in the Boot parent.
+- Migration plan: Monitor Spring Boot 3.6.x release stability and plan upgrade. Review release notes for breaking changes.
+
+**`jjwt 0.12.6` — Prefer 0.12.7+:**
+- Risk: `docs/owasp-violations.md` notes jjwt 0.12.7 fixed CVE-2023-5072 (empty custom claims issue).
+- Impact: Unexpected behavior in token validation with empty custom claims.
+- Migration plan: Upgrade `io.jsonwebtoken:jjwt-*` to 0.12.7 or later in `pom.xml`.
+
+---
+
+## Missing Critical Features
+
+**No Disposable Email Domain Blocking:**
+- Problem: `InputValidator.isValidEmail()` uses Apache Commons `EmailValidator` which only checks format, not domain reputation. The class Javadoc explicitly references several disposable email detection services that are not yet integrated.
+- Files: `src/main/java/com/softropic/payam/common/validation/InputValidator.java` (lines 104-111)
+- Blocks: Registrations with throwaway email addresses can pollute the user base.
+
+**No Duplicate Registration Guard (firstName + lastName + dateOfBirth):**
+- Problem: `Customer` has a TODO noting a unique constraint on `firstName + lastName + dateOfBirth` should be added to prevent the same person from registering twice with a different email.
+- Files: `src/main/java/com/softropic/payam/security/repo/Customer.java` (line 35)
+- Blocks: A user can create multiple accounts for the same physical person, undermining identity verification.
+
+**No Login History Tracking:**
+- Problem: `User` entity has a TODO for a `lastLogins` collection (login time, session ID, explicit logout flag, IP metadata). No login history is currently persisted.
+- Files: `src/main/java/com/softropic/payam/security/repo/User.java` (line 46)
+- Blocks: Audit requirements, account security notifications ("new login detected"), and forensic investigation after suspicious activity.
+
+**No `nationalId` Validation:**
+- Problem: `Customer.nationalId` is a plain `String` with no length constraint, no format validation, and no uniqueness constraint at the database level.
+- Files: `src/main/java/com/softropic/payam/security/repo/Customer.java` (line 81)
+- Blocks: National ID-based duplicate account prevention and KYC verification flows.
+
+---
+
+## Test Coverage Gaps
+
+**No Frontend Tests:**
+- What's not tested: All Vue/Quasar components, composables, API modules, and the session manager plugin.
+- Files: `src/frontend/` — `package.json` `test` script prints "No test specified" and exits.
+- Risk: Session management logic (`src/frontend/src/plugins/sessionManager.js`), error handling (`src/frontend/src/composables/useErrorHandler.js`), and all API calls could regress silently.
+- Priority: High — auth and session flows are security-critical.
+
+**No Tests for `SecurityConfiguration` Filter Chain Wiring:**
+- What's not tested: The manual `fraudAwareAuthenticationManager()` construction and the non-`@Bean` pattern.
+- Files: `src/main/java/com/softropic/payam/security/config/SecurityConfiguration.java`
+- Risk: Refactoring the filter chain or adding new filters could silently break authentication without a failing test.
+- Priority: High.
+
+**No Tests for `SmsRegistrationStrategy`:**
+- What's not tested: The entire SMS notification path for phone-based registration.
+- Files: `src/main/java/com/softropic/payam/security/api/registration/SmsRegistrationStrategy.java`
+- Risk: When SMS is implemented, there will be no regression baseline.
+- Priority: Medium — implement when SMS integration is built.
+
+**`AuthorizationFailureListener` Is Untested:**
+- What's not tested: The `@SuppressWarnings("PMD")`-marked `AuthorizationFailureListener` contains a "TODO test this" comment.
+- Files: `src/main/java/com/softropic/payam/security/infrastructure/listener/AuthorizationFailureListener.java` (line 28)
+- Risk: Authorization failure events may not be handled or logged correctly.
+- Priority: Medium.
+
+---
+
+*Concerns audit: 2026-03-21*

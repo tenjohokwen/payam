@@ -1,284 +1,490 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-03-06
-
-## Overview
-
-Testing is Java-only. The Vue/Quasar frontend has no test files. All tests live under `src/test/java/com/softropic/payam/`.
-
----
+**Analysis Date:** 2026-03-21
 
 ## Test Framework
 
 **Runner:**
-- JUnit 5 (Jupiter) — via `spring-boot-starter-test` (Spring Boot 3.5)
+- JUnit 5 (Jupiter), managed via `spring-boot-starter-test` (Spring Boot BOM)
+- Config: no separate config file; test execution driven by Maven Surefire/Failsafe
 
 **Assertion Library:**
-- AssertJ 3.24.2 — primary assertions: `assertThat(...)`, `assertThatThrownBy(...)`, `assertThatCode(...)`
-- JSON-Unit AssertJ 4.1.0 — for JSON assertions (available but not observed in reviewed tests)
+- AssertJ 3.24.2 (`assertj-core`) — primary assertion library for all tests
+- `json-unit-assertj` 4.1.0 — JSON-aware assertions
+- JUnit 5 `Assertions` used in some older unit tests (prefer AssertJ)
 
 **Mocking:**
-- Mockito (via `spring-boot-starter-test`) — `@Mock`, `MockitoAnnotations.openMocks(this)`, `MockedStatic`
+- Mockito (version managed by Spring Boot BOM)
+- `MockedStatic` available for static method mocking
+- `guava-testlib` 33.4.8-jre — provides `FakeTicker` for time-sensitive cache tests
 
-**Database:**
-- Testcontainers with PostgreSQL 14.18 — real database per test class
-- datasource-proxy (`net.ttddyy:datasource-proxy:1.10`) — optional SQL query recording/assertion
-- `@Sql` annotation — loads fixture SQL scripts before each test
+**Async:**
+- Awaitility 4.2.0 — polling assertions for async/event-driven flows
 
 **Test Data:**
-- Instancio 2.10.0 — random object generation: `Instancio.create(User.class)`
-- `instancio.properties` at `src/test/resources/instancio.properties` with `bean.validation.enabled=true`
-
-**Async Assertions:**
-- Awaitility 4.2.0 — used in integration tests to wait for async email delivery: `await().until(...)`
+- Instancio 2.10.0 (`instancio-core`) — random object generation
+- Config: `src/test/resources/instancio.properties` (`bean.validation.enabled=true`)
+- SQL fixture files in `src/test/resources/sql/`
 
 **Run Commands:**
 ```bash
-./mvnw test                   # Unit tests only
-./mvnw verify                 # Unit + integration tests (failsafe plugin)
-./mvnw test -pl . -Dtest=LoginAttemptsServiceTest   # Single test class
+mvn test                  # Unit tests only (*Test.java)
+mvn verify                # Unit + integration tests (*IT.java)
+mvn test -pl .            # Run from project root
 ```
-
----
 
 ## Test File Organization
 
-**Location:** All tests co-located with test package mirroring the main package structure:
-```
-src/test/java/com/softropic/payam/
-├── config/
-│   ├── TestConfig.java               # Shared @TestConfiguration (Postgres container, mocks)
-│   ├── CustomPostgresContainer.java
-│   └── ApplicationNoSecurity.java
-├── security/
-│   ├── SecurityIT.java               # Full HTTP integration tests
-│   ├── SecurityFilterChainIT.java
-│   ├── jwt/api/
-│   │   ├── JwtManagerImplTest.java   # Unit test
-│   │   └── filter/
-│   │       ├── JWTAuthenticationFilterTest.java
-│   │       └── JWTAuthorizationFilterTest.java
-│   ├── manager/
-│   │   └── LoginAttemptsServiceTest.java   # Unit test
-│   ├── api/
-│   │   ├── util/InputValidatorTest.java
-│   │   └── ratelimit/
-│   │       ├── RateLimitingServiceTest.java  # Unit test
-│   │       └── RateLimitingAspectIT.java     # Integration test
-│   ├── service/
-│   │   ├── UserServiceIT.java
-│   │   └── PasswordResetIT.java
-│   ├── secret/SecretServiceIT.java
-│   └── repo/UserRepositoryIT.java
-└── utils/
-    ├── DbCleaner.java
-    ├── TestMailManager.java           # In-memory MailManager stub
-    ├── MockServletInputStream.java
-    ├── KeyGen.java
-    └── sql/                          # SQL query assertion utilities
-        ├── SqlQuery.java
-        ├── SqlStatementHolder.java
-        ├── QueryRecorderListener.java
-        ├── EntityFetchAsserter.java
-        └── matcher/
-            ├── AtLeast.java
-            ├── Times.java
-            ├── CountStrategy.java
-            └── CountStrategyFactory.java
-```
+**Location:** Co-located under `src/test/java/` mirroring the `src/main/java/` package structure.
 
 **Naming:**
-- Unit tests: `{ClassUnderTest}Test.java` — e.g., `LoginAttemptsServiceTest.java`
-- Integration tests: `{ClassName}IT.java` — e.g., `SecurityIT.java`, `UserServiceIT.java`
-- `IT` suffix triggers maven-failsafe-plugin for integration test lifecycle
+- `*Test.java` — unit tests; run by Maven Surefire
+- `*IT.java` — integration tests; run by Maven Failsafe (require Docker for Testcontainers)
 
----
-
-## Test Structure
-
-**Unit Test Pattern:**
-
-```java
-class LoginAttemptsServiceTest {
-
-    private LoginAttemptsService loginAttemptsService;
-
-    @BeforeEach
-    void setUp() {
-        defaultDecisionVoter = new ClientIdAccessDecisionManager(List.of());
-        loginAttemptsService = new LoginAttemptsService(defaultDecisionVoter, Ticker.systemTicker());
-        resetTestRequestMetadataProvider();
-    }
-
-    @AfterEach
-    void tearDown() {
-        resetTestRequestMetadataProvider();
-    }
-
-    @Test
-    void givenClientUser_whenMaxAttemptsExceeded_thenBlocked() {
-        simulateFailedLogins(MAX_FAILED_CLIENT_ATTEMPTS - 1);
-        assertLoginAllowed(true, "Allowed before reaching client-user max attempts");
-
-        simulateFailedLogins(1);
-        assertLoginAllowed(false, "Blocked after reaching client-user max attempts");
-    }
-}
+**Directory layout:**
+```
+src/test/
+├── java/com/softropic/payam/
+│   ├── config/
+│   │   ├── TestConfig.java                   # Shared @TestConfiguration for integration tests
+│   │   ├── CustomPostgresContainer.java       # UTC-pinned PostgreSQL container wrapper
+│   │   └── ApplicationNoSecurity.java
+│   ├── utils/
+│   │   ├── TestMailManager.java               # In-memory MailManager stub
+│   │   ├── DbCleaner.java                     # Programmatic table-delete helper
+│   │   ├── MockServletInputStream.java
+│   │   └── sql/
+│   │       ├── EntityFetchAsserter.java        # JPA lazy/eager load assertion helper
+│   │       ├── QueryRecorderListener.java      # datasource-proxy listener (SQL capture)
+│   │       ├── SqlStatementHolder.java         # ThreadLocal SQL statement store
+│   │       ├── Statement.java
+│   │       ├── SqlQuery.java / SelectQuery.java / InsertQuery.java / ...
+│   │       └── matcher/
+│   │           ├── AtLeast.java
+│   │           ├── Times.java
+│   │           └── CountStrategyFactory.java
+│   ├── common/
+│   │   └── TransactionExceptionSimulator.java
+│   ├── security/
+│   │   ├── SecurityIT.java
+│   │   ├── SecurityFilterChainIT.java
+│   │   ├── api/
+│   │   │   ├── AccountManagementFacadeIT.java
+│   │   │   ├── AdminLoginResourceTest.java
+│   │   │   └── ratelimit/
+│   │   │       ├── RateLimitingAspectIT.java
+│   │   │       └── RateLimitingServiceTest.java
+│   │   ├── service/
+│   │   │   ├── UserServiceIT.java
+│   │   │   ├── UserProfileServiceIT.java
+│   │   │   ├── PasswordResetIT.java
+│   │   │   ├── LoginInfoServiceIT.java
+│   │   │   ├── LoginAttemptsServiceTest.java
+│   │   │   └── SecretServiceIT.java
+│   │   ├── repo/
+│   │   │   └── UserRepositoryIT.java
+│   │   └── infrastructure/jwt/
+│   │       ├── JwtManagerImplTest.java
+│   │       └── filter/
+│   │           ├── JWTAuthenticationFilterTest.java
+│   │           └── JWTAuthorizationFilterTest.java
+│   └── email/
+│       └── infrastructure/
+│           ├── MailManagerIT.java
+│           ├── EmailRetrySchedulerIT.java
+│           ├── EmailRetrySchedulerTest.java
+│           └── MailManagerResilienceTest.java
+└── resources/
+    ├── instancio.properties
+    └── sql/
+        ├── createSchema.sql      # Init script run once by Testcontainers
+        ├── authorityData.sql
+        ├── userData.sql
+        ├── secData.sql
+        ├── account.sql
+        ├── initTestData.sql
+        ├── cleanup.sql
+        └── dropAllTables.sql
 ```
 
-**Test method naming convention:** `given{Context}_when{Action}_then{Outcome}` (BDD style):
-- `givenClientUser_whenMaxAttemptsExceeded_thenBlocked`
-- `givenFailedAttempts_whenLoginSucceeds_thenAttemptsClearedAndLoginAllowed`
-- `givenAttemptsMade_whenCacheExpires_thenAttemptCountResets`
+## Integration Test Structure
 
-Some tests use plain descriptive names:
-- `createUser`, `activateUser`, `testPasswordReset`, `lockUserAccount`
-
-**Spring Integration Test Pattern:**
+All integration tests share a common setup pattern:
 
 ```java
 @ActiveProfiles("dev")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-                properties = {"ledger.database.spy=true", "enable.test.mail=true"})
+                properties = {"enable.test.mail=true"})
 @Import(TestConfig.class)
-@TestPropertySource(properties = "spring.cloud.compatibility-verifier.enabled=false")
-@Sql({SecurityIT.SEC_DATA_SQL_PATH})
-public class SecurityIT {
+@Sql({UserServiceIT.SEC_DATA_SQL_PATH})          // class-level: runs before each test
+class UserServiceIT {
 
-    @LocalServerPort
-    int randomServerPort;
+    public static final String SEC_DATA_SQL_PATH      = "/sql/secData.sql";
+    public static final String AUTHORITY_SQL_PATH     = "/sql/authorityData.sql";
+    public static final String USER_DATA_SQL_PATH     = "/sql/userData.sql";
 
     @Autowired
-    private HttpTestClient httpTestClient;
+    private TransactionTemplate template;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @AfterEach
     void tearDown() {
+        SecurityContextHolder.clearContext();
         template.execute(status -> {
             jdbcTemplate.execute("delete from main.sec");
+            jdbcTemplate.execute("delete from main.user_authority");
+            jdbcTemplate.execute("delete from main.authority");
             jdbcTemplate.execute("delete from main.user");
-            // ... other tables
             return 0;
         });
+    }
+
+    @Test
+    @Sql({AUTHORITY_SQL_PATH, USER_DATA_SQL_PATH, SEC_DATA_SQL_PATH})  // method-level overrides or adds
+    void someTest() { ... }
+}
+```
+
+**Key rules for `@Sql` ordering:**
+- Always load in dependency order: `authorityData.sql` → `userData.sql` → `secData.sql`
+- `authorityData.sql` must come first because `user_authority` has a FK to `authority`
+- Class-level `@Sql` (e.g., `@Sql({SEC_DATA_SQL_PATH})`) runs before every test method
+- Method-level `@Sql` runs additionally for tests that need more data
+- Cleanup uses either programmatic `jdbcTemplate.execute("delete from ...")` in `@AfterEach`, or `@Sql(scripts = "/sql/cleanup.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)`
+
+## Testcontainers PostgreSQL Setup
+
+The container is declared as a Spring bean in `TestConfig.java` using `@ServiceConnection` (Spring Boot 3 auto-wiring):
+
+```java
+// src/test/java/com/softropic/payam/config/TestConfig.java
+@TestConfiguration(proxyBeanMethods = false)
+public class TestConfig {
+
+    @Bean
+    @ServiceConnection
+    PostgreSQLContainer<?> postgresContainer(@Value("${spring.application.name}") String dbName) {
+        return new PostgreSQLContainer<>(DockerImageName.parse("postgres:14.18"))
+                .withDatabaseName(dbName)
+                .withPassword("postgres")
+                .withUsername("postgres")
+                .withInitScript("sql/createSchema.sql");   // runs DDL once at startup
     }
 }
 ```
 
----
+`CustomPostgresContainer` (`src/test/java/com/softropic/payam/config/CustomPostgresContainer.java`) adds UTC timezone pinning:
+```java
+public class CustomPostgresContainer extends PostgreSQLContainer<CustomPostgresContainer> {
+    public CustomPostgresContainer(final DockerImageName dockerImageName) {
+        super(dockerImageName);
+        this.withEnv("TZ", "UTC");
+        this.withEnv("PGTZ", "UTC");
+    }
+}
+```
 
-## Mocking
+`TestConfig` is imported into every integration test via `@Import(TestConfig.class)`. The container is shared across the test run via Spring's application context cache.
 
-**Framework:** Mockito via `MockitoAnnotations.openMocks(this)` (no `@ExtendWith(MockitoExtension.class)` — manual init used)
+## Unit Test Structure
 
-**Instance mock pattern:**
+Unit tests have no Spring context. Dependencies are injected manually or via Mockito annotations:
 
 ```java
-@Mock
-private SecretService secretService;
-
+// Pattern 1: MockitoAnnotations (most common for filter/service tests)
 @BeforeEach
 void setUp() {
     MockitoAnnotations.openMocks(this);
-    when(secretService.fetchSecret(anyString(), anyString())).thenReturn(secret);
+    // manually construct the class under test
+    filter = new JWTAuthorizationFilter(daoAuthProvider, eventPublisher, ...);
+}
+
+// Pattern 2: @ExtendWith(MockitoExtension.class) (used in EmailRetrySchedulerTest)
+@ExtendWith(MockitoExtension.class)
+class EmailRetrySchedulerTest {
+    @Mock
+    private EnvelopeEntityRepository envelopeEntityRepository;
+    @InjectMocks
+    private EmailRetryScheduler scheduler;
+}
+```
+
+**Structure convention:**
+```java
+@Test
+void descriptiveMethodName_whenCondition_thenExpectedBehavior() {
+    // Setup
+    when(dependency.method(...)).thenReturn(...);
+
+    // Action
+    result = subjectUnderTest.doSomething();
+
+    // Verification
+    assertThat(result)...;
+    verify(dependency).method(...);
+}
+```
+
+## Mockito Patterns
+
+**Standard mock with `when/then`:**
+```java
+when(loginTokenManager.extractPrincipal(request)).thenReturn(principal);
+when(userDetails.isEnabled()).thenReturn(true);
+doThrow(new RuntimeException("SMTP down")).when(mailManager).sendEmailSync(argThat(e -> sendId.equals(e.sendId())));
+```
+
+**Verification with `verify`:**
+```java
+verify(eventPublisher).publishEvent(any(PreAuthEvent.class));
+verify(filterChain).doFilter(request, response);
+verify(loginTokenManager, times(2)).extractPrincipal(request);
+verify(loadUserByUserNameService, never()).loadUserByUsername("testuser");
+verifyNoInteractions(mailManager);
+```
+
+**`ArgumentCaptor` — capture and inspect passed arguments:**
+```java
+// From EmailRetrySchedulerTest and JWTAuthenticationFilterTest
+ArgumentCaptor<Envelope> captor = ArgumentCaptor.forClass(Envelope.class);
+verify(mailManager, times(2)).sendEmailSync(captor.capture());
+assertThat(captor.getAllValues().stream().map(Envelope::sendId).toList())
+        .containsExactlyInAnyOrder(sendId1, sendId2);
+
+ArgumentCaptor<AuthEvent> authEventCaptor = ArgumentCaptor.forClass(AuthEvent.class);
+verify(eventPublisher, times(2)).publishEvent(authEventCaptor.capture());
+List<AuthEvent> allValues = authEventCaptor.getAllValues();
+assertThat(authEventCaptor.getValue().getAction()).isEqualTo(AuthenticationAction.SUCCESSFUL_AUTHENTICATION);
+```
+
+**`mockStatic` — mock static utility classes:**
+```java
+// From RateLimitingAspectIT and JwtManagerImplTest
+try (MockedStatic<RequestMetadataProvider> mockedStatic = mockStatic(RequestMetadataProvider.class)) {
+    mockedStatic.when(RequestMetadataProvider::getClientInfo).thenReturn(mockMetadata);
+
+    assertThatCode(() -> testService.limitedMethod()).doesNotThrowAnyException();
+    assertThatThrownBy(() -> testService.limitedMethod())
+            .isInstanceOf(AuthorizationException.class)
+            .extracting(e -> ((AuthorizationException) e).getErrorCode())
+            .isEqualTo(TOO_MANY_REQUESTS);
+}
+```
+
+**`@Spy` usage:**
+```java
+@Spy
+private UserDetails userDetails = principal;
+```
+
+## Security Context Setup
+
+Integration tests that exercise secured service methods must populate the `SecurityContext` manually. Both a regular user and an admin variant are used:
+
+```java
+// From UserServiceIT — helper methods called in test body or @BeforeEach
+private void initSecurityContext() {
+    final Principal principal = new Principal.Builder()
+            .username("me@yahoo.com")
+            .password("$2a$10$...")
+            .authorities(Set.of(new Authority("ROLE_USER")))
+            .displayName("Genie")
+            .businessId("586920556720583008")
+            .enabled(true).otpEnabled(true)
+            .phone(phone).build();
+
+    var token = new UsernamePasswordAuthenticationToken(
+            principal.getUsername(), null, principal.getAuthorities());
+    token.setDetails(principal);
+    SecurityContextHolder.setContext(new SecurityContextImpl(token));
+}
+
+private void initAdminSecurityContext() {
+    // same pattern with ROLE_USER + ROLE_ADMIN authorities
 }
 
 @AfterEach
 void tearDown() {
-    reset(secretService);
+    SecurityContextHolder.clearContext();   // always clear after each test
 }
 ```
 
-**Static mock pattern (for `RequestMetadataProvider` which uses ThreadLocal):**
+Unit tests that test filter behavior clear the context manually:
+```java
+@BeforeEach void setUp()  { SecurityContextHolder.clearContext(); }
+@AfterEach  void tearDown() { SecurityContextHolder.clearContext(); }
+```
+
+## Asynchronous Testing with Awaitility
+
+Used when email dispatch is event-driven (Spring `@TransactionalEventListener` / `@EventListener`):
 
 ```java
-try (MockedStatic<RequestMetadataProvider> mockedStatic = mockStatic(RequestMetadataProvider.class)) {
-    mockedStatic.when(RequestMetadataProvider::getClientInfo).thenReturn(mockMetadata);
-    // assertions within the try block
+// From PasswordResetIT, MailManagerIT, SecurityIT
+import static org.awaitility.Awaitility.await;
+
+await().until(() -> testMailManager.getEnvelope(helpCode) != null);
+Envelope envelope = testMailManager.getEnvelope(helpCode);
+assertThat(envelope.data().get("resetKey")).isNotBlank();
+```
+
+`await()` uses default poll interval and timeout (Awaitility defaults). No custom `pollInterval` or `atMost` is configured in existing tests — the default 10-second timeout applies.
+
+## TestMailManager
+
+`src/test/java/com/softropic/payam/utils/TestMailManager.java` is the in-memory email stub. It is activated via the property `enable.test.mail=true` in `TestConfig`:
+
+```java
+@Bean
+@Primary
+@ConditionalOnProperty(name = "enable.test.mail", havingValue = "true")
+public MailManager mailManager() {
+    return new TestMailManager();
 }
 ```
 
-**What to mock:**
-- Infrastructure services (`SecretService`, `MailManager`) in unit tests
-- Static utility providers that read from ThreadLocal (`RequestMetadataProvider`)
-- HTTP context objects (`HttpServletRequest`, `HttpServletResponse`) via Spring's `MockHttpServletRequest`/`MockHttpServletResponse`
+`TestMailManager` overrides `sendEmailSync` and `sendEmailFromTemplate` to store envelopes in a `ConcurrentHashMap<String, Envelope>` keyed by `sendId`. It also registers an `@EventListener` (not `@TransactionalEventListener`) so it captures envelopes synchronously regardless of transaction state.
 
-**What NOT to mock:**
-- Real service classes under test — construct directly with test-specific constructor
-- Database access in integration tests — use real Testcontainers PostgreSQL instead
-- `MailManager` in integration tests — replaced with `TestMailManager` stub via `@TestConfiguration`
-
----
-
-## Shared Test Infrastructure
-
-**`TestConfig.java` at `src/test/java/com/softropic/payam/config/TestConfig.java`:**
-- `@TestConfiguration(proxyBeanMethods = false)`
-- Spins up a `PostgreSQLContainer` using `postgres:14.18` image with `@ServiceConnection`
-- Registers `TestMailManager` as `@Primary` `MailManager` bean when `enable.test.mail=true`
-- Registers `EntityFetchAsserter` for custom SQL query count assertions
-- Registers optional `spyDataSource` for slow query logging when `log.database.spy=true`
-
-**`TestMailManager.java` at `src/test/java/com/softropic/payam/utils/TestMailManager.java`:**
-- In-memory implementation of `MailManager` interface
-- Stores sent envelopes by `helpCode` for assertion in tests
-- Used with Awaitility: `await().until(() -> testMailManager.getEnvelope(helpCode) != null)`
-
-**`TestRequestMetadataProvider.java` at `src/test/java/com/softropic/payam/security/exposed/util/TestRequestMetadataProvider.java`:**
-- Thread-local metadata provider for unit tests that need to simulate HTTP request context
-- Set values: `TestRequestMetadataProvider.setUserName(...)`, `setBrowserCookie(...)`, `setIpAddress(...)`
-
-**`TestClockProvider` (`src/main/java/com/softropic/payam/common/TestClockProvider.java`):**
-- Allows freezing or controlling the application clock in tests
-- Used in `JwtManagerImplTest` to test token expiry scenarios: `TestClockProvider.setSystemClock()`
-
----
-
-## Fixtures and Factories
-
-**SQL Fixture files at `src/test/resources/sql/`:**
-- `createSchema.sql` — schema creation (run once via Testcontainers `withInitScript`)
-- `secData.sql` — security configuration seed data
-- `userData.sql` — user records including `me@yahoo.com`, `queb@yahoo.com` (admin), `locked@yahoo.com`, `not-activated@yahoo.com`
-- `authorityData.sql` — authority records (`ROLE_USER`, `ROLE_ADMIN`)
-- `account.sql` — account-specific seed data
-- `cleanup.sql`, `dropAllTables.sql` — teardown helpers
-
-**SQL loading in tests:**
 ```java
-// Class-level default
-@Sql({SecurityIT.SEC_DATA_SQL_PATH})
+TestMailManager testMailManager = (TestMailManager) mailManager;  // cast after @Autowired MailManager
+await().until(() -> testMailManager.getEnvelope(sendId) != null);
+Envelope received = testMailManager.getEnvelope(sendId);
+testMailManager.clear();   // call in @BeforeEach if needed between tests
+```
 
-// Method-level override to load additional data
-@Test
+## EntityFetchAsserter
+
+`src/test/java/com/softropic/payam/utils/sql/EntityFetchAsserter.java` — wraps JPA `PersistenceUnitUtil` to assert lazy vs eager loading of entity associations. Registered as a bean in `TestConfig`:
+
+```java
+@Bean
+public EntityFetchAsserter createAsserter(EntityManagerFactory emf) {
+    return new EntityFetchAsserter(emf);
+}
+```
+
+Usage pattern:
+```java
+@Autowired
+private EntityFetchAsserter entityFetchAsserter;
+
+entityFetchAsserter.assertThat(user)
+        .isLazyLoaded("addresses")
+        .isEagerlyLoaded("authorities");
+```
+
+Note: `PersistenceUnitUtil#isLoaded` has known accuracy limitations (see TODO comments in the class). Prefer this for smoke-level fetch checks rather than precise initialization guarantees.
+
+## QueryRecorderListener and SqlStatementHolder
+
+`src/test/java/com/softropic/payam/utils/sql/QueryRecorderListener.java` implements `net.ttddyy.dsproxy.listener.QueryExecutionListener`. It intercepts SQL after execution and routes each statement into a thread-local `Statement` object via `SqlStatementHolder`.
+
+Activated by setting `log.database.spy=true` and building the proxy DataSource in `TestConfig`:
+```java
+@Bean
+@ConditionalOnProperty(name="log.database.spy", havingValue="true")
+DataSource spyDataSource(HikariConfig hikariConfig) {
+    return ProxyDataSourceBuilder.create(dataSource)
+            .name("DS-Proxy")
+            .listener(chainListener)   // includes QueryRecorderListener
+            .countQuery()
+            .build();
+}
+```
+
+`SqlStatementHolder` uses a `ThreadLocal<Statement>`. In tests, call `SqlStatementHolder.initStatement()` before the action and then use the `Statement` / `SelectQuery` / `InsertQuery` APIs to assert what SQL was issued.
+
+## Parameterized Tests
+
+**`@ValueSource` — simple value arrays:**
+```java
+// From CamMobileValidatorTest
+@ParameterizedTest
+@ValueSource(strings = {"690022002", "+237698684749", "655684749"})
+void validateOrange(String phone) {
+    final PhoneNumberDto phoneNumber = CamMobileValidator.validate(phone);
+    assertThat(phoneNumber.getProvider()).isEqualTo(Provider.ORANGE);
+}
+```
+
+**`@EnumSource` with inner enum — data-driven API tests:**
+```java
+// From SecurityIT — enum is declared as a static inner class of the test
 @Sql({AUTHORITY_DATA_SQL_PATH, USER_DATA_SQL_PATH, SEC_DATA_SQL_PATH})
-void createUser() { ... }
-```
+@ParameterizedTest
+@EnumSource(value = Credentials.class, names = {"INVALID_EMAIL", "ARBITRARY_EMAIL", "INVALID_PASSWORD"})
+void loginWithWrongCredentials(Credentials credentials) throws JsonProcessingException {
+    assertThatThrownBy(() -> httpTestClient.makeHttpRequest(uri, POST, credentials.getBody(), ...))
+            .isInstanceOf(HttpClientErrorException.class)
+            .hasFieldOrPropertyWithValue("statusCode", HttpStatus.UNAUTHORIZED);
+}
 
-**In-code factory methods:**
-```java
-// Integration tests build test users inline
-private UserDto getUserData(boolean otpEnabled) {
-    final UserDto userDto = new UserDto();
-    userDto.setEmail("figu@yahoo.com");
-    userDto.setPassword("admin*123!");
-    // ...
-    return userDto;
+enum Credentials {
+    INVALID_EMAIL(Map.of(EMAIL, "Mike", PASSWORD, "Thomson")),
+    ARBITRARY_EMAIL(Map.of(EMAIL, "walters@yahoo.com", PASSWORD, "Thomson")),
+    INVALID_PASSWORD(Map.of(EMAIL, "me@yahoo.com", PASSWORD, PASSWORD));
+
+    private final Map<String, Object> body;
+    Credentials(Map<String, Object> body) { this.body = body; }
+    public Map<String, Object> getBody() { return this.body; }
 }
 ```
 
-**Instancio random generation:**
+**`@MethodSource` — stream of `Arguments` for multi-parameter cases:**
 ```java
-// Random object generation for fields not relevant to the test
-final User user = Instancio.create(User.class);
-user.setId(null);
-user.setEmail("me@yahoo.com"); // override specific fields
+// From JwtManagerImplTest
+@ParameterizedTest
+@MethodSource("claimsData")
+void testIsTokenFixed_userAgentMismatch(Map<String, Object> claims, Boolean expectedOutcome) {
+    String token = buildTokenWithCustomClaims(claims, ...);
+    assertThat(jwtManager.isTokenFixed(mockRequest)).isEqualTo(expectedOutcome);
+}
+
+private static Stream<Arguments> claimsData() {
+    return Stream.of(
+            Arguments.of(expectedClaims, Boolean.FALSE),
+            Arguments.of(userAgentMismatch, Boolean.TRUE),
+            Arguments.of(clientIdMismatch, Boolean.TRUE),
+            Arguments.of(sessionIdMismatch, Boolean.TRUE)
+    );
+}
 ```
 
----
+## Time-Sensitive Testing
 
-## Database Teardown Pattern
+Tests involving cache TTL use Guava's `FakeTicker` injected as the `Ticker` dependency:
 
-All integration test classes manually clean dependent tables in `@AfterEach` using `TransactionTemplate`:
+```java
+// From LoginAttemptsServiceTest
+FakeTicker fakeTicker = new FakeTicker();
+LoginAttemptsService expiringService = new LoginAttemptsService(defaultDecisionVoter, fakeTicker);
 
+simulateFailedLogins(expiringService, MAX_FAILED_CLIENT_ATTEMPTS - 1);
+assertLoginAllowed(expiringService, true, "Allowed before cache expiry");
+
+fakeTicker.advance(4, TimeUnit.HOURS);
+fakeTicker.advance(1, TimeUnit.MINUTES);
+
+simulateFailedLogins(expiringService, 1);
+assertLoginAllowed(expiringService, true, "Allowed after cache expiry and 1 new attempt");
+```
+
+JWT expiry tests use `TestClockProvider` (production `ClockProvider` has a test-only reset method):
+```java
+// From JwtManagerImplTest
+@BeforeEach
+void setUp() {
+    TestClockProvider.setSystemClock();
+}
+```
+
+## Database Cleanup Strategies
+
+Three cleanup approaches are used; choose based on test class needs:
+
+**1. Programmatic `@AfterEach` with `JdbcTemplate`** (most common in service ITs):
 ```java
 @AfterEach
 void tearDown() {
@@ -288,123 +494,57 @@ void tearDown() {
         jdbcTemplate.execute("delete from main.user_authority");
         jdbcTemplate.execute("delete from main.authority");
         jdbcTemplate.execute("delete from main.user");
-        jdbcTemplate.execute("delete from main.audit_log");
         return 0;
     });
 }
 ```
 
-Delete order respects FK constraints (child tables before parent).
-
----
-
-## Parameterized Tests
-
-JUnit 5 parameterized tests used for scenario variation:
-
+**2. `@Sql` after-test cleanup script:**
 ```java
-// Enum-sourced parameters
-@ParameterizedTest
-@EnumSource(value = Credentials.class,
-            names = {"INVALID_EMAIL", "ARBITRARY_EMAIL", "INVALID_PASSWORD"})
-void loginWithWrongCredentials(Credentials credentials) throws JsonProcessingException { ... }
-
-// Method-sourced parameters
-@ParameterizedTest
-@MethodSource("provideTokenScenarios")
-void someTokenTest(Arguments args) { ... }
+@Sql(scripts = "/sql/cleanup.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 ```
 
-Test data enums defined as inner classes within the test class (e.g., `Credentials` enum in `SecurityIT`).
+**3. `DbCleaner` component** (`src/test/java/com/softropic/payam/utils/DbCleaner.java`) — injected bean that deletes all known tables in FK-safe order. Used by `SecretServiceIT`:
+```java
+@Autowired
+private DbCleaner dbCleaner;
 
----
-
-## Coverage
-
-**Requirements:** No coverage threshold configured (no JaCoCo or Surefire coverage config detected).
-
-**View Coverage:**
-```bash
-./mvnw test jacoco:report   # if JaCoCo were configured
+@AfterEach
+void cleanup() {
+    dbCleaner.cleanDb();
+}
 ```
 
----
+`@Transactional` on the test class is used only in `PasswordResetIT` — it rolls back after each test automatically. Avoid combining `@Transactional` on the class with `@Sql` cleanup scripts, as the transaction wrapping interferes with `AFTER_TEST_METHOD` execution phase.
 
 ## Test Types
 
 **Unit Tests (`*Test.java`):**
-- Scope: Single class under test, all dependencies mocked or constructed directly
-- Spring context: NOT loaded
-- Database: NOT used
-- Examples: `LoginAttemptsServiceTest`, `RateLimitingServiceTest`, `JwtManagerImplTest`
+- No Spring context
+- All dependencies mocked via Mockito or manually constructed
+- Use `MockitoAnnotations.openMocks(this)` in `@BeforeEach` or `@ExtendWith(MockitoExtension.class)`
+- Examples: `LoginAttemptsServiceTest`, `EmailRetrySchedulerTest`, `JwtManagerImplTest`, `RateLimitingServiceTest`, `JWTAuthorizationFilterTest`
 
 **Integration Tests (`*IT.java`):**
-- Scope: Full Spring context with real database via Testcontainers
-- Spring context: Full `@SpringBootTest(webEnvironment = RANDOM_PORT)`
-- Database: PostgreSQL 14.18 in Docker via Testcontainers
-- HTTP: Real HTTP calls using `HttpTestClient` (wrapper around Spring's `RestTemplate`)
-- Lifecycle: Run by maven-failsafe-plugin during `verify` phase
-- Examples: `SecurityIT`, `UserServiceIT`, `RateLimitingAspectIT`
+- Full Spring Boot context (`@SpringBootTest(webEnvironment = RANDOM_PORT)`)
+- PostgreSQL via Testcontainers (`@Import(TestConfig.class)`)
+- `@ActiveProfiles("dev")` on every integration test
+- Data loaded via `@Sql`; cleaned up in `@AfterEach`
+- Examples: `UserServiceIT`, `PasswordResetIT`, `SecurityIT`, `MailManagerIT`
 
-**E2E Tests:** Not present.
+**HTTP-Level Integration Tests:**
+- Use `@LocalServerPort` + `HttpTestClient` (autowired Spring bean wrapping `RestTemplate`)
+- `SecurityIT` and `SecurityFilterChainIT` exercise actual HTTP requests including cookies, CORS, and JWT headers
 
-**Frontend Tests:** Not present (no Vitest, Cypress, or Playwright configuration found).
+## Coverage
 
----
+**Requirements:** None enforced (no Jacoco minimum thresholds detected in `pom.xml`).
 
-## Common Patterns
-
-**Async Testing:**
-```java
-// Wait for email to be delivered asynchronously
-await().until(() -> testMailManager.getEnvelope(helpCode) != null);
-final Envelope envelope = testMailManager.getEnvelope(helpCode);
-final String activationKey = (String) envelope.data().get("activationKey");
-```
-
-**Exception Testing:**
-```java
-// Test for specific exception + HTTP status
-assertThatThrownBy(() -> httpTestClient.makeHttpRequest(uri, HttpMethod.POST, body, headers, Map.class))
-    .isInstanceOf(HttpClientErrorException.class)
-    .hasFieldOrPropertyWithValue("statusCode", HttpStatus.UNAUTHORIZED);
-
-// Test for exception + response body content
-assertThatThrownBy(() -> ...)
-    .isInstanceOf(HttpClientErrorException.class)
-    .satisfies(e -> {
-        HttpClientErrorException ex = (HttpClientErrorException) e;
-        assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        assertThat(ex.getResponseBodyAsString()).contains("security.accLocked");
-    });
-
-// Test that no exception is thrown
-assertThatCode(() -> testService.limitedMethod()).doesNotThrowAnyException();
-```
-
-**Security Context Setup for Integration Tests (non-HTTP path):**
-```java
-private void initSecurityContext() {
-    final Principal principal = createPrincipal();
-    var token = new UsernamePasswordAuthenticationToken(
-        principal.getUsername(), null, principal.getAuthorities());
-    token.setDetails(principal);
-    SecurityContextHolder.setContext(new SecurityContextImpl(token));
-}
-
-// Always clear in @AfterEach
-SecurityContextHolder.clearContext();
-```
-
-**Time Control:**
-```java
-// Use FakeTicker to control Guava cache expiry
-FakeTicker fakeTicker = new FakeTicker();
-LoginAttemptsService expiringService = new LoginAttemptsService(defaultDecisionVoter, fakeTicker);
-fakeTicker.advance(4, TimeUnit.HOURS);
-fakeTicker.advance(1, TimeUnit.MINUTES);
-```
+**Gaps to be aware of:**
+- No E2E test framework (no Selenium / Playwright)
+- No contract tests
+- `EntityFetchAsserter` has acknowledged accuracy limitations (see TODO comments in the class)
 
 ---
 
-*Testing analysis: 2026-03-06*
+*Testing analysis: 2026-03-21*

@@ -1,260 +1,242 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-03-06
+**Analysis Date:** 2026-03-21
 
-## Language Overview
+## Language Split
 
-This is a dual-language codebase:
-- **Backend:** Java 17 (Spring Boot 3.5) at `src/main/java/com/softropic/payam/`
-- **Frontend:** JavaScript (Vue 3 + Quasar) at `src/frontend/src/`
+This codebase has two codebases with separate conventions:
+- **Backend:** Java 17 (Spring Boot) under `src/main/java/com/softropic/payam/`
+- **Frontend:** JavaScript (Vue 3 + Quasar) under `src/frontend/src/`
 
 ---
 
-## Java Conventions (Backend)
+## Backend (Java) Conventions
 
 ### Naming Patterns
 
-**Files / Classes:**
-- PascalCase for all class names: `LoginAttemptsService`, `JwtManagerImpl`, `UserRegistrationService`
-- Suffix `Impl` for implementation classes: `JwtManagerImpl`, `TokenCreatorImpl`, `ClaimsExtractorImpl`
-- Suffix `IT` for integration tests: `SecurityIT`, `UserServiceIT`, `RateLimitingAspectIT`
-- Suffix `Test` for unit tests: `JwtManagerImplTest`, `LoginAttemptsServiceTest`
-- Suffix `Filter` for servlet filters: `JWTAuthenticationFilter`, `SecondFactorLoginFilter`
-- Suffix `Service` for business logic services: `UserService`, `PasswordResetService`
-- Suffix `Repository` for JPA repositories: `UserRepository`, `LoginInfoRepository`
-- Suffix `Config` for configuration beans: `SecurityConfiguration`, `DataSourceConfig`
-- Suffix `Facade` for orchestrating services: `AccountManagementFacade`
-- Suffix `Listener` for Spring event listeners: `AuthenticationSuccessListener`, `SendMailListener`
-- Suffix `Dto` for data transfer objects: `UserDto`, `ChangePasswordDto`, `ErrorDto`
+**Classes:**
+- PascalCase for all classes: `UserRegistrationService`, `JwtManagerImpl`, `RateLimitingAspect`
+- Service classes suffixed with `Service`: `UserService`, `SecretService`, `LoginAttemptsService`
+- Repository interfaces suffixed with `Repository`: `UserRepository`, `SecKeyRepository`
+- Exception classes suffixed with `Exception`: `UserNotFoundException`, `JWTExpiredException`
+- Filter classes suffixed with `Filter`: `JWTAuthorizationFilter`, `SessionRefreshFilter`
+- DTO classes suffixed with `Dto` or `DTO` (mixed): `UserDto`, `ChangePasswordDto`
+- Mapper interfaces suffixed with `Mapper`: `UserMapper`, `AuditTrailMapper`
+- Config classes suffixed with `Config` or `Configuration`: `SecurityConfiguration`, `JwtConfiguration`
 
-**Methods:**
-- camelCase verbs: `loginSucceeded`, `loginFailed`, `isAllowed`, `blacklistClient`
-- Getters/setters follow Java bean convention: `getLogin()`, `setActivated()`
-- Boolean methods use `is` prefix: `isAllowed()`, `isActivated()`, `isLocked()`
+**Methods and Variables:**
+- camelCase throughout: `findUserWithAuthoritiesByLogin`, `activateUser`, `completePasswordReset`
+- Constants: SCREAMING_SNAKE_CASE: `SPRING_PROFILE_PRODUCTION`, `JWT_COOKIE_NAME`, `MAX_FAILED_CLIENT_ATTEMPTS`
+- Boolean methods prefixed with `is`, `has`, or `can`: `isActivated()`, `hasAccountExpired()`, `canInitiatePasswordReset()`
+- Repository query methods follow Spring Data naming: `findOneByLogin`, `findOneByEmailOrLogin`, `findInactivatedByActivationKey`
 
-**Constants:**
-- SCREAMING_SNAKE_CASE static finals: `MAX_FAILED_CLIENT_ATTEMPTS`, `ADMIN_COOKIE`, `JWT_COOKIE_NAME`
-- Grouped in dedicated constants classes: `src/main/java/com/softropic/payam/security/common/util/SecurityConstants.java`
-
-**Variables:**
-- camelCase: `loginAttemptsService`, `attemptsByClientUserCache`, `blacklistedClients`
-- Prefix `final` local variables wherever value doesn't change (consistent pattern)
+**Packages:**
+- All lowercase: `com.softropic.payam.security.service`
+- Feature-based sub-packages: `security`, `email`, `common`
+- Within feature: `service`, `repo`, `infrastructure`, `config`, `contract`, `api`
 
 ### Code Style
 
 **Formatting:**
-- No configured Spotless or Checkstyle detected; style is consistent but enforced by team convention
-- Blank lines between logical sections within methods
-- Aligned multi-line imports using static imports for constants (`import static com.softropic.payam.security.common.util.SecurityConstants.*`)
-
-**`final` keyword:**
-- Used extensively on local variables, method parameters, and fields: `final String errorCode`, `final ErrorDto errorDTO`
-- Constructor parameters are `final`: `public LoginAttemptsService(final ClientIdAccessDecisionManager clientIdAccessDecisionMgr)`
+- No explicit formatter config (Checkstyle/Spotless not detected); follows IntelliJ IDEA defaults
+- `final` used extensively on method parameters and local variables: `final User user`, `final String email`
+- Blank lines between logical sections inside methods
 
 **Annotations:**
-- Lombok `@Slf4j` for logging (produces `log` field): `src/main/java/com/softropic/payam/security/manager/LoginAttemptsService.java`
-- `@Service`, `@Repository`, `@RestController`, `@RestControllerAdvice` used appropriately
-- Constructor injection preferred over field injection; `@Autowired` used on constructor when explicit wiring needed
-- `@Transactional` on service methods; `@Sql` on test methods to load fixture data
+- Lombok `@Slf4j` for logging in service classes (provides `log` field)
+- Lombok `@RequiredArgsConstructor` for constructor injection
+- `@Service`, `@Transactional` at class level for services
+- `@Transactional(readOnly = true)` on individual read methods to override class-level default
+- `@PreAuthorize` with constants from `SecurityConstants.HAS_ANY_ROLE`
 
 ### Import Organization
 
-**Order (observed):**
-1. Project imports (`com.softropic.payam.*`)
-2. Framework imports (`org.springframework.*`, `org.junit.*`, `org.mockito.*`)
-3. Java standard library (`java.*`, `javax.*`, `jakarta.*`)
-4. Third-party libraries (`io.jsonwebtoken.*`, `com.google.*`)
-5. Static imports last (`import static ...`)
+**Order (observed pattern):**
+1. Project classes
+2. Lombok
+3. Spring framework classes
+4. Jakarta/Java standard library
+
+**Static imports:** Used for assertions and constants: `import static org.assertj.core.api.Assertions.assertThat`
 
 ### Error Handling
 
-**Backend strategy — centralized `@RestControllerAdvice`:**
-- All exceptions handled in `src/main/java/com/softropic/payam/security/ApiAdvice.java`
-- Each exception type maps to an HTTP status via `@ResponseStatus`
-- All errors return `ErrorDto` with a `helpCode` (Sqids-encoded UUID) for support traceability
-- Security-related exceptions publish a `SecurityAlertEvent` via `ApplicationEventPublisher`
-- Catch-all `Throwable` handler prevents unhandled stack traces leaking to clients
-- Custom exception hierarchy: `SecException` → `AuthorizationException`, `JWTExpiredException`, `InvalidJWTDataException`, etc. at `src/main/java/com/softropic/payam/security/exposed/exception/`
+**Exception hierarchy:**
+- `ApplicationException` (base) → `SecException` → domain-specific exceptions
+- `SecException` constructors accept `ErrorCode`, `Map<String,Object> logContext`, and `Throwable cause`
+- Domain exceptions carry typed error codes: `SecurityError.USER_NOT_FOUND`, `SecurityError.TOO_MANY_REQUESTS`
+- Specific exception types per business case: `UserNotFoundException`, `UserAccountLockedException`, `PasswordResetExpiredException`
+- Throw domain exceptions from entity business methods, not from service layer
+- Return `Optional<T>` from query methods when result may be absent; throw exceptions for mandatory lookups
 
-**Error response shape:**
+Example:
 ```java
-// ErrorDto returned by all exception handlers
-new ErrorDto(helpCode, new ErrorMsg(msgKey, message))
-// Field errors added individually for validation failures
-dto.add(fieldError.getObjectName(), field, new ErrorMsg(errorKey, message));
+public User getUserWithAuthorities(final Long id) {
+    return userRepository.findOneById(id)
+            .orElseThrow(() -> new UserNotFoundException(id));
+}
 ```
 
-**Internationalized messages:**
-- Error messages resolved via `MessageSource` using `msgKey` + locale from `RequestMetadataProvider.getClientInfo().getChosenLang()`
-- Fallback to English default message string if key not found
+**Authentication exceptions:** Delegated to `HandlerExceptionResolver` via `AuthenticationExceptionHandler`.
 
 ### Logging
 
-**Framework:** Logback via SLF4J; Logstash JSON encoder (`logstash-logback-encoder`) for structured output.
+**Framework:** SLF4J via Lombok `@Slf4j` (provides `log` field)
 
 **Patterns:**
-- Use Lombok `@Slf4j` to get `log` field; do not instantiate `Logger` manually
-- Structured log entries via `entries(ctx)` from `net.logstash.logback.argument.StructuredArguments`
-- Error logging always includes `SUPPORT_ID` (`helpCode`) in message
-- Debug logging used for non-critical cache misses
-- Warn logging for fraud/abuse events
+- Debug level for operation details: `log.debug("Created Information for User: {}", newUser)`
+- Warn level for security/rate-limit events: `LOGGER.warn("Rate limit exceeded for client: {}, key: {}", ...)`
+- Passwords and sensitive data redacted in `toString()` methods: `"password\": \"[REDACTED]\"`
+- `toString()` returns JSON-formatted string for structured logging
 
-```java
-// Standard error log with structured context
-log.error(fullMsg, entries(ctx), throwable);
-// Warning for security events
-log.warn("Fraud detection from client with the following metadata {}", metadata);
-```
+**Structured logging:** Logback configured to emit JSON to Loki (see `src/main/resources/config/logback-spring.xml`), including `traceId` and `spanId` from OpenTelemetry.
 
 ### Comments
 
 **Javadoc:**
-- Used on public service/interface methods describing purpose, parameters, return values
-- Example at `src/main/java/com/softropic/payam/security/manager/LoginAttemptsService.java`: class-level Javadoc with `<ul>` lists explaining decision logic
+- All public service methods documented with `@param`, `@return`, and `@throws`
+- Entity business methods fully documented
 
-**Inline TODO comments:**
-- Format: `//TODO <description>` (no space after `//TODO` consistently)
-- Used to flag multi-node readiness issues, incomplete features, and planned improvements
-- 48 TODOs across 30 source files (not yet resolved)
-
-### Module Design
-
-**Package structure:** Feature-first within bounded context:
-```
-security/
-  api/        # Controllers, DTOs, rate-limiting
-  config/     # SecurityConfiguration, CorsConfig
-  core/       # Filters
-  domain/     # JPA entities (User, Customer, Authority)
-  exposed/    # Public API contracts (Principal, exception types, util)
-  jwt/api/    # JWT manager, token creator/validator
-  manager/    # Login attempts, 2FA manager
-  repository/ # Spring Data JPA repositories
-  service/    # Business logic services
-  listener/   # Spring event listeners
-  audit/      # Audit trail (Hibernate Envers)
+Example:
+```java
+/**
+ * Activates a user account using the provided activation key.
+ * This method can be called by an anonymous user.
+ *
+ * @param key the activation key
+ * @return the activated user if found, empty otherwise
+ */
 ```
 
-**Interface + Impl pattern:**
-- Behavior defined on interface: `ClaimsExtractor`, `TokenCreator`, `TokenValidator`, `JwtSecretService`
-- Implementation suffixed `Impl`: `ClaimsExtractorImpl`, `TokenCreatorImpl`, `TokenValidatorImpl`
+**Inline comments:** Used sparingly for non-obvious logic. TODO comments present for known debt.
 
-**Exposed package convention:**
-- `security/exposed/` contains types intended to be referenced by other modules (cross-module API boundary)
-- Types here: `Principal`, exception types, `UserDto`, utility providers
+### Transaction Design
+
+- `@Transactional` at class level in services; individual methods override with `readOnly = true`
+- `TransactionTemplate` used in tests for explicit transaction management
+- JPA lazy loading respected; `FETCH` entity graphs avoided (noted as causing issues with `@ElementCollection`)
+
+### Entity Design
+
+- JPA entities do not use Lombok (no `@Data` or `@Getter`/`@Setter` on entities) — manual getters/setters
+- Entity equals/hashCode: `equals()` uses business key (e.g., `login`); `hashCode()` returns `getClass().hashCode()` to be stable
+- Business methods on entities (rich domain model): `activate()`, `lock()`, `preparePasswordReset()`, `completePasswordReset()`
+- Envers `@Audited` on `User` entity for audit trail
+
+### MapStruct Mappers
+
+- Mapper interfaces annotated with `@Mapper` (MapStruct)
+- Files: `src/main/java/com/softropic/payam/security/service/UserMapper.java`, `src/main/java/com/softropic/payam/security/audit/api/AuditTrailMapper.java`
 
 ---
 
-## JavaScript / Vue Conventions (Frontend)
+## Frontend (JavaScript/Vue) Conventions
 
 ### Naming Patterns
 
 **Files:**
-- PascalCase for Vue components: `UpdateEmailDialog.vue`, `LoginPage.vue`, `SessionWarningDialog.vue`
-- camelCase for composables with `use` prefix: `useErrorHandler.js`, `useSession.js`, `useLoading.js`
-- camelCase with `.api.js` suffix for API modules: `auth.api.js`, `profile.api.js`, `session.api.js`
-- camelCase for utilities: `errorHandler.js`
+- Vue components: PascalCase — `LoginPage.vue`, `UpdateEmailDialog.vue`, `GlobalLoadingBar.vue`
+- Composables: camelCase prefixed with `use` — `useErrorHandler.js`, `useLoading.js`, `useSession.js`
+- API modules: camelCase suffixed with `.api.js` — `auth.api.js`, `account.api.js`
+- Utility modules: camelCase — `errorHandler.js`
+- Store files: camelCase suffixed with `-store.js` — `example-store.js`
 
-**Variables and functions:**
-- camelCase for all variables and functions: `handleSubmit`, `dialogVisible`, `isSubmitting`, `clearError`
-- Validation rule functions use concise camelCase names: `required`, `validEmail`, `minLen5`, `notSameEmail`
+**Functions and Variables:**
+- camelCase: `handleLogin`, `initSession`, `setError`, `clearError`
+- Event handlers prefixed with `handle`: `handleLogin`, `handleSubmit`
+- Boolean refs: present-tense state names — `isSubmitting`, `isPwd`, `hasError`
 
-**Props/Emits:**
-- Props use camelCase: `modelValue`, `currentEmail`
-- Emits use kebab-case string events: `'update:modelValue'`, `'updated'`
+### Code Style
 
-### Code Style (Frontend)
+**Formatting (Prettier):**
+- No semicolons: `semi: false`
+- Single quotes: `singleQuote: true`
+- Print width: 100 characters
 
-**Formatting** (`.prettierrc.json` at `src/frontend/.prettierrc.json`):
-- No semicolons (`"semi": false`)
-- Single quotes (`"singleQuote": true`)
-- Print width 100 characters (`"printWidth": 100`)
+**Linting (ESLint):**
+- `eslint.config.js` uses flat config format
+- `@quasar/app-vite/eslint` recommended rules
+- `eslint-plugin-vue` at "essential" level
+- `prefer-promise-reject-errors` disabled
+- Prettier skip-formatting integration
 
-**Linting** (`src/frontend/eslint.config.js`):
-- `eslint-plugin-vue` at `flat/essential` level
-- Quasar recommended rules via `@quasar/app-vite/eslint`
-- `no-debugger` is an error in production, off in development
-- `prefer-promise-reject-errors` is disabled
+**Vue component style:**
+- Composition API with `<script setup>` syntax throughout
+- No `defineComponent()` wrapper used
+- Template, script, and style sections in that order
 
-**Vue component structure:**
-- `<template>` → `<script setup>` (no `<style>` blocks observed)
-- Composition API only via `<script setup>` syntax
-- No TypeScript — pure JavaScript
+### Import Organization
 
-### Import Organization (Frontend)
+**Order (observed):**
+1. Vue core imports: `import { ref, computed } from 'vue'`
+2. Vue Router / plugins: `import { useRouter } from 'vue-router'`
+3. i18n: `import { useI18n } from 'vue-i18n'`
+4. Project API modules: `import { authApi } from 'src/api/auth.api'`
+5. Project composables: `import { useErrorHandler } from 'src/composables/useErrorHandler'`
 
-**Order observed in components:**
-1. Vue core (`import { ref, watch } from 'vue'`)
-2. Quasar (`import { useQuasar } from 'quasar'`)
-3. Vue ecosystem (`import { useI18n } from 'vue-i18n'`, `import { useRouter } from 'vue-router'`)
-4. Project API modules (`import { authApi } from 'src/api/auth.api'`)
-5. Project composables (`import { useErrorHandler } from 'src/composables/useErrorHandler'`)
+**Path aliases:** `src/` alias resolves to `src/frontend/src/` (Quasar convention)
 
-**Path aliases:**
-- `src/` maps to `src/frontend/src/` (Quasar default alias)
+### API Module Pattern
+
+API functions grouped by domain in named export objects:
+```javascript
+export const authApi = {
+  login(id, password, loginCode = 1) {
+    return api.post('/authenticate', { id, password, loginCode });
+  },
+  logout() { ... }
+};
+```
+
+### Composable Pattern
+
+Composables encapsulate reactive state and expose readonly refs:
+```javascript
+export function useErrorHandler() {
+  const error = ref(null);
+  const hasError = computed(() => error.value !== null);
+  // ...
+  return {
+    error: readonly(error),
+    hasError,
+    setError,
+    clearError,
+  };
+}
+```
+- Internal mutable state, readonly external exposure
+- Computed properties for derived state
+- JSDoc-style comments with `@returns` typing
 
 ### Error Handling (Frontend)
 
-**Pattern — composable + utility:**
-- `src/frontend/src/utils/errorHandler.js` — pure functions that parse Axios errors into structured objects
-- `src/frontend/src/composables/useErrorHandler.js` — Vue reactive wrapper around `parseApiError`
-- All components import `useErrorHandler()` and call `setError(err)` in catch blocks
-
-```js
-// In every form component
-const { setError, clearError, hasError, errorMessage, helpCode, isValidationError,
-        hasFieldError, getFieldError } = useErrorHandler()
-
-async function handleSubmit() {
-  clearError()
-  isSubmitting.value = true
-  try {
-    await someApi.call(...)
-  } catch (err) {
-    setError(err)  // parses and stores structured error
-  } finally {
-    isSubmitting.value = false
-  }
+- Errors from API calls caught in `try/catch` inside async handlers
+- `useErrorHandler` composable wraps error state
+- `parseApiError` utility in `src/frontend/src/utils/errorHandler.js` normalizes Axios errors
+- Error keys (`errorKey`) used with i18n for translated messages
+- Field-level errors supported via `hasFieldError(field)` / `getFieldError(field)`
+- Pattern in every page:
+```javascript
+try {
+  await authApi.login(...)
+} catch (err) {
+  setError(err);
+} finally {
+  isSubmitting.value = false;
 }
 ```
 
-**Error display pattern in templates:**
-```html
-<!-- Field-level errors via Quasar q-input -->
-:error="hasFieldError('fieldName')"
-:error-message="getFieldError('fieldName')"
+### Validation
 
-<!-- Global banner for non-validation errors -->
-<q-banner v-if="hasError && !isValidationError" class="bg-negative text-white">
-  {{ errorMessage }}
-  <small v-if="helpCode">{{ t('error.helpCode') }}: {{ helpCode }}</small>
-</q-banner>
-```
+- Quasar form validation via `rules` prop on `q-input`
+- Inline validation functions: `const required = val => !!val || t('validation.required')`
+- `@submit.prevent` on `q-form`
 
-### API Module Design
+### i18n
 
-**Pattern — plain object with method properties:**
-```js
-export const authApi = {
-  login(id, password, loginCode = 1) {
-    return api.post('/authenticate', { id, password, loginCode })
-  },
-  logout() {
-    return api.post('/api/logout')
-  }
-}
-```
-
-- Each domain has its own file: `auth.api.js`, `profile.api.js`, `account.api.js`, `session.api.js`
-- All methods documented with JSDoc comments
-- Methods return raw Axios promises (no `.then()` chaining inside the module)
-
-### Composable Design
-
-- Composables return named computed refs + functions
-- Internal mutable state exposed as `readonly()` where mutation should be controlled
-- Functions are documented with JSDoc including return type signatures
+- All user-facing strings use `t('key')` from `useI18n()`
+- Translation files: `src/frontend/src/i18n/en-US/index.js`, `src/frontend/src/i18n/fr-FR/index.js`
 
 ---
 
-*Convention analysis: 2026-03-06*
+*Convention analysis: 2026-03-21*
