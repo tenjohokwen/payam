@@ -1,0 +1,13 @@
+package com.softropic.payam.transaction.contract;
+
+public enum TransactionEventType {
+    PAYMENT_INITIATED,
+    FRAUD_CHECK_PASSED,
+    FRAUD_CHECK_BLOCKED,
+    PROVIDER_AUTH_REQUESTED,
+    PROVIDER_AUTHORIZED,
+    PROVIDER_PROCESSING,
+    PROVIDER_SUCCESS,
+    PROVIDER_FAILED,
+    TRANSACTION_REVERSED
+}
