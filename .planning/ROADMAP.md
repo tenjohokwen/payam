@@ -16,7 +16,7 @@ system. Reconciliation and operational hardening complete the v1 scope.
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Multi-Tenant Foundation** - Tenant schema, API key auth, per-client isolation
+- [x] **Phase 1: Multi-Tenant Foundation** - Tenant schema, API key auth, per-client isolation
 - [ ] **Phase 2: Transaction Core + Event Sourcing** - State machine, append-only event log, idempotency, ledger
 - [ ] **Phase 3: Orange Money Adapter** - Orange init→pay→push flow, polling, subscriber validation
 - [ ] **Phase 4: MTN MoMo Adapter** - OAuth2 lifecycle, RequestToPay, disbursement, polling
@@ -212,7 +212,7 @@ Note: Phases 3 and 4 can run in parallel once Phase 2 completes and `ProviderGat
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Multi-Tenant Foundation | 0/2 | Not started | - |
+| 1. Multi-Tenant Foundation | 3/3 | Complete | 2026-03-23 |
 | 2. Transaction Core + Event Sourcing | 0/3 | Not started | - |
 | 3. Orange Money Adapter | 0/2 | Not started | - |
 | 4. MTN MoMo Adapter | 0/2 | Not started | - |

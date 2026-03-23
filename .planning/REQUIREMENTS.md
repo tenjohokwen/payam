@@ -9,7 +9,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Multi-Tenant
 
-- [ ] **TENANT-01**: Multi-tenant API key management (generation, rotation, revocation, per-client scoping)
+- [x] **TENANT-01**: Multi-tenant API key management (generation, rotation, revocation, per-client scoping)
 
 ### Transaction
 
@@ -89,7 +89,7 @@ Which phases cover which requirements. Updated by create-roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TENANT-01 | Phase 1 | Pending |
+| TENANT-01 | Phase 1 | Complete |
 | TX-01 | Phase 2 | Pending |
 | TX-02 | Phase 2 | Pending |
 | TX-03 | Phase 2 | Pending |
