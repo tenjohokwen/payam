@@ -61,6 +61,15 @@ spring:
         cachePrepStmts: true  #Mysql optimization
         prepStmtCacheSize: 500 #Mysql optimization
         prepStmtCacheSqlLimit: 1024 #Mysql optimization
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
   flyway:
     enabled: true
     validateMigrationNaming: true
