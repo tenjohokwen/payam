@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 2 in progress (Transaction Core) — plans 02-01, 02-02, and 02-03 complete
+**Current focus:** Phase 2 complete (Transaction Core) — Phase 3 next
 
 ## Current Position
 
-Phase: 2 of 10 (Transaction Core) — In progress
-Plan: 3 of ~5 in phase (02-01 + 02-02 + 02-03 complete; 02-04 MTN adapter next)
-Status: In progress — ready for 02-04 (MTN adapter) and 02-05 (Orange adapter)
-Last activity: 2026-03-23 — Completed 02-02-PLAN.md (Event Log Hash Chain)
+Phase: 2 of 10 (Transaction Core) — COMPLETE
+Plan: 3 of 3 in phase (all complete)
+Status: Phase complete — ready for Phase 3
+Last activity: 2026-03-23 — Completed 02-03-PLAN.md (Idempotency Store + Double-Entry Ledger)
 
-Progress: █████░░░░░ ~28% (5 of ~18 plans)
+Progress: ██████░░░░ ~33% (6 of ~18 plans)
 
 ## Performance Metrics
 
@@ -28,7 +28,7 @@ Progress: █████░░░░░ ~28% (5 of ~18 plans)
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-multi-tenant-foundation | 3/3 | 153 min | 51 min |
-| 02-transaction-core | 3/? | 16 min | 5.3 min |
+| 02-transaction-core | 3/3 | 16 min | 5.3 min |
 
 **Recent Trend:**
 - Last 5 plans: 39.2 min avg (71 min, 78 min, 4 min, 5 min, 6 min)
@@ -86,6 +86,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-23T23:05:03Z
-Stopped at: Completed 02-02-PLAN.md (Event Log Hash Chain — 2 tasks, 3 ITs green, @Immutable entity + SHA-256 hash chain + verifyChain())
+Last session: 2026-03-23T23:15:00Z
+Stopped at: Completed Phase 2 — all 3 plans done, 5/5 must-haves verified (transaction backbone: state machine, hash-chain event log, idempotency store, double-entry ledger)
 Resume file: None

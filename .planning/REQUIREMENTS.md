@@ -90,11 +90,11 @@ Which phases cover which requirements. Updated by create-roadmap.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | TENANT-01 | Phase 1 | Complete |
-| TX-01 | Phase 2 | Pending |
-| TX-02 | Phase 2 | Pending |
-| TX-03 | Phase 2 | Pending |
-| TX-04 | Phase 2 | Pending |
-| TX-05 | Phase 2 | Pending |
+| TX-01 | Phase 2 | Complete |
+| TX-02 | Phase 2 | Complete |
+| TX-03 | Phase 2 | Complete |
+| TX-04 | Phase 2 | Complete |
+| TX-05 | Phase 2 | Complete |
 | ADAPT-01 | Phase 3 | Pending |
 | ADAPT-02 | Phase 4 | Pending |
 | PAY-01 | Phase 5 | Pending |
