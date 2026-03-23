@@ -1,6 +1,7 @@
 package com.softropic.payam.tenant.config;
 
 import com.softropic.payam.security.common.util.TenantContext;
+import com.softropic.payam.security.config.AppEndpoints;
 import com.softropic.payam.tenant.contract.TenantPrincipal;
 import com.softropic.payam.tenant.repo.TenantApiKey;
 import com.softropic.payam.tenant.service.ApiKeyService;
@@ -9,10 +10,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,10 +25,20 @@ import jakarta.servlet.http.HttpServletResponse;
 /**
  * Servlet filter that authenticates incoming API requests via the {@code X-Api-Key} header.
  *
- * <p>This filter is registered in the {@code @Order(1)} security filter chain
- * ({@code TenantSecurityConfig}) which scopes it exclusively to {@code /v1/**} paths.
+ * <p>Registered in the {@code @Order(1)} security filter chain ({@code TenantSecurityConfig})
+ * which scopes it to {@code /v1/**} paths. NOT registered as a {@code @Component} — it is
+ * added exclusively via {@code addFilterBefore} in {@code TenantSecurityConfig} to prevent
+ * auto-registration with the servlet container.
  *
- * <p>Authentication flow:
+ * <p>Paths that bypass API key authentication (pass-through to the JWT chain):
+ * <ul>
+ *   <li>{@code /v1/account/**} — user account management (register, activate, login, etc.)
+ *       is handled by the existing JWT security chain.
+ *   <li>{@code AppEndpoints.PUBLIC_ENDPOINTS} paths — explicitly public paths (reset password,
+ *       email verification, etc.) that require no authentication from either chain.
+ * </ul>
+ *
+ * <p>Authentication flow for tenant payment paths:
  * <ol>
  *   <li>Read the {@code X-Api-Key} header. If absent, send 401 immediately.
  *   <li>Delegate to {@link ApiKeyService#authenticate(String)} which hashes the raw key
@@ -43,16 +56,38 @@ import jakarta.servlet.http.HttpServletResponse;
  * meaning the tenant proxy is fully loaded before the {@code @Transactional(readOnly=true)}
  * authenticate() transaction closes.
  */
-@Component
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String API_KEY_HEADER = "X-Api-Key";
     private static final Logger log = LoggerFactory.getLogger(ApiKeyAuthenticationFilter.class);
 
+    /** Paths that bypass API key auth and are handled by the JWT chain or as public. */
+    private static final List<String> BYPASS_PATTERNS;
+
+    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
+
+    static {
+        BYPASS_PATTERNS = new ArrayList<>();
+        BYPASS_PATTERNS.add("/v1/account/**");   // user account management — JWT chain
+        BYPASS_PATTERNS.addAll(AppEndpoints.PUBLIC_ENDPOINTS);
+    }
+
     private final ApiKeyService apiKeyService;
 
     public ApiKeyAuthenticationFilter(ApiKeyService apiKeyService) {
         this.apiKeyService = apiKeyService;
+    }
+
+    /**
+     * Skip this filter for paths that belong to the JWT chain or are explicitly public.
+     * Spring Security's authorization rules (permitAll / authenticated) still apply —
+     * this method only controls whether the API-key extraction logic runs.
+     */
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return BYPASS_PATTERNS.stream()
+            .anyMatch(pattern -> PATH_MATCHER.match(pattern, path));
     }
 
     @Override
