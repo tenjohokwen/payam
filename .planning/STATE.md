@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 2 in progress (Transaction Core) — plan 02-01 complete
+**Current focus:** Phase 2 in progress (Transaction Core) — plans 02-01 and 02-03 complete
 
 ## Current Position
 
 Phase: 2 of 10 (Transaction Core) — In progress
-Plan: 1 of ~5 in phase (02-01 complete)
-Status: In progress — ready for 02-02 (Orange adapter) and 02-03 (Idempotency)
-Last activity: 2026-03-23 — Completed 02-01-PLAN.md (Transaction Foundation)
+Plan: 3 of ~5 in phase (02-01 + 02-03 complete; 02-02 Orange adapter pending)
+Status: In progress — ready for 02-02 (Orange adapter) and 02-04 (MTN adapter)
+Last activity: 2026-03-24 — Completed 02-03-PLAN.md (Idempotency + Ledger)
 
-Progress: ████░░░░░░ ~22% (4 of ~18 plans)
+Progress: █████░░░░░ ~28% (5 of ~18 plans)
 
 ## Performance Metrics
 
@@ -28,7 +28,7 @@ Progress: ████░░░░░░ ~22% (4 of ~18 plans)
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-multi-tenant-foundation | 3/3 | 153 min | 51 min |
-| 02-transaction-core | 1/? | 5 min | 5 min |
+| 02-transaction-core | 2/? | 10 min | 5 min |
 
 **Recent Trend:**
 - Last 5 plans: 39.2 min avg (71 min, 78 min, 4 min, 5 min)
@@ -58,6 +58,10 @@ Recent decisions affecting current work:
 - 02-01 decision: Transaction.txStatus has no public setter — applyTransition() is the only mutation point, enforcing state machine guards
 - 02-01 decision: TransactionStateMachineIT creates tenant via TenantService (@BeforeEach) — TSID-based IDs preclude fixed numeric tenantId=1L
 - 02-01 decision: payment_event_log extends BaseEntity only (not AbstractAuditingEntity) — append-only log table does not need audit columns
+- 02-03 decision: IdempotencyKey extends BaseEntity only — V2 DDL has no audit columns; AbstractAuditingEntity would cause schema-validation failure
+- 02-03 decision: LedgerEntry uses @Builder not @SuperBuilder (no superclass) and @Immutable — Hibernate refuses dirty-check updates on append-only record
+- 02-03 decision: IdempotencyService.store() uses delete-then-save for upsert — IdempotencyKey has no public setters; delete+save is clean for low-frequency update
+- 02-03 decision: @ServiceConnection(name='redis') required on GenericContainer — Spring Boot cannot infer service type from untyped GenericContainer without name attribute
 
 ### Pending Todos
 
@@ -74,10 +78,10 @@ Recent decisions affecting current work:
 - Phase 9: Orange daily report format undocumented — requires partner verification before parser implementation
 - Spring Security filter chain pattern: SecurityAdviceFilter is @Component — it runs for ALL requests via servlet container, not just JWT chain requests. Any @Component filter applies globally. When adding new IT tests, account for this.
 - ApiAdvice exception handler priority: EntityNotFoundException is now mapped (→ 404). Any future JPA entity not-found scenarios will return 404 consistently. Check for conflicts before adding new @ExceptionHandler entries.
-- Redis not started in tests: 02-01 tests pass without Redis container (no Redis usage yet). When 02-03 adds IdempotencyService using Redis, a Redis Testcontainer will be needed in TestConfig or the relevant IT.
+- Redis Testcontainer now active: 02-03 added GenericContainer(redis:7-alpine) to TestConfig — all future ITs will have Redis available automatically.
 
 ## Session Continuity
 
-Last session: 2026-03-23T22:56:50Z
-Stopped at: Completed 02-01-PLAN.md (Transaction Foundation — 3 tasks, 4 ITs green, state machine + entity + service)
+Last session: 2026-03-24T00:04:13Z
+Stopped at: Completed 02-03-PLAN.md (Idempotency + Ledger — 2 tasks, 5 ITs green, Redis NX+EX + double-entry ledger)
 Resume file: None
