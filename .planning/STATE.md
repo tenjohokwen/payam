@@ -5,33 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 1 complete — Phase 2 next
+**Current focus:** Phase 1 complete (3 plans) — Phase 2 next
 
 ## Current Position
 
 Phase: 1 of 10 (Multi-Tenant Foundation) — COMPLETE
-Plan: 2 of 2 in phase (both complete)
+Plan: 3 of 3 in phase (all complete)
 Status: Phase complete — ready for Phase 2
-Last activity: 2026-03-23 — Completed 01-02-PLAN.md (API Key Filter Chain)
+Last activity: 2026-03-23 — Completed 01-03-PLAN.md (Rotate and Revoke Key HTTP Endpoints)
 
-Progress: ██░░░░░░░░ ~12% (2 of ~17 plans)
+Progress: ███░░░░░░░ ~17% (3 of ~18 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 74.5 min
-- Total execution time: 2.5 hours
+- Total plans completed: 3
+- Average duration: 50.3 min
+- Total execution time: ~2.6 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-multi-tenant-foundation | 2/2 | 149 min | 74.5 min |
+| 01-multi-tenant-foundation | 3/3 | 153 min | 51 min |
 
 **Recent Trend:**
-- Last 5 plans: 74.5 min avg (71 min, 78 min)
-- Trend: Stable
+- Last 5 plans: 50.3 min avg (71 min, 78 min, 4 min)
+- Trend: Highly variable (01-03 was a small gap-closure plan)
 
 ## Accumulated Context
 
@@ -50,6 +50,9 @@ Recent decisions affecting current work:
 - 01-02 decision: ApiKeyAuthenticationFilter NOT @Component — defined as @Bean in TenantSecurityConfig to prevent servlet container auto-registration; also has shouldNotFilter() bypass for account paths
 - 01-02 decision: @Configuration("tenantAsyncConfig") on new AsyncConfig — Spring 6.2+ ConflictingBeanDefinitionException if two config classes share default name "asyncConfig"
 - 01-02 decision: TenantFilterChainIT seeds JWT secret in @BeforeEach — SecurityAdviceFilter.addSecretToThread() runs on every request; main.sec must have secret row
+- 01-03 decision: TenantAdminResource now takes two constructor args (TenantService, ApiKeyService) — both are @Service beans, Spring injects automatically
+- 01-03 decision: tenantId path variable present for URL consistency; no DB ownership check in this plan (future security phase concern)
+- 01-03 decision: EntityNotFoundException handler added to ApiAdvice → 404; without it JPA EntityNotFoundException hit Throwable catch-all → 500
 
 ### Pending Todos
 
@@ -64,9 +67,10 @@ Recent decisions affecting current work:
 - Phase 4: MTN PUT callback confirmed in docs — verify in sandbox before relying on it
 - Phase 9: Orange daily report format undocumented — requires partner verification before parser implementation
 - Spring Security filter chain pattern: SecurityAdviceFilter is @Component — it runs for ALL requests via servlet container, not just JWT chain requests. Any @Component filter applies globally. When adding new IT tests, account for this.
+- ApiAdvice exception handler priority: EntityNotFoundException is now mapped (→ 404). Any future JPA entity not-found scenarios will return 404 consistently. Check for conflicts before adding new @ExceptionHandler entries.
 
 ## Session Continuity
 
-Last session: 2026-03-23T23:11:06Z
-Stopped at: Completed 01-02-PLAN.md (API Key Filter Chain — 3 tasks, 19 ITs green, Phase 1 complete)
+Last session: 2026-03-23T22:27:08Z
+Stopped at: Completed 01-03-PLAN.md (Rotate+Revoke HTTP endpoints — 2 tasks, 3 new ITs green, Phase 1 fully complete)
 Resume file: None
