@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 2 in progress (Transaction Core) — plans 02-01 and 02-03 complete
+**Current focus:** Phase 2 in progress (Transaction Core) — plans 02-01, 02-02, and 02-03 complete
 
 ## Current Position
 
 Phase: 2 of 10 (Transaction Core) — In progress
-Plan: 3 of ~5 in phase (02-01 + 02-03 complete; 02-02 Orange adapter pending)
-Status: In progress — ready for 02-02 (Orange adapter) and 02-04 (MTN adapter)
-Last activity: 2026-03-24 — Completed 02-03-PLAN.md (Idempotency + Ledger)
+Plan: 3 of ~5 in phase (02-01 + 02-02 + 02-03 complete; 02-04 MTN adapter next)
+Status: In progress — ready for 02-04 (MTN adapter) and 02-05 (Orange adapter)
+Last activity: 2026-03-23 — Completed 02-02-PLAN.md (Event Log Hash Chain)
 
 Progress: █████░░░░░ ~28% (5 of ~18 plans)
 
@@ -28,11 +28,11 @@ Progress: █████░░░░░ ~28% (5 of ~18 plans)
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-multi-tenant-foundation | 3/3 | 153 min | 51 min |
-| 02-transaction-core | 2/? | 10 min | 5 min |
+| 02-transaction-core | 3/? | 16 min | 5.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 39.2 min avg (71 min, 78 min, 4 min, 5 min)
-- Trend: 02-01 was a fast plan (5 min) — no Redis/Testcontainers container required for tests
+- Last 5 plans: 39.2 min avg (71 min, 78 min, 4 min, 5 min, 6 min)
+- Trend: Phase 2 plans are fast (avg 5.3 min) — well-defined schema + clear patterns
 
 ## Accumulated Context
 
@@ -58,6 +58,9 @@ Recent decisions affecting current work:
 - 02-01 decision: Transaction.txStatus has no public setter — applyTransition() is the only mutation point, enforcing state machine guards
 - 02-01 decision: TransactionStateMachineIT creates tenant via TenantService (@BeforeEach) — TSID-based IDs preclude fixed numeric tenantId=1L
 - 02-01 decision: payment_event_log extends BaseEntity only (not AbstractAuditingEntity) — append-only log table does not need audit columns
+- 02-02 decision: @JdbcTypeCode(SqlTypes.JSON) required on String metadata field mapped to jsonb — @Column(columnDefinition="jsonb") alone does not add JDBC cast; PostgreSQL rejects varchar→jsonb without it
+- 02-02 decision: Hash canonical string is pipe-delimited domain fields only (transactionId|eventType|statusFrom|statusTo|actor|previousHash); no timestamps or DB IDs — ensures hash reproducibility
+- 02-02 decision: createdDate set inside create() factory but excluded from hash input — Instant.now() is non-deterministic and would break hash replay
 - 02-03 decision: IdempotencyKey extends BaseEntity only — V2 DDL has no audit columns; AbstractAuditingEntity would cause schema-validation failure
 - 02-03 decision: LedgerEntry uses @Builder not @SuperBuilder (no superclass) and @Immutable — Hibernate refuses dirty-check updates on append-only record
 - 02-03 decision: IdempotencyService.store() uses delete-then-save for upsert — IdempotencyKey has no public setters; delete+save is clean for low-frequency update
@@ -68,6 +71,7 @@ Recent decisions affecting current work:
 - Run `mvn resources:resources resources:testResources` before `mvn surefire:test` when bypassing lifecycle (frontend plugin blocks full lifecycle)
 - Any new IT test class that makes HTTP requests must seed the JWT secret row in main.sec (or use @Sql with secData.sql)
 - Any new IT test class that writes to main.transaction must delete from main.transaction in @AfterEach BEFORE deleting from main.tenant (FK constraint)
+- Any new IT test class writing to main.payment_event_log must delete from main.payment_event_log in @AfterEach before main.transaction (no FK, but ordering matters for clean state)
 
 ### Blockers/Concerns
 
@@ -82,6 +86,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-24T00:04:13Z
-Stopped at: Completed 02-03-PLAN.md (Idempotency + Ledger — 2 tasks, 5 ITs green, Redis NX+EX + double-entry ledger)
+Last session: 2026-03-23T23:05:03Z
+Stopped at: Completed 02-02-PLAN.md (Event Log Hash Chain — 2 tasks, 3 ITs green, @Immutable entity + SHA-256 hash chain + verifyChain())
 Resume file: None
