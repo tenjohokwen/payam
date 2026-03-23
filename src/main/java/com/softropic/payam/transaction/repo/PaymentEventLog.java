@@ -6,6 +6,8 @@ import com.softropic.payam.transaction.contract.TransactionStatus;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.hibernate.annotations.Immutable;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
@@ -53,6 +55,7 @@ public class PaymentEventLog extends BaseEntity {
     @Column(nullable = false, updatable = false)
     private String actor;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", updatable = false)
     private String metadata;
 
