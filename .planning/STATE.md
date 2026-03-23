@@ -5,33 +5,34 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 1 complete (3 plans) — Phase 2 next
+**Current focus:** Phase 2 in progress (Transaction Core) — plan 02-01 complete
 
 ## Current Position
 
-Phase: 1 of 10 (Multi-Tenant Foundation) — COMPLETE
-Plan: 3 of 3 in phase (all complete)
-Status: Phase complete — ready for Phase 2
-Last activity: 2026-03-23 — Completed 01-03-PLAN.md (Rotate and Revoke Key HTTP Endpoints)
+Phase: 2 of 10 (Transaction Core) — In progress
+Plan: 1 of ~5 in phase (02-01 complete)
+Status: In progress — ready for 02-02 (Orange adapter) and 02-03 (Idempotency)
+Last activity: 2026-03-23 — Completed 02-01-PLAN.md (Transaction Foundation)
 
-Progress: ███░░░░░░░ ~17% (3 of ~18 plans)
+Progress: ████░░░░░░ ~22% (4 of ~18 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 50.3 min
-- Total execution time: ~2.6 hours
+- Total plans completed: 4
+- Average duration: 39.2 min
+- Total execution time: ~2.7 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-multi-tenant-foundation | 3/3 | 153 min | 51 min |
+| 02-transaction-core | 1/? | 5 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 50.3 min avg (71 min, 78 min, 4 min)
-- Trend: Highly variable (01-03 was a small gap-closure plan)
+- Last 5 plans: 39.2 min avg (71 min, 78 min, 4 min, 5 min)
+- Trend: 02-01 was a fast plan (5 min) — no Redis/Testcontainers container required for tests
 
 ## Accumulated Context
 
@@ -53,11 +54,16 @@ Recent decisions affecting current work:
 - 01-03 decision: TenantAdminResource now takes two constructor args (TenantService, ApiKeyService) — both are @Service beans, Spring injects automatically
 - 01-03 decision: tenantId path variable present for URL consistency; no DB ownership check in this plan (future security phase concern)
 - 01-03 decision: EntityNotFoundException handler added to ApiAdvice → 404; without it JPA EntityNotFoundException hit Throwable catch-all → 500
+- 02-01 decision: MobilePaymentProvider reused from common/payment package (MTN, ORANGE, NEXTTEL) — plan specified new enum in transaction/contract but common one already exists; reused to avoid duplication
+- 02-01 decision: Transaction.txStatus has no public setter — applyTransition() is the only mutation point, enforcing state machine guards
+- 02-01 decision: TransactionStateMachineIT creates tenant via TenantService (@BeforeEach) — TSID-based IDs preclude fixed numeric tenantId=1L
+- 02-01 decision: payment_event_log extends BaseEntity only (not AbstractAuditingEntity) — append-only log table does not need audit columns
 
 ### Pending Todos
 
 - Run `mvn resources:resources resources:testResources` before `mvn surefire:test` when bypassing lifecycle (frontend plugin blocks full lifecycle)
 - Any new IT test class that makes HTTP requests must seed the JWT secret row in main.sec (or use @Sql with secData.sql)
+- Any new IT test class that writes to main.transaction must delete from main.transaction in @AfterEach BEFORE deleting from main.tenant (FK constraint)
 
 ### Blockers/Concerns
 
@@ -68,9 +74,10 @@ Recent decisions affecting current work:
 - Phase 9: Orange daily report format undocumented — requires partner verification before parser implementation
 - Spring Security filter chain pattern: SecurityAdviceFilter is @Component — it runs for ALL requests via servlet container, not just JWT chain requests. Any @Component filter applies globally. When adding new IT tests, account for this.
 - ApiAdvice exception handler priority: EntityNotFoundException is now mapped (→ 404). Any future JPA entity not-found scenarios will return 404 consistently. Check for conflicts before adding new @ExceptionHandler entries.
+- Redis not started in tests: 02-01 tests pass without Redis container (no Redis usage yet). When 02-03 adds IdempotencyService using Redis, a Redis Testcontainer will be needed in TestConfig or the relevant IT.
 
 ## Session Continuity
 
-Last session: 2026-03-23T22:27:08Z
-Stopped at: Completed 01-03-PLAN.md (Rotate+Revoke HTTP endpoints — 2 tasks, 3 new ITs green, Phase 1 fully complete)
+Last session: 2026-03-23T22:56:50Z
+Stopped at: Completed 02-01-PLAN.md (Transaction Foundation — 3 tasks, 4 ITs green, state machine + entity + service)
 Resume file: None
