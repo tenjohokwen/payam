@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -342,6 +343,13 @@ public class ApiAdvice {
         final String defaultMsg = "The resource cannot be found";
         final String resourceName = rnfe.getResourceName();
         return logErrorAndReturnDTO(rnfe, defaultMsg, rnfe.getErrorCode().getErrorCode(), resourceName);
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorDto entityNotFoundExceptionHandler(final EntityNotFoundException enfe) {
+        final String defaultMsg = "The requested entity could not be found";
+        return logErrorAndReturnDTO(enfe, defaultMsg, "generic.notFound");
     }
 
 
