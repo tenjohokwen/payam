@@ -97,6 +97,14 @@ export default defineConfig((ctx) => {
           target: 'http://localhost:9990',
           changeOrigin: true,
         },
+        '/v1/admin': {
+          target: 'http://localhost:9990',
+          changeOrigin: true,
+        },
+        '/v1/payments': {
+          target: 'http://localhost:9990',
+          changeOrigin: true,
+        },
         '/v1/api': {
           target: 'http://localhost:9990',
           changeOrigin: true,

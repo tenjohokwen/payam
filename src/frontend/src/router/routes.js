@@ -54,6 +54,29 @@ const routes = [
         component: () => import('pages/ProfilePage.vue'),
         meta: { requiresAuth: true },
       },
+
+      // Admin pages (auth required)
+      {
+        path: 'admin',
+        meta: { requiresAuth: true },
+        children: [
+          {
+            path: 'dashboard',
+            component: () => import('pages/admin/AdminDashboardPage.vue'),
+            meta: { requiresAuth: true },
+          },
+          {
+            path: 'transactions',
+            component: () => import('pages/admin/TransactionSearchPage.vue'),
+            meta: { requiresAuth: true },
+          },
+          {
+            path: 'transactions/:transactionId/events',
+            component: () => import('pages/admin/TransactionDetailPage.vue'),
+            meta: { requiresAuth: true },
+          },
+        ],
+      },
     ],
   },
 

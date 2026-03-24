@@ -99,6 +99,27 @@
             <q-item-label>{{ t('profile.title') }}</q-item-label>
           </q-item-section>
         </q-item>
+
+        <q-separator spaced />
+        <q-item-label header>Admin</q-item-label>
+
+        <q-item clickable to="/admin/dashboard">
+          <q-item-section avatar>
+            <q-icon name="bar_chart" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Admin Dashboard</q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item clickable to="/admin/transactions">
+          <q-item-section avatar>
+            <q-icon name="search" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Transactions</q-item-label>
+          </q-item-section>
+        </q-item>
       </q-list>
     </q-drawer>
 
