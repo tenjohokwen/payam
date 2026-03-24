@@ -26,6 +26,9 @@ quartz:
     org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
 
 spring:
+  mvc:
+    async:
+      request-timeout: -1
   jackson:
     serialization:
       WRITE_DATES_AS_TIMESTAMPS: false
