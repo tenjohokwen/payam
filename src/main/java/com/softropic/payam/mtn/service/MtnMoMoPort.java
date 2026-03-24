@@ -17,12 +17,16 @@ import com.softropic.payam.transaction.service.EventLogService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 
+import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -38,19 +42,25 @@ public class MtnMoMoPort implements MobileMoneyPort {
     private final EventLogService eventLogService;
     private final MtnMoMoConfig config;
     private final StringRedisTemplate redis;
+    private final ApplicationEventPublisher eventPublisher;
+    private final TransactionTemplate transactionTemplate;
 
     public MtnMoMoPort(MtnMoMoClient mtnMoMoClient,
                        MtnTokenService mtnTokenService,
                        TransactionRepository transactionRepository,
                        EventLogService eventLogService,
                        MtnMoMoConfig config,
-                       StringRedisTemplate redis) {
+                       StringRedisTemplate redis,
+                       ApplicationEventPublisher eventPublisher,
+                       TransactionTemplate transactionTemplate) {
         this.mtnMoMoClient = mtnMoMoClient;
         this.mtnTokenService = mtnTokenService;
         this.transactionRepository = transactionRepository;
         this.eventLogService = eventLogService;
         this.config = config;
         this.redis = redis;
+        this.eventPublisher = eventPublisher;
+        this.transactionTemplate = transactionTemplate;
     }
 
     /**
@@ -163,6 +173,24 @@ public class MtnMoMoPort implements MobileMoneyPort {
         if (payload.getFinancialTransactionId() != null) {
             storeFinancialTxId(payload.getExternalId(), payload.getFinancialTransactionId());
         }
+
+        // Look up Transaction by transactionId (= payload.getExternalId() for MTN)
+        transactionRepository.findByTransactionId(payload.getExternalId()).ifPresent(tx -> {
+            String providerRef = tx.getProviderRef(); // referenceId UUID stored by initiateMerchantPayment
+            String txId = tx.getTransactionId();
+            String traceId = tx.getTraceId();
+            // Publish inside a transaction boundary so @TransactionalEventListener(AFTER_COMMIT) fires
+            transactionTemplate.execute(status -> {
+                eventPublisher.publishEvent(new WebhookReceivedEvent(
+                    txId,
+                    com.softropic.payam.common.payment.MobilePaymentProvider.MTN,
+                    providerRef,
+                    traceId
+                ));
+                return null;
+            });
+            log.info("WebhookReceivedEvent published for MTN transactionId={}", txId);
+        });
     }
 
     // ---- private helpers ----

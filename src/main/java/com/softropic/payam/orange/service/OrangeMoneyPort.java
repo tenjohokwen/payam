@@ -22,11 +22,15 @@ import com.softropic.payam.transaction.service.EventLogService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 
+import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -41,17 +45,23 @@ public class OrangeMoneyPort implements MobileMoneyPort {
     private final TransactionRepository transactionRepository;
     private final EventLogService eventLogService;
     private final OrangeMoneyConfig config;
+    private final ApplicationEventPublisher eventPublisher;
+    private final TransactionTemplate transactionTemplate;
 
     public OrangeMoneyPort(OrangeMoneyClient orangeMoneyClient,
                            OrangeTokenService orangeTokenService,
                            TransactionRepository transactionRepository,
                            EventLogService eventLogService,
-                           OrangeMoneyConfig config) {
+                           OrangeMoneyConfig config,
+                           ApplicationEventPublisher eventPublisher,
+                           TransactionTemplate transactionTemplate) {
         this.orangeMoneyClient = orangeMoneyClient;
         this.orangeTokenService = orangeTokenService;
         this.transactionRepository = transactionRepository;
         this.eventLogService = eventLogService;
         this.config = config;
+        this.eventPublisher = eventPublisher;
+        this.transactionTemplate = transactionTemplate;
     }
 
     /**
@@ -155,18 +165,40 @@ public class OrangeMoneyPort implements MobileMoneyPort {
 
     /**
      * Webhook processing hook for Phase 6.
-     * Does NOT apply state transition — Phase 6 calls getTransactionStatus() for double-check (P1.4).
-     * Returns the notifToken for correlation.
+     * Does NOT apply state transition — publishes WebhookReceivedEvent for double-check (P1.4).
+     * Returns the payToken for correlation.
+     *
+     * The event is published inside a TransactionTemplate boundary so that
+     * @TransactionalEventListener(AFTER_COMMIT) fires after the transaction commits.
+     * Without this boundary, there is no active transaction and the listener never fires.
      */
     public String processWebhook(OrangeWebhookPayload payload, String notifToken) {
         log.info("Orange webhook received: payToken={}, status={}, txnid={}",
             payload.getPayToken(), payload.getStatus(), payload.getTxnid());
-        // Phase 6 will call getTransactionStatus(payload.getPayToken()) for double-check.
-        // This method only validates correlation: notifToken must match payload.getNotifToken().
+
+        // Validate notifToken correlation
         if (notifToken != null && !notifToken.equals(payload.getNotifToken())) {
             log.warn("Orange webhook notifToken mismatch — possible replay: expected={}, got={}",
                 notifToken, payload.getNotifToken());
         }
+
+        // Look up Transaction by payToken (Pitfall 3: NOT txnid — txnid is Orange-internal)
+        transactionRepository.findByPayToken(payload.getPayToken()).ifPresentOrElse(tx -> {
+            String txId = tx.getTransactionId();
+            String traceId = tx.getTraceId();
+            // Publish inside a transaction boundary so @TransactionalEventListener(AFTER_COMMIT) fires
+            transactionTemplate.execute(status -> {
+                eventPublisher.publishEvent(new WebhookReceivedEvent(
+                    txId,
+                    com.softropic.payam.common.payment.MobilePaymentProvider.ORANGE,
+                    payload.getPayToken(),
+                    traceId
+                ));
+                return null;
+            });
+            log.info("WebhookReceivedEvent published for transactionId={}", txId);
+        }, () -> log.warn("Orange webhook: no transaction found for payToken={}", payload.getPayToken()));
+
         return payload.getPayToken();
     }
 
