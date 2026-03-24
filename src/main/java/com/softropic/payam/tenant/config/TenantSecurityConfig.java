@@ -22,22 +22,26 @@ import java.util.stream.Collectors;
 
 /**
  * {@code @Order(1)} security filter chain scoped to {@code /v1/**} paths that are NOT
- * user account management paths ({@code /v1/account/**}).
+ * user account management paths ({@code /v1/account/**}) and NOT admin paths
+ * ({@code /v1/admin/**}).
  *
- * <p>This chain intercepts all tenant API payment/admin requests before the existing JWT chain
+ * <p>This chain intercepts all tenant API payment requests before the existing JWT chain
  * (which has no {@code @Order}, defaulting to lowest priority).
  *
- * <p>Scope strategy — why the securityMatcher excludes {@code /v1/account/**}:
+ * <p>Scope strategy — why the securityMatcher excludes {@code /v1/account/**} and
+ * {@code /v1/admin/**}:
  * <ul>
  *   <li>The user account management endpoints ({@code /v1/account/}) are accessed via JWT
  *       cookies, not via API keys. They belong to the JWT chain.
- *   <li>By excluding them from this chain's scope, the JWT chain handles them correctly —
- *       the public subpaths (register, activate) remain public, and the secured subpath
- *       (GET /v1/account/) requires JWT authentication as before.
- *   <li>This preserves all existing {@code SecurityFilterChainIT} test behaviour.
+ *   <li>The admin investigation endpoints ({@code /v1/admin/}) require JWT authentication
+ *       with {@code ROLE_ADMIN}. They also belong to the JWT chain and must NOT be
+ *       intercepted by the API-key chain — otherwise every admin request returns 401.
+ *   <li>By excluding both paths from this chain's scope, the JWT chain handles them
+ *       correctly, preserving all existing {@code SecurityFilterChainIT} test behaviour.
  * </ul>
  *
- * <p>Security rules for matched paths (i.e. {@code /v1/**} except {@code /v1/account/**}):
+ * <p>Security rules for matched paths (i.e. {@code /v1/**} except {@code /v1/account/**}
+ * and {@code /v1/admin/**}):
  * <ul>
  *   <li>{@code AppEndpoints.PUBLIC_ENDPOINTS} paths that fall within this scope are
  *       permitted without authentication (defence-in-depth).
@@ -69,11 +73,15 @@ public class TenantSecurityConfig {
     public SecurityFilterChain tenantApiKeyFilterChain(HttpSecurity http,
                                                        ApiKeyAuthenticationFilter apiKeyFilter)
                                                        throws Exception {
-        // Match /v1/** BUT NOT /v1/account/**
-        // /v1/account/** is user account management (JWT territory) — let the JWT chain handle it.
+        // Match /v1/** BUT NOT /v1/account/** AND NOT /v1/admin/**
+        // /v1/account/** is user account management (JWT territory).
+        // /v1/admin/** requires JWT + ROLE_ADMIN — must not be intercepted by the API-key chain.
         RequestMatcher tenantPaths = new AndRequestMatcher(
             new AntPathRequestMatcher("/v1/**"),
-            new NegatedRequestMatcher(new AntPathRequestMatcher("/v1/account/**"))
+            new NegatedRequestMatcher(new OrRequestMatcher(
+                new AntPathRequestMatcher("/v1/account/**"),
+                new AntPathRequestMatcher("/v1/admin/**")
+            ))
         );
 
         // Build PUBLIC_ENDPOINTS permit-all matchers for paths within this chain's scope
