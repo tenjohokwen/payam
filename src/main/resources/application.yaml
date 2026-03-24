@@ -15,6 +15,16 @@ server:
     protocol-header: x-forwarded-proto #tomcat: configure the RemoteIpValve for more sophisticated Forwarded header handling
   forward-headers-strategy: native  #spring: config to get client ip in compliance with the RFC 7239 specification. see ForwardedHeaderFilter bean.
 
+quartz:
+  job-store-type: jdbc
+  jdbc:
+    initialize-schema: never
+  properties:
+    org.quartz.jobStore.tablePrefix: QRTZ_
+    org.quartz.jobStore.isClustered: false
+    org.quartz.threadPool.threadCount: 3
+    org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+
 spring:
   jackson:
     serialization:
@@ -207,3 +217,34 @@ immutable-log:
     verify-entry-count: 5
     timeout-ms: 5000
     include-verification: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      orange:
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        slidingWindowSize: 10
+        permittedNumberOfCallsInHalfOpenState: 3
+  retry:
+    instances:
+      orange:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - java.net.SocketTimeoutException
+          - org.springframework.web.client.ResourceAccessException
+
+orange:
+  base-url: https://api-s1.orange.cm/omcoreapis/1.0.2
+  pay-url: https://api-s1.orange.cm/omcoreapis/1.0.1
+  token-url: https://api-s1.orange.cm/omcoreapis/1.0.2/token
+  consumer-key: ${ORANGE_CONSUMER_KEY:test-key}
+  consumer-secret: ${ORANGE_CONSUMER_SECRET:test-secret}
+  pay-token-expiry-threshold-minutes: 8
+  poller:
+    initial-delay-seconds: 120
+    interval-seconds: 300
+    max-attempts: 15
