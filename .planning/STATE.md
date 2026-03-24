@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 2 complete (Transaction Core) — Phase 3 next
+**Current focus:** Phase 3 complete (Orange Money Adapter) — Phase 4 next (MTN Money Adapter)
 
 ## Current Position
 
-Phase: 3 of 10 (Orange Money Adapter) — In progress
-Plan: 1 of 2 in phase (03-01 complete)
-Status: In progress — 03-02 (OrangeMoneyPort service + Quartz poller) is next
-Last activity: 2026-03-24 — Completed 03-01-PLAN.md (Orange adapter foundation: MobileMoneyPort, contract layer, OrangeMoneyClient, OrangeTokenService, Quartz DDL)
+Phase: 3 of 10 (Orange Money Adapter) — COMPLETE
+Plan: 2 of 2 in phase (03-01 and 03-02 complete)
+Status: Phase 3 complete — 04-mtn-money-adapter is next
+Last activity: 2026-03-24 — Completed 03-02-PLAN.md (OrangeMoneyPort, Quartz poller, WireMock IT tests)
 
-Progress: ███████░░░ ~39% (7 of ~18 plans)
+Progress: ████████░░ ~44% (8 of ~18 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 32.6 min
-- Total execution time: ~2.7 hours
+- Total plans completed: 8
+- Average duration: 28.6 min
+- Total execution time: ~3.8 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: ███████░░░ ~39% (7 of ~18 plans)
 |-------|-------|-------|----------|
 | 01-multi-tenant-foundation | 3/3 | 153 min | 51 min |
 | 02-transaction-core | 3/3 | 16 min | 5.3 min |
-| 03-orange-money-adapter | 1/2 | 5 min | 5 min |
+| 03-orange-money-adapter | 2/2 | 35 min | 17.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 5 min, 4 min, 5 min, 6 min, 5 min avg
-- Trend: Foundation/scaffold plans are fast (avg ~5 min) — well-defined patterns from prior phases
+- Last 5 plans: 30 min, 5 min, 4 min, 5 min, 6 min avg
+- Trend: Implementation plans with complex Resilience4j debugging are longer; scaffold plans remain fast
 
 ## Accumulated Context
 
@@ -70,6 +70,11 @@ Recent decisions affecting current work:
 - 03-01 decision: RestRequestInterceptor instantiated directly (new RestRequestInterceptor()) in OrangeMoneyClient constructor — concrete @Component with no-arg constructor; OrangeMoneyClient is @Bean not @Component, so direct instantiation is clean
 - 03-01 decision: OrangeMoneyClient.pay() uses config.getPayUrl() (v1.0.1) not getBaseUrl() (v1.0.2) — Orange Pay endpoint is on different API version from other endpoints
 - 03-01 decision: OrangeStatus.SUCCESSFULL has double-L — verbatim per Orange API response; not a typo
+- 03-02 decision: @CircuitBreaker fallbackMethod removed — Resilience4j calls fallback for ALL exceptions (not just circuit-open), swallowing SubscriberInactiveException; CallNotPermittedException propagates to Phase 5 orchestration layer
+- 03-02 decision: AbstractClient.messageConverters() only has JSON — OrangeMoneyClient adds FormHttpMessageConverter for x-www-form-urlencoded token POST
+- 03-02 decision: @ConfigureWireMock baseUrlProperties cannot override full-URL properties (orange.token-url has path); test application.properties derives token-url as ${orange.base-url}/token
+- 03-02 decision: cashout/C2C stubs have no @CircuitBreaker — unconditionally-throwing stubs don't need circuit-breaking; fallbacks swallowed UnsupportedOperationException in tests
+- 03-02 decision: Circuit breaker ignoreExceptions for SubscriberInactiveException and PayTokenExpiredException — domain validation exceptions should not count as circuit failures
 
 ### Pending Todos
 
@@ -77,20 +82,24 @@ Recent decisions affecting current work:
 - Any new IT test class that makes HTTP requests must seed the JWT secret row in main.sec (or use @Sql with secData.sql)
 - Any new IT test class that writes to main.transaction must delete from main.transaction in @AfterEach BEFORE deleting from main.tenant (FK constraint)
 - Any new IT test class writing to main.payment_event_log must delete from main.payment_event_log in @AfterEach before main.transaction (no FK, but ordering matters for clean state)
+- New Orange IT tests: orange.pay-url and orange.token-url must both resolve to WireMock — use baseUrlProperties = {"orange.base-url", "orange.pay-url"} and token-url via test application.properties
 
 ### Blockers/Concerns
 
 - Environment: `.mvn/wrapper/maven-wrapper.properties` missing — use system `mvn` not `./mvnw`
 - Environment: Frontend plugin (`generate-resources` phase) broken due to missing quasar module — bypass with `mvn compiler:compile` or invoke goals directly
+- Pre-existing failure: `SecurityFilterChainIT.testSecuredEndpointRequiresAuth` — pre-existing failure unrelated to Phase 3; do not count as regression
 - Phase 3: Orange webhook HMAC header existence unconfirmed — verify with Orange partner before implementation
 - Phase 4: MTN PUT callback confirmed in docs — verify in sandbox before relying on it
 - Phase 9: Orange daily report format undocumented — requires partner verification before parser implementation
 - Spring Security filter chain pattern: SecurityAdviceFilter is @Component — it runs for ALL requests via servlet container, not just JWT chain requests. Any @Component filter applies globally. When adding new IT tests, account for this.
 - ApiAdvice exception handler priority: EntityNotFoundException is now mapped (→ 404). Any future JPA entity not-found scenarios will return 404 consistently. Check for conflicts before adding new @ExceptionHandler entries.
 - Redis Testcontainer now active: 02-03 added GenericContainer(redis:7-alpine) to TestConfig — all future ITs will have Redis available automatically.
+- Resilience4j circuit breaker pattern: @CircuitBreaker WITHOUT fallbackMethod — fallback is called for ALL exceptions not just circuit-open; for domain exceptions (SubscriberInactiveException) use ignoreExceptions config or remove fallback entirely
+- Quartz + @Transactional on executeInternal: QuartzJobBean.execute() is final, Spring AOP cannot proxy it; @Transactional on executeInternal works because it's called by execute() from the Spring-managed bean
 
 ## Session Continuity
 
-Last session: 2026-03-24T01:36:40Z
-Stopped at: Completed 03-01-PLAN.md — Orange adapter foundation scaffold complete (MobileMoneyPort, all contracts, OrangeMoneyClient, OrangeTokenService, OrangeConfig, Quartz DDL, yaml config)
+Last session: 2026-03-24T02:10:48Z
+Stopped at: Completed 03-02-PLAN.md — OrangeMoneyPort service + Quartz poller + 11 green IT tests
 Resume file: None
