@@ -12,6 +12,7 @@ import com.softropic.payam.common.exception.ErrorCode;
  *   <li>{@link #PROVIDER_ERROR} — Provider returned a 4xx/5xx HTTP error (HttpClientException)</li>
  *   <li>{@link #UNKNOWN_MSISDN_PREFIX} — MSISDN prefix not recognized as any Cameroonian operator</li>
  *   <li>{@link #PAYMENT_ALREADY_PROCESSING} — Duplicate in-flight request detected via idempotency key</li>
+ *   <li>{@link #FRAUD_BLOCKED} — Payment blocked by fraud engine (velocity or score threshold). Maps to HTTP 422.</li>
  * </ul>
  */
 public enum OrchestratorError implements ErrorCode {
@@ -29,7 +30,10 @@ public enum OrchestratorError implements ErrorCode {
     UNKNOWN_MSISDN_PREFIX,
 
     /** Another request with the same idempotency key is still in flight (RESERVED sentinel). Maps to HTTP 202. */
-    PAYMENT_ALREADY_PROCESSING;
+    PAYMENT_ALREADY_PROCESSING,
+
+    /** Payment blocked by fraud engine — velocity threshold exceeded or risk score too high. Maps to HTTP 422. */
+    FRAUD_BLOCKED;
 
     @Override
     public String getErrorCode() {

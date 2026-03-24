@@ -5,6 +5,7 @@ import com.softropic.payam.common.persistence.AbstractAuditingEntity;
 import com.softropic.payam.transaction.contract.TransactionStatus;
 
 import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -80,6 +81,23 @@ public class Transaction extends AbstractAuditingEntity {
     private Integer pollAttempts;
 
     /**
+     * Fraud risk score 0–100 computed by FraudScoringService at payment initiation.
+     * Null until the fraud evaluation step in PaymentOrchestrator runs (non-null on all
+     * transactions created after Phase 7).
+     */
+    @NotAudited
+    @Column(name = "risk_score")
+    private Integer riskScore;
+
+    /**
+     * Client device fingerprint token (e.g. from FingerprintJS). Optional — provided
+     * by the client via PaymentRequest.deviceFingerprint(). Stored for fraud pattern analysis.
+     */
+    @NotAudited
+    @Column(name = "device_fingerprint", columnDefinition = "TEXT")
+    private String deviceFingerprint;
+
+    /**
      * Apply a state transition. Delegates to the state machine guard in TransactionStatus.
      * Throws IllegalStateTransitionException if the transition is not allowed.
      */
@@ -108,5 +126,13 @@ public class Transaction extends AbstractAuditingEntity {
      */
     public void incrementPollAttempts() {
         this.pollAttempts = (this.pollAttempts == null ? 0 : this.pollAttempts) + 1;
+    }
+
+    public void setRiskScore(Integer riskScore) {
+        this.riskScore = riskScore;
+    }
+
+    public void setDeviceFingerprint(String deviceFingerprint) {
+        this.deviceFingerprint = deviceFingerprint;
     }
 }

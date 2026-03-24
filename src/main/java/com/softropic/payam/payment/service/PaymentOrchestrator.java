@@ -6,6 +6,8 @@ import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.common.payment.PaymentCommand;
 import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.common.util.JsonUtil;
+import com.softropic.payam.fraud.contract.FraudDecision;
+import com.softropic.payam.fraud.service.FraudScoringService;
 import com.softropic.payam.mtn.contract.exception.MtnAccountInactiveException;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 import com.softropic.payam.orange.contract.exception.SubscriberInactiveException;
@@ -14,6 +16,8 @@ import com.softropic.payam.payment.contract.OrchestratorError;
 import com.softropic.payam.payment.contract.PaymentRequest;
 import com.softropic.payam.payment.contract.PaymentResponse;
 import com.softropic.payam.payment.contract.exception.UnknownMsisdnPrefixException;
+import com.softropic.payam.security.common.util.RequestMetadata;
+import com.softropic.payam.security.common.util.RequestMetadataProvider;
 import com.softropic.payam.transaction.contract.CachedResponse;
 import com.softropic.payam.transaction.contract.TransactionEventType;
 import com.softropic.payam.transaction.contract.TransactionStatus;
@@ -60,6 +64,7 @@ public class PaymentOrchestrator {
     private final TransactionRepository transactionRepository;
     private final EventLogService eventLogService;
     private final TransactionTemplate transactionTemplate;
+    private final FraudScoringService fraudScoringService;
 
     public PaymentOrchestrator(OrangeMoneyPort orangePort,
                                MtnMoMoPort mtnPort,
@@ -68,7 +73,8 @@ public class PaymentOrchestrator {
                                IdempotencyService idempotencyService,
                                TransactionRepository transactionRepository,
                                EventLogService eventLogService,
-                               TransactionTemplate transactionTemplate) {
+                               TransactionTemplate transactionTemplate,
+                               FraudScoringService fraudScoringService) {
         this.orangePort = orangePort;
         this.mtnPort = mtnPort;
         this.msisdnRouter = msisdnRouter;
@@ -77,6 +83,7 @@ public class PaymentOrchestrator {
         this.transactionRepository = transactionRepository;
         this.eventLogService = eventLogService;
         this.transactionTemplate = transactionTemplate;
+        this.fraudScoringService = fraudScoringService;
     }
 
     /**
@@ -128,9 +135,8 @@ public class PaymentOrchestrator {
         // Step 3: Create INITIATED transaction row (TransactionService.initiate is @Transactional and commits)
         Transaction tx = transactionService.initiate(tenantId, provider, request.amount(), request.currency(), request.externalReference());
 
-        // Step 4: Build PaymentCommand
-        // clientIp, userAgent, deviceFingerprint are null here — Plan 07-02 will wire
-        // RequestMetadataProvider and PaymentRequest.deviceFingerprint into these fields.
+        // Step 4: Build PaymentCommand — populate real IP/UA from RequestMetadata and fingerprint from request
+        RequestMetadata clientInfo = RequestMetadataProvider.getClientInfo();
         PaymentCommand cmd = new PaymentCommand(
                 tx.getTransactionId(),
                 tx.getTraceId(),
@@ -141,10 +147,27 @@ public class PaymentOrchestrator {
                 request.externalReference(),
                 request.idempotencyKey(),
                 provider,
-                null,
-                null,
-                null
+                clientInfo.getIpAddress(),
+                clientInfo.getUserAgent(),
+                request.deviceFingerprint()
         );
+
+        // Step 4.5: Fraud check — evaluate before any provider call (see P7.1 / FRAUD-01)
+        FraudDecision fraud = fraudScoringService.evaluate(cmd);
+        if (fraud.blocked()) {
+            log.warn("Payment blocked by fraud engine: transactionId={}, reason={}", tx.getTransactionId(), fraud.reason());
+            applyFailed(tx, TransactionStatus.INITIATED, OrchestratorError.FRAUD_BLOCKED, fraud.reason());
+            return PaymentResponse.failed(tx.getTransactionId(),
+                    OrchestratorError.FRAUD_BLOCKED.getErrorCode(),
+                    "Payment blocked: " + fraud.reason());
+        }
+        // Persist risk score and device fingerprint on the transaction (no connection held open)
+        transactionTemplate.execute(status -> {
+            Transaction locked = transactionRepository.findByTransactionIdForUpdate(tx.getTransactionId()).orElseThrow();
+            locked.setRiskScore(fraud.riskScore());
+            locked.setDeviceFingerprint(cmd.deviceFingerprint());
+            return null;
+        });
 
         // Step 5: Select port
         MobileMoneyPort port = resolvePort(provider);

@@ -269,6 +269,11 @@ orange:
   callback-ip-whitelist: []   # production: add Orange IP ranges; empty = sandbox mode (accept all)
   callback-hmac-secret: ""    # production: set when Orange confirms HMAC header; empty = skip check
 
+fraud:
+  block-threshold: 70
+  rule-cache:
+    refresh-interval-ms: 60000
+
 mtn:
   collection-base-url: https://sandbox.momodeveloper.mtn.com/collection
   disbursement-base-url: https://sandbox.momodeveloper.mtn.com/disbursement
