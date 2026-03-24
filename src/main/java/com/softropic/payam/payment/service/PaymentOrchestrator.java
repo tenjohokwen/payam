@@ -6,6 +6,7 @@ import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.common.payment.PaymentCommand;
 import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.common.util.JsonUtil;
+import com.softropic.payam.admin.service.PaymentMetricsService;
 import com.softropic.payam.fraud.contract.FraudDecision;
 import com.softropic.payam.fraud.service.FraudScoringService;
 import com.softropic.payam.mtn.contract.exception.MtnAccountInactiveException;
@@ -65,6 +66,7 @@ public class PaymentOrchestrator {
     private final EventLogService eventLogService;
     private final TransactionTemplate transactionTemplate;
     private final FraudScoringService fraudScoringService;
+    private final PaymentMetricsService metricsService;
 
     public PaymentOrchestrator(OrangeMoneyPort orangePort,
                                MtnMoMoPort mtnPort,
@@ -74,7 +76,8 @@ public class PaymentOrchestrator {
                                TransactionRepository transactionRepository,
                                EventLogService eventLogService,
                                TransactionTemplate transactionTemplate,
-                               FraudScoringService fraudScoringService) {
+                               FraudScoringService fraudScoringService,
+                               PaymentMetricsService metricsService) {
         this.orangePort = orangePort;
         this.mtnPort = mtnPort;
         this.msisdnRouter = msisdnRouter;
@@ -84,6 +87,7 @@ public class PaymentOrchestrator {
         this.eventLogService = eventLogService;
         this.transactionTemplate = transactionTemplate;
         this.fraudScoringService = fraudScoringService;
+        this.metricsService = metricsService;
     }
 
     /**
@@ -173,8 +177,15 @@ public class PaymentOrchestrator {
         MobileMoneyPort port = resolvePort(provider);
 
         // Step 6: Dispatch OUTSIDE any @Transactional — holding connection during HTTP is Pitfall 1
+        long providerStart = System.currentTimeMillis();
         try {
-            ProviderResult result = port.initiateMerchantPayment(cmd);
+            ProviderResult result;
+            try {
+                result = port.initiateMerchantPayment(cmd);
+            } finally {
+                metricsService.recordProviderLatency(provider.name(),
+                        System.currentTimeMillis() - providerStart);
+            }
 
             // Apply state transitions: INITIATED -> AUTH_PENDING -> AUTHORIZED -> PROCESSING
             // Three applyTransition calls required — direct INITIATED->PROCESSING not allowed by state machine
@@ -190,6 +201,7 @@ public class PaymentOrchestrator {
 
             PaymentResponse response = PaymentResponse.accepted(tx.getTransactionId(), "PROCESSING", result.providerRef());
             idempotencyService.store(tenantId, request.idempotencyKey(), 202, JsonUtil.toJson(response));
+            metricsService.recordSuccess(provider.name());
             log.info("Payment dispatched successfully: transactionId={}, provider={}", tx.getTransactionId(), provider);
             return response;
 
@@ -263,6 +275,11 @@ public class PaymentOrchestrator {
                     "ORCHESTRATOR",
                     metadataJson
             );
+            if (error == OrchestratorError.FRAUD_BLOCKED) {
+                metricsService.recordFraudBlocked();
+            } else {
+                metricsService.recordFailed(null);
+            }
         } catch (Exception ex) {
             log.error("Failed to apply FAILED transition: transactionId={}", tx.getTransactionId(), ex);
         }
