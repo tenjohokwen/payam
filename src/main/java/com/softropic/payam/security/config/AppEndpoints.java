@@ -22,7 +22,8 @@ public final class AppEndpoints {
     public static final List<String> PUBLIC_STATIC_RESOURCES = List.of("/", "/assets/**", "/scripts/**", "/i18n/**", "/favicon.ico", "/icons/**", "/index.html", FROM_CHROME);
     public static final List<String> PUBLIC_ENDPOINTS = List.of("/v1/account/register**", "/v1/account/regislink**", "/v1/account/activate/**",
                                                                 "/v1/account/reset_password/init", "/v1/account/reset_password/finish",
-                                                                "/api/v1/emails/**", "/authenticate");
+                                                                "/api/v1/emails/**", "/authenticate",
+                                                                "/v1/callbacks/mtn"); // MTN PUT callbacks — unauthenticated; IP whitelist enforced by MtnIpWhitelistInterceptor
     public static final List<String> ALL_UNRESTRICTED;
 
     private static final String[] SECURED_AUTHORITIES = new String[]{AuthoritiesConstants.ADMIN, AuthoritiesConstants.USER, AuthoritiesConstants.LTD_ADMIN};

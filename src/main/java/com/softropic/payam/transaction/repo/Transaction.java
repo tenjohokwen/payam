@@ -60,6 +60,13 @@ public class Transaction extends AbstractAuditingEntity {
     @Column(name = "provider_ref")
     private String providerRef;
 
+    /**
+     * MTN financialTransactionId from callback/status response — null until MTN confirms;
+     * absent for non-MTN transactions.
+     */
+    @Column(name = "mtn_financial_tx_id")
+    private String mtnFinancialTxId;
+
     /** Orange payToken — stored after merchant info call, used for status polling. */
     @Column(name = "pay_token")
     private String payToken;
@@ -78,6 +85,14 @@ public class Transaction extends AbstractAuditingEntity {
      */
     public void applyTransition(TransactionStatus next) {
         this.txStatus = this.txStatus.transitionTo(next);
+    }
+
+    public void setProviderRef(String providerRef) {
+        this.providerRef = providerRef;
+    }
+
+    public void setMtnFinancialTxId(String mtnFinancialTxId) {
+        this.mtnFinancialTxId = mtnFinancialTxId;
     }
 
     public void setPayToken(String payToken) {
