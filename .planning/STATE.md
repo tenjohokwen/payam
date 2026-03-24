@@ -9,18 +9,18 @@ See: .planning/PROJECT.md (updated 2026-03-23)
 
 ## Current Position
 
-Phase: 2 of 10 (Transaction Core) — COMPLETE
-Plan: 3 of 3 in phase (all complete)
-Status: Phase complete — ready for Phase 3
-Last activity: 2026-03-23 — Completed 02-03-PLAN.md (Idempotency Store + Double-Entry Ledger)
+Phase: 3 of 10 (Orange Money Adapter) — In progress
+Plan: 1 of 2 in phase (03-01 complete)
+Status: In progress — 03-02 (OrangeMoneyPort service + Quartz poller) is next
+Last activity: 2026-03-24 — Completed 03-01-PLAN.md (Orange adapter foundation: MobileMoneyPort, contract layer, OrangeMoneyClient, OrangeTokenService, Quartz DDL)
 
-Progress: ██████░░░░ ~33% (6 of ~18 plans)
+Progress: ███████░░░ ~39% (7 of ~18 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 39.2 min
+- Total plans completed: 5
+- Average duration: 32.6 min
 - Total execution time: ~2.7 hours
 
 **By Phase:**
@@ -29,10 +29,11 @@ Progress: ██████░░░░ ~33% (6 of ~18 plans)
 |-------|-------|-------|----------|
 | 01-multi-tenant-foundation | 3/3 | 153 min | 51 min |
 | 02-transaction-core | 3/3 | 16 min | 5.3 min |
+| 03-orange-money-adapter | 1/2 | 5 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 39.2 min avg (71 min, 78 min, 4 min, 5 min, 6 min)
-- Trend: Phase 2 plans are fast (avg 5.3 min) — well-defined schema + clear patterns
+- Last 5 plans: 5 min, 4 min, 5 min, 6 min, 5 min avg
+- Trend: Foundation/scaffold plans are fast (avg ~5 min) — well-defined patterns from prior phases
 
 ## Accumulated Context
 
@@ -65,6 +66,10 @@ Recent decisions affecting current work:
 - 02-03 decision: LedgerEntry uses @Builder not @SuperBuilder (no superclass) and @Immutable — Hibernate refuses dirty-check updates on append-only record
 - 02-03 decision: IdempotencyService.store() uses delete-then-save for upsert — IdempotencyKey has no public setters; delete+save is clean for low-frequency update
 - 02-03 decision: @ServiceConnection(name='redis') required on GenericContainer — Spring Boot cannot infer service type from untyped GenericContainer without name attribute
+- 03-01 decision: OrangeModule.java is a plain marker class — spring-modulith not in pom.xml; @ApplicationModule unavailable; plain class serves as boundary documentation
+- 03-01 decision: RestRequestInterceptor instantiated directly (new RestRequestInterceptor()) in OrangeMoneyClient constructor — concrete @Component with no-arg constructor; OrangeMoneyClient is @Bean not @Component, so direct instantiation is clean
+- 03-01 decision: OrangeMoneyClient.pay() uses config.getPayUrl() (v1.0.1) not getBaseUrl() (v1.0.2) — Orange Pay endpoint is on different API version from other endpoints
+- 03-01 decision: OrangeStatus.SUCCESSFULL has double-L — verbatim per Orange API response; not a typo
 
 ### Pending Todos
 
@@ -86,6 +91,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-23T23:15:00Z
-Stopped at: Completed Phase 2 — all 3 plans done, 5/5 must-haves verified (transaction backbone: state machine, hash-chain event log, idempotency store, double-entry ledger)
+Last session: 2026-03-24T01:36:40Z
+Stopped at: Completed 03-01-PLAN.md — Orange adapter foundation scaffold complete (MobileMoneyPort, all contracts, OrangeMoneyClient, OrangeTokenService, OrangeConfig, Quartz DDL, yaml config)
 Resume file: None
