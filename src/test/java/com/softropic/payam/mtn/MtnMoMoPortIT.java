@@ -135,7 +135,8 @@ class MtnMoMoPortIT {
         PaymentCommand cmd = new PaymentCommand(
             tx.getTransactionId(), tx.getTraceId(), tenantId,
             "+237692954629", BigDecimal.valueOf(1000), "XAF",
-            "EXT-MTN-001", "IDEM-MTN-001", MobilePaymentProvider.MTN
+            "EXT-MTN-001", "IDEM-MTN-001", MobilePaymentProvider.MTN,
+            null, null, null
         );
 
         ProviderResult result = mtnMoMoPort.initiateMerchantPayment(cmd);

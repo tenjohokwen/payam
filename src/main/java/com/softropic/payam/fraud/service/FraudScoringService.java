@@ -71,7 +71,9 @@ public class FraudScoringService {
         boolean householdAllowed = velocityCheckService.checkVelocity(FraudSignal.MSISDN_HOUSEHOLD,
                 msisdnPrefix);
 
-        // Step 5: Compute weighted risk score from violated signals
+        // Step 5: Compute weighted risk score from violated signals.
+        // ALSO track direct velocity violations — any single velocity signal exceeded triggers
+        // an immediate block (the "must have" truth: exceeding a velocity limit triggers a block).
         int rawScore = 0;
         String firstBlockedSignal = null;
         List<FraudRule> rules = fraudRuleCache.getRules();
@@ -87,15 +89,25 @@ public class FraudScoringService {
         }
         int riskScore = Math.min(rawScore, 100);
 
-        // Step 6: Determine block threshold from DB (BLOCK_THRESHOLD rule) or default
+        // Step 6: Direct velocity block — if any velocity signal was exceeded, block immediately.
+        // This is separate from score-based blocking: a single exceeded velocity limit is always
+        // a block, regardless of weight sum (e.g., MSISDN_VELOCITY=35 < BLOCK_THRESHOLD=70 alone).
+        boolean anyVelocityViolated = !ipAllowed || !msisdnAllowed || !appAllowed || !householdAllowed;
+        if (anyVelocityViolated && firstBlockedSignal != null) {
+            String reason = "Velocity limit exceeded: " + firstBlockedSignal;
+            log.warn("Payment blocked by fraud engine (direct velocity): transactionId={}, riskScore={}, reason={}",
+                    cmd.transactionId(), riskScore, reason);
+            return FraudDecision.block(riskScore, reason);
+        }
+
+        // Step 7: Score-based block — if weighted score exceeds the configured threshold.
         int blockThreshold = fraudRuleCache.findBySignalName("BLOCK_THRESHOLD")
                 .map(FraudRule::getThreshold)
                 .orElse(DEFAULT_BLOCK_THRESHOLD);
 
-        // Step 7: Block or allow
         if (riskScore >= blockThreshold) {
-            String reason = "Velocity limit exceeded: " + firstBlockedSignal;
-            log.warn("Payment blocked by fraud engine: transactionId={}, riskScore={}, reason={}",
+            String reason = "Risk score exceeded: " + firstBlockedSignal;
+            log.warn("Payment blocked by fraud engine (score): transactionId={}, riskScore={}, reason={}",
                     cmd.transactionId(), riskScore, reason);
             return FraudDecision.block(riskScore, reason);
         }

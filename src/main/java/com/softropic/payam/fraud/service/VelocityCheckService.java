@@ -45,22 +45,19 @@ public class VelocityCheckService {
 
     @PostConstruct
     public void init() {
-        // Extract the native RedisClient from the Spring LettuceConnectionFactory.
-        // LettuceConnectionFactory.getNativeClient() returns AbstractRedisClient; cast to RedisClient.
-        // LettuceBasedProxyManager.builderFor(RedisClient) manages its own byte[] connection.
-        try {
-            RedisClient redisClient = (RedisClient) lettuceConnectionFactory.getNativeClient();
-            this.proxyManager = LettuceBasedProxyManager.builderFor(redisClient).build();
-            log.info("VelocityCheckService initialized with LettuceBasedProxyManager");
-        } catch (ClassCastException e) {
-            // Fallback for cluster/sentinel mode: create RedisClient from host/port
-            log.warn("Could not cast native client to RedisClient — falling back to standalone client construction", e);
-            String host = lettuceConnectionFactory.getHostName();
-            int port = lettuceConnectionFactory.getPort();
-            RedisClient fallbackClient = RedisClient.create("redis://" + host + ":" + port);
-            this.proxyManager = LettuceBasedProxyManager.builderFor(fallbackClient).build();
-            log.info("VelocityCheckService initialized with fallback RedisClient at {}:{}", host, port);
-        }
+        // Build a dedicated RedisClient using the host/port from the Spring LettuceConnectionFactory.
+        // Using LettuceConnectionFactory.getHostName()/getPort() is safe with @ServiceConnection
+        // (Testcontainer) — Spring overwrites these properties at context startup to the container's
+        // dynamic port, so this works in both test and production environments.
+        //
+        // We intentionally create our own RedisClient rather than casting getNativeClient(),
+        // because getNativeClient() may return a client configured before @ServiceConnection
+        // reconfigures the host/port in test contexts.
+        String host = lettuceConnectionFactory.getHostName();
+        int port = lettuceConnectionFactory.getPort();
+        RedisClient redisClient = RedisClient.create("redis://" + host + ":" + port);
+        this.proxyManager = LettuceBasedProxyManager.builderFor(redisClient).build();
+        log.info("VelocityCheckService initialized with LettuceBasedProxyManager at {}:{}", host, port);
     }
 
     /**
