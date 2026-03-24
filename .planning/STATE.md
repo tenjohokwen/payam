@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 8 in progress (Admin Dashboard) — plans 01 and 03 done; plan 02 (SSE metrics stream) next
+**Current focus:** Phase 8 in progress (Admin Dashboard) — all 3 plans (01, 02, 03) complete
 
 ## Current Position
 
 Phase: 8 of 10 (Admin Dashboard) — In progress
-Plan: 3 of 3 in phase (08-01 and 08-03 complete; 08-02 in parallel)
-Status: Phase 8 in progress — plans 01 and 03 done; plan 02 (SSE stream) executing in parallel
-Last activity: 2026-03-24 — Completed 08-03-PLAN.md (Quasar SPA admin pages)
+Plan: 3 of 3 in phase (all complete: 08-01, 08-02, 08-03)
+Status: Phase 8 complete
+Last activity: 2026-03-24 — Completed 08-02-PLAN.md (PaymentMetricsService, SSE stream, orchestrator wiring)
 
 Progress: ████████████████████ ~95% (20 of ~23 plans)
 
@@ -125,6 +125,9 @@ Recent decisions affecting current work:
 - 08-01 decision: NegatedRequestMatcher(OrRequestMatcher(/v1/account/**, /v1/admin/**)) replaces single-path exclusion — /v1/admin/** must not be intercepted by API-key chain or admin JWT requests return 401
 - 08-01 decision: adminSearch JPQL uses ORDER BY in query text, not PageRequest sort — PageRequest.of(page, size) without sort preserves the intended DESC ordering
 - 08-01 decision: statusFrom null-safe in EventLogEntryDto mapping — PaymentEventLog.statusFrom is nullable (genesis INITIATED event has no prior status); direct .name() call throws NPE
+- 08-02 decision: @EnableScheduling already in AsyncConfig (email.config) — no new config class needed; @Scheduled on PaymentMetricsService.pushMetrics() works with existing scheduling infrastructure
+- 08-02 decision: providerStart declared before outer try block; inner try/finally wraps only port.initiateMerchantPayment() — ensures latency recorded on any provider call outcome without interfering with outer catch blocks
+- 08-02 decision: recordSuccess() called after idempotencyService.store() — plan spec placement; ensures payment is fully committed before counter increments
 - 08-03 decision: No frontend requiresAdmin guard on admin routes — backend returns 403/401 for non-ROLE_ADMIN callers; nav items visible to all authenticated users; backend enforcement is sufficient for this phase
 - 08-03 decision: v-for over store.providerLatencyMs object renders provider latency cards dynamically — no hardcoded ORANGE/MTN names; future providers render automatically
 - 08-03 decision: /v1/payments proxy rule added alongside /v1/admin in quasar.config.js — plan specified both rules; /v1/payments was previously missing from devServer proxy
@@ -169,10 +172,11 @@ Recent decisions affecting current work:
 - ForwardedHeaderFilter strips Forwarded header in IT tests — SecurityConfiguration registers ForwardedHeaderFilter; it removes/rewrites RFC 7239 Forwarded header before RequestMetadataProvider reads it; IP injection via Forwarded header doesn't work in tests; use MSISDN/tenantId-based signals for velocity testing (see FraudEngineIT pattern)
 - FRAUD-01 COMPLETE: velocity checks, risk scoring, and device fingerprinting all wired into POST /v1/payments; fraud fires before provider dispatch; risk_score queryable from main.transaction
 - ADMIN-01 COMPLETE: /v1/admin/** excluded from API-key chain via NegatedRequestMatcher(OrRequestMatcher); GET /v1/admin/transactions and GET /v1/admin/transactions/{id}/events serve JWT+ROLE_ADMIN callers
+- ADMIN-02 COMPLETE: PaymentMetricsService registers payment.success/failed/fraud-blocked Counters and payment.provider.latency Timer; SSE stream at GET /v1/admin/metrics/stream; PaymentOrchestrator records all outcome paths with try/finally provider latency timing
 - Any new /v1/admin/** endpoint is automatically JWT-protected (NegatedRequestMatcher exclusion already in TenantSecurityConfig); no further security config changes needed for new admin routes
 
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Completed 08-03-PLAN.md — Quasar SPA admin pages: AdminDashboardPage (SSE + provider latency), TransactionSearchPage, TransactionDetailPage, admin.api.js, admin-metrics.store.js, routes/layout/proxy updates
+Stopped at: Completed 08-02-PLAN.md — PaymentMetricsService (counters/timers/SSE), AdminMetricsResource, PaymentOrchestrator metrics wiring; and 08-03-PLAN.md — Quasar SPA admin pages: AdminDashboardPage (SSE + provider latency), TransactionSearchPage, TransactionDetailPage, admin.api.js, admin-metrics.store.js, routes/layout/proxy updates
 Resume file: None
