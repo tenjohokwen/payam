@@ -68,6 +68,20 @@ public class TenantSecurityConfig {
         return new ApiKeyAuthenticationFilter(apiKeyService);
     }
 
+    /**
+     * Correctly prevents the apiKeyAuthenticationFilter bean from being registered
+     * automatically by the Spring Boot servlet container. This ensures it only runs
+     * when matched by the tenantApiKeyFilterChain.
+     */
+    @Bean
+    public org.springframework.boot.web.servlet.FilterRegistrationBean<ApiKeyAuthenticationFilter>
+    registration(ApiKeyAuthenticationFilter filter) {
+        org.springframework.boot.web.servlet.FilterRegistrationBean<ApiKeyAuthenticationFilter>
+            registration = new org.springframework.boot.web.servlet.FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
     @Bean
     @Order(1)
     public SecurityFilterChain tenantApiKeyFilterChain(HttpSecurity http,

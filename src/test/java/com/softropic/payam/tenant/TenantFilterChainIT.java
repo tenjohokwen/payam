@@ -25,6 +25,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -104,17 +105,11 @@ class TenantFilterChainIT {
                 Map.of("name", "Another Corp", "environment", "LIVE"),
                 headers);
 
-        ResponseEntity<Map> response = restTemplate.exchange(
-            url("/v1/admin/tenants"), HttpMethod.POST, entity, Map.class);
+        ResponseEntity<List> response = restTemplate.exchange(
+            url("/v1/webhooks/deliveries/tx-123"), HttpMethod.GET, entity, List.class);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getBody()).isNotNull();
-        // Clean up the nested tenant created inside the test
-        transactionTemplate.execute(status -> {
-            jdbcTemplate.execute("delete from main.tenant_api_key WHERE tenant_id = (SELECT id FROM main.tenant WHERE name = 'Another Corp')");
-            jdbcTemplate.execute("delete from main.tenant WHERE name = 'Another Corp'");
-            return null;
-        });
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEmpty();
     }
 
     // -------------------------------------------------------------------------
@@ -131,7 +126,7 @@ class TenantFilterChainIT {
                 headers);
 
         assertThatThrownBy(() ->
-            restTemplate.exchange(url("/v1/admin/tenants"), HttpMethod.POST, entity, Map.class))
+            restTemplate.exchange(url("/v1/webhooks/deliveries/tx-123"), HttpMethod.GET, entity, List.class))
             .isInstanceOf(HttpClientErrorException.Unauthorized.class)
             .satisfies(e -> assertThat(((HttpClientErrorException) e).getStatusCode())
                 .isEqualTo(HttpStatus.UNAUTHORIZED));
@@ -152,7 +147,7 @@ class TenantFilterChainIT {
                 headers);
 
         assertThatThrownBy(() ->
-            restTemplate.exchange(url("/v1/admin/tenants"), HttpMethod.POST, entity, Map.class))
+            restTemplate.exchange(url("/v1/webhooks/deliveries/tx-123"), HttpMethod.GET, entity, List.class))
             .isInstanceOf(HttpClientErrorException.Unauthorized.class)
             .satisfies(e -> assertThat(((HttpClientErrorException) e).getStatusCode())
                 .isEqualTo(HttpStatus.UNAUTHORIZED));
@@ -206,9 +201,9 @@ class TenantFilterChainIT {
         org.springframework.http.HttpEntity<Map<String, String>> req1 =
             new org.springframework.http.HttpEntity<>(Map.of("name", "Sub1", "environment", "LIVE"), headers1);
 
-        ResponseEntity<Map> response1 = restTemplate.exchange(
-            url("/v1/admin/tenants"), HttpMethod.POST, req1, Map.class);
-        assertThat(response1.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        ResponseEntity<List> response1 = restTemplate.exchange(
+            url("/v1/webhooks/deliveries/tx-123"), HttpMethod.GET, req1, List.class);
+        assertThat(response1.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         // Second request with tenant2's key → must also succeed (no leaked context from req1)
         HttpHeaders headers2 = new HttpHeaders();
@@ -217,9 +212,9 @@ class TenantFilterChainIT {
         org.springframework.http.HttpEntity<Map<String, String>> req2 =
             new org.springframework.http.HttpEntity<>(Map.of("name", "Sub2", "environment", "LIVE"), headers2);
 
-        ResponseEntity<Map> response2 = restTemplate.exchange(
-            url("/v1/admin/tenants"), HttpMethod.POST, req2, Map.class);
-        assertThat(response2.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        ResponseEntity<List> response2 = restTemplate.exchange(
+            url("/v1/webhooks/deliveries/tx-123"), HttpMethod.GET, req2, List.class);
+        assertThat(response2.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         // Clean up sub-tenants
         transactionTemplate.execute(status -> {

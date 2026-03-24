@@ -69,6 +69,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     static {
         BYPASS_PATTERNS = new ArrayList<>();
         BYPASS_PATTERNS.add("/v1/account/**");   // user account management — JWT chain
+        BYPASS_PATTERNS.add("/v1/admin/**");     // admin investigation — JWT chain
         BYPASS_PATTERNS.addAll(AppEndpoints.PUBLIC_ENDPOINTS);
     }
 

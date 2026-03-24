@@ -75,6 +75,11 @@ const routes = [
             component: () => import('pages/admin/TransactionDetailPage.vue'),
             meta: { requiresAuth: true },
           },
+          {
+            path: 'reconciliation',
+            component: () => import('pages/admin/ReconciliationPage.vue'),
+            meta: { requiresAuth: true },
+          },
         ],
       },
     ],
