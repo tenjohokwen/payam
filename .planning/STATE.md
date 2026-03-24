@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 3 fully complete (including gap closure 03-03) — Phase 4 next (MTN Money Adapter)
+**Current focus:** Phase 3 fully complete (including gap closure 03-04) — Phase 4 next (MTN Money Adapter)
 
 ## Current Position
 
-Phase: 3 of 10 (Orange Money Adapter) — COMPLETE (including gap closure plan 03-03)
-Plan: 3 of 3 in phase (03-01, 03-02, 03-03 complete)
+Phase: 3 of 10 (Orange Money Adapter) — COMPLETE (all 4 plans: 03-01, 03-02, 03-03, 03-04)
+Plan: 4 of 4 in phase (03-01, 03-02, 03-03, 03-04 complete)
 Status: Phase 3 complete — 04-mtn-money-adapter is next
-Last activity: 2026-03-24 — Completed 03-03-PLAN.md (WAT timestamp wiring, OrangeTimeUtilTest)
+Last activity: 2026-03-24 — Completed 03-04-PLAN.md (Gap D: assertPayTokenFresh() wired in poller)
 
-Progress: █████████░ ~47% (9 of ~19 plans)
+Progress: ██████████░ ~50% (10 of ~20 plans)
 
 ## Performance Metrics
 
@@ -29,7 +29,7 @@ Progress: █████████░ ~47% (9 of ~19 plans)
 |-------|-------|-------|----------|
 | 01-multi-tenant-foundation | 3/3 | 153 min | 51 min |
 | 02-transaction-core | 3/3 | 16 min | 5.3 min |
-| 03-orange-money-adapter | 3/3 | 39 min | 13 min |
+| 03-orange-money-adapter | 4/4 | 42 min | 10.5 min |
 
 **Recent Trend:**
 - Last 5 plans: 5 min, 4 min, 5 min, 6 min, 4 min avg
@@ -77,6 +77,8 @@ Recent decisions affecting current work:
 - 03-02 decision: Circuit breaker ignoreExceptions for SubscriberInactiveException and PayTokenExpiredException — domain validation exceptions should not count as circuit failures
 - 03-03 decision: getCreatetimeAsInstant() is the sole designated call site for OrangeTimeUtil.parseOrangeTimestamp() — Phase 5/6 consumers must use this method, not the raw String getter (P5.1)
 - 03-03 decision: No @JsonIgnore needed on getCreatetimeAsInstant() — @JsonIgnoreProperties(ignoreUnknown=true) prevents Jackson from trying to deserialize derived getters
+- 03-04 decision: assertPayTokenFresh() catch block placed BEFORE max-attempts check — expired token skips poll; incrementPollAttempts() still fires to prevent infinite looping on stale token
+- 03-04 decision: PayTokenExpiredException NOT re-thrown from pollTransaction() — adapter lacks PaymentCommand context; re-initiation is Phase 5 PaymentOrchestrator responsibility (ROADMAP SC-4)
 
 ### Pending Todos
 
@@ -103,6 +105,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-24T02:28:00Z
-Stopped at: Completed 03-03-PLAN.md — WAT timestamp wiring + OrangeTimeUtilTest (3 tests green)
+Last session: 2026-03-24T04:12:18Z
+Stopped at: Completed 03-04-PLAN.md — Gap D closed: assertPayTokenFresh() wired in OrangeStatusPollerJob (8 tests green)
 Resume file: None
