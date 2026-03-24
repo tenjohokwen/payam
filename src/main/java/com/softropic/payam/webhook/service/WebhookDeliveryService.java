@@ -61,10 +61,18 @@ public class WebhookDeliveryService {
     }
 
     /**
-     * Persist a pending delivery log row for the given terminal transaction event.
-     * If the tenant has no webhookUrl configured, no row is created and no error is raised.
+     * Persist a delivery log row and immediately attempt the first delivery.
      *
+     * If the tenant has no webhookUrl configured, no row is created and no error is raised.
      * externalReference is stored in the log row and echoed in the outbound payload.
+     *
+     * First attempt is made synchronously here (in the same REQUIRES_NEW transaction from
+     * WebhookTransitionService). Failed attempts schedule exponential-backoff retries via
+     * the Quartz WebhookDeliveryJob. This design ensures delivery attempt happens promptly
+     * without waiting for the next Quartz fire (every 1 minute).
+     *
+     * The inbound response path is unaffected — this runs in @TransactionalEventListener
+     * AFTER_COMMIT, i.e., after the inbound HTTP response has been sent (Pitfall 5).
      */
     @Transactional
     public void enqueue(String transactionId, Long tenantId, String eventType,
@@ -80,17 +88,21 @@ public class WebhookDeliveryService {
             .webhookUrl(tenant.getWebhookUrl())
             .eventType(eventType)
             .externalReference(externalReference)
-            .nextRetryAt(Instant.now()) // eligible immediately for first attempt
+            // nextRetryAt intentionally null on INSERT — only set after a failed attempt.
+            // findPendingForRetry queries WHERE nextRetryAt <= :now, so null rows are skipped
+            // by the Quartz job until the inline first attempt sets nextRetryAt on failure.
             .build();
+        repo.save(entry);
+
+        // Attempt delivery immediately — self-invocation bypasses Spring proxy but joins the
+        // enclosing @Transactional(REQUIRES_NEW) context directly, which is correct here.
+        attemptDeliveryInternal(entry, tenant);
         repo.save(entry);
     }
 
     /**
-     * Attempt delivery of a pending webhook. Updates the log row with attempt outcome.
-     * On success (2xx): marks delivered=true, nextRetryAt=null.
-     * On failure (non-2xx or exception): schedules exponential-backoff retry.
-     *
-     * HMAC signing is skipped if tenant has no webhookSecret configured (sandbox mode).
+     * Attempt delivery of a pending webhook (used by WebhookDeliveryJob for retries).
+     * Loads the tenant and delegates to attemptDeliveryInternal.
      */
     @Transactional
     public void attemptDelivery(WebhookDeliveryLog delivery) {
@@ -99,7 +111,20 @@ public class WebhookDeliveryService {
             log.warn("Tenant not found for delivery tenantId={} — skipping", delivery.getTenantId());
             return;
         }
+        attemptDeliveryInternal(delivery, tenant);
+        repo.save(delivery);
+    }
 
+    /**
+     * Core delivery logic: builds the signed payload, POSTs to tenant URL, updates log row state.
+     * Called from enqueue() (first attempt, tenant already loaded) and attemptDelivery() (retries).
+     *
+     * HMAC-SHA256 signature — skip if no secret configured (sandbox mode, Pitfall 6).
+     * Algorithm: javax.crypto.Mac with HmacSHA256 — NOT DigestUtils.sha256Hex (plain SHA-256).
+     * On success (2xx): marks delivered=true, nextRetryAt=null.
+     * On failure (non-2xx or exception): schedules exponential-backoff retry.
+     */
+    private void attemptDeliveryInternal(WebhookDeliveryLog delivery, Tenant tenant) {
         OutboundWebhookPayload payload = new OutboundWebhookPayload(
             delivery.getTransactionId(),
             delivery.getEventType().contains("SUCCESS") ? "SUCCESS" : "FAILED",
@@ -160,13 +185,17 @@ public class WebhookDeliveryService {
                     delivery.getTransactionId(), httpStatus);
                 scheduleRetry(delivery);
             }
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            // HTTP error response (4xx/5xx) — extract status for logging/querying
+            delivery.setHttpStatus(e.getStatusCode().value());
+            log.warn("Webhook delivery HTTP error: transactionId={}, status={}",
+                delivery.getTransactionId(), e.getStatusCode().value());
+            scheduleRetry(delivery);
         } catch (Exception e) {
-            log.warn("Webhook delivery failed (exception): transactionId={}: {}",
+            log.warn("Webhook delivery failed (network/other): transactionId={}: {}",
                 delivery.getTransactionId(), e.getMessage());
             scheduleRetry(delivery);
         }
-
-        repo.save(delivery);
     }
 
     /**

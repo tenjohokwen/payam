@@ -30,11 +30,14 @@ public class WebhookTransitionService {
 
     private final TransactionRepository transactionRepository;
     private final EventLogService eventLogService;
+    private final WebhookDeliveryService webhookDeliveryService;
 
     public WebhookTransitionService(TransactionRepository transactionRepository,
-                                    EventLogService eventLogService) {
+                                    EventLogService eventLogService,
+                                    WebhookDeliveryService webhookDeliveryService) {
         this.transactionRepository = transactionRepository;
         this.eventLogService = eventLogService;
+        this.webhookDeliveryService = webhookDeliveryService;
     }
 
     /**
@@ -85,6 +88,15 @@ public class WebhookTransitionService {
         );
 
         log.info("Double-check: transactionId={} transitioned to {}", event.transactionId(), target);
+
+        // Enqueue outbound tenant notification — async delivery via WebhookDeliveryJob
+        webhookDeliveryService.enqueue(
+            tx.getTransactionId(),
+            tx.getTenantId(),
+            eventType.name(),
+            target,
+            tx.getExternalReference()
+        );
     }
 
     /**

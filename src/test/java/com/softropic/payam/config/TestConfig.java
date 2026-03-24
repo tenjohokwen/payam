@@ -103,8 +103,10 @@ public class TestConfig {
     }
 
     @Bean
+    @Primary
     public RestTemplate restTemplate(RestTemplateBuilder builder) {
-        // Do any additional configuration here
+        // Primary bean — wins unqualified RestTemplate injection (e.g. HttpTestClient)
+        // noRetryRestTemplate bean (WebhookConfig) requires @Qualifier("noRetryRestTemplate")
         return builder.build();
     }
 }
