@@ -5,21 +5,21 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 7 complete (Fraud Engine) — both plans done; Phase 8 (Admin Dashboard) is next
+**Current focus:** Phase 8 in progress (Admin Dashboard) — plan 01 done; plans 02 and 03 next
 
 ## Current Position
 
-Phase: 7 of 10 (Fraud Engine) — Phase complete
-Plan: 2 of 2 in phase (07-02 complete)
-Status: Phase 7 complete — Phase 8 (admin-dashboard) is next
-Last activity: 2026-03-24 — Completed 07-02-PLAN.md (fraud engine wired into orchestrator: FRAUD_BLOCKED, riskScore persistence, FraudEngineIT)
+Phase: 8 of 10 (Admin Dashboard) — In progress
+Plan: 1 of 3 in phase (08-01 complete)
+Status: Phase 8 in progress — plan 01 done; plans 02 and 03 next
+Last activity: 2026-03-24 — Completed 08-01-PLAN.md (TenantSecurityConfig fix, V11 migration, admin REST endpoints)
 
-Progress: ███████████████████ ~95% (19 of ~20 plans)
+Progress: ████████████████████ ~95% (20 of ~23 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 19
+- Total plans completed: 20
 - Average duration: 22 min
 - Total execution time: ~6.6 hours
 
@@ -34,6 +34,7 @@ Progress: ███████████████████ ~95% (19 of 
 | 05-payment-orchestration | 2/2 | 38 min | 19 min |
 | 06-webhook-processing | 3/3 | 43 min | 14 min |
 | 07-fraud-engine | 2/2 | 53 min | 26.5 min |
+| 08-admin-dashboard | 1/3 | 8 min | 8 min |
 
 **Recent Trend:**
 - Last 5 plans: 11 min, 3 min, 25 min, 23 min, 30 min avg
@@ -121,6 +122,9 @@ Recent decisions affecting current work:
 - 07-02 decision: MSISDN_VELOCITY used for velocity block IT test — ForwardedHeaderFilter (in SecurityConfiguration) strips Forwarded header before RequestMetadataProvider reads it; IP injection via headers unreliable; MSISDN is stable bucket key not dependent on header
 - 07-02 decision: JDBC threshold update wrapped in transactionTemplate.execute() before fraudRuleCache.refreshRules() — ensures DB commit visible to Spring Data JPA query inside refreshRules()
 - 07-02 decision: @NotAudited on Transaction.riskScore and Transaction.deviceFingerprint — V10 migration adds columns to main table only; Envers _AUD table lacks them; @NotAudited excludes from revision tracking to prevent schema validation errors
+- 08-01 decision: NegatedRequestMatcher(OrRequestMatcher(/v1/account/**, /v1/admin/**)) replaces single-path exclusion — /v1/admin/** must not be intercepted by API-key chain or admin JWT requests return 401
+- 08-01 decision: adminSearch JPQL uses ORDER BY in query text, not PageRequest sort — PageRequest.of(page, size) without sort preserves the intended DESC ordering
+- 08-01 decision: statusFrom null-safe in EventLogEntryDto mapping — PaymentEventLog.statusFrom is nullable (genesis INITIATED event has no prior status); direct .name() call throws NPE
 
 ### Pending Todos
 
@@ -161,9 +165,11 @@ Recent decisions affecting current work:
 - FraudScoringService.evaluate() dual block: direct velocity block fires first (any exceeded velocity), then score-based block; BLOCK_THRESHOLD=70 is score threshold, not velocity threshold
 - ForwardedHeaderFilter strips Forwarded header in IT tests — SecurityConfiguration registers ForwardedHeaderFilter; it removes/rewrites RFC 7239 Forwarded header before RequestMetadataProvider reads it; IP injection via Forwarded header doesn't work in tests; use MSISDN/tenantId-based signals for velocity testing (see FraudEngineIT pattern)
 - FRAUD-01 COMPLETE: velocity checks, risk scoring, and device fingerprinting all wired into POST /v1/payments; fraud fires before provider dispatch; risk_score queryable from main.transaction
+- ADMIN-01 COMPLETE: /v1/admin/** excluded from API-key chain via NegatedRequestMatcher(OrRequestMatcher); GET /v1/admin/transactions and GET /v1/admin/transactions/{id}/events serve JWT+ROLE_ADMIN callers
+- Any new /v1/admin/** endpoint is automatically JWT-protected (NegatedRequestMatcher exclusion already in TenantSecurityConfig); no further security config changes needed for new admin routes
 
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Completed 07-02-PLAN.md — fraud engine orchestrator integration: FRAUD_BLOCKED error code, PaymentOrchestrator pre-dispatch hook, Transaction.riskScore/deviceFingerprint, FraudEngineIT (2 tests)
+Stopped at: Completed 08-01-PLAN.md — admin REST endpoints: TenantSecurityConfig NegatedRequestMatcher fix, V11 trace_id index, AdminTransactionResource, AdminTransactionQueryService
 Resume file: None
