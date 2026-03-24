@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 6 complete (Webhook Processing) — both 06-01 and 06-02 done; Phase 7 next
+**Current focus:** Phase 6 complete (Webhook Processing) — all 3 plans done; Phase 7 next
 
 ## Current Position
 
 Phase: 6 of 10 (Webhook Processing) — Complete
-Plan: 2 of 2 in phase (06-02 complete)
-Status: Phase 6 complete — Phase 7 (next) is next
-Last activity: 2026-03-24 — Completed 06-02-PLAN.md (WebhookDoubleCheckHandler + WebhookTransitionService + 3 ITs)
+Plan: 3 of 3 in phase (06-03 complete)
+Status: Phase 6 complete — Phase 7 is next
+Last activity: 2026-03-24 — Completed 06-03-PLAN.md (outbound webhook delivery pipeline, 11 IT tests total in Phase 6)
 
-Progress: ████████████████ ~80% (16 of ~20 plans)
+Progress: █████████████████ ~85% (17 of ~20 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
+- Total plans completed: 17
 - Average duration: 22 min
-- Total execution time: ~5.3 hours
+- Total execution time: ~5.7 hours
 
 **By Phase:**
 
@@ -32,11 +32,11 @@ Progress: ████████████████ ~80% (16 of ~20 plans
 | 03-orange-money-adapter | 4/4 | 42 min | 10.5 min |
 | 04-mtn-momo-adapter | 2/2 | 14 min | 7 min |
 | 05-payment-orchestration | 2/2 | 38 min | 19 min |
-| 06-webhook-processing | 2/2 | 18 min | 9 min |
+| 06-webhook-processing | 3/3 | 43 min | 14 min |
 
 **Recent Trend:**
-- Last 5 plans: 12 min, 6 min, 3 min, 11 min, 3 min avg
-- Trend: Infrastructure plans fast (3-6 min); service+test plans 10-15 min
+- Last 5 plans: 6 min, 3 min, 11 min, 3 min, 25 min avg
+- Trend: Infrastructure plans fast (3-6 min); service+test plans 10-25 min
 
 ## Accumulated Context
 
@@ -107,6 +107,10 @@ Recent decisions affecting current work:
 - 06-02 decision: @Transactional(REQUIRES_NEW) on WebhookTransitionService.applyFinalTransition — @TransactionalEventListener(AFTER_COMMIT) fires in afterCompletion phase with no active transaction; REQUIRED propagation throws TransactionRequiredException; REQUIRES_NEW creates fresh independent transaction
 - 06-02 decision: WebhookTransitionService extracted as separate @Service — @Transactional self-invocation (WebhookDoubleCheckHandler calling its own method) bypasses Spring AOP CGLIB proxy; separate bean ensures proxy is invoked
 - 06-02 decision: TransactionTemplate.execute() wraps publishEvent in OrangeMoneyPort and MtnMoMoPort — publishEvent without enclosing transaction never triggers @TransactionalEventListener(AFTER_COMMIT)
+- 06-03 decision: enqueue() sets nextRetryAt=null on INSERT — findPendingForRetry uses WHERE nextRetryAt <= :now, so null rows are not matched by Quartz job; prevents race condition between inline first delivery attempt and Quartz pickup of just-inserted row
+- 06-03 decision: attemptDeliveryInternal() extracted as private shared method — called from enqueue() (first attempt) and public attemptDelivery() (Quartz retries); avoids code duplication
+- 06-03 decision: WebhookConfig.noRetryRestTemplate @Bean in main config; TestConfig.restTemplate @Primary — resolves NoUniqueBeanDefinitionException when both beans exist in test context (HttpTestClient has unqualified @Autowired RestTemplate)
+- 06-03 decision: HttpStatusCodeException caught before generic Exception in attemptDeliveryInternal — captures httpStatus from HTTP error responses for delivery log queryability
 
 ### Pending Todos
 
@@ -114,6 +118,7 @@ Recent decisions affecting current work:
 - Any new IT test class that makes HTTP requests must seed the JWT secret row in main.sec (or use @Sql with secData.sql)
 - Any new IT test class that writes to main.transaction must delete from main.transaction in @AfterEach BEFORE deleting from main.tenant (FK constraint)
 - Any new IT test class writing to main.payment_event_log must delete from main.payment_event_log in @AfterEach before main.transaction (no FK, but ordering matters for clean state)
+- Any new IT test class writing to main.webhook_delivery_log must delete from main.webhook_delivery_log in @AfterEach before main.transaction (FK constraint: webhook_delivery_log.tenant_id → tenant.id)
 - New Orange IT tests: orange.pay-url and orange.token-url must both resolve to WireMock — use baseUrlProperties = {"orange.base-url", "orange.pay-url"} and token-url via test application.properties
 - MTN IT tests: mtn.collection-base-url and mtn.disbursement-base-url must both resolve to WireMock; collection-token-url and disbursement-token-url also need stubs
 - MTN IT tests: mtn.target-environment must be set to "sandbox" in test properties (already the default in application.yaml)
@@ -140,9 +145,11 @@ Recent decisions affecting current work:
 - No HMAC on MTN inbound — MTN API contract uses notifToken + IP whitelist; any plan adding HMAC to MTN path would be incorrect
 - @TransactionalEventListener(AFTER_COMMIT) pattern: fires in afterCompletion phase with no active transaction; any @Transactional method called from handler MUST use REQUIRES_NEW propagation and MUST be on a separate Spring bean (self-invocation bypasses AOP proxy)
 - TransactionTemplate wrapper for publishEvent: when calling publishEvent from a non-transactional context, wrap in TransactionTemplate.execute() to provide transaction boundary for @TransactionalEventListener(AFTER_COMMIT) to fire
+- Quartz delivery race condition pattern: enqueue() sets nextRetryAt=null on INSERT — Quartz job uses WHERE nextRetryAt <= :now so null rows are excluded; only failed-attempt rows with scheduled nextRetryAt are picked up by Quartz; inline delivery in enqueue() handles first attempt promptly
+- noRetryRestTemplate dual-context: WebhookConfig defines it as @Bean in main config; HttpStatusCodeException must be caught before generic Exception to capture HTTP status codes from 4xx/5xx responses
 
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Completed 06-02-PLAN.md — WebhookDoubleCheckHandler + WebhookTransitionService + 3 ITs
+Stopped at: Completed 06-03-PLAN.md — outbound webhook delivery, Quartz retry, HMAC signing, 3 ITs
 Resume file: None
