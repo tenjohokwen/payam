@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-23)
 
 ## Current Position
 
-Phase: 4 of 10 (MTN MoMo Adapter) — In progress (04-01 complete, 04-02 next)
-Plan: 1 of 2 in phase (04-01 complete)
-Status: In progress — 04-01 complete (infrastructure layer)
-Last activity: 2026-03-24 — Completed 04-01-PLAN.md (MTN MoMo infrastructure: client, DTOs, V7 migration)
+Phase: 4 of 10 (MTN MoMo Adapter) — Phase complete (04-01 and 04-02 done)
+Plan: 2 of 2 in phase (04-02 complete)
+Status: Phase complete — MTN MoMo adapter fully wired (token cache, port, poller, PUT callback, IP whitelist, ITs)
+Last activity: 2026-03-24 — Completed 04-02-PLAN.md (MTN MoMo service layer: 10 new files, 8 ITs passing)
 
-Progress: ███████████░ ~55% (11 of ~20 plans)
+Progress: ████████████ ~60% (12 of ~20 plans)
 
 ## Performance Metrics
 
@@ -30,7 +30,7 @@ Progress: ███████████░ ~55% (11 of ~20 plans)
 | 01-multi-tenant-foundation | 3/3 | 153 min | 51 min |
 | 02-transaction-core | 3/3 | 16 min | 5.3 min |
 | 03-orange-money-adapter | 4/4 | 42 min | 10.5 min |
-| 04-mtn-momo-adapter | 1/2 | 3 min | 3 min |
+| 04-mtn-momo-adapter | 2/2 | 14 min | 7 min |
 
 **Recent Trend:**
 - Last 5 plans: 5 min, 4 min, 5 min, 6 min, 4 min avg
@@ -85,6 +85,10 @@ Recent decisions affecting current work:
 - 04-01 decision: disburse() uses getDisbursementSubscriptionKey() not getCollectionSubscriptionKey() — Pitfall 5: wrong key returns 401
 - 04-01 decision: validateAccountHolder() catches HttpClientErrorException.NotFound → MtnAccountInactiveException — MTN returns 404 (not status field in body) for inactive accounts
 - 04-01 decision: MtnMoMoClient constructor passes getCollectionBaseUrl() as super baseUrl; disbursement calls build full URL via getDisbursementBaseUrl()
+- 04-02 decision: @TestPropertySource(properties = "mtn.callback-ip-whitelist=") required in MtnMoMoPortIT — application.yaml has 196.0.0.0/8 which rejects 127.0.0.1; empty list triggers sandbox mode (accept all)
+- 04-02 decision: MtnMoMoClient.validateAccountHolder() catches HttpClientException (not HttpClientErrorException.NotFound) — RestRequestInterceptor converts all 4xx to HttpClientException before RestTemplate error handling fires
+- 04-02 decision: MtnStatusPollerJob uses tx.getProviderRef() not payToken — MTN providerRef is stable UUID, no expiry; no assertPayTokenFresh() guard needed (Orange-specific)
+- 04-02 decision: Transaction.setProviderRef() and setMtnFinancialTxId() added as package-accessible setters — needed by MtnMoMoPort.persistProviderRef() and storeFinancialTxId()
 
 ### Pending Todos
 
@@ -95,6 +99,7 @@ Recent decisions affecting current work:
 - New Orange IT tests: orange.pay-url and orange.token-url must both resolve to WireMock — use baseUrlProperties = {"orange.base-url", "orange.pay-url"} and token-url via test application.properties
 - MTN IT tests: mtn.collection-base-url and mtn.disbursement-base-url must both resolve to WireMock; collection-token-url and disbursement-token-url also need stubs
 - MTN IT tests: mtn.target-environment must be set to "sandbox" in test properties (already the default in application.yaml)
+- MTN IT tests: mtn.callback-ip-whitelist MUST be overridden to empty in @TestPropertySource — application.yaml default (196.0.0.0/8) rejects 127.0.0.1 test requests
 
 ### Blockers/Concerns
 
@@ -110,9 +115,10 @@ Recent decisions affecting current work:
 - Redis Testcontainer now active: 02-03 added GenericContainer(redis:7-alpine) to TestConfig — all future ITs will have Redis available automatically.
 - Resilience4j circuit breaker pattern: @CircuitBreaker WITHOUT fallbackMethod — fallback is called for ALL exceptions not just circuit-open; for domain exceptions (SubscriberInactiveException) use ignoreExceptions config or remove fallback entirely
 - Quartz + @Transactional on executeInternal: QuartzJobBean.execute() is final, Spring AOP cannot proxy it; @Transactional on executeInternal works because it's called by execute() from the Spring-managed bean
+- RestRequestInterceptor pattern: converts ALL 4xx/5xx to HttpClientException at interceptor level; any new client code catching Spring HttpClientErrorException subtypes will silently not handle errors — must catch HttpClientException and check getHttpStatusCode() instead
 
 ## Session Continuity
 
-Last session: 2026-03-24T03:38:01Z
-Stopped at: Completed 04-01-PLAN.md — MTN MoMo infrastructure layer (14 Java files, V7 migration, application.yaml extensions)
+Last session: 2026-03-24T03:51:45Z
+Stopped at: Completed 04-02-PLAN.md — MTN MoMo service layer (10 new files, 8 ITs passing, Orange unchanged)
 Resume file: None
