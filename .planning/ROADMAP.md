@@ -73,7 +73,8 @@ Plans:
   1. Merchant payment (MP) completes end-to-end: /init → /pay → push notification → state transition
   2. Subscriber account validation returns active/inactive status via `/infos/subscriber`
   3. Cashout, C2C, and IC2C transaction types are initiated and tracked
-  4. Expired payToken triggers a fresh init (not an idempotency error — P1.3 fix)
+  4. Expired payToken is detected before each poll attempt — fresh re-initiation is Phase 5
+     PaymentOrchestrator responsibility (P1.3; assertPayTokenFresh() wired in OrangeStatusPollerJob)
   5. All Orange `createtime` values are parsed as WAT (UTC+1), not UTC (P5.1 fix)
 **Plans**: TBD
 

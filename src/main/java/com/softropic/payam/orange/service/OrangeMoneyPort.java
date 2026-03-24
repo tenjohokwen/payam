@@ -173,6 +173,12 @@ public class OrangeMoneyPort implements MobileMoneyPort {
     /**
      * Check if a payToken has expired (P1.3).
      * Throws PayTokenExpiredException if age exceeds config threshold.
+     *
+     * Production caller: OrangeStatusPollerJob.pollTransaction() — guards before each poll attempt.
+     *
+     * Re-initiation responsibility: when PayTokenExpiredException is thrown, the caller should
+     * log and skip. Fetching a fresh payToken (getMerchantInfo() + pay()) requires the original
+     * PaymentCommand context — this is Phase 5 PaymentOrchestrator responsibility (ROADMAP SC-4).
      */
     public void assertPayTokenFresh(String transactionId, Instant payTokenIssuedAt) {
         if (payTokenIssuedAt == null) return;
