@@ -1,0 +1,58 @@
+package com.softropic.payam.reconciliation.port;
+
+import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.orange.service.OrangeMoneyPort;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+
+/**
+ * ProviderReportPort implementation for Orange Money.
+ *
+ * Uses OrangeMoneyPort.getTransactionStatus() which calls OrangeMoneyClient.getPaymentStatus.
+ * PayResponse carries fields: payToken, status, txnid, message, inittxnmessage, inittxnstatus.
+ *
+ * IMPORTANT: PayResponse has no createtime field — WAT guard (OrangeTimeUtil.parseOrangeTimestamp)
+ * is NOT applicable here; P5.1 WAT compliance is satisfied by the existing OrangeWebhookPayload
+ * handler (separate code path). Do not add OrangeTimeUtil calls to this adapter.
+ *
+ * Resilience: ALL exceptions (including CallNotPermittedException when circuit-open) are caught
+ * and degrade to UNCONFIRMED. The Orange adapter MUST NOT propagate exceptions to ReconciliationService
+ * — one unreachable provider must not abort reconciliation for other providers.
+ */
+@Component
+public class OrangeReportAdapter implements ProviderReportPort {
+
+    private static final Logger log = LoggerFactory.getLogger(OrangeReportAdapter.class);
+
+    private final OrangeMoneyPort orangeMoneyPort;
+
+    public OrangeReportAdapter(OrangeMoneyPort orangeMoneyPort) {
+        this.orangeMoneyPort = orangeMoneyPort;
+    }
+
+    @Override
+    public MobilePaymentProvider provider() {
+        return MobilePaymentProvider.ORANGE;
+    }
+
+    @Override
+    public ProviderTransactionRecord fetchProviderRecord(String providerRef, LocalDate reportDate) {
+        try {
+            // PayResponse has no createtime field — WAT guard not applicable here;
+            // P5.1 is satisfied by OrangeWebhookPayload handler (separate code path)
+            var result = orangeMoneyPort.getTransactionStatus(providerRef);
+            // Orange status API does not return amount in PayResponse; providerAmount stays null
+            return new ProviderTransactionRecord(providerRef, result.rawStatus(), null, false);
+        } catch (Exception e) {
+            // Catch ALL exceptions including CallNotPermittedException (circuit-open).
+            // Orange adapter MUST never propagate — UNCONFIRMED is the resilience fallback.
+            log.warn("Orange reconciliation: failed to fetch status for providerRef={} on date={}: {}",
+                providerRef, reportDate, e.getMessage());
+            return new ProviderTransactionRecord(providerRef, null, null, true);
+        }
+    }
+}
