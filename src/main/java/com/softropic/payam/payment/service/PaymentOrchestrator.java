@@ -129,6 +129,8 @@ public class PaymentOrchestrator {
         Transaction tx = transactionService.initiate(tenantId, provider, request.amount(), request.currency(), request.externalReference());
 
         // Step 4: Build PaymentCommand
+        // clientIp, userAgent, deviceFingerprint are null here — Plan 07-02 will wire
+        // RequestMetadataProvider and PaymentRequest.deviceFingerprint into these fields.
         PaymentCommand cmd = new PaymentCommand(
                 tx.getTransactionId(),
                 tx.getTraceId(),
@@ -138,7 +140,10 @@ public class PaymentOrchestrator {
                 request.currency(),
                 request.externalReference(),
                 request.idempotencyKey(),
-                provider
+                provider,
+                null,
+                null,
+                null
         );
 
         // Step 5: Select port

@@ -35,5 +35,11 @@ public record PaymentRequest(
 
         /** Client-generated idempotency key. Required to prevent double charges on retry. */
         @NotBlank
-        String idempotencyKey
+        String idempotencyKey,
+
+        /**
+         * Client-side device fingerprint token (e.g. from FingerprintJS). Optional.
+         * Stored on the transaction for future fraud pattern analysis.
+         */
+        String deviceFingerprint
 ) {}

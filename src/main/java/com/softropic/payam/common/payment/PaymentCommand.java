@@ -11,5 +11,8 @@ public record PaymentCommand(
     String currency,
     String externalReference,
     String idempotencyKey,
-    MobilePaymentProvider provider
+    MobilePaymentProvider provider,
+    String clientIp,          // client IP from RequestMetadata (nullable — null if unavailable)
+    String userAgent,         // User-Agent header (nullable)
+    String deviceFingerprint  // X-Device-Fingerprint header value (nullable)
 ) {}
