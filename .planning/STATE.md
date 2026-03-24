@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 8 in progress (Admin Dashboard) — all 3 plans (01, 02, 03) complete
+**Current focus:** Phase 8 complete (Admin Dashboard) — Phase 9 (Reconciliation) is next
 
 ## Current Position
 
-Phase: 8 of 10 (Admin Dashboard) — In progress
-Plan: 3 of 3 in phase (all complete: 08-01, 08-02, 08-03)
-Status: Phase 8 complete
-Last activity: 2026-03-24 — Completed 08-02-PLAN.md (PaymentMetricsService, SSE stream, orchestrator wiring)
+Phase: 8 of 10 (Admin Dashboard) — Phase complete
+Plan: 3 of 3 in phase (08-01, 08-02, 08-03 all done)
+Status: Phase 8 complete — Phase 9 (Reconciliation) is next
+Last activity: 2026-03-24 — Completed phase 8: admin REST search/timeline, Micrometer metrics, SSE stream, Quasar SPA dashboard
 
-Progress: ████████████████████ ~95% (20 of ~23 plans)
+Progress: ████████████████████ ~90% (22 of ~25 plans)
 
 ## Performance Metrics
 

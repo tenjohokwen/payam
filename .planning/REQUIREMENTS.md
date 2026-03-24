@@ -39,8 +39,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Admin
 
-- [ ] **ADMIN-01**: Real-time admin dashboard: TPS, success/failure rates, fraud rate, provider latency
-- [ ] **ADMIN-02**: Transaction investigation tools: search by transaction_id, phone, trace_id; show full event timeline
+- [x] **ADMIN-01**: Real-time admin dashboard: TPS, success/failure rates, fraud rate, provider latency
+- [x] **ADMIN-02**: Transaction investigation tools: search by transaction_id, phone, trace_id; show full event timeline
 
 ### Reconciliation
 
@@ -101,8 +101,8 @@ Which phases cover which requirements. Updated by create-roadmap.
 | WH-01 | Phase 6 | Pending |
 | WH-02 | Phase 6 | Pending |
 | FRAUD-01 | Phase 7 | Pending |
-| ADMIN-01 | Phase 8 | Pending |
-| ADMIN-02 | Phase 8 | Pending |
+| ADMIN-01 | Phase 8 | Complete |
+| ADMIN-02 | Phase 8 | Complete |
 | RECON-01 | Phase 9 | Pending |
 | OPS-01 | Phase 10 | Pending |
 | OPS-02 | Phase 10 | Pending |
