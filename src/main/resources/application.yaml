@@ -229,9 +229,24 @@ resilience4j:
         ignoreExceptions:
           - com.softropic.payam.orange.contract.exception.SubscriberInactiveException
           - com.softropic.payam.orange.contract.exception.PayTokenExpiredException
+      mtn:
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        slidingWindowSize: 10
+        permittedNumberOfCallsInHalfOpenState: 3
+        ignoreExceptions:
+          - com.softropic.payam.mtn.contract.exception.MtnAccountInactiveException
   retry:
     instances:
       orange:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - java.net.SocketTimeoutException
+          - org.springframework.web.client.ResourceAccessException
+      mtn:
         maxAttempts: 3
         waitDuration: 1s
         enableExponentialBackoff: true
@@ -247,6 +262,23 @@ orange:
   consumer-key: ${ORANGE_CONSUMER_KEY:test-key}
   consumer-secret: ${ORANGE_CONSUMER_SECRET:test-secret}
   pay-token-expiry-threshold-minutes: 8
+  poller:
+    initial-delay-seconds: 120
+    interval-seconds: 300
+    max-attempts: 15
+
+mtn:
+  collection-base-url: https://sandbox.momodeveloper.mtn.com/collection
+  disbursement-base-url: https://sandbox.momodeveloper.mtn.com/disbursement
+  collection-token-url: https://sandbox.momodeveloper.mtn.com/collection/token/
+  disbursement-token-url: https://sandbox.momodeveloper.mtn.com/disbursement/token/
+  api-user-id: ${MTN_API_USER_ID:dev_mtn_user_id}
+  api-key: ${MTN_API_KEY:dev_mtn_api_key}
+  collection-subscription-key: ${MTN_COLLECTION_SUB_KEY:dev_mtn_collection_key}
+  disbursement-subscription-key: ${MTN_DISBURSEMENT_SUB_KEY:dev_mtn_disbursement_key}
+  target-environment: sandbox
+  callback-ip-whitelist:
+    - "196.0.0.0/8"
   poller:
     initial-delay-seconds: 120
     interval-seconds: 300
