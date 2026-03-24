@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-23)
 
 ## Current Position
 
-Phase: 4 of 10 (MTN MoMo Adapter) — COMPLETE (all 2 plans: 04-01, 04-02)
-Plan: 2 of 2 in phase (04-01, 04-02 complete)
-Status: Phase 4 complete — 05-payment-orchestration is next
-Last activity: 2026-03-24 — Completed phase 4 verification (5/5 must-haves passed)
+Phase: 5 of 10 (Payment Orchestration) — In progress (05-01 complete)
+Plan: 1 of 2 in phase (05-01 complete; 05-02 next)
+Status: In progress — 05-02 (integration tests) is next
+Last activity: 2026-03-24 — Completed 05-01-PLAN.md (payment module core: MsisdnRouter, PaymentOrchestrator, PaymentResource)
 
-Progress: ████████████░ ~60% (12 of ~20 plans)
+Progress: █████████████░ ~65% (13 of ~20 plans)
 
 ## Performance Metrics
 
@@ -31,9 +31,10 @@ Progress: ████████████░ ~60% (12 of ~20 plans)
 | 02-transaction-core | 3/3 | 16 min | 5.3 min |
 | 03-orange-money-adapter | 4/4 | 42 min | 10.5 min |
 | 04-mtn-momo-adapter | 2/2 | 14 min | 7 min |
+| 05-payment-orchestration | 1/2 | 3 min | - |
 
 **Recent Trend:**
-- Last 5 plans: 4 min, 5 min, 6 min, 3 min, 11 min avg
+- Last 5 plans: 5 min, 6 min, 3 min, 11 min, 3 min avg
 - Trend: Infrastructure plans fast (3-6 min); service+test plans 10-12 min
 
 ## Accumulated Context
@@ -88,6 +89,12 @@ Recent decisions affecting current work:
 - 04-02 decision: @TestPropertySource(properties = "mtn.callback-ip-whitelist=") required in MtnMoMoPortIT — application.yaml has 196.0.0.0/8 which rejects 127.0.0.1; empty list triggers sandbox mode (accept all)
 - 04-02 decision: MtnMoMoClient.validateAccountHolder() catches HttpClientException (not HttpClientErrorException.NotFound) — RestRequestInterceptor converts all 4xx to HttpClientException before RestTemplate error handling fires
 - 04-02 decision: MtnStatusPollerJob uses tx.getProviderRef() not payToken — MTN providerRef is stable UUID, no expiry; no assertPayTokenFresh() guard needed (Orange-specific)
+- 05-01 decision: PaymentOrchestrator.initiate() has no @Transactional — holding DB connection during outbound HTTP exhausts connection pool (P1.1/P8.1); TransactionTemplate used for discrete DB operations
+- 05-01 decision: Three applyTransition() calls required — state machine path INITIATED->AUTH_PENDING->AUTHORIZED->PROCESSING; direct INITIATED->PROCESSING throws IllegalStateTransitionException
+- 05-01 decision: CallNotPermittedException caught before HttpClientException — wrong order silently swallows circuit-open events as generic provider errors
+- 05-01 decision: @CircuitBreaker stays on OrangeMoneyPort and MtnMoMoPort (not on orchestrator) — circuit breakers placed in Phases 3/4; orchestrator catches CallNotPermittedException
+- 05-01 decision: PAYMENT_ALREADY_PROCESSING returns HTTP 202 — duplicate in-flight is semantically accepted; 4xx would cause clients to unnecessarily retry
+- 05-01 decision: MsisdnRouter uses hardcoded prefix rules — config-driven prefix table is Phase 10 hardening concern (RESEARCH.md Pitfall 3 mitigation)
 - 04-02 decision: Transaction.setProviderRef() and setMtnFinancialTxId() added as package-accessible setters — needed by MtnMoMoPort.persistProviderRef() and storeFinancialTxId()
 
 ### Pending Todos
@@ -120,5 +127,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Phase 4 complete — MTN MoMo adapter verified 5/5 (token cache, PUT callback, IP whitelist, port, poller)
+Stopped at: Completed 05-01-PLAN.md — payment module core (MsisdnRouter, PaymentOrchestrator, PaymentResource, OrchestratorError, PaymentRequest, PaymentResponse)
 Resume file: None
