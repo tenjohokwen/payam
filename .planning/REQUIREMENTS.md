@@ -26,7 +26,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Payment
 
-- [ ] **PAY-01**: Unified payment initiation API (MTN MoMo + Orange Money behind one endpoint)
+- [x] **PAY-01**: Unified payment initiation API (MTN MoMo + Orange Money behind one endpoint)
 
 ### Webhook
 
@@ -97,7 +97,7 @@ Which phases cover which requirements. Updated by create-roadmap.
 | TX-05 | Phase 2 | Complete |
 | ADAPT-01 | Phase 3 | Complete |
 | ADAPT-02 | Phase 4 | Complete |
-| PAY-01 | Phase 5 | Pending |
+| PAY-01 | Phase 5 | Complete |
 | WH-01 | Phase 6 | Pending |
 | WH-02 | Phase 6 | Pending |
 | FRAUD-01 | Phase 7 | Pending |
