@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 9 (Reconciliation) — plan 09-01 complete, 09-02 is next
+**Current focus:** Phase 9 (Reconciliation) — COMPLETE. Phase 10 (hardening) is next.
 
 ## Current Position
 
-Phase: 9 of 10 (Reconciliation) — In progress
-Plan: 1 of 2 in phase (09-01 done)
-Status: Phase 9 in progress — 09-01 complete, 09-02 next
-Last activity: 2026-03-24 — Completed 09-01: reconciliation infrastructure (Quartz job, provider ports, discrepancy engine)
+Phase: 9 of 10 (Reconciliation) — Complete
+Plan: 2 of 2 in phase (09-01 done, 09-02 done)
+Status: Phase 9 complete — all reconciliation plans executed
+Last activity: 2026-03-25 — Completed 09-02: admin REST surface + Quasar page + ReconciliationApiIT
 
-Progress: ████████████████████░ ~92% (23 of ~25 plans)
+Progress: █████████████████████░ ~96% (24 of ~25 plans)
 
 ## Performance Metrics
 
@@ -35,7 +35,7 @@ Progress: ████████████████████░ ~92% (
 | 06-webhook-processing | 3/3 | 43 min | 14 min |
 | 07-fraud-engine | 2/2 | 53 min | 26.5 min |
 | 08-admin-dashboard | 3/3 | 50 min | 16 min |
-| 09-reconciliation | 1/2 | 8 min | 8 min |
+| 09-reconciliation | 2/2 | 43 min | 21 min |
 
 **Recent Trend:**
 - Last 5 plans: 11 min, 3 min, 25 min, 23 min, 30 min avg
@@ -137,6 +137,11 @@ Recent decisions affecting current work:
 - 09-01 decision: ProviderReportPort.provider() default method used for EnumMap wiring — each adapter self-declares its provider key
 - 09-01 decision: OrangeReportAdapter does NOT call OrangeTimeUtil.parseOrangeTimestamp — PayResponse has no createtime field; P5.1 WAT compliance documented with comment
 - 09-01 decision: Per-provider exception isolation in ReconciliationService.runForDate() — one provider failure must not abort reconciliation for other providers
+- 09-02 decision: ReconciliationApiIT uses real /authenticate login flow — seeds admin user, POSTs credentials, extracts Set-Cookie, forwards on admin requests; avoids hand-crafted JWT issues
+- 09-02 decision: FilterRegistrationBean(setEnabled=false) added to TenantSecurityConfig — prevents ApiKeyAuthenticationFilter from running as servlet-registered filter on ALL requests; filter now only runs within tenantApiKeyFilterChain scope
+- 09-02 decision: /v1/admin/** added to ApiKeyAuthenticationFilter shouldNotFilter bypass list — defence-in-depth alongside securityMatcher exclusion already in TenantSecurityConfig
+- 09-02 decision: TenantFilterChainIT updated to use /v1/webhooks/deliveries/tx-123 instead of /v1/admin/tenants — admin paths now excluded from API-key chain scope
+- 09-02 decision: @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE) must be retained on ReconciliationResource — JWT chain only requires any authenticated user for /v1/**; @PreAuthorize enforces ROLE_ADMIN/ROLE_LTD_ADMIN specifically
 
 ### Pending Todos
 
@@ -181,11 +186,14 @@ Recent decisions affecting current work:
 - ADMIN-02 COMPLETE: PaymentMetricsService registers payment.success/failed/fraud-blocked Counters and payment.provider.latency Timer; SSE stream at GET /v1/admin/metrics/stream; PaymentOrchestrator records all outcome paths with try/finally provider latency timing
 - Any new /v1/admin/** endpoint is automatically JWT-protected (NegatedRequestMatcher exclusion already in TenantSecurityConfig); no further security config changes needed for new admin routes
 - RECON-01 COMPLETE: Daily Quartz job at 02:00 UTC; ProviderReportPort with MTN+Orange adapters; ReconciliationService comparison engine; V12 schema; ReconciliationJobIT 2/2 pass
+- RECON-02 COMPLETE: Three admin REST endpoints under /v1/admin/reconciliation; ReconciliationExportService (CSV+JSON); ReconciliationPage.vue; ReconciliationApiIT 5/5 pass
 - Orange reconciliation path: OrangeReportAdapter does NOT use OrangeTimeUtil — PayResponse has no createtime field; P5.1 WAT guard is OrangeWebhookPayload-only
 - ReconciliationService provider isolation: each provider loop in separate try/catch; one provider API failure never aborts the other provider's reconciliation loop
+- IT test real-login pattern: ReconciliationApiIT.loginAsAdmin() seeds admin user/authority rows, POSTs /authenticate, extracts Set-Cookie, forwards cookies on admin requests — exercises full JWT filter chain
+- FilterRegistrationBean(setEnabled=false) pattern: use this in any @Configuration that defines a OncePerRequestFilter @Bean to prevent Spring Boot auto-registration with servlet container
 
 ## Session Continuity
 
-Last session: 2026-03-24
-Stopped at: Completed 09-01-PLAN.md — Reconciliation infrastructure: V12 schema, ProviderReportPort abstraction, MtnReportAdapter, OrangeReportAdapter, LedgerSnapshotService, ReconciliationService, ReconciliationJob (Quartz cron 02:00 UTC), ReconciliationJobIT (2/2 pass)
+Last session: 2026-03-25
+Stopped at: Completed 09-02-PLAN.md — Reconciliation admin API surface: three REST endpoints, ReconciliationExportService (CSV+JSON), ReconciliationPage.vue, ReconciliationApiIT (5/5 pass). Phase 9 complete.
 Resume file: None
