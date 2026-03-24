@@ -125,9 +125,19 @@ public class MtnMoMoClient extends AbstractClient {
                         + ", status: " + response.getStatusCode());
             }
             return response.getBody();
-        } catch (HttpClientErrorException.NotFound e) {
-            throw new MtnAccountInactiveException(msisdn);
+        } catch (com.softropic.payam.common.client.exception.HttpClientException e) {
+            // RestRequestInterceptor converts 4xx/5xx to HttpClientException before RestTemplate
+            // can throw HttpClientErrorException. Check httpStatusCode string for 404.
+            if (e.getHttpStatusCode() != null && e.getHttpStatusCode().contains("404")) {
+                throw new MtnAccountInactiveException(msisdn);
+            }
+            throw new MtnApiException("validateAccountHolder failed — msisdn: " + msisdn
+                    + ", cause: " + e.getMessage());
         } catch (HttpClientErrorException e) {
+            // Fallback for any direct HttpClientErrorException that bypasses the interceptor
+            if (e instanceof HttpClientErrorException.NotFound) {
+                throw new MtnAccountInactiveException(msisdn);
+            }
             throw new MtnApiException("validateAccountHolder failed — msisdn: " + msisdn
                     + ", status: " + e.getStatusCode());
         }
