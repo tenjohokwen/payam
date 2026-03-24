@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 6 in progress (Webhook Processing) — 06-01 complete, 06-02 next
+**Current focus:** Phase 6 complete (Webhook Processing) — both 06-01 and 06-02 done; Phase 7 next
 
 ## Current Position
 
-Phase: 6 of 10 (Webhook Processing) — In progress (06-01 done)
-Plan: 1 of 2 in phase (06-01 complete)
-Status: In progress — 06-02 (Webhook State Transition) is next
-Last activity: 2026-03-24 — Completed 06-01-PLAN.md (Orange callback endpoint + MTN dedup + 5 ITs)
+Phase: 6 of 10 (Webhook Processing) — Complete
+Plan: 2 of 2 in phase (06-02 complete)
+Status: Phase 6 complete — Phase 7 (next) is next
+Last activity: 2026-03-24 — Completed 06-02-PLAN.md (WebhookDoubleCheckHandler + WebhookTransitionService + 3 ITs)
 
-Progress: ███████████████ ~75% (15 of ~20 plans)
+Progress: ████████████████ ~80% (16 of ~20 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
-- Average duration: 24 min
-- Total execution time: ~4.3 hours
+- Total plans completed: 16
+- Average duration: 22 min
+- Total execution time: ~5.3 hours
 
 **By Phase:**
 
@@ -32,11 +32,11 @@ Progress: ███████████████ ~75% (15 of ~20 plans)
 | 03-orange-money-adapter | 4/4 | 42 min | 10.5 min |
 | 04-mtn-momo-adapter | 2/2 | 14 min | 7 min |
 | 05-payment-orchestration | 2/2 | 38 min | 19 min |
-| 06-webhook-processing | 1/2 | 6 min | 6 min |
+| 06-webhook-processing | 2/2 | 18 min | 9 min |
 
 **Recent Trend:**
-- Last 5 plans: 6 min, 3 min, 11 min, 3 min, 35 min avg
-- Trend: Infrastructure plans fast (3-6 min); service+test plans 10-35 min (circuit breaker + Apache retry debugging)
+- Last 5 plans: 12 min, 6 min, 3 min, 11 min, 3 min avg
+- Trend: Infrastructure plans fast (3-6 min); service+test plans 10-15 min
 
 ## Accumulated Context
 
@@ -104,6 +104,9 @@ Recent decisions affecting current work:
 - 06-01 decision: Redis dedup key for Orange includes createtime (webhook:orange:{payToken}:{createtime}) — same payToken can receive multiple status transitions; createtime distinguishes each event (Pitfall 8 guard)
 - 06-01 decision: No HMAC on MTN inbound callbacks — intentional per MTN API contract; notifToken correlation + IP whitelist is MTN's authenticity mechanism
 - 06-01 decision: blank callbackHmacSecret = sandbox mode for Orange — skip HMAC check entirely; enables local/sandbox testing without Orange partner credentials
+- 06-02 decision: @Transactional(REQUIRES_NEW) on WebhookTransitionService.applyFinalTransition — @TransactionalEventListener(AFTER_COMMIT) fires in afterCompletion phase with no active transaction; REQUIRED propagation throws TransactionRequiredException; REQUIRES_NEW creates fresh independent transaction
+- 06-02 decision: WebhookTransitionService extracted as separate @Service — @Transactional self-invocation (WebhookDoubleCheckHandler calling its own method) bypasses Spring AOP CGLIB proxy; separate bean ensures proxy is invoked
+- 06-02 decision: TransactionTemplate.execute() wraps publishEvent in OrangeMoneyPort and MtnMoMoPort — publishEvent without enclosing transaction never triggers @TransactionalEventListener(AFTER_COMMIT)
 
 ### Pending Todos
 
@@ -135,9 +138,11 @@ Recent decisions affecting current work:
 - Orange HMAC body MUST use objectMapper.writeValueAsString(payload) — NOT request.getInputStream().readAllBytes() which returns empty (servlet stream already consumed by @RequestBody)
 - Orange callback dedup key must include createtime (not just payToken) — Pitfall 8: same payToken can receive multiple status transitions; separate them by createtime
 - No HMAC on MTN inbound — MTN API contract uses notifToken + IP whitelist; any plan adding HMAC to MTN path would be incorrect
+- @TransactionalEventListener(AFTER_COMMIT) pattern: fires in afterCompletion phase with no active transaction; any @Transactional method called from handler MUST use REQUIRES_NEW propagation and MUST be on a separate Spring bean (self-invocation bypasses AOP proxy)
+- TransactionTemplate wrapper for publishEvent: when calling publishEvent from a non-transactional context, wrap in TransactionTemplate.execute() to provide transaction boundary for @TransactionalEventListener(AFTER_COMMIT) to fire
 
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Completed 06-01-PLAN.md — OrangeCallbackController, MtnMoMoPort dedup, V8 migration, 5 ITs
+Stopped at: Completed 06-02-PLAN.md — WebhookDoubleCheckHandler + WebhookTransitionService + 3 ITs
 Resume file: None
