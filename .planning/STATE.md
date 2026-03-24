@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 7 in progress (Fraud Engine) — 07-01 complete; 07-02 next
+**Current focus:** Phase 7 complete (Fraud Engine) — both plans done; Phase 8 (Admin Dashboard) is next
 
 ## Current Position
 
-Phase: 7 of 10 (Fraud Engine) — In progress
-Plan: 1 of 2 in phase (07-01 complete)
-Status: In progress — 07-02 is next
-Last activity: 2026-03-24 — Completed 07-01-PLAN.md (fraud engine foundation: velocity checks, risk scoring, FraudScoringServiceIT)
+Phase: 7 of 10 (Fraud Engine) — Phase complete
+Plan: 2 of 2 in phase (07-02 complete)
+Status: Phase 7 complete — Phase 8 (admin-dashboard) is next
+Last activity: 2026-03-24 — Completed 07-02-PLAN.md (fraud engine wired into orchestrator: FRAUD_BLOCKED, riskScore persistence, FraudEngineIT)
 
-Progress: ██████████████████ ~88% (18 of ~20 plans)
+Progress: ███████████████████ ~95% (19 of ~20 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18
+- Total plans completed: 19
 - Average duration: 22 min
-- Total execution time: ~6.1 hours
+- Total execution time: ~6.6 hours
 
 **By Phase:**
 
@@ -33,11 +33,11 @@ Progress: ██████████████████ ~88% (18 of ~20
 | 04-mtn-momo-adapter | 2/2 | 14 min | 7 min |
 | 05-payment-orchestration | 2/2 | 38 min | 19 min |
 | 06-webhook-processing | 3/3 | 43 min | 14 min |
-| 07-fraud-engine | 1/2 | 23 min | 23 min |
+| 07-fraud-engine | 2/2 | 53 min | 26.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 3 min, 11 min, 3 min, 25 min, 23 min avg
-- Trend: Infrastructure plans fast (3-6 min); service+test plans 10-25 min
+- Last 5 plans: 11 min, 3 min, 25 min, 23 min, 30 min avg
+- Trend: Infrastructure plans fast (3-6 min); service+test plans 10-30 min
 
 ## Accumulated Context
 
@@ -117,6 +117,10 @@ Recent decisions affecting current work:
 - 07-01 decision: Fraud rules seeded via JDBC in IT @BeforeEach — dev profile create-drop wipes Flyway seed data; ON CONFLICT DO UPDATE avoids TSID re-generation on explicit IDs
 - 07-01 decision: FraudSignal enum values match signal_name DB strings exactly — getSignalName() returns the enum name; zero translation layer between Java and DB
 - 07-01 decision: BLOCK_THRESHOLD stored as fraud_rule row (threshold=70) — DB-configurable without restart; default=70 if rule not found (fail-safe)
+- 07-02 decision: setRiskScore() and setDeviceFingerprint() are public (not package-private) — PaymentOrchestrator is in payment.service; Transaction is in transaction.repo; package-private is inaccessible cross-package; existing setProviderRef() pattern is also public
+- 07-02 decision: MSISDN_VELOCITY used for velocity block IT test — ForwardedHeaderFilter (in SecurityConfiguration) strips Forwarded header before RequestMetadataProvider reads it; IP injection via headers unreliable; MSISDN is stable bucket key not dependent on header
+- 07-02 decision: JDBC threshold update wrapped in transactionTemplate.execute() before fraudRuleCache.refreshRules() — ensures DB commit visible to Spring Data JPA query inside refreshRules()
+- 07-02 decision: @NotAudited on Transaction.riskScore and Transaction.deviceFingerprint — V10 migration adds columns to main table only; Envers _AUD table lacks them; @NotAudited excludes from revision tracking to prevent schema validation errors
 
 ### Pending Todos
 
@@ -153,14 +157,13 @@ Recent decisions affecting current work:
 - TransactionTemplate wrapper for publishEvent: when calling publishEvent from a non-transactional context, wrap in TransactionTemplate.execute() to provide transaction boundary for @TransactionalEventListener(AFTER_COMMIT) to fire
 - Quartz delivery race condition pattern: enqueue() sets nextRetryAt=null on INSERT — Quartz job uses WHERE nextRetryAt <= :now so null rows are excluded; only failed-attempt rows with scheduled nextRetryAt are picked up by Quartz; inline delivery in enqueue() handles first attempt promptly
 - noRetryRestTemplate dual-context: WebhookConfig defines it as @Bean in main config; HttpStatusCodeException must be caught before generic Exception to capture HTTP status codes from 4xx/5xx responses
-- Fraud rule seed data NOT present at test startup — dev profile create-drop wipes Flyway seed data; any fraud IT test MUST seed rules in @BeforeEach via JDBC (see FraudScoringServiceIT pattern)
+- Fraud rule seed data NOT present at test startup — dev profile create-drop wipes Flyway seed data; any fraud IT test MUST seed rules in @BeforeEach via JDBC (see FraudScoringServiceIT/FraudEngineIT pattern)
 - FraudScoringService.evaluate() dual block: direct velocity block fires first (any exceeded velocity), then score-based block; BLOCK_THRESHOLD=70 is score threshold, not velocity threshold
-- Plan 07-02 must add Transaction.setRiskScore() and Transaction.setDeviceFingerprint() setters — needed for score/fingerprint persistence in PaymentOrchestrator
-- Plan 07-02 must read clientIp/userAgent from RequestMetadataProvider (already populated by SecurityAdviceFilter) and deviceFingerprint from PaymentRequest.deviceFingerprint()
-- FraudScoringServiceIT @BeforeEach: JWT secret seeded before fraud rules (same pattern as PaymentOrchestratorIT)
+- ForwardedHeaderFilter strips Forwarded header in IT tests — SecurityConfiguration registers ForwardedHeaderFilter; it removes/rewrites RFC 7239 Forwarded header before RequestMetadataProvider reads it; IP injection via Forwarded header doesn't work in tests; use MSISDN/tenantId-based signals for velocity testing (see FraudEngineIT pattern)
+- FRAUD-01 COMPLETE: velocity checks, risk scoring, and device fingerprinting all wired into POST /v1/payments; fraud fires before provider dispatch; risk_score queryable from main.transaction
 
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Completed 07-01-PLAN.md — fraud engine foundation: VelocityCheckService, FraudScoringService, FraudScoringServiceIT (3 tests)
+Stopped at: Completed 07-02-PLAN.md — fraud engine orchestrator integration: FRAUD_BLOCKED error code, PaymentOrchestrator pre-dispatch hook, Transaction.riskScore/deviceFingerprint, FraudEngineIT (2 tests)
 Resume file: None
