@@ -359,6 +359,6 @@ For MVP (production-ready v1), prioritize:
 - Project requirements file: `/requirements/orange-money-integration-guide.md` [VERIFIED]
 - Campay API knowledge as of August 2025 [MEDIUM confidence — verify against campay.net/en/documentation/]
 - Monetbil API knowledge as of August 2025 [MEDIUM confidence — verify against monetbil.com/developers]
-- Notchpay API knowledge as of August 2025 [MEDIUM confidence — verify against developer.notchpay.co]
+- Notchpay API knowledge as of August 2025 [MEDIUM confidence — verify against https://developer.notchpay.co]
 - Paystack / Flutterwave / Stripe patterns: well-documented, treated as HIGH confidence for general
   payment API best practices (idempotency keys, webhook signing, error codes, sandbox patterns)

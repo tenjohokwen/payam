@@ -7,6 +7,7 @@ import java.time.Instant;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,7 +20,7 @@ import lombok.experimental.SuperBuilder;
  * It is a simple lookup table keyed by (tenant_id, idempotency_key).
  */
 @Entity
-@Table(name = "idempotency_key", schema = "main")
+@Table(name = "idempotency_key", schema = "main", uniqueConstraints = { @UniqueConstraint(columnNames = { "tenantId", "idempotencyKey" }, name = "uq_idempotency_tenant_key") })
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor

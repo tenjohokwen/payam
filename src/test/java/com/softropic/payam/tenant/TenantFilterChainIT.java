@@ -11,6 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -260,7 +261,7 @@ class TenantFilterChainIT {
                     tenant1Id, java.sql.Timestamp.from(expires));
                 return null;
             })
-        ).isInstanceOf(DataIntegrityViolationException.class)
+        ).isInstanceOf(DuplicateKeyException.class)
          .hasMessageContaining("uq_idempotency_tenant_key");
 
         // Same idempotency_key under tenant2 → must succeed (no cross-tenant collision)
