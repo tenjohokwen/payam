@@ -19,10 +19,12 @@ import io.github.resilience4j.retry.annotation.Retry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.UUID;
 
 @Service
@@ -35,17 +37,20 @@ public class MtnMoMoPort implements MobileMoneyPort {
     private final TransactionRepository transactionRepository;
     private final EventLogService eventLogService;
     private final MtnMoMoConfig config;
+    private final StringRedisTemplate redis;
 
     public MtnMoMoPort(MtnMoMoClient mtnMoMoClient,
                        MtnTokenService mtnTokenService,
                        TransactionRepository transactionRepository,
                        EventLogService eventLogService,
-                       MtnMoMoConfig config) {
+                       MtnMoMoConfig config,
+                       StringRedisTemplate redis) {
         this.mtnMoMoClient = mtnMoMoClient;
         this.mtnTokenService = mtnTokenService;
         this.transactionRepository = transactionRepository;
         this.eventLogService = eventLogService;
         this.config = config;
+        this.redis = redis;
     }
 
     /**
@@ -144,9 +149,17 @@ public class MtnMoMoPort implements MobileMoneyPort {
      * Phase 6 wires full state-transition via double-check getTransactionStatus().
      */
     public void processCallback(MtnCallbackPayload payload) {
+        // Dedup: one callback per (externalId, status) terminal event
+        // MTN security note: no HMAC on inbound callbacks per MTN API contract.
+        // Authenticity is provided by notifToken correlation + IP whitelist (MtnIpWhitelistInterceptor).
+        String dedupKey = "webhook:mtn:" + payload.getExternalId() + ":" + payload.getStatus();
+        Boolean wasAbsent = redis.opsForValue().setIfAbsent(dedupKey, "SEEN", Duration.ofHours(24));
+        if (Boolean.FALSE.equals(wasAbsent)) {
+            log.info("MTN callback duplicate suppressed: externalId={}", payload.getExternalId());
+            return;
+        }
+
         log.info("MTN callback received: externalId={}, status={}", payload.getExternalId(), payload.getStatus());
-        // Correlation: payload.getExternalId() = our transactionId
-        // Phase 6 will call getTransactionStatus(providerRef) before applying any state transition.
         if (payload.getFinancialTransactionId() != null) {
             storeFinancialTxId(payload.getExternalId(), payload.getFinancialTransactionId());
         }
