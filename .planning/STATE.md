@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 3 fully complete (including gap closure 03-04) — Phase 4 next (MTN Money Adapter)
+**Current focus:** Phase 4 in progress (MTN MoMo Adapter) — 04-01 infrastructure complete, 04-02 service layer next
 
 ## Current Position
 
-Phase: 3 of 10 (Orange Money Adapter) — COMPLETE (all 4 plans: 03-01, 03-02, 03-03, 03-04)
-Plan: 4 of 4 in phase (03-01, 03-02, 03-03, 03-04 complete)
-Status: Phase 3 complete — 04-mtn-money-adapter is next
-Last activity: 2026-03-24 — Completed 03-04-PLAN.md (Gap D: assertPayTokenFresh() wired in poller)
+Phase: 4 of 10 (MTN MoMo Adapter) — In progress (04-01 complete, 04-02 next)
+Plan: 1 of 2 in phase (04-01 complete)
+Status: In progress — 04-01 complete (infrastructure layer)
+Last activity: 2026-03-24 — Completed 04-01-PLAN.md (MTN MoMo infrastructure: client, DTOs, V7 migration)
 
-Progress: ██████████░ ~50% (10 of ~20 plans)
+Progress: ███████████░ ~55% (11 of ~20 plans)
 
 ## Performance Metrics
 
@@ -30,6 +30,7 @@ Progress: ██████████░ ~50% (10 of ~20 plans)
 | 01-multi-tenant-foundation | 3/3 | 153 min | 51 min |
 | 02-transaction-core | 3/3 | 16 min | 5.3 min |
 | 03-orange-money-adapter | 4/4 | 42 min | 10.5 min |
+| 04-mtn-momo-adapter | 1/2 | 3 min | 3 min |
 
 **Recent Trend:**
 - Last 5 plans: 5 min, 4 min, 5 min, 6 min, 4 min avg
@@ -79,6 +80,11 @@ Recent decisions affecting current work:
 - 03-03 decision: No @JsonIgnore needed on getCreatetimeAsInstant() — @JsonIgnoreProperties(ignoreUnknown=true) prevents Jackson from trying to deserialize derived getters
 - 03-04 decision: assertPayTokenFresh() catch block placed BEFORE max-attempts check — expired token skips poll; incrementPollAttempts() still fires to prevent infinite looping on stale token
 - 03-04 decision: PayTokenExpiredException NOT re-thrown from pollTransaction() — adapter lacks PaymentCommand context; re-initiation is Phase 5 PaymentOrchestrator responsibility (ROADMAP SC-4)
+- 04-01 decision: MtnMoMoClient token POST sends null body — MTN returns 400 if form body is sent (Pitfall 4); unlike Orange no FormHttpMessageConverter needed
+- 04-01 decision: fetchDisbursementToken() is a separate method — disbursement uses different product key (getDisbursementSubscriptionKey()) and endpoint (getDisbursementTokenUrl())
+- 04-01 decision: disburse() uses getDisbursementSubscriptionKey() not getCollectionSubscriptionKey() — Pitfall 5: wrong key returns 401
+- 04-01 decision: validateAccountHolder() catches HttpClientErrorException.NotFound → MtnAccountInactiveException — MTN returns 404 (not status field in body) for inactive accounts
+- 04-01 decision: MtnMoMoClient constructor passes getCollectionBaseUrl() as super baseUrl; disbursement calls build full URL via getDisbursementBaseUrl()
 
 ### Pending Todos
 
@@ -87,6 +93,8 @@ Recent decisions affecting current work:
 - Any new IT test class that writes to main.transaction must delete from main.transaction in @AfterEach BEFORE deleting from main.tenant (FK constraint)
 - Any new IT test class writing to main.payment_event_log must delete from main.payment_event_log in @AfterEach before main.transaction (no FK, but ordering matters for clean state)
 - New Orange IT tests: orange.pay-url and orange.token-url must both resolve to WireMock — use baseUrlProperties = {"orange.base-url", "orange.pay-url"} and token-url via test application.properties
+- MTN IT tests: mtn.collection-base-url and mtn.disbursement-base-url must both resolve to WireMock; collection-token-url and disbursement-token-url also need stubs
+- MTN IT tests: mtn.target-environment must be set to "sandbox" in test properties (already the default in application.yaml)
 
 ### Blockers/Concerns
 
@@ -105,6 +113,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-24T04:12:18Z
-Stopped at: Completed 03-04-PLAN.md — Gap D closed: assertPayTokenFresh() wired in OrangeStatusPollerJob (8 tests green)
+Last session: 2026-03-24T03:38:01Z
+Stopped at: Completed 04-01-PLAN.md — MTN MoMo infrastructure layer (14 Java files, V7 migration, application.yaml extensions)
 Resume file: None
