@@ -2,6 +2,7 @@ package com.softropic.payam.orange.service;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.orange.contract.exception.OrangeApiException;
+import com.softropic.payam.orange.contract.exception.PayTokenExpiredException;
 import com.softropic.payam.transaction.contract.TransactionEventType;
 import com.softropic.payam.transaction.contract.TransactionStatus;
 import com.softropic.payam.transaction.repo.Transaction;
@@ -66,6 +67,16 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
     private void pollTransaction(Transaction tx) {
         if (tx.getPayToken() == null) {
             log.warn("PROCESSING transaction {} has no payToken — skipping poll", tx.getTransactionId());
+            return;
+        }
+
+        // Guard: skip poll if payToken is expired — re-initiation is Phase 5 orchestrator responsibility (P1.3)
+        try {
+            orangeMoneyPort.assertPayTokenFresh(tx.getTransactionId(), tx.getPayTokenIssuedAt());
+        } catch (PayTokenExpiredException e) {
+            log.warn("payToken expired for transaction {} — skipping poll; Phase 5 orchestrator must re-initiate",
+                     tx.getTransactionId());
+            tx.incrementPollAttempts();
             return;
         }
 
