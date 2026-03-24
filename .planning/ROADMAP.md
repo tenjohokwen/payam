@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Multi-Tenant Foundation** - Tenant schema, API key auth, per-client isolation
 - [x] **Phase 2: Transaction Core + Event Sourcing** - State machine, append-only event log, idempotency, ledger
 - [ ] **Phase 3: Orange Money Adapter** - Orange init→pay→push flow, polling, subscriber validation
-- [ ] **Phase 4: MTN MoMo Adapter** - OAuth2 lifecycle, RequestToPay, disbursement, polling
+- [x] **Phase 4: MTN MoMo Adapter** - OAuth2 lifecycle, RequestToPay, disbursement, polling
 - [ ] **Phase 5: Payment Orchestration** - Unified initiation endpoint, provider routing, circuit breakers, polling fallback
 - [ ] **Phase 6: Webhook Processing** - Inbound verification, double-check, outbound delivery with retry
 - [ ] **Phase 7: Fraud Engine** - Velocity rules, risk scoring pipeline, device fingerprinting
@@ -216,7 +216,7 @@ Note: Phases 3 and 4 can run in parallel once Phase 2 completes and `ProviderGat
 | 1. Multi-Tenant Foundation | 3/3 | Complete | 2026-03-23 |
 | 2. Transaction Core + Event Sourcing | 3/3 | Complete | 2026-03-23 |
 | 3. Orange Money Adapter | 0/2 | Not started | - |
-| 4. MTN MoMo Adapter | 0/2 | Not started | - |
+| 4. MTN MoMo Adapter | 2/2 | Complete | 2026-03-24 |
 | 5. Payment Orchestration | 0/2 | Not started | - |
 | 6. Webhook Processing | 0/3 | Not started | - |
 | 7. Fraud Engine | 0/2 | Not started | - |

@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 4 in progress (MTN MoMo Adapter) — 04-01 infrastructure complete, 04-02 service layer next
+**Current focus:** Phase 4 fully complete — Phase 5 next (Payment Orchestration)
 
 ## Current Position
 
-Phase: 4 of 10 (MTN MoMo Adapter) — Phase complete (04-01 and 04-02 done)
-Plan: 2 of 2 in phase (04-02 complete)
-Status: Phase complete — MTN MoMo adapter fully wired (token cache, port, poller, PUT callback, IP whitelist, ITs)
-Last activity: 2026-03-24 — Completed 04-02-PLAN.md (MTN MoMo service layer: 10 new files, 8 ITs passing)
+Phase: 4 of 10 (MTN MoMo Adapter) — COMPLETE (all 2 plans: 04-01, 04-02)
+Plan: 2 of 2 in phase (04-01, 04-02 complete)
+Status: Phase 4 complete — 05-payment-orchestration is next
+Last activity: 2026-03-24 — Completed phase 4 verification (5/5 must-haves passed)
 
-Progress: ████████████ ~60% (12 of ~20 plans)
+Progress: ████████████░ ~60% (12 of ~20 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: 26.6 min
-- Total execution time: ~3.8 hours
+- Total plans completed: 11
+- Average duration: 24 min
+- Total execution time: ~4.3 hours
 
 **By Phase:**
 
@@ -33,8 +33,8 @@ Progress: ████████████ ~60% (12 of ~20 plans)
 | 04-mtn-momo-adapter | 2/2 | 14 min | 7 min |
 
 **Recent Trend:**
-- Last 5 plans: 5 min, 4 min, 5 min, 6 min, 4 min avg
-- Trend: Gap closure and scaffold plans are consistently fast (3-6 min)
+- Last 5 plans: 4 min, 5 min, 6 min, 3 min, 11 min avg
+- Trend: Infrastructure plans fast (3-6 min); service+test plans 10-12 min
 
 ## Accumulated Context
 
@@ -119,6 +119,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-24T03:51:45Z
-Stopped at: Completed 04-02-PLAN.md — MTN MoMo service layer (10 new files, 8 ITs passing, Orange unchanged)
+Last session: 2026-03-24
+Stopped at: Phase 4 complete — MTN MoMo adapter verified 5/5 (token cache, PUT callback, IP whitelist, port, poller)
 Resume file: None

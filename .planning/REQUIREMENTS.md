@@ -22,7 +22,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Provider Adapters
 
 - [ ] **ADAPT-01**: Orange Money adapter (merchant payment, cashout, C2C, account validation, bulk status)
-- [ ] **ADAPT-02**: MTN MoMo adapter (request-to-pay, disbursement, account validation, KYC, balance)
+- [x] **ADAPT-02**: MTN MoMo adapter (request-to-pay, disbursement, account validation, KYC, balance)
 
 ### Payment
 
@@ -96,7 +96,7 @@ Which phases cover which requirements. Updated by create-roadmap.
 | TX-04 | Phase 2 | Complete |
 | TX-05 | Phase 2 | Complete |
 | ADAPT-01 | Phase 3 | Complete |
-| ADAPT-02 | Phase 4 | Pending |
+| ADAPT-02 | Phase 4 | Complete |
 | PAY-01 | Phase 5 | Pending |
 | WH-01 | Phase 6 | Pending |
 | WH-02 | Phase 6 | Pending |
