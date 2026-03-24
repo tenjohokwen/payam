@@ -30,8 +30,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Webhook
 
-- [ ] **WH-01**: Webhook receiver with IP whitelist + HMAC signature verification + replay protection
-- [ ] **WH-02**: Double-check pattern: re-verify every webhook against provider status API before state change
+- [x] **WH-01**: Webhook receiver with IP whitelist + HMAC signature verification + replay protection
+- [x] **WH-02**: Double-check pattern: re-verify every webhook against provider status API before state change
 
 ### Fraud
 
