@@ -223,6 +223,8 @@ public class PaymentOrchestrator {
                 locked.applyTransition(TransactionStatus.FAILED);
                 return null;
             });
+            // Wrap error name in JSON quotes — metadata column is jsonb; bare strings are invalid JSON
+            String metadataJson = "\"" + error.name() + "\"";
             eventLogService.append(
                     tx.getTransactionId(),
                     tx.getTraceId(),
@@ -231,7 +233,7 @@ public class PaymentOrchestrator {
                     from,
                     TransactionStatus.FAILED,
                     "ORCHESTRATOR",
-                    error.name()
+                    metadataJson
             );
         } catch (Exception ex) {
             log.error("Failed to apply FAILED transition: transactionId={}", tx.getTransactionId(), ex);
