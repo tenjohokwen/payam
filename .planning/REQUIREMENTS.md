@@ -44,7 +44,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Reconciliation
 
-- [ ] **RECON-01**: Daily reconciliation against MTN/Orange reports (detect missing, mismatched, delayed)
+- [x] **RECON-01**: Daily reconciliation against MTN/Orange reports (detect missing, mismatched, delayed)
 
 ### Operations
 
@@ -103,7 +103,7 @@ Which phases cover which requirements. Updated by create-roadmap.
 | FRAUD-01 | Phase 7 | Pending |
 | ADMIN-01 | Phase 8 | Complete |
 | ADMIN-02 | Phase 8 | Complete |
-| RECON-01 | Phase 9 | Pending |
+| RECON-01 | Phase 9 | Complete |
 | OPS-01 | Phase 10 | Pending |
 | OPS-02 | Phase 10 | Pending |
 
