@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 8 complete (Admin Dashboard) — Phase 9 (Reconciliation) is next
+**Current focus:** Phase 9 (Reconciliation) — plan 09-01 complete, 09-02 is next
 
 ## Current Position
 
-Phase: 8 of 10 (Admin Dashboard) — Phase complete
-Plan: 3 of 3 in phase (08-01, 08-02, 08-03 all done)
-Status: Phase 8 complete — Phase 9 (Reconciliation) is next
-Last activity: 2026-03-24 — Completed phase 8: admin REST search/timeline, Micrometer metrics, SSE stream, Quasar SPA dashboard
+Phase: 9 of 10 (Reconciliation) — In progress
+Plan: 1 of 2 in phase (09-01 done)
+Status: Phase 9 in progress — 09-01 complete, 09-02 next
+Last activity: 2026-03-24 — Completed 09-01: reconciliation infrastructure (Quartz job, provider ports, discrepancy engine)
 
-Progress: ████████████████████ ~90% (22 of ~25 plans)
+Progress: ████████████████████░ ~92% (23 of ~25 plans)
 
 ## Performance Metrics
 
@@ -34,7 +34,8 @@ Progress: ████████████████████ ~90% (22 
 | 05-payment-orchestration | 2/2 | 38 min | 19 min |
 | 06-webhook-processing | 3/3 | 43 min | 14 min |
 | 07-fraud-engine | 2/2 | 53 min | 26.5 min |
-| 08-admin-dashboard | 2/3 (03 done; 02 parallel) | 20 min | 10 min |
+| 08-admin-dashboard | 3/3 | 50 min | 16 min |
+| 09-reconciliation | 1/2 | 8 min | 8 min |
 
 **Recent Trend:**
 - Last 5 plans: 11 min, 3 min, 25 min, 23 min, 30 min avg
@@ -131,6 +132,11 @@ Recent decisions affecting current work:
 - 08-03 decision: No frontend requiresAdmin guard on admin routes — backend returns 403/401 for non-ROLE_ADMIN callers; nav items visible to all authenticated users; backend enforcement is sufficient for this phase
 - 08-03 decision: v-for over store.providerLatencyMs object renders provider latency cards dynamically — no hardcoded ORANGE/MTN names; future providers render automatically
 - 08-03 decision: /v1/payments proxy rule added alongside /v1/admin in quasar.config.js — plan specified both rules; /v1/payments was previously missing from devServer proxy
+- 09-01 decision: DiscrepancyType has no MISSING_IN_PAYAM — neither Orange nor MTN expose batch listing API; only Payam-side transactions can be reconciled against provider
+- 09-01 decision: OrangeReportAdapter catches ALL exceptions including CallNotPermittedException — UNCONFIRMED resilience; circuit-open is expected failure mode
+- 09-01 decision: ProviderReportPort.provider() default method used for EnumMap wiring — each adapter self-declares its provider key
+- 09-01 decision: OrangeReportAdapter does NOT call OrangeTimeUtil.parseOrangeTimestamp — PayResponse has no createtime field; P5.1 WAT compliance documented with comment
+- 09-01 decision: Per-provider exception isolation in ReconciliationService.runForDate() — one provider failure must not abort reconciliation for other providers
 
 ### Pending Todos
 
@@ -174,9 +180,12 @@ Recent decisions affecting current work:
 - ADMIN-01 COMPLETE: /v1/admin/** excluded from API-key chain via NegatedRequestMatcher(OrRequestMatcher); GET /v1/admin/transactions and GET /v1/admin/transactions/{id}/events serve JWT+ROLE_ADMIN callers
 - ADMIN-02 COMPLETE: PaymentMetricsService registers payment.success/failed/fraud-blocked Counters and payment.provider.latency Timer; SSE stream at GET /v1/admin/metrics/stream; PaymentOrchestrator records all outcome paths with try/finally provider latency timing
 - Any new /v1/admin/** endpoint is automatically JWT-protected (NegatedRequestMatcher exclusion already in TenantSecurityConfig); no further security config changes needed for new admin routes
+- RECON-01 COMPLETE: Daily Quartz job at 02:00 UTC; ProviderReportPort with MTN+Orange adapters; ReconciliationService comparison engine; V12 schema; ReconciliationJobIT 2/2 pass
+- Orange reconciliation path: OrangeReportAdapter does NOT use OrangeTimeUtil — PayResponse has no createtime field; P5.1 WAT guard is OrangeWebhookPayload-only
+- ReconciliationService provider isolation: each provider loop in separate try/catch; one provider API failure never aborts the other provider's reconciliation loop
 
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Completed 08-02-PLAN.md — PaymentMetricsService (counters/timers/SSE), AdminMetricsResource, PaymentOrchestrator metrics wiring; and 08-03-PLAN.md — Quasar SPA admin pages: AdminDashboardPage (SSE + provider latency), TransactionSearchPage, TransactionDetailPage, admin.api.js, admin-metrics.store.js, routes/layout/proxy updates
+Stopped at: Completed 09-01-PLAN.md — Reconciliation infrastructure: V12 schema, ProviderReportPort abstraction, MtnReportAdapter, OrangeReportAdapter, LedgerSnapshotService, ReconciliationService, ReconciliationJob (Quartz cron 02:00 UTC), ReconciliationJobIT (2/2 pass)
 Resume file: None
