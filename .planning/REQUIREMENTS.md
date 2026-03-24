@@ -95,7 +95,7 @@ Which phases cover which requirements. Updated by create-roadmap.
 | TX-03 | Phase 2 | Complete |
 | TX-04 | Phase 2 | Complete |
 | TX-05 | Phase 2 | Complete |
-| ADAPT-01 | Phase 3 | Pending |
+| ADAPT-01 | Phase 3 | Complete |
 | ADAPT-02 | Phase 4 | Pending |
 | PAY-01 | Phase 5 | Pending |
 | WH-01 | Phase 6 | Pending |
