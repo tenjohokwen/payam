@@ -7,6 +7,7 @@ import com.softropic.payam.transaction.contract.TransactionStatus;
 import org.hibernate.envers.Audited;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -59,11 +60,38 @@ public class Transaction extends AbstractAuditingEntity {
     @Column(name = "provider_ref")
     private String providerRef;
 
+    /** Orange payToken — stored after merchant info call, used for status polling. */
+    @Column(name = "pay_token")
+    private String payToken;
+
+    /** Timestamp when payToken was issued — used for expiry check (P1.3). */
+    @Column(name = "pay_token_issued_at")
+    private Instant payTokenIssuedAt;
+
+    /** Number of times this transaction has been polled by OrangeStatusPollerJob. */
+    @Column(name = "poll_attempts")
+    private Integer pollAttempts;
+
     /**
      * Apply a state transition. Delegates to the state machine guard in TransactionStatus.
      * Throws IllegalStateTransitionException if the transition is not allowed.
      */
     public void applyTransition(TransactionStatus next) {
         this.txStatus = this.txStatus.transitionTo(next);
+    }
+
+    public void setPayToken(String payToken) {
+        this.payToken = payToken;
+    }
+
+    public void setPayTokenIssuedAt(Instant payTokenIssuedAt) {
+        this.payTokenIssuedAt = payTokenIssuedAt;
+    }
+
+    /**
+     * Increment poll attempt counter by 1. Null is treated as 0 (first increment -> 1).
+     */
+    public void incrementPollAttempts() {
+        this.pollAttempts = (this.pollAttempts == null ? 0 : this.pollAttempts) + 1;
     }
 }
