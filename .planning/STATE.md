@@ -5,22 +5,22 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 3 complete (Orange Money Adapter) — Phase 4 next (MTN Money Adapter)
+**Current focus:** Phase 3 fully complete (including gap closure 03-03) — Phase 4 next (MTN Money Adapter)
 
 ## Current Position
 
-Phase: 3 of 10 (Orange Money Adapter) — COMPLETE
-Plan: 2 of 2 in phase (03-01 and 03-02 complete)
+Phase: 3 of 10 (Orange Money Adapter) — COMPLETE (including gap closure plan 03-03)
+Plan: 3 of 3 in phase (03-01, 03-02, 03-03 complete)
 Status: Phase 3 complete — 04-mtn-money-adapter is next
-Last activity: 2026-03-24 — Completed 03-02-PLAN.md (OrangeMoneyPort, Quartz poller, WireMock IT tests)
+Last activity: 2026-03-24 — Completed 03-03-PLAN.md (WAT timestamp wiring, OrangeTimeUtilTest)
 
-Progress: ████████░░ ~44% (8 of ~18 plans)
+Progress: █████████░ ~47% (9 of ~19 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 28.6 min
+- Total plans completed: 9
+- Average duration: 26.6 min
 - Total execution time: ~3.8 hours
 
 **By Phase:**
@@ -29,11 +29,11 @@ Progress: ████████░░ ~44% (8 of ~18 plans)
 |-------|-------|-------|----------|
 | 01-multi-tenant-foundation | 3/3 | 153 min | 51 min |
 | 02-transaction-core | 3/3 | 16 min | 5.3 min |
-| 03-orange-money-adapter | 2/2 | 35 min | 17.5 min |
+| 03-orange-money-adapter | 3/3 | 39 min | 13 min |
 
 **Recent Trend:**
-- Last 5 plans: 30 min, 5 min, 4 min, 5 min, 6 min avg
-- Trend: Implementation plans with complex Resilience4j debugging are longer; scaffold plans remain fast
+- Last 5 plans: 5 min, 4 min, 5 min, 6 min, 4 min avg
+- Trend: Gap closure and scaffold plans are consistently fast (3-6 min)
 
 ## Accumulated Context
 
@@ -75,6 +75,8 @@ Recent decisions affecting current work:
 - 03-02 decision: @ConfigureWireMock baseUrlProperties cannot override full-URL properties (orange.token-url has path); test application.properties derives token-url as ${orange.base-url}/token
 - 03-02 decision: cashout/C2C stubs have no @CircuitBreaker — unconditionally-throwing stubs don't need circuit-breaking; fallbacks swallowed UnsupportedOperationException in tests
 - 03-02 decision: Circuit breaker ignoreExceptions for SubscriberInactiveException and PayTokenExpiredException — domain validation exceptions should not count as circuit failures
+- 03-03 decision: getCreatetimeAsInstant() is the sole designated call site for OrangeTimeUtil.parseOrangeTimestamp() — Phase 5/6 consumers must use this method, not the raw String getter (P5.1)
+- 03-03 decision: No @JsonIgnore needed on getCreatetimeAsInstant() — @JsonIgnoreProperties(ignoreUnknown=true) prevents Jackson from trying to deserialize derived getters
 
 ### Pending Todos
 
@@ -88,6 +90,7 @@ Recent decisions affecting current work:
 
 - Environment: `.mvn/wrapper/maven-wrapper.properties` missing — use system `mvn` not `./mvnw`
 - Environment: Frontend plugin (`generate-resources` phase) broken due to missing quasar module — bypass with `mvn compiler:compile` or invoke goals directly
+- WAT timestamp consumption pattern: all Orange createtime consumers in Phase 5/6 MUST call OrangeWebhookPayload.getCreatetimeAsInstant() — never raw getCreatetime() for timestamp arithmetic (P5.1)
 - Pre-existing failure: `SecurityFilterChainIT.testSecuredEndpointRequiresAuth` — pre-existing failure unrelated to Phase 3; do not count as regression
 - Phase 3: Orange webhook HMAC header existence unconfirmed — verify with Orange partner before implementation
 - Phase 4: MTN PUT callback confirmed in docs — verify in sandbox before relying on it
@@ -100,6 +103,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-24T02:10:48Z
-Stopped at: Completed 03-02-PLAN.md — OrangeMoneyPort service + Quartz poller + 11 green IT tests
+Last session: 2026-03-24T02:28:00Z
+Stopped at: Completed 03-03-PLAN.md — WAT timestamp wiring + OrangeTimeUtilTest (3 tests green)
 Resume file: None
