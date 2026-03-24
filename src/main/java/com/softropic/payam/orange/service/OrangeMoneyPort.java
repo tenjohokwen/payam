@@ -64,7 +64,7 @@ public class OrangeMoneyPort implements MobileMoneyPort {
      * Flow: validate subscriber -> get payToken -> call pay -> return ProviderResult(pending=true)
      */
     @Override
-    @CircuitBreaker(name = "orange", fallbackMethod = "initiateFallback")
+    @CircuitBreaker(name = "orange")
     @Retry(name = "orange")
     public ProviderResult initiateMerchantPayment(PaymentCommand cmd) {
         String token = orangeTokenService.getAccessToken();
@@ -105,7 +105,7 @@ public class OrangeMoneyPort implements MobileMoneyPort {
      */
     @Override
     @Transactional
-    @CircuitBreaker(name = "orange", fallbackMethod = "statusFallback")
+    @CircuitBreaker(name = "orange")
     public ProviderResult getTransactionStatus(String providerRef) {
         String token = orangeTokenService.getAccessToken();
         PayResponse status = orangeMoneyClient.getPaymentStatus(token, providerRef);
@@ -134,9 +134,10 @@ public class OrangeMoneyPort implements MobileMoneyPort {
      * ROADMAP deviation (SC-3): Cashout field mapping requires sandbox verification with live
      * Orange credentials. Stub retained intentionally — Phase 3 covers MP flow only.
      * C2C and cashout will be implemented in a future phase once sandbox access is confirmed.
+     *
+     * Note: No @CircuitBreaker/@Retry — this method unconditionally throws; circuit-breaking
+     * a stub adds no value and prevents tests from asserting the expected exception.
      */
-    @CircuitBreaker(name = "orange", fallbackMethod = "cashoutFallback")
-    @Retry(name = "orange")
     public ProviderResult initiateCashout(PaymentCommand cmd) {
         throw new UnsupportedOperationException("Cashout field mapping requires sandbox verification — stub for now");
     }
@@ -145,9 +146,9 @@ public class OrangeMoneyPort implements MobileMoneyPort {
      * Initiate a C2C transfer.
      *
      * ROADMAP deviation (SC-3): Same as cashout — requires sandbox field verification.
+     *
+     * Note: No @CircuitBreaker/@Retry — this method unconditionally throws.
      */
-    @CircuitBreaker(name = "orange", fallbackMethod = "c2cFallback")
-    @Retry(name = "orange")
     public ProviderResult initiateC2C(PaymentCommand cmd, String msisdnTo) {
         throw new UnsupportedOperationException("C2C field mapping requires sandbox verification — stub for now");
     }
@@ -221,22 +222,6 @@ public class OrangeMoneyPort implements MobileMoneyPort {
         return req;
     }
 
-    // Fallback methods for Resilience4j
-    private ProviderResult initiateFallback(PaymentCommand cmd, Throwable t) {
-        log.error("Orange circuit open — initiate failed for txId={}", cmd.transactionId(), t);
-        throw new OrangeApiException("Orange Money unavailable — circuit open", t);
-    }
-
-    private ProviderResult statusFallback(String providerRef, Throwable t) {
-        log.error("Orange circuit open — status poll failed for payToken={}", providerRef, t);
-        return ProviderResult.pending(providerRef, "UNKNOWN");
-    }
-
-    private ProviderResult cashoutFallback(PaymentCommand cmd, Throwable t) {
-        throw new OrangeApiException("Orange Money cashout unavailable", t);
-    }
-
-    private ProviderResult c2cFallback(PaymentCommand cmd, String msisdnTo, Throwable t) {
-        throw new OrangeApiException("Orange Money C2C unavailable", t);
-    }
+    // No fallback methods — circuit-open throws CallNotPermittedException to caller.
+    // Phase 5 (PaymentOrchestrator) handles circuit state at the orchestration level.
 }

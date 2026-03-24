@@ -226,6 +226,9 @@ resilience4j:
         waitDurationInOpenState: 30s
         slidingWindowSize: 10
         permittedNumberOfCallsInHalfOpenState: 3
+        ignoreExceptions:
+          - com.softropic.payam.orange.contract.exception.SubscriberInactiveException
+          - com.softropic.payam.orange.contract.exception.PayTokenExpiredException
   retry:
     instances:
       orange:

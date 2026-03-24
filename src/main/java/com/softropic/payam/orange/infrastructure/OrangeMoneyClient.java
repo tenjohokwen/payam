@@ -16,11 +16,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 
 public class OrangeMoneyClient extends AbstractClient {
@@ -30,6 +32,9 @@ public class OrangeMoneyClient extends AbstractClient {
     public OrangeMoneyClient(OrangeMoneyConfig config) {
         super(new RestRequestInterceptor(), config.getBaseUrl(), "/infos/merchant");
         this.config = config;
+        // FormHttpMessageConverter is required for application/x-www-form-urlencoded (token fetch).
+        // AbstractClient.messageConverters() only registers JSON; we add form support here.
+        this.restTemplate.getMessageConverters().add(new FormHttpMessageConverter());
     }
 
     /**
