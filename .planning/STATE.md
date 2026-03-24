@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 4 fully complete — Phase 5 next (Payment Orchestration)
+**Current focus:** Phase 5 fully complete — Phase 6 next (Webhook Processing)
 
 ## Current Position
 
-Phase: 5 of 10 (Payment Orchestration) — In progress (05-01 complete)
-Plan: 1 of 2 in phase (05-01 complete; 05-02 next)
-Status: In progress — 05-02 (integration tests) is next
-Last activity: 2026-03-24 — Completed 05-01-PLAN.md (payment module core: MsisdnRouter, PaymentOrchestrator, PaymentResource)
+Phase: 5 of 10 (Payment Orchestration) — Complete (05-01 and 05-02 done)
+Plan: 2 of 2 in phase (both complete)
+Status: Phase complete — Phase 6 (Webhook Processing) is next
+Last activity: 2026-03-24 — Completed 05-02-PLAN.md (PaymentOrchestratorIT — 7 integration tests, circuit breaker SC-3 verified)
 
-Progress: █████████████░ ~65% (13 of ~20 plans)
+Progress: ██████████████ ~70% (14 of ~20 plans)
 
 ## Performance Metrics
 
@@ -31,11 +31,11 @@ Progress: █████████████░ ~65% (13 of ~20 plans)
 | 02-transaction-core | 3/3 | 16 min | 5.3 min |
 | 03-orange-money-adapter | 4/4 | 42 min | 10.5 min |
 | 04-mtn-momo-adapter | 2/2 | 14 min | 7 min |
-| 05-payment-orchestration | 1/2 | 3 min | - |
+| 05-payment-orchestration | 2/2 | 38 min | 19 min |
 
 **Recent Trend:**
-- Last 5 plans: 5 min, 6 min, 3 min, 11 min, 3 min avg
-- Trend: Infrastructure plans fast (3-6 min); service+test plans 10-12 min
+- Last 5 plans: 6 min, 3 min, 11 min, 3 min, 35 min avg
+- Trend: Infrastructure plans fast (3-6 min); service+test plans 10-35 min (circuit breaker + Apache retry debugging)
 
 ## Accumulated Context
 
@@ -96,6 +96,9 @@ Recent decisions affecting current work:
 - 05-01 decision: PAYMENT_ALREADY_PROCESSING returns HTTP 202 — duplicate in-flight is semantically accepted; 4xx would cause clients to unnecessarily retry
 - 05-01 decision: MsisdnRouter uses hardcoded prefix rules — config-driven prefix table is Phase 10 hardening concern (RESEARCH.md Pitfall 3 mitigation)
 - 04-02 decision: Transaction.setProviderRef() and setMtnFinancialTxId() added as package-accessible setters — needed by MtnMoMoPort.persistProviderRef() and storeFinancialTxId()
+- 05-02 decision: noRetryRestTemplate (SimpleClientHttpRequestFactory) required for circuit breaker test — Apache HTTP Client 5 auto-retries 503, retry reuses RESERVED idempotency key → PAYMENT_ALREADY_PROCESSING (202) masks the 503
+- 05-02 decision: PaymentOrchestrator.applyFailed() wraps error.name() in JSON quotes for jsonb metadata column — bare strings are invalid JSON and cause DataIntegrityViolationException
+- 05-02 decision: circuitBreakerRegistry.circuitBreaker("mtn").transitionToOpenState() used after 10 failures to guarantee circuit-open state before 503 assertion
 
 ### Pending Todos
 
@@ -110,6 +113,7 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
+- Apache HTTP Client 5 retry pattern: httpclient5:5.5.2 (test scope) auto-retries 503 via HttpRequestRetryExec. Any test asserting on 503 responses MUST use SimpleClientHttpRequestFactory (not TestRestTemplate) to avoid retry masking. See PaymentOrchestratorIT.noRetryRestTemplate pattern.
 - Environment: `.mvn/wrapper/maven-wrapper.properties` missing — use system `mvn` not `./mvnw`
 - Environment: Frontend plugin (`generate-resources` phase) broken due to missing quasar module — bypass with `mvn compiler:compile` or invoke goals directly
 - WAT timestamp consumption pattern: all Orange createtime consumers in Phase 5/6 MUST call OrangeWebhookPayload.getCreatetimeAsInstant() — never raw getCreatetime() for timestamp arithmetic (P5.1)
@@ -127,5 +131,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Completed 05-01-PLAN.md — payment module core (MsisdnRouter, PaymentOrchestrator, PaymentResource, OrchestratorError, PaymentRequest, PaymentResponse)
+Stopped at: Completed 05-02-PLAN.md — PaymentOrchestratorIT (7 integration tests, circuit breaker SC-3 verified, jsonb bug fix)
 Resume file: None
