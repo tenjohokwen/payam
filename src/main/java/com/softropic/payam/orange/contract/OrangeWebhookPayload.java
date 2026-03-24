@@ -2,6 +2,8 @@ package com.softropic.payam.orange.contract;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.softropic.payam.orange.service.OrangeTimeUtil;
+import java.time.Instant;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OrangeWebhookPayload {
@@ -20,4 +22,14 @@ public class OrangeWebhookPayload {
     public String getMsisdn() { return msisdn; }
     public String getAmount() { return amount; }
     public String getCreatetime() { return createtime; }
+
+    /**
+     * Parse the Orange createtime field as a UTC Instant.
+     * Orange timestamps are WAT (UTC+1, Africa/Douala) with no offset in the string — P5.1.
+     * Returns null if createtime is null or blank.
+     */
+    public Instant getCreatetimeAsInstant() {
+        if (createtime == null || createtime.isBlank()) return null;
+        return OrangeTimeUtil.parseOrangeTimestamp(createtime);
+    }
 }
