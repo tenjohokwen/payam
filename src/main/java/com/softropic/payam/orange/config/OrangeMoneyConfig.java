@@ -1,5 +1,8 @@
 package com.softropic.payam.orange.config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "orange")
@@ -11,6 +14,8 @@ public class OrangeMoneyConfig {
     private String consumerSecret;
     private int payTokenExpiryThresholdMinutes = 8;
     private Poller poller = new Poller();
+    private List<String> callbackIpWhitelist = new ArrayList<>();
+    private String callbackHmacSecret; // nullable — empty = skip HMAC check (sandbox mode)
 
     public static class Poller {
         private int initialDelaySeconds = 120;
@@ -49,4 +54,9 @@ public class OrangeMoneyConfig {
 
     public Poller getPoller() { return poller; }
     public void setPoller(Poller poller) { this.poller = poller; }
+
+    public List<String> getCallbackIpWhitelist() { return callbackIpWhitelist; }
+    public void setCallbackIpWhitelist(List<String> callbackIpWhitelist) { this.callbackIpWhitelist = callbackIpWhitelist; }
+    public String getCallbackHmacSecret() { return callbackHmacSecret; }
+    public void setCallbackHmacSecret(String callbackHmacSecret) { this.callbackHmacSecret = callbackHmacSecret; }
 }

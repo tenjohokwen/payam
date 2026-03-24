@@ -45,6 +45,12 @@ public class Tenant extends AbstractAuditingEntity {
     @Builder.Default
     private List<TenantApiKey> apiKeys = new ArrayList<>();
 
+    @Column(name = "webhook_url", length = 2048)
+    private String webhookUrl;
+
+    @Column(name = "webhook_secret")
+    private String webhookSecret;
+
     public String getTenantRef() {
         return tenantRef;
     }
@@ -76,4 +82,9 @@ public class Tenant extends AbstractAuditingEntity {
     public void setApiKeys(List<TenantApiKey> apiKeys) {
         this.apiKeys = apiKeys;
     }
+
+    public String getWebhookUrl() { return webhookUrl; }
+    public void setWebhookUrl(String webhookUrl) { this.webhookUrl = webhookUrl; }
+    public String getWebhookSecret() { return webhookSecret; }
+    public void setWebhookSecret(String webhookSecret) { this.webhookSecret = webhookSecret; }
 }
