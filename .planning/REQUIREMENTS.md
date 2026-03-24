@@ -35,7 +35,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Fraud
 
-- [ ] **FRAUD-01**: Fraud engine: velocity checks (per IP/user/app), risk scoring (0–100), device fingerprinting
+- [x] **FRAUD-01**: Fraud engine: velocity checks (per IP/user/app), risk scoring (0–100), device fingerprinting
 
 ### Admin
 
