@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 5 fully complete — Phase 6 next (Webhook Processing)
+**Current focus:** Phase 6 in progress (Webhook Processing) — 06-01 complete, 06-02 next
 
 ## Current Position
 
-Phase: 5 of 10 (Payment Orchestration) — Complete (05-01 and 05-02 done)
-Plan: 2 of 2 in phase (both complete)
-Status: Phase complete — Phase 6 (Webhook Processing) is next
-Last activity: 2026-03-24 — Completed 05-02-PLAN.md (PaymentOrchestratorIT — 7 integration tests, circuit breaker SC-3 verified)
+Phase: 6 of 10 (Webhook Processing) — In progress (06-01 done)
+Plan: 1 of 2 in phase (06-01 complete)
+Status: In progress — 06-02 (Webhook State Transition) is next
+Last activity: 2026-03-24 — Completed 06-01-PLAN.md (Orange callback endpoint + MTN dedup + 5 ITs)
 
-Progress: ██████████████ ~70% (14 of ~20 plans)
+Progress: ███████████████ ~75% (15 of ~20 plans)
 
 ## Performance Metrics
 
@@ -32,6 +32,7 @@ Progress: ██████████████ ~70% (14 of ~20 plans)
 | 03-orange-money-adapter | 4/4 | 42 min | 10.5 min |
 | 04-mtn-momo-adapter | 2/2 | 14 min | 7 min |
 | 05-payment-orchestration | 2/2 | 38 min | 19 min |
+| 06-webhook-processing | 1/2 | 6 min | 6 min |
 
 **Recent Trend:**
 - Last 5 plans: 6 min, 3 min, 11 min, 3 min, 35 min avg
@@ -99,6 +100,10 @@ Recent decisions affecting current work:
 - 05-02 decision: noRetryRestTemplate (SimpleClientHttpRequestFactory) required for circuit breaker test — Apache HTTP Client 5 auto-retries 503, retry reuses RESERVED idempotency key → PAYMENT_ALREADY_PROCESSING (202) masks the 503
 - 05-02 decision: PaymentOrchestrator.applyFailed() wraps error.name() in JSON quotes for jsonb metadata column — bare strings are invalid JSON and cause DataIntegrityViolationException
 - 05-02 decision: circuitBreakerRegistry.circuitBreaker("mtn").transitionToOpenState() used after 10 failures to guarantee circuit-open state before 503 assertion
+- 06-01 decision: HMAC body computed via objectMapper.writeValueAsString(payload) — servlet input stream already consumed by @RequestBody; readAllBytes() returns empty; re-serialization of deserialized object is correct approach
+- 06-01 decision: Redis dedup key for Orange includes createtime (webhook:orange:{payToken}:{createtime}) — same payToken can receive multiple status transitions; createtime distinguishes each event (Pitfall 8 guard)
+- 06-01 decision: No HMAC on MTN inbound callbacks — intentional per MTN API contract; notifToken correlation + IP whitelist is MTN's authenticity mechanism
+- 06-01 decision: blank callbackHmacSecret = sandbox mode for Orange — skip HMAC check entirely; enables local/sandbox testing without Orange partner credentials
 
 ### Pending Todos
 
@@ -127,9 +132,12 @@ Recent decisions affecting current work:
 - Resilience4j circuit breaker pattern: @CircuitBreaker WITHOUT fallbackMethod — fallback is called for ALL exceptions not just circuit-open; for domain exceptions (SubscriberInactiveException) use ignoreExceptions config or remove fallback entirely
 - Quartz + @Transactional on executeInternal: QuartzJobBean.execute() is final, Spring AOP cannot proxy it; @Transactional on executeInternal works because it's called by execute() from the Spring-managed bean
 - RestRequestInterceptor pattern: converts ALL 4xx/5xx to HttpClientException at interceptor level; any new client code catching Spring HttpClientErrorException subtypes will silently not handle errors — must catch HttpClientException and check getHttpStatusCode() instead
+- Orange HMAC body MUST use objectMapper.writeValueAsString(payload) — NOT request.getInputStream().readAllBytes() which returns empty (servlet stream already consumed by @RequestBody)
+- Orange callback dedup key must include createtime (not just payToken) — Pitfall 8: same payToken can receive multiple status transitions; separate them by createtime
+- No HMAC on MTN inbound — MTN API contract uses notifToken + IP whitelist; any plan adding HMAC to MTN path would be incorrect
 
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Completed 05-02-PLAN.md — PaymentOrchestratorIT (7 integration tests, circuit breaker SC-3 verified, jsonb bug fix)
+Stopped at: Completed 06-01-PLAN.md — OrangeCallbackController, MtnMoMoPort dedup, V8 migration, 5 ITs
 Resume file: None
