@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 6 complete (Webhook Processing) — all 3 plans done; Phase 7 next
+**Current focus:** Phase 7 in progress (Fraud Engine) — 07-01 complete; 07-02 next
 
 ## Current Position
 
-Phase: 6 of 10 (Webhook Processing) — Complete
-Plan: 3 of 3 in phase (06-03 complete)
-Status: Phase 6 complete — Phase 7 is next
-Last activity: 2026-03-24 — Completed 06-03-PLAN.md (outbound webhook delivery pipeline, 11 IT tests total in Phase 6)
+Phase: 7 of 10 (Fraud Engine) — In progress
+Plan: 1 of 2 in phase (07-01 complete)
+Status: In progress — 07-02 is next
+Last activity: 2026-03-24 — Completed 07-01-PLAN.md (fraud engine foundation: velocity checks, risk scoring, FraudScoringServiceIT)
 
-Progress: █████████████████ ~85% (17 of ~20 plans)
+Progress: ██████████████████ ~88% (18 of ~20 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 17
+- Total plans completed: 18
 - Average duration: 22 min
-- Total execution time: ~5.7 hours
+- Total execution time: ~6.1 hours
 
 **By Phase:**
 
@@ -33,9 +33,10 @@ Progress: █████████████████ ~85% (17 of ~20 pl
 | 04-mtn-momo-adapter | 2/2 | 14 min | 7 min |
 | 05-payment-orchestration | 2/2 | 38 min | 19 min |
 | 06-webhook-processing | 3/3 | 43 min | 14 min |
+| 07-fraud-engine | 1/2 | 23 min | 23 min |
 
 **Recent Trend:**
-- Last 5 plans: 6 min, 3 min, 11 min, 3 min, 25 min avg
+- Last 5 plans: 3 min, 11 min, 3 min, 25 min, 23 min avg
 - Trend: Infrastructure plans fast (3-6 min); service+test plans 10-25 min
 
 ## Accumulated Context
@@ -111,6 +112,11 @@ Recent decisions affecting current work:
 - 06-03 decision: attemptDeliveryInternal() extracted as private shared method — called from enqueue() (first attempt) and public attemptDelivery() (Quartz retries); avoids code duplication
 - 06-03 decision: WebhookConfig.noRetryRestTemplate @Bean in main config; TestConfig.restTemplate @Primary — resolves NoUniqueBeanDefinitionException when both beans exist in test context (HttpTestClient has unqualified @Autowired RestTemplate)
 - 06-03 decision: HttpStatusCodeException caught before generic Exception in attemptDeliveryInternal — captures httpStatus from HTTP error responses for delivery log queryability
+- 07-01 decision: VelocityCheckService uses LettuceConnectionFactory.getHostName()/getPort() for RedisClient — getNativeClient() cast unreliable when @ServiceConnection reconfigures factory for Testcontainer
+- 07-01 decision: FraudScoringService.evaluate() has dual block: direct velocity block (any exceeded velocity = immediate block) + score-based block (weighted sum >= BLOCK_THRESHOLD); direct block enforces must-have truths
+- 07-01 decision: Fraud rules seeded via JDBC in IT @BeforeEach — dev profile create-drop wipes Flyway seed data; ON CONFLICT DO UPDATE avoids TSID re-generation on explicit IDs
+- 07-01 decision: FraudSignal enum values match signal_name DB strings exactly — getSignalName() returns the enum name; zero translation layer between Java and DB
+- 07-01 decision: BLOCK_THRESHOLD stored as fraud_rule row (threshold=70) — DB-configurable without restart; default=70 if rule not found (fail-safe)
 
 ### Pending Todos
 
@@ -147,9 +153,14 @@ Recent decisions affecting current work:
 - TransactionTemplate wrapper for publishEvent: when calling publishEvent from a non-transactional context, wrap in TransactionTemplate.execute() to provide transaction boundary for @TransactionalEventListener(AFTER_COMMIT) to fire
 - Quartz delivery race condition pattern: enqueue() sets nextRetryAt=null on INSERT — Quartz job uses WHERE nextRetryAt <= :now so null rows are excluded; only failed-attempt rows with scheduled nextRetryAt are picked up by Quartz; inline delivery in enqueue() handles first attempt promptly
 - noRetryRestTemplate dual-context: WebhookConfig defines it as @Bean in main config; HttpStatusCodeException must be caught before generic Exception to capture HTTP status codes from 4xx/5xx responses
+- Fraud rule seed data NOT present at test startup — dev profile create-drop wipes Flyway seed data; any fraud IT test MUST seed rules in @BeforeEach via JDBC (see FraudScoringServiceIT pattern)
+- FraudScoringService.evaluate() dual block: direct velocity block fires first (any exceeded velocity), then score-based block; BLOCK_THRESHOLD=70 is score threshold, not velocity threshold
+- Plan 07-02 must add Transaction.setRiskScore() and Transaction.setDeviceFingerprint() setters — needed for score/fingerprint persistence in PaymentOrchestrator
+- Plan 07-02 must read clientIp/userAgent from RequestMetadataProvider (already populated by SecurityAdviceFilter) and deviceFingerprint from PaymentRequest.deviceFingerprint()
+- FraudScoringServiceIT @BeforeEach: JWT secret seeded before fraud rules (same pattern as PaymentOrchestratorIT)
 
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Completed 06-03-PLAN.md — outbound webhook delivery, Quartz retry, HMAC signing, 3 ITs
+Stopped at: Completed 07-01-PLAN.md — fraud engine foundation: VelocityCheckService, FraudScoringService, FraudScoringServiceIT (3 tests)
 Resume file: None
