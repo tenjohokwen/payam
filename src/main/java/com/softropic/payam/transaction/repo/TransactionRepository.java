@@ -4,6 +4,8 @@ import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.transaction.contract.TransactionStatus;
 
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -42,4 +44,27 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
         TransactionStatus txStatus,
         MobilePaymentProvider provider,
         Instant lastModifiedDate);
+
+    /**
+     * Admin cross-tenant search. All parameters are optional (null = wildcard).
+     * Results ordered by createdDate DESC for newest-first investigation view.
+     * Used by AdminTransactionQueryService in Phase 8.
+     */
+    @Query("SELECT t FROM Transaction t WHERE " +
+           "(:transactionId IS NULL OR t.transactionId = :transactionId) AND " +
+           "(:traceId IS NULL OR t.traceId = :traceId) AND " +
+           "(:externalReference IS NULL OR t.externalReference = :externalReference) AND " +
+           "(:tenantId IS NULL OR t.tenantId = :tenantId) " +
+           "ORDER BY t.createdDate DESC")
+    Page<Transaction> adminSearch(
+        @Param("transactionId") String transactionId,
+        @Param("traceId") String traceId,
+        @Param("externalReference") String externalReference,
+        @Param("tenantId") Long tenantId,
+        Pageable pageable);
+
+    /**
+     * Count transactions by status. Used by PaymentMetricsService gauge in Phase 8.
+     */
+    long countByTxStatus(TransactionStatus txStatus);
 }
