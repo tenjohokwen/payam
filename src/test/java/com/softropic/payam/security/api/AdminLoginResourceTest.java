@@ -1,5 +1,7 @@
 package com.softropic.payam.security.api;
 
+import com.softropic.payam.mtn.web.MtnIpWhitelistInterceptor;
+import com.softropic.payam.orange.web.OrangeIpWhitelistInterceptor;
 import com.softropic.payam.security.infrastructure.jwt.JwtSecretService;
 import com.softropic.payam.security.service.LoginAttemptsService;
 
@@ -57,6 +59,14 @@ class AdminLoginResourceTest {
     // Required by SecurityAdviceFilter which is a @Component picked up by the web slice scan
     @MockitoBean
     private JwtSecretService jwtSecretService;
+
+    // These interceptors are @Components picked up by the web slice scan; mock them to
+    // avoid needing their @ConfigurationProperties dependencies not present in this slice
+    @MockitoBean
+    private MtnIpWhitelistInterceptor mtnIpWhitelistInterceptor;
+
+    @MockitoBean
+    private OrangeIpWhitelistInterceptor orangeIpWhitelistInterceptor;
 
     // ── Authorization ─────────────────────────────────────────────────────────
 

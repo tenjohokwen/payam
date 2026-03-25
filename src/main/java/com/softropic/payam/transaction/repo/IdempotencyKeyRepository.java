@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -17,6 +18,7 @@ public interface IdempotencyKeyRepository extends JpaRepository<IdempotencyKey, 
      *
      * @return 1 if newly reserved, 0 if it already existed (conflict).
      */
+    @Transactional
     @Modifying
     @Query(value = "INSERT INTO main.idempotency_key (id, tenant_id, idempotency_key, expires_at, created_date) " +
                    "VALUES (:id, :tenantId, :key, :expiresAt, :now) " +

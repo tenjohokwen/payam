@@ -1,11 +1,13 @@
 package com.softropic.payam.tenant.api;
 
+import com.softropic.payam.security.common.util.SecurityConstants;
 import com.softropic.payam.tenant.contract.ApiKeyDto;
 import com.softropic.payam.tenant.contract.TenantDto;
 import com.softropic.payam.tenant.service.ApiKeyService;
 import com.softropic.payam.tenant.service.TenantService;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,6 +36,7 @@ public class TenantAdminResource {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
     public TenantCreationResponse createTenant(@Valid @RequestBody CreateTenantRequest request) {
         TenantService.TenantCreationResult result =
             tenantService.createTenant(request.name(), request.environment());
@@ -54,6 +57,7 @@ public class TenantAdminResource {
     }
 
     @PostMapping("/{tenantId}/keys/{keyId}/rotate")
+    @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
     public ApiKeyDto rotateKey(@PathVariable Long tenantId, @PathVariable Long keyId) {
         ApiKeyService.ApiKeyAndRawKey result = apiKeyService.rotate(keyId);
         return new ApiKeyDto(
@@ -66,6 +70,7 @@ public class TenantAdminResource {
 
     @DeleteMapping("/{tenantId}/keys/{keyId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
     public void revokeKey(@PathVariable Long tenantId, @PathVariable Long keyId) {
         apiKeyService.revoke(keyId);
     }

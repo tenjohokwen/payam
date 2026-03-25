@@ -3,6 +3,7 @@
 ## Before Deploying to Production
 * [ ] Before deploying to production, ensure that all features are complete and tested.
 * [ ] Check that the application is secure and free of vulnerabilities (Do an OWASP check).
+* [ ] Enumerate all API methods and then limit their access. (Use the @PreAuthorize annotation with the least roles allowed)
 * [ ] Verify that the application is performant and meets the required performance benchmarks.
 * [ ] Test the application in a staging environment to catch any last-minute issues.
 * [ ] Double-check that all environment variables are set correctly for production. (see application-dev.yaml)

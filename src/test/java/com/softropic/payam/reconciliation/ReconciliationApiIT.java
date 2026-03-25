@@ -310,8 +310,6 @@ class ReconciliationApiIT {
      * Authenticates as the seeded admin user via POST /authenticate and
      * returns headers containing the JWT cookies from the response.
      *
-     * <p>The X-Client-Id header is also included so the ClientIdAccessDecisionManager
-     * sees a known machine client on subsequent admin requests.
      */
     private HttpHeaders loginAsAdmin() {
         HttpHeaders loginHeaders = new HttpHeaders();

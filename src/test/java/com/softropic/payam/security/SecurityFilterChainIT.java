@@ -83,7 +83,8 @@ public class SecurityFilterChainIT {
     private HttpHeaders baseHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.add(SecurityConstants.API_KEY_HEADER, "myClientId");
+        headers.add(HttpHeaders.COOKIE, "fcookie=fingerprintCookie");
+        //headers.add(SecurityConstants.API_KEY_HEADER, "myClientId");
         return headers;
     }
 
@@ -111,7 +112,7 @@ public class SecurityFilterChainIT {
                 .isInstanceOf(HttpClientErrorException.class)
                 .satisfies(e -> {
                     HttpClientErrorException ex = (HttpClientErrorException) e;
-                    assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+                    assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
                 });
     }
 
@@ -173,10 +174,10 @@ public class SecurityFilterChainIT {
         HttpHeaders partialAuthHeaders = baseHeaders();
         partialAuthHeaders.add(HttpHeaders.COOKIE, cookieHeader);
         
-        // This should be BLOCKED because of SecondFactorLoginFilter or UnanimousAuthorizationManager
+        // jwt cookie not in headers since this is the 1st part of the 2FA flow. So user cannot access endpoint.
         assertThatThrownBy(() -> httpTestClient.makeHttpRequest(baseUrl() + ACCOUNT_URL, HttpMethod.GET, null, partialAuthHeaders, Map.class))
                 .isInstanceOf(HttpClientErrorException.class)
-                .hasFieldOrPropertyWithValue("statusCode", HttpStatus.FORBIDDEN);
+                .hasFieldOrPropertyWithValue("statusCode", HttpStatus.UNAUTHORIZED);
 
         // Verify OTP
         TestMailManager testMailManager = (TestMailManager) mailManager;
