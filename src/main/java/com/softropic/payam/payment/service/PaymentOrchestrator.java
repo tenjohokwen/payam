@@ -215,6 +215,7 @@ public class PaymentOrchestrator {
                 Transaction locked = transactionRepository
                         .findByTransactionIdForUpdate(tx.getTransactionId())
                         .orElseThrow(() -> new IllegalStateException("Transaction not found: " + tx.getTransactionId()));
+                //TODO Verify if this is needed. This doesn't seem to make much sense. I think putting TransactionStatus.PROCESSING directly makes sense
                 locked.applyTransition(TransactionStatus.AUTH_PENDING);
                 locked.applyTransition(TransactionStatus.AUTHORIZED);
                 locked.applyTransition(TransactionStatus.PROCESSING);

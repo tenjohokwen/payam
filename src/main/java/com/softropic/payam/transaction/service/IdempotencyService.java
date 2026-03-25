@@ -4,6 +4,7 @@ import com.softropic.payam.transaction.contract.CachedResponse;
 import com.softropic.payam.transaction.repo.IdempotencyKey;
 import com.softropic.payam.transaction.repo.IdempotencyKeyRepository;
 
+import io.hypersistence.tsid.TSID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -39,6 +40,7 @@ public class IdempotencyService {
      *
      * Uses Redis NX+EX setIfAbsent for atomic reservation. Falls back to PostgreSQL when Redis is unavailable.
      */
+    @Transactional
     public Optional<CachedResponse> checkAndReserve(Long tenantId, String idempotencyKey) {
         String redisKey = KEY_PREFIX + tenantId + ":" + idempotencyKey;
 
@@ -82,9 +84,7 @@ public class IdempotencyService {
         repo.findByTenantIdAndIdempotencyKey(tenantId, idempotencyKey)
                 .ifPresentOrElse(
                         existing -> {
-                            // Update existing record — direct JPQL or save via loaded entity
-                            // Since IdempotencyKey has no public setters, save a rebuilt version is not ideal.
-                            // For upsert, we delete and re-save with updated values.
+                            // Update existing record by deleting and re-saving
                             repo.delete(existing);
                             repo.save(buildIdempotencyKey(tenantId, idempotencyKey, httpStatus, responseBody));
                         },
@@ -93,9 +93,28 @@ public class IdempotencyService {
     }
 
     private Optional<CachedResponse> fallbackToPostgres(Long tenantId, String idempotencyKey) {
+        Instant now = Instant.now();
+        Instant expiresAt = now.plus(TTL);
+        long tsid = TSID.fast().toLong();
+
+        // Atomically attempt to reserve in the DB.
+        // If it succeeds (affectedRows == 1), we are the first thread to use this key.
+        int affectedRows = repo.reserve(tsid, tenantId, idempotencyKey, expiresAt, now);
+
+        if (affectedRows == 1) {
+            log.info("Successfully reserved idempotency key in PostgreSQL: tenantId={}, key={}", tenantId, idempotencyKey);
+            return Optional.empty(); // NEW reservation, proceed
+        }
+
+        // If it fails (affectedRows == 0), the key already exists (either finished or in-flight).
         return repo.findByTenantIdAndIdempotencyKey(tenantId, idempotencyKey)
-                .filter(key -> key.getHttpStatus() != null && key.getResponseBody() != null)
-                .map(key -> new CachedResponse(key.getHttpStatus(), key.getResponseBody()));
+                .map(key -> {
+                    if (key.getHttpStatus() != null && key.getResponseBody() != null) {
+                        return new CachedResponse(key.getHttpStatus(), key.getResponseBody());
+                    }
+                    // No status/body yet -> another thread is currently processing it (RESERVED)
+                    return new CachedResponse(0, RESERVED);
+                });
     }
 
     private IdempotencyKey buildIdempotencyKey(Long tenantId, String idempotencyKey,
