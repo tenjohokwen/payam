@@ -264,6 +264,19 @@ class WebhookDeliveryIT {
         assertThat(receivedSignature).isEqualTo(expectedSignature);
         // Confirm format: sha256=<64 hex chars>
         assertThat(receivedSignature).matches("sha256=[0-9a-f]{64}");
+
+        // Fee field must appear in outbound webhook payload
+        assertThat(receivedBody).contains("\"feeAmount\"");
+        // Parse the body as a Map to assert the value is numeric 0 (no fee rule for this tenant)
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> bodyMap = mapper.readValue(receivedBody, java.util.Map.class);
+        assertThat(bodyMap).containsKey("feeAmount");
+        Object feeAmountValue = bodyMap.get("feeAmount");
+        assertThat(feeAmountValue).isNotNull();
+        // BigDecimal serializes as a JSON number; Jackson reads it as Integer(0) or Double(0.0) for zero
+        assertThat(new java.math.BigDecimal(feeAmountValue.toString()))
+            .isEqualByComparingTo(java.math.BigDecimal.ZERO);
     }
 
     /**

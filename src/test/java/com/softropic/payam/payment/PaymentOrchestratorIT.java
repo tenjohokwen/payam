@@ -2,6 +2,7 @@ package com.softropic.payam.payment;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.softropic.payam.config.TestConfig;
+import com.softropic.payam.fee.service.FeeRuleCache;
 import com.softropic.payam.payment.contract.PaymentResponse;
 import com.softropic.payam.tenant.service.TenantService;
 
@@ -66,6 +67,7 @@ class PaymentOrchestratorIT {
     @Autowired TransactionTemplate transactionTemplate;
     @Autowired StringRedisTemplate redis;
     @Autowired CircuitBreakerRegistry circuitBreakerRegistry;
+    @Autowired FeeRuleCache feeRuleCache;
 
     @LocalServerPort
     int serverPort;
@@ -143,6 +145,7 @@ class PaymentOrchestratorIT {
 
         // FK-safe DELETE order
         transactionTemplate.execute(status -> {
+            jdbcTemplate.execute("DELETE FROM main.fee_rule");
             jdbcTemplate.execute("DELETE FROM main.payment_event_log");
             jdbcTemplate.execute("DELETE FROM main.transaction");
             jdbcTemplate.execute("DELETE FROM main.tenant_api_key");
@@ -209,6 +212,10 @@ class PaymentOrchestratorIT {
         assertThat(response.getBody().transactionId()).isNotNull();
         assertThat(response.getBody().status()).isEqualTo("PROCESSING");
         assertThat(response.getBody().errorCode()).isNull();
+        // Fee fields — no fee rule seeded for this tenant so feeAmount must be 0 (never null)
+        assertThat(response.getBody().feeAmount()).isNotNull();
+        assertThat(response.getBody().feeAmount()).isEqualByComparingTo(java.math.BigDecimal.ZERO);
+        assertThat(response.getBody().feeRuleId()).isNull(); // no rule seeded
     }
 
     @Test
@@ -234,6 +241,10 @@ class PaymentOrchestratorIT {
         assertThat(response.getBody().transactionId()).isNotNull();
         assertThat(response.getBody().status()).isEqualTo("PROCESSING");
         assertThat(response.getBody().errorCode()).isNull();
+        // Fee fields — no fee rule seeded for this tenant so feeAmount must be 0 (never null)
+        assertThat(response.getBody().feeAmount()).isNotNull();
+        assertThat(response.getBody().feeAmount()).isEqualByComparingTo(java.math.BigDecimal.ZERO);
+        assertThat(response.getBody().feeRuleId()).isNull(); // no rule seeded
     }
 
     @Test
@@ -250,6 +261,42 @@ class PaymentOrchestratorIT {
         assertThat(response.getStatusCode().value()).isEqualTo(422);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().errorCode()).isEqualTo("UNKNOWN_MSISDN_PREFIX");
+    }
+
+    @Test
+    void fee_rule_applied_returns_nonzero_fee_amount() {
+        // Seed a FEE_FIXED rule for this tenant via JDBC (dev create-drop wipes Flyway seed data)
+        transactionTemplate.execute(status -> {
+            jdbcTemplate.update(
+                "INSERT INTO main.fee_rule (id, created_by, created_date, last_modified_by, last_modified_date, " +
+                "status, tenant_id, fee_type, fixed_amount, percentage_rate, enabled, rule_name) " +
+                "VALUES (?, 'TEST', NOW(), 'TEST', NOW(), 'ACTIVE', ?, 'FEE_FIXED', 50.00, NULL, true, 'TEST-FIXED-50')",
+                System.nanoTime() & Long.MAX_VALUE, tenantId);
+            return null;
+        });
+        // Force cache reload so FeeEvaluationService sees the new rule
+        feeRuleCache.refresh();
+
+        // Stub MTN endpoints
+        mtnServer.stubFor(get(urlPathMatching("/v1_0/accountholder/MSISDN/.*/basicuserinfo"))
+            .willReturn(okJson("{}")));
+        mtnServer.stubFor(post(urlPathEqualTo("/v1_0/requesttopay"))
+            .willReturn(aResponse().withStatus(202)));
+
+        String body = "{\"msisdn\":\"+237672000001\",\"amount\":1000,\"currency\":\"XAF\"," +
+                      "\"externalReference\":\"ext-fee-01\",\"idempotencyKey\":\"idem-fee-01\"}";
+
+        ResponseEntity<PaymentResponse> response = testRestTemplate.exchange(
+            "/v1/payments", HttpMethod.POST,
+            new HttpEntity<>(body, headersWithKey()),
+            PaymentResponse.class);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(202);
+        assertThat(response.getBody()).isNotNull();
+        // Fee rule was seeded — feeAmount must be 50 XAF and feeRuleId must be set
+        assertThat(response.getBody().feeAmount()).isNotNull();
+        assertThat(response.getBody().feeAmount()).isGreaterThan(java.math.BigDecimal.ZERO);
+        assertThat(response.getBody().feeRuleId()).isNotNull();
     }
 
     @Test
