@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 10 (Operational Hardening) — Complete. All 10 phases done. Milestone ready for audit.
+**Current focus:** Phase 11 (Fee Exposure) — In progress. Plan 11-01 complete.
 
 ## Current Position
 
-Phase: 10 of 10 (Operational Hardening) — Complete
-Plan: 4 of 4 done (10-01, 10-02, 10-03, 10-04 all complete)
-Status: ALL 10 PHASES COMPLETE — milestone ready for audit
-Last activity: 2026-03-25 — Completed 10-04: CALLBACK_ANOMALY gap closure; AlertRuleIT 5/5; Phase 10 verified 5/5
+Phase: 11 of 11 (Fee Exposure) — In progress
+Plan: 1 of 1 done (11-01 complete)
+Status: Phase 11 Plan 1 complete — fee fields exposed in API response and webhook payload
+Last activity: 2026-03-25 — Completed 11-01: feeAmount+feeRuleId in PaymentResponse; feeAmount in OutboundWebhookPayload; PaymentOrchestratorIT 8/8, WebhookDeliveryIT 3/3
 
-Progress: ███████████████████████ ~100% (26 of ~26 plans)
+Progress: ████████████████████████ ~100% (27 of ~27 plans)
 
 ## Performance Metrics
 
@@ -37,6 +37,7 @@ Progress: ███████████████████████ 
 | 08-admin-dashboard | 3/3 | 50 min | 16 min |
 | 09-reconciliation | 2/2 | 43 min | 21 min |
 | 10-operational-hardening | 4/4 | ~100 min | ~25 min |
+| 11-fee-exposure | 1/1 | 27 min | 27 min |
 
 **Recent Trend:**
 - Last 5 plans: 11 min, 3 min, 25 min, 23 min, 30 min avg
@@ -201,6 +202,10 @@ Recent decisions affecting current work:
 - IT test real-login pattern: ReconciliationApiIT.loginAsAdmin() seeds admin user/authority rows, POSTs /authenticate, extracts Set-Cookie, forwards cookies on admin requests — exercises full JWT filter chain
 - FilterRegistrationBean(setEnabled=false) pattern: use this in any @Configuration that defines a OncePerRequestFilter @Bean to prevent Spring Boot auto-registration with servlet container
 
+- 11-01 decision: Array holders BigDecimal[]{ZERO} and Long[]{null} capture fee values from transactionTemplate lambda — lambda locals must be effectively-final; array reference is final while array contents are mutable
+- 11-01 decision: cachedResponse (not cached) used in idempotency replay — 'cached' already declared as Optional<CachedResponse> in same method scope; compiler error without rename
+- 11-01 decision: WebhookDeliveryLog.feeAmount nullable (no Flyway migration needed for dev create-drop tests); null-guarded to ZERO in enqueue() and attemptDeliveryInternal()
+- 11-01 decision: fee_rule JDBC seed requires rule_name column (NOT NULL) — add 'TEST-FIXED-50' literal to any new fee_rule JDBC INSERT in tests
 - OPS-01 COMPLETE: fee rules configurable via POST /v1/admin/fees without restart; FeeEvaluationService evaluates FEE_FIXED and FEE_PERCENTAGE; fee_amount stored on transaction row (idempotency-safe via Pitfall 2 pattern)
 - OPS-02 COMPLETE (gap closed in 10-04): CALLBACK_ANOMALY metric now computes failed/received ratio from real Micrometer counters; OrangeCallbackController and MtnCallbackController both instrument callback.received.total and callback.failed.total; AlertRuleIT 5/5 including test_callbackAnomalyAlertFires
 - 10-01 decision: FeeRuleCache uses volatile List (not AtomicReference) — simpler; list replacement is atomic on 64-bit JVMs
@@ -219,5 +224,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-25
-Stopped at: Completed Phase 10 — 10-04 gap closure (CALLBACK_ANOMALY metric), AlertRuleIT 5/5, Phase 10 verified 5/5. All 10 phases of v1 milestone complete.
+Stopped at: Completed 11-01 — fee exposure (feeAmount+feeRuleId in PaymentResponse, feeAmount in OutboundWebhookPayload). PaymentOrchestratorIT 8/8, WebhookDeliveryIT 3/3. Phase 11 Plan 1 complete.
 Resume file: None
