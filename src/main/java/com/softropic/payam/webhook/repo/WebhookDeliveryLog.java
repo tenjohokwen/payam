@@ -2,6 +2,7 @@ package com.softropic.payam.webhook.repo;
 
 import com.softropic.payam.common.persistence.AbstractAuditingEntity;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 import jakarta.persistence.Column;
@@ -44,6 +45,9 @@ public class WebhookDeliveryLog extends AbstractAuditingEntity {
     @Column(name = "external_reference", length = 255)
     private String externalReference;
 
+    @Column(name = "fee_amount", precision = 20, scale = 2)
+    private BigDecimal feeAmount;
+
     @Column(name = "http_status")
     private Integer httpStatus;
 
@@ -62,6 +66,10 @@ public class WebhookDeliveryLog extends AbstractAuditingEntity {
     private Instant lastAttemptAt;
 
     // Public setters for mutable fields — updated on each delivery attempt
+
+    public void setFeeAmount(BigDecimal feeAmount) {
+        this.feeAmount = feeAmount;
+    }
 
     public void setHttpStatus(Integer httpStatus) {
         this.httpStatus = httpStatus;

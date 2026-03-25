@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -76,7 +77,7 @@ public class WebhookDeliveryService {
      */
     @Transactional
     public void enqueue(String transactionId, Long tenantId, String eventType,
-                        TransactionStatus status, String externalReference) {
+                        TransactionStatus status, String externalReference, BigDecimal feeAmount) {
         Tenant tenant = tenantRepository.findById(tenantId).orElse(null);
         if (tenant == null || tenant.getWebhookUrl() == null || tenant.getWebhookUrl().isBlank()) {
             log.debug("No webhook URL configured for tenantId={} — skipping delivery", tenantId);
@@ -92,6 +93,7 @@ public class WebhookDeliveryService {
             // findPendingForRetry queries WHERE nextRetryAt <= :now, so null rows are skipped
             // by the Quartz job until the inline first attempt sets nextRetryAt on failure.
             .build();
+        entry.setFeeAmount(feeAmount != null ? feeAmount : BigDecimal.ZERO);
         repo.save(entry);
 
         // Attempt delivery immediately — self-invocation bypasses Spring proxy but joins the
@@ -130,7 +132,8 @@ public class WebhookDeliveryService {
             delivery.getEventType().contains("SUCCESS") ? "SUCCESS" : "FAILED",
             delivery.getEventType(),
             Instant.now().toString(),
-            delivery.getExternalReference()
+            delivery.getExternalReference(),
+            delivery.getFeeAmount() != null ? delivery.getFeeAmount() : BigDecimal.ZERO
         );
 
         String payloadJson;

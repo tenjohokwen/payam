@@ -90,12 +90,14 @@ public class WebhookTransitionService {
         log.info("Double-check: transactionId={} transitioned to {}", event.transactionId(), target);
 
         // Enqueue outbound tenant notification — async delivery via WebhookDeliveryJob
+        // tx.getFeeAmount() is null for pre-Phase-10 transactions; enqueue() null-guards to ZERO
         webhookDeliveryService.enqueue(
             tx.getTransactionId(),
             tx.getTenantId(),
             eventType.name(),
             target,
-            tx.getExternalReference()
+            tx.getExternalReference(),
+            tx.getFeeAmount()
         );
     }
 
