@@ -205,10 +205,39 @@ Plans:
 - [x] 10-03: TLS startup assertion (`ApplicationReadyEvent`), provider health Actuator indicator, circuit breaker status endpoint
 - [x] 10-04: CALLBACK_ANOMALY gap closure — real ratio metric, controller instrumentation, AlertRuleIT 5/5
 
+### Phase 11: Fee Exposure
+**Goal**: Surface the applied fee on every payment — add `feeAmount` to `PaymentResponse` and `OutboundWebhookPayload` so tenants can inspect the fee charged on their transaction
+**Depends on**: Phase 10
+**Requirements**: OPS-01 (gap closure — fee computed but not returned to caller)
+**Research flag**: Unlikely — fields already persisted on Transaction; DTO update + outbound payload update only
+**Success Criteria** (what must be TRUE):
+  1. `POST /v1/payments` response includes `feeAmount` (in XAF) and `feeRuleId` reflecting the applied fee rule
+  2. Outbound webhook payload delivered to tenant's configured URL includes `feeAmount`
+  3. A zero-fee transaction (no matching rule) returns `feeAmount: 0` — never null
+  4. Existing integration tests continue to pass; new IT assertions confirm fee fields in API response and webhook payload
+**Plans**: TBD
+
+Plans:
+- [ ] 11-01: Add `feeAmount` + `feeRuleId` to `PaymentResponse` DTO and `OutboundWebhookPayload`; update IT assertions
+
+### Phase 12: Test & Doc Polish
+**Goal**: Close two minor tech-debt items from the v1 audit — a missing IT test path and an incomplete Javadoc entry
+**Depends on**: Phase 11
+**Requirements**: N/A (quality / documentation)
+**Research flag**: Unlikely — targeted test addition and one-line Javadoc fix
+**Success Criteria** (what must be TRUE):
+  1. A `FraudEngineIT` test submits a non-null `deviceFingerprint` value and asserts the `device_fingerprint` column is populated in the database
+  2. `PaymentResource` Javadoc line 28 lists `FRAUD_BLOCKED` as a documented 422 case alongside `SUBSCRIBER_INACTIVE` and `UNKNOWN_MSISDN_PREFIX`
+  3. All existing tests continue to pass
+**Plans**: TBD
+
+Plans:
+- [ ] 12-01: Add device fingerprint IT assertion; fix `PaymentResource` Javadoc
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
 
 Note: Phases 3 and 4 can run in parallel once Phase 2 completes and `ProviderGateway` interface + DTOs are defined.
 
@@ -224,3 +253,5 @@ Note: Phases 3 and 4 can run in parallel once Phase 2 completes and `ProviderGat
 | 8. Admin Dashboard + Monitoring | 3/3 | Complete | 2026-03-24 |
 | 9. Reconciliation | 2/2 | Complete | 2026-03-25 |
 | 10. Operational Hardening | 4/4 | Complete | 2026-03-25 |
+| 11. Fee Exposure | 0/1 | Pending | — |
+| 12. Test & Doc Polish | 0/1 | Pending | — |
