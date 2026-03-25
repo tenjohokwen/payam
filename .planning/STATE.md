@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-23)
 
 ## Current Position
 
-Phase: 9 of 10 (Reconciliation) — Complete
-Plan: 2 of 2 in phase (09-01 done, 09-02 done)
-Status: Phase 9 complete — all reconciliation plans executed
-Last activity: 2026-03-25 — Completed 09-02: admin REST surface + Quasar page + ReconciliationApiIT
+Phase: 10 of 10 (Operational Hardening) — In progress
+Plan: 3 of 3 in phase (10-03 done; 10-01 and 10-02 pending)
+Status: In progress — 10-03 complete (TLS assertion, provider CB status, hash chain audit)
+Last activity: 2026-03-25 — Completed 10-03: TlsStartupAssertion + ProviderStatusResource + AuditResource + OperationalIT 5/5
 
-Progress: █████████████████████░ ~96% (24 of ~25 plans)
+Progress: ██████████████████████░ ~97% (25 of ~26 plans)
 
 ## Performance Metrics
 
@@ -36,6 +36,7 @@ Progress: █████████████████████░ ~96
 | 07-fraud-engine | 2/2 | 53 min | 26.5 min |
 | 08-admin-dashboard | 3/3 | 50 min | 16 min |
 | 09-reconciliation | 2/2 | 43 min | 21 min |
+| 10-operational-hardening | 1/3 | 10 min | 10 min |
 
 **Recent Trend:**
 - Last 5 plans: 11 min, 3 min, 25 min, 23 min, 30 min avg
@@ -142,6 +143,10 @@ Recent decisions affecting current work:
 - 09-02 decision: /v1/admin/** added to ApiKeyAuthenticationFilter shouldNotFilter bypass list — defence-in-depth alongside securityMatcher exclusion already in TenantSecurityConfig
 - 09-02 decision: TenantFilterChainIT updated to use /v1/webhooks/deliveries/tx-123 instead of /v1/admin/tenants — admin paths now excluded from API-key chain scope
 - 09-02 decision: @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE) must be retained on ReconciliationResource — JWT chain only requires any authenticated user for /v1/**; @PreAuthorize enforces ROLE_ADMIN/ROLE_LTD_ADMIN specifically
+- 10-03 decision: TlsStartupAssertion uses Environment.getProperty("client.momo.tcp-config.check-certificate") — OrangeMoneyConfig and MtnMoMoConfig have no tcpConfig field; the flag is in the legacy client.momo.tcpConfig YAML node (defaultTcpConfig anchor); RESEARCH.md line 203 had an incorrect assertion about config structure
+- 10-03 decision: ProviderStatusResource force-creates "orange" and "mtn" CBs before getAllCircuitBreakers() — Resilience4j lazy CB creation means getAllCircuitBreakers() returns empty set if no payments processed yet (Pitfall 5)
+- 10-03 decision: AuditResource.verifyChain() returns 404 with valid:false on exception — covers both not-found and unexpected errors; avoids leaking existence information
+- 10-03 decision: OperationalIT seeds hash-chain data via EventLogService.append() — guarantees correct chain hashing without reproducing canonical string logic in test code; payment_event_log.transaction_id is NOT a FK so no transaction row needed
 
 ### Pending Todos
 
@@ -189,11 +194,15 @@ Recent decisions affecting current work:
 - RECON-02 COMPLETE: Three admin REST endpoints under /v1/admin/reconciliation; ReconciliationExportService (CSV+JSON); ReconciliationPage.vue; ReconciliationApiIT 5/5 pass
 - Orange reconciliation path: OrangeReportAdapter does NOT use OrangeTimeUtil — PayResponse has no createtime field; P5.1 WAT guard is OrangeWebhookPayload-only
 - ReconciliationService provider isolation: each provider loop in separate try/catch; one provider API failure never aborts the other provider's reconciliation loop
+- OPS-03 COMPLETE: TlsStartupAssertion + GET /v1/admin/providers/status + GET /v1/admin/audit/hash-chain/{txId}; OperationalIT 5/5 pass
+- TlsStartupAssertion dev-profile guard: assertion skips when "dev" profile active; in non-dev throws AppSetupException if client.momo.tcp-config.check-certificate=false; OrangeMoneyConfig/MtnMoMoConfig have NO tcpConfig field — use Environment.getProperty() not config.getTcpConfig()
+- ProviderStatusResource Pitfall 5 guard: always call circuitBreakerRegistry.circuitBreaker("orange") and circuitBreakerRegistry.circuitBreaker("mtn") before getAllCircuitBreakers() — CBs are lazily created and won't appear in the set until force-created or first used
+- payment_event_log.transaction_id is NOT a FK to transaction.transaction_id — it is a plain VARCHAR column; PaymentEventLog rows can be seeded without a corresponding main.transaction row
 - IT test real-login pattern: ReconciliationApiIT.loginAsAdmin() seeds admin user/authority rows, POSTs /authenticate, extracts Set-Cookie, forwards cookies on admin requests — exercises full JWT filter chain
 - FilterRegistrationBean(setEnabled=false) pattern: use this in any @Configuration that defines a OncePerRequestFilter @Bean to prevent Spring Boot auto-registration with servlet container
 
 ## Session Continuity
 
 Last session: 2026-03-25
-Stopped at: Completed 09-02-PLAN.md — Reconciliation admin API surface: three REST endpoints, ReconciliationExportService (CSV+JSON), ReconciliationPage.vue, ReconciliationApiIT (5/5 pass). Phase 9 complete.
+Stopped at: Completed 10-03-PLAN.md — TlsStartupAssertion + ProviderStatusResource (GET /v1/admin/providers/status) + AuditResource (GET /v1/admin/audit/hash-chain/*) + OperationalIT (5/5 pass). Plans 10-01 and 10-02 pending.
 Resume file: None
