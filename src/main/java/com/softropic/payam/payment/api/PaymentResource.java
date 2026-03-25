@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
  * <ul>
  *   <li>202 Accepted — successful provider dispatch or PAYMENT_ALREADY_PROCESSING replay</li>
  *   <li>503 Service Unavailable — PROVIDER_UNAVAILABLE (circuit open)</li>
- *   <li>422 Unprocessable Entity — SUBSCRIBER_INACTIVE or UNKNOWN_MSISDN_PREFIX</li>
+ *   <li>422 Unprocessable Entity — SUBSCRIBER_INACTIVE, UNKNOWN_MSISDN_PREFIX, or FRAUD_BLOCKED</li>
  *   <li>502 Bad Gateway — PROVIDER_ERROR (4xx/5xx from provider)</li>
  * </ul>
  */
@@ -75,7 +75,7 @@ public class PaymentResource {
         if (OrchestratorError.PROVIDER_ERROR.getErrorCode().equals(errorCode)) {
             return HttpStatus.BAD_GATEWAY;           // 502
         }
-        // SUBSCRIBER_INACTIVE, UNKNOWN_MSISDN_PREFIX, and other domain errors → 422
+        // SUBSCRIBER_INACTIVE, UNKNOWN_MSISDN_PREFIX, FRAUD_BLOCKED, and other domain errors → 422
         return HttpStatus.UNPROCESSABLE_ENTITY;      // 422
     }
 }
