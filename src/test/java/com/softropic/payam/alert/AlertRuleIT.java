@@ -317,21 +317,19 @@ class AlertRuleIT {
 
     @Test
     void test_noAlertBeforeMinimumSampleSize() {
-        // Insert a rule with very low threshold 0.001 for CALLBACK_ANOMALY — always returns -1.0
-        // (not implemented). This directly tests the "metric returns -1.0 → skip" path.
+        // Insert a rule with very low threshold 0.001 for CALLBACK_ANOMALY.
+        // No callback counters are incremented in this test so received=0 < MINIMUM_SAMPLE_SIZE (10).
+        // computeMetricValue returns -1.0 via the Pitfall 8 guard — alert must not fire.
         transactionTemplate.execute(status -> {
             jdbc.execute(
                 "INSERT INTO main.alert_rule (id, metric_name, threshold, window_seconds, " +
                 "notification_channel, enabled, status, description) " +
-                "VALUES (102, 'CALLBACK_ANOMALY', 0.001, 300, 'LOG', true, 'ACTIVE', 'Pitfall-8 guard: returns -1.0') " +
+                "VALUES (102, 'CALLBACK_ANOMALY', 0.001, 300, 'LOG', true, 'ACTIVE', 'Pitfall-8 guard: insufficient samples') " +
                 "ON CONFLICT (id) DO UPDATE SET threshold=EXCLUDED.threshold, enabled=EXCLUDED.enabled");
             return null;
         });
 
-        // Also insert a FAILURE_RATE rule with threshold=0.20 but only 5 success + 3 failed = 8 < 10.
-        // We track baseline counters to know whether we are below MINIMUM_SAMPLE_SIZE.
-        // Since counters accumulate, we insert a separate metric (CALLBACK_ANOMALY) to directly
-        // test the -1.0 skip path which is always active regardless of counters.
+        // Also insert a second CALLBACK_ANOMALY rule to confirm the guard applies to all matching rules.
         transactionTemplate.execute(status -> {
             jdbc.execute(
                 "INSERT INTO main.alert_rule (id, metric_name, threshold, window_seconds, " +
@@ -346,12 +344,48 @@ class AlertRuleIT {
         eventCaptor.clear();
         alertEvaluationService.evaluate();
 
-        // CALLBACK_ANOMALY always returns -1.0 (not implemented) — must never fire
+        // CALLBACK_ANOMALY returns -1.0 when received < MINIMUM_SAMPLE_SIZE — must never fire
         boolean callbackAlertFired = eventCaptor.getAll().stream()
                 .anyMatch(e -> "CALLBACK_ANOMALY".equals(e.metricName()));
         assertThat(callbackAlertFired)
-                .as("CALLBACK_ANOMALY alert must never fire (metric returns -1.0 — not implemented; Pitfall 8 guard)")
+                .as("CALLBACK_ANOMALY alert must not fire when callback.received.total < MINIMUM_SAMPLE_SIZE (Pitfall 8 guard)")
                 .isFalse();
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 5: CALLBACK_ANOMALY fires when failed/received ratio exceeds threshold
+    // -------------------------------------------------------------------------
+
+    @Test
+    void test_callbackAnomalyAlertFires() {
+        // Seed a CALLBACK_ANOMALY rule with threshold=0.30 (30% failed callbacks triggers alert)
+        transactionTemplate.execute(status -> {
+            jdbc.execute(
+                "INSERT INTO main.alert_rule (id, metric_name, threshold, window_seconds, " +
+                "notification_channel, enabled, status, description) " +
+                "VALUES (104, 'CALLBACK_ANOMALY', 0.30, 300, 'LOG', true, 'ACTIVE', 'Test callback anomaly rule') " +
+                "ON CONFLICT (id) DO UPDATE SET threshold=EXCLUDED.threshold, enabled=EXCLUDED.enabled");
+            return null;
+        });
+
+        alertRuleCache.refresh();
+        eventCaptor.clear();
+
+        // Simulate 12 total callbacks, 5 failed — rate = 5/12 ≈ 0.417 > threshold 0.30
+        for (int i = 0; i < 12; i++) {
+            meterRegistry.counter("callback.received.total").increment();
+        }
+        for (int i = 0; i < 5; i++) {
+            meterRegistry.counter("callback.failed.total").increment();
+        }
+
+        alertEvaluationService.evaluate();
+
+        boolean callbackAlertFired = eventCaptor.getAll().stream()
+                .anyMatch(e -> "CALLBACK_ANOMALY".equals(e.metricName()) && e.actualValue() >= 0.30);
+        assertThat(callbackAlertFired)
+                .as("AlertFiredEvent must fire for CALLBACK_ANOMALY when failed/received >= 0.30 with 12 samples")
+                .isTrue();
     }
 
     // =========================================================================

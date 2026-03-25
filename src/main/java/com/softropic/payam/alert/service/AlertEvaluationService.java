@@ -71,7 +71,7 @@ public class AlertEvaluationService {
      * Compute the current ratio for the named metric using in-memory Micrometer counters.
      *
      * @param metricName metric identifier (FAILURE_RATE, FRAUD_SPIKE_RATE, CALLBACK_ANOMALY)
-     * @return ratio in [0.0, 1.0], or -1.0 if the metric cannot be computed (no samples / unknown name)
+     * @return ratio in [0.0, 1.0], or -1.0 if the metric cannot be computed (insufficient samples / unknown name)
      */
     private double computeMetricValue(String metricName) {
         return switch (metricName) {
@@ -89,9 +89,12 @@ public class AlertEvaluationService {
                 if (total < MINIMUM_SAMPLE_SIZE) yield -1.0;
                 yield fraud / total;
             }
-            case "CALLBACK_ANOMALY" ->
-                // Reserved metric name — not yet implemented
-                -1.0;
+            case "CALLBACK_ANOMALY" -> {
+                double received = getCounter("callback.received.total");
+                double failed   = getCounter("callback.failed.total");
+                if (received < MINIMUM_SAMPLE_SIZE) yield -1.0;
+                yield failed / received;
+            }
             default -> -1.0;
         };
     }
