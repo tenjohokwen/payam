@@ -41,8 +41,10 @@ public class AlertNotificationListener {
      */
     @EventListener(AlertFiredEvent.class)
     public void onAlertFired(AlertFiredEvent event) {
-        log.warn("ALERT FIRED: metric={} actual={:.4f} threshold={:.4f}",
-                event.metricName(), event.actualValue(), event.threshold());
+        log.warn("ALERT FIRED: metric={} actual={} threshold={}",
+                event.metricName(),
+                String.format("%.4f", event.actualValue()),
+                String.format("%.4f", event.threshold()));
 
         if ("EMAIL".equalsIgnoreCase(event.notificationChannel())) {
             try {

@@ -1,6 +1,5 @@
 CREATE TABLE IF NOT EXISTS main.alert_rule (
     id                  BIGINT          NOT NULL PRIMARY KEY,
-    version             BIGINT          NOT NULL DEFAULT 0,
     created_by          VARCHAR(50),
     created_date        TIMESTAMP,
     last_modified_by    VARCHAR(50),
@@ -17,10 +16,10 @@ CREATE TABLE IF NOT EXISTS main.alert_rule (
     description         VARCHAR(500)
 );
 
-INSERT INTO main.alert_rule (id, metric_name, threshold, window_seconds, notification_channel, enabled, status, version, description)
+INSERT INTO main.alert_rule (id, metric_name, threshold, window_seconds, notification_channel, enabled, status, description)
 VALUES
-    (1, 'FAILURE_RATE',    0.20, 300, 'LOG', true, 'ACTIVE', 0, 'Alert when payment failure rate exceeds 20% over 5 minutes'),
-    (2, 'FRAUD_SPIKE_RATE', 0.05, 300, 'LOG', true, 'ACTIVE', 0, 'Alert when fraud-blocked rate exceeds 5% over 5 minutes');
+    (1, 'FAILURE_RATE',    0.20, 300, 'LOG', true, 'ACTIVE', 'Alert when payment failure rate exceeds 20% over 5 minutes'),
+    (2, 'FRAUD_SPIKE_RATE', 0.05, 300, 'LOG', true, 'ACTIVE', 'Alert when fraud-blocked rate exceeds 5% over 5 minutes');
 
 COMMENT ON TABLE main.alert_rule IS 'DB-configurable alert rules evaluated against Micrometer counters on a schedule';
 COMMENT ON COLUMN main.alert_rule.metric_name IS 'Metric to evaluate: FAILURE_RATE, FRAUD_SPIKE_RATE, CALLBACK_ANOMALY';
