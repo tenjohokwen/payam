@@ -138,7 +138,13 @@ public class PaymentOrchestrator {
             }
             // Deserialize cached successful response and replay it
             log.info("Replaying cached idempotency response: tenantId={}, idempotencyKey={}", tenantId, request.idempotencyKey());
-            return JsonUtil.toObject(cr.responseBody(), PaymentResponse.class);
+            PaymentResponse cachedResponse = JsonUtil.toObject(cr.responseBody(), PaymentResponse.class);
+            // Null-guard feeAmount for cached entries that predate Phase 11 (old JSON has no feeAmount)
+            if (cachedResponse.feeAmount() == null) {
+                cachedResponse = new PaymentResponse(cachedResponse.transactionId(), cachedResponse.status(), cachedResponse.providerRef(),
+                        cachedResponse.errorCode(), cachedResponse.errorMessage(), BigDecimal.ZERO, cachedResponse.feeRuleId());
+            }
+            return cachedResponse;
         }
 
         // Step 3: Create INITIATED transaction row (TransactionService.initiate is @Transactional and commits)
@@ -170,6 +176,10 @@ public class PaymentOrchestrator {
                     OrchestratorError.FRAUD_BLOCKED.getErrorCode(),
                     "Payment blocked: " + fraud.reason());
         }
+        // Capture fee values from the transactionTemplate block for use in PaymentResponse
+        BigDecimal[] capturedFee = {BigDecimal.ZERO};
+        Long[] capturedFeeRuleId = {null};
+
         // Persist risk score, device fingerprint, and fee on the transaction (no connection held open)
         transactionTemplate.execute(status -> {
             Transaction locked = transactionRepository.findByTransactionIdForUpdate(tx.getTransactionId()).orElseThrow();
@@ -180,6 +190,8 @@ public class PaymentOrchestrator {
             locked.setFeeAmount(fee);
             feeEvaluationService.findRuleForTenant(tenantId)
                     .ifPresent(r -> locked.setFeeRuleId(r.getId()));
+            capturedFee[0] = fee;
+            capturedFeeRuleId[0] = locked.getFeeRuleId();
             return null;
         });
 
@@ -209,7 +221,8 @@ public class PaymentOrchestrator {
                 return null;
             });
 
-            PaymentResponse response = PaymentResponse.accepted(tx.getTransactionId(), "PROCESSING", result.providerRef());
+            PaymentResponse response = PaymentResponse.accepted(tx.getTransactionId(), "PROCESSING", result.providerRef(),
+                    capturedFee[0], capturedFeeRuleId[0]);
             idempotencyService.store(tenantId, request.idempotencyKey(), 202, JsonUtil.toJson(response));
             metricsService.recordSuccess(provider.name());
             log.info("Payment dispatched successfully: transactionId={}, provider={}", tx.getTransactionId(), provider);
