@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-03-23)
 ## Current Position
 
 Phase: 10 of 10 (Operational Hardening) — In progress
-Plan: 3 of 3 in phase (10-03 done; 10-01 and 10-02 pending)
-Status: In progress — 10-03 complete (TLS assertion, provider CB status, hash chain audit)
-Last activity: 2026-03-25 — Completed 10-03: TlsStartupAssertion + ProviderStatusResource + AuditResource + OperationalIT 5/5
+Plan: 1 of 3 done; 10-03 also done (10-02 pending)
+Status: In progress — 10-01 complete (fee engine, MSISDN DB routing); 10-03 also complete
+Last activity: 2026-03-25 — Completed 10-01: fee engine V14+V16 migrations, FeeEvaluationService, FeeRuleAdminResource, MsisdnRouter DB-backed, FeeEngineIT 4/4
 
 Progress: ██████████████████████░ ~97% (25 of ~26 plans)
 
@@ -201,8 +201,16 @@ Recent decisions affecting current work:
 - IT test real-login pattern: ReconciliationApiIT.loginAsAdmin() seeds admin user/authority rows, POSTs /authenticate, extracts Set-Cookie, forwards cookies on admin requests — exercises full JWT filter chain
 - FilterRegistrationBean(setEnabled=false) pattern: use this in any @Configuration that defines a OncePerRequestFilter @Bean to prevent Spring Boot auto-registration with servlet container
 
+- OPS-01 COMPLETE: fee rules configurable via POST /v1/admin/fees without restart; FeeEvaluationService evaluates FEE_FIXED and FEE_PERCENTAGE; fee_amount stored on transaction row (idempotency-safe via Pitfall 2 pattern)
+- 10-01 decision: FeeRuleCache uses volatile List (not AtomicReference) — simpler; list replacement is atomic on 64-bit JVMs
+- 10-01 decision: Dev create-drop schema has no version column — fee_rule/msisdn_prefix_route test seeds must omit version (same as FraudEngineIT fraud_rule seeds)
+- 10-01 decision: test_globalFeeAppliedToPayment deletes seed row id=1 before asserting 50 XAF — multiple global rules cause first-match ambiguity; clean-state ensures deterministic evaluation
+- 10-01 decision: MsisdnRouter constructor-injected MsisdnPrefixRouteCache — breaking from no-arg; Spring-managed dependency for DB-backed routing
+- 10-01 decision: FeeRuleAdminResource PUT uses delete-then-save — FeeRule fully immutable; @SuperBuilder copy-override produces correct updated entity without custom @Modifying JPQL
+- MSISDN routing now DB-backed (MsisdnPrefixRouteCache with Cameroon seeded prefixes in V16); hardcoded fallback retained with WARN log (Pitfall 4)
+
 ## Session Continuity
 
 Last session: 2026-03-25
-Stopped at: Completed 10-03-PLAN.md — TlsStartupAssertion + ProviderStatusResource (GET /v1/admin/providers/status) + AuditResource (GET /v1/admin/audit/hash-chain/*) + OperationalIT (5/5 pass). Plans 10-01 and 10-02 pending.
+Stopped at: Completed 10-01-PLAN.md — fee engine (V14+V16 migrations, FeeRuleCache, FeeEvaluationService, FeeRuleAdminResource, MsisdnPrefixRouteCache), PaymentOrchestrator wired, MsisdnRouter DB-backed, FeeEngineIT 4/4. Plan 10-02 pending.
 Resume file: None
