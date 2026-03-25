@@ -25,7 +25,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 7: Fraud Engine** - Velocity rules, risk scoring pipeline, device fingerprinting
 - [ ] **Phase 8: Admin Dashboard + Monitoring** - Transaction investigation UI, live metrics, SSE feed
 - [ ] **Phase 9: Reconciliation** - Daily Quartz job, discrepancy flagging, CSV/JSON export
-- [ ] **Phase 10: Operational Hardening** - Fee management, alerts, TLS assertion, circuit breaker tuning
+- [x] **Phase 10: Operational Hardening** - Fee management, alerts, TLS assertion, circuit breaker tuning
 
 ## Phase Details
 
@@ -200,9 +200,10 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 10-01: Fee engine — `FeeRule` entity, per-tenant and global rules, evaluation at transaction time
-- [ ] 10-02: Alert rules — threshold config, `ApplicationEventPublisher` → notification channel wiring
-- [ ] 10-03: TLS startup assertion (`ApplicationReadyEvent`), provider health Actuator indicator, circuit breaker status endpoint
+- [x] 10-01: Fee engine — `FeeRule` entity, per-tenant and global rules, evaluation at transaction time
+- [x] 10-02: Alert rules — threshold config, `ApplicationEventPublisher` → notification channel wiring
+- [x] 10-03: TLS startup assertion (`ApplicationReadyEvent`), provider health Actuator indicator, circuit breaker status endpoint
+- [x] 10-04: CALLBACK_ANOMALY gap closure — real ratio metric, controller instrumentation, AlertRuleIT 5/5
 
 ## Progress
 
@@ -221,5 +222,5 @@ Note: Phases 3 and 4 can run in parallel once Phase 2 completes and `ProviderGat
 | 6. Webhook Processing | 3/3 | Complete | 2026-03-24 |
 | 7. Fraud Engine | 2/2 | Complete | 2026-03-24 |
 | 8. Admin Dashboard + Monitoring | 3/3 | Complete | 2026-03-24 |
-| 9. Reconciliation | 0/2 | Not started | - |
-| 10. Operational Hardening | 0/3 | Not started | - |
+| 9. Reconciliation | 2/2 | Complete | 2026-03-25 |
+| 10. Operational Hardening | 4/4 | Complete | 2026-03-25 |

@@ -104,8 +104,8 @@ Which phases cover which requirements. Updated by create-roadmap.
 | ADMIN-01 | Phase 8 | Complete |
 | ADMIN-02 | Phase 8 | Complete |
 | RECON-01 | Phase 9 | Complete |
-| OPS-01 | Phase 10 | Pending |
-| OPS-02 | Phase 10 | Pending |
+| OPS-01 | Phase 10 | Complete |
+| OPS-02 | Phase 10 | Complete |
 
 **Coverage:**
 - v1 requirements: 17 total

@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 10 (Operational Hardening) — In progress; 10-01, 10-02, 10-03 complete.
+**Current focus:** Phase 10 (Operational Hardening) — Complete. All 10 phases done. Milestone ready for audit.
 
 ## Current Position
 
-Phase: 10 of 10 (Operational Hardening) — In progress
-Plan: 3 of 3 done (10-01, 10-02, 10-03 all complete)
-Status: Phase 10 complete — all operational hardening plans executed
-Last activity: 2026-03-25 — Completed 10-02: alert rules engine (FAILURE_RATE, FRAUD_SPIKE_RATE), V15 migration, AlertRuleAdminResource, AlertRuleIT 4/4
+Phase: 10 of 10 (Operational Hardening) — Complete
+Plan: 4 of 4 done (10-01, 10-02, 10-03, 10-04 all complete)
+Status: ALL 10 PHASES COMPLETE — milestone ready for audit
+Last activity: 2026-03-25 — Completed 10-04: CALLBACK_ANOMALY gap closure; AlertRuleIT 5/5; Phase 10 verified 5/5
 
 Progress: ███████████████████████ ~100% (26 of ~26 plans)
 
@@ -36,8 +36,7 @@ Progress: ███████████████████████ 
 | 07-fraud-engine | 2/2 | 53 min | 26.5 min |
 | 08-admin-dashboard | 3/3 | 50 min | 16 min |
 | 09-reconciliation | 2/2 | 43 min | 21 min |
-| 10-operational-hardening | 3/3 | ~90 min | ~30 min |
-| 10-operational-hardening | 1/3 | 10 min | 10 min |
+| 10-operational-hardening | 4/4 | ~100 min | ~25 min |
 
 **Recent Trend:**
 - Last 5 plans: 11 min, 3 min, 25 min, 23 min, 30 min avg
@@ -203,6 +202,7 @@ Recent decisions affecting current work:
 - FilterRegistrationBean(setEnabled=false) pattern: use this in any @Configuration that defines a OncePerRequestFilter @Bean to prevent Spring Boot auto-registration with servlet container
 
 - OPS-01 COMPLETE: fee rules configurable via POST /v1/admin/fees without restart; FeeEvaluationService evaluates FEE_FIXED and FEE_PERCENTAGE; fee_amount stored on transaction row (idempotency-safe via Pitfall 2 pattern)
+- OPS-02 COMPLETE (gap closed in 10-04): CALLBACK_ANOMALY metric now computes failed/received ratio from real Micrometer counters; OrangeCallbackController and MtnCallbackController both instrument callback.received.total and callback.failed.total; AlertRuleIT 5/5 including test_callbackAnomalyAlertFires
 - 10-01 decision: FeeRuleCache uses volatile List (not AtomicReference) — simpler; list replacement is atomic on 64-bit JVMs
 - 10-01 decision: Dev create-drop schema has no version column — fee_rule/msisdn_prefix_route test seeds must omit version (same as FraudEngineIT fraud_rule seeds)
 - 10-01 decision: test_globalFeeAppliedToPayment deletes seed row id=1 before asserting 50 XAF — multiple global rules cause first-match ambiguity; clean-state ensures deterministic evaluation
@@ -219,5 +219,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-25
-Stopped at: Completed 10-02-PLAN.md — alert rules engine (V15 migration, AlertRuleCache, AlertEvaluationService, AlertNotificationListener, AlertFiredEvent, AlertRuleAdminResource), AlertRuleIT 4/4. Phase 10 complete.
+Stopped at: Completed Phase 10 — 10-04 gap closure (CALLBACK_ANOMALY metric), AlertRuleIT 5/5, Phase 10 verified 5/5. All 10 phases of v1 milestone complete.
 Resume file: None
