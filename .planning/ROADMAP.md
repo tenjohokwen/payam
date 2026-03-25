@@ -254,4 +254,4 @@ Note: Phases 3 and 4 can run in parallel once Phase 2 completes and `ProviderGat
 | 9. Reconciliation | 2/2 | Complete | 2026-03-25 |
 | 10. Operational Hardening | 4/4 | Complete | 2026-03-25 |
 | 11. Fee Exposure | 1/1 | Complete | 2026-03-25 |
-| 12. Test & Doc Polish | 0/1 | Pending | — |
+| 12. Test & Doc Polish | 1/1 | Complete | 2026-03-25 |
