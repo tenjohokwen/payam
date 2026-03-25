@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 9 (Reconciliation) — COMPLETE. Phase 10 (hardening) is next.
+**Current focus:** Phase 10 (Operational Hardening) — In progress; 10-01, 10-02, 10-03 complete.
 
 ## Current Position
 
 Phase: 10 of 10 (Operational Hardening) — In progress
-Plan: 1 of 3 done; 10-03 also done (10-02 pending)
-Status: In progress — 10-01 complete (fee engine, MSISDN DB routing); 10-03 also complete
-Last activity: 2026-03-25 — Completed 10-01: fee engine V14+V16 migrations, FeeEvaluationService, FeeRuleAdminResource, MsisdnRouter DB-backed, FeeEngineIT 4/4
+Plan: 3 of 3 done (10-01, 10-02, 10-03 all complete)
+Status: Phase 10 complete — all operational hardening plans executed
+Last activity: 2026-03-25 — Completed 10-02: alert rules engine (FAILURE_RATE, FRAUD_SPIKE_RATE), V15 migration, AlertRuleAdminResource, AlertRuleIT 4/4
 
-Progress: ██████████████████████░ ~97% (25 of ~26 plans)
+Progress: ███████████████████████ ~100% (26 of ~26 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 20
+- Total plans completed: 26
 - Average duration: 22 min
-- Total execution time: ~6.6 hours
+- Total execution time: ~7.1 hours
 
 **By Phase:**
 
@@ -36,6 +36,7 @@ Progress: ██████████████████████░ 
 | 07-fraud-engine | 2/2 | 53 min | 26.5 min |
 | 08-admin-dashboard | 3/3 | 50 min | 16 min |
 | 09-reconciliation | 2/2 | 43 min | 21 min |
+| 10-operational-hardening | 3/3 | ~90 min | ~30 min |
 | 10-operational-hardening | 1/3 | 10 min | 10 min |
 
 **Recent Trend:**
@@ -208,9 +209,15 @@ Recent decisions affecting current work:
 - 10-01 decision: MsisdnRouter constructor-injected MsisdnPrefixRouteCache — breaking from no-arg; Spring-managed dependency for DB-backed routing
 - 10-01 decision: FeeRuleAdminResource PUT uses delete-then-save — FeeRule fully immutable; @SuperBuilder copy-override produces correct updated entity without custom @Modifying JPQL
 - MSISDN routing now DB-backed (MsisdnPrefixRouteCache with Cameroon seeded prefixes in V16); hardcoded fallback retained with WARN log (Pitfall 4)
+- 10-02 decision: AlertRule.metricName stored as plain String not enum — allows new metric names (e.g. CALLBACK_ANOMALY) via DB row without code change or restart
+- 10-02 decision: V15 DDL excludes version column — AbstractAuditingEntity has no @Version; dev profile create-drop creates table from entity first, then Flyway CREATE TABLE IF NOT EXISTS is a no-op; version in seed INSERT causes PSQLException
+- 10-02 decision: AlertFiredEventCaptor registered via @TestConfiguration inner class CaptorConfig — static inner @Component not scanned by SpringBootTest; @TestConfiguration + @Bean is the correct registration pattern for test-only listeners
+- 10-02 decision: alertRuleCache.refresh() called explicitly in tests after JDBC insert — @Scheduled cache doesn't reload between test method JDBC inserts; without explicit refresh, evaluate() uses stale cache and test rule is not visible
+- 10-02 decision: AlertNotificationListener uses String.format("%.4f") for decimal log output — SLF4J {} is positional substitution, not printf format specifier; {:.4f} prints literally
+- OPS-02 COMPLETE: alert rules threshold-configurable via /v1/admin/alerts without restart; AlertEvaluationService reads Micrometer counters (no DB per evaluation); MINIMUM_SAMPLE_SIZE=10 guard prevents false alarms at startup; AlertRuleIT 4/4
 
 ## Session Continuity
 
 Last session: 2026-03-25
-Stopped at: Completed 10-01-PLAN.md — fee engine (V14+V16 migrations, FeeRuleCache, FeeEvaluationService, FeeRuleAdminResource, MsisdnPrefixRouteCache), PaymentOrchestrator wired, MsisdnRouter DB-backed, FeeEngineIT 4/4. Plan 10-02 pending.
+Stopped at: Completed 10-02-PLAN.md — alert rules engine (V15 migration, AlertRuleCache, AlertEvaluationService, AlertNotificationListener, AlertFiredEvent, AlertRuleAdminResource), AlertRuleIT 4/4. Phase 10 complete.
 Resume file: None
