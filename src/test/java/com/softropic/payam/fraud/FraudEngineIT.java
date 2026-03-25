@@ -241,6 +241,40 @@ class FraudEngineIT {
                 .isBetween(0, 100);
     }
 
+    // ---- Test 3 ----
+
+    /**
+     * Device fingerprint persistence — asserts that a payment submitted with a non-null
+     * deviceFingerprint is stored in the device_fingerprint column of main.transaction (FRAUD-01).
+     */
+    @Test
+    void deviceFingerprintIsPersistedInDb() {
+        // Stub MTN endpoints for a successful payment
+        mtnServer.stubFor(get(urlPathMatching("/v1_0/accountholder/MSISDN/.*/basicuserinfo"))
+            .willReturn(okJson("{}")));
+        mtnServer.stubFor(post(urlPathEqualTo("/v1_0/requesttopay"))
+            .willReturn(aResponse().withStatus(202)));
+
+        // Use a MSISDN not shared with other tests to avoid cross-test velocity state
+        String body = buildMtnRequestWithFingerprint("+237671000005", "idem-fraud-fp-" + UUID.randomUUID(), "fp-test-abc123");
+
+        ResponseEntity<PaymentResponse> response = postPayment(body);
+
+        assertThat(response.getStatusCode().value())
+                .as("Payment should be accepted (202)")
+                .isEqualTo(202);
+        assertThat(response.getBody()).isNotNull();
+
+        // Query DB to confirm device_fingerprint is persisted with the submitted value
+        String deviceFingerprint = jdbc.queryForObject(
+            "SELECT device_fingerprint FROM main.transaction WHERE tenant_id = ? ORDER BY created_date DESC LIMIT 1",
+            String.class, tenantId);
+
+        assertThat(deviceFingerprint)
+                .as("device_fingerprint must not be null and must equal the submitted value")
+                .isEqualTo("fp-test-abc123");
+    }
+
     // ---- helpers ----
 
     private HttpHeaders headersWithKey() {
@@ -263,6 +297,14 @@ class FraudEngineIT {
             "{\"msisdn\":\"%s\",\"amount\":500,\"currency\":\"XAF\"," +
             "\"externalReference\":\"TEST-FE\",\"idempotencyKey\":\"%s\"}",
             msisdn, idempotencyKey);
+    }
+
+    private String buildMtnRequestWithFingerprint(String msisdn, String idempotencyKey, String fingerprint) {
+        return String.format(
+            "{\"msisdn\":\"%s\",\"amount\":500,\"currency\":\"XAF\"," +
+            "\"externalReference\":\"TEST-FE\",\"idempotencyKey\":\"%s\"," +
+            "\"deviceFingerprint\":\"%s\"}",
+            msisdn, idempotencyKey, fingerprint);
     }
 
     private void deleteVelocityKeys() {
