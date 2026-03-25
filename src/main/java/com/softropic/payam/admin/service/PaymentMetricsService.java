@@ -25,9 +25,10 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Central metrics service for payment domain counters, timers, and SSE live-stream management.
  *
- * <p>Registers three Micrometer Counters (payment.success.total, payment.failed.total,
- * payment.fraud.blocked.total) and a per-provider Timer (payment.provider.latency) with the
- * MeterRegistry. These are exposed via /manage/prometheus for Grafana.
+ * <p>Registers five Micrometer Counters (payment.success.total, payment.failed.total,
+ * payment.fraud.blocked.total, callback.received.total, callback.failed.total) and a per-provider
+ * Timer (payment.provider.latency) with the MeterRegistry. These are exposed via /manage/prometheus
+ * for Grafana.
  *
  * <p>Also manages a list of SseEmitter connections (via addEmitter) and pushes a
  * MetricsSnapshotDto to all connected clients every 5 seconds via @Scheduled(pushMetrics).
@@ -40,6 +41,8 @@ public class PaymentMetricsService {
     private final Counter successCounter;
     private final Counter failedCounter;
     private final Counter fraudBlockedCounter;
+    private final Counter callbackReceivedCounter;
+    private final Counter callbackFailedCounter;
     private final MeterRegistry registry;
     private final TransactionRepository transactionRepository;
     private final ObjectMapper objectMapper;
@@ -66,6 +69,12 @@ public class PaymentMetricsService {
                 .register(registry);
         this.fraudBlockedCounter = Counter.builder("payment.fraud.blocked.total")
                 .description("Total fraud-blocked payments")
+                .register(registry);
+        this.callbackReceivedCounter = Counter.builder("callback.received.total")
+                .description("Total inbound provider callbacks received")
+                .register(registry);
+        this.callbackFailedCounter = Counter.builder("callback.failed.total")
+                .description("Total inbound provider callbacks that failed to process (no matching transaction)")
                 .register(registry);
     }
 
@@ -94,6 +103,22 @@ public class PaymentMetricsService {
      */
     public void recordFraudBlocked() {
         fraudBlockedCounter.increment();
+    }
+
+    /**
+     * Increment the callback received counter. Called by OrangeCallbackController and
+     * MtnCallbackController on every accepted inbound callback (after dedup and HMAC checks pass).
+     */
+    public void recordCallbackReceived() {
+        callbackReceivedCounter.increment();
+    }
+
+    /**
+     * Increment the callback failed counter. Called when a callback cannot be correlated to a
+     * known transaction (e.g., OrangeMoneyPort or MtnMoMoPort throws on lookup).
+     */
+    public void recordCallbackFailed() {
+        callbackFailedCounter.increment();
     }
 
     /**

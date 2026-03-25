@@ -1,6 +1,7 @@
 package com.softropic.payam.orange.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.softropic.payam.admin.service.PaymentMetricsService;
 import com.softropic.payam.orange.config.OrangeMoneyConfig;
 import com.softropic.payam.orange.contract.OrangeWebhookPayload;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
@@ -41,15 +42,18 @@ public class OrangeCallbackController {
     private final StringRedisTemplate redis;
     private final OrangeMoneyConfig orangeMoneyConfig;
     private final ObjectMapper objectMapper;
+    private final PaymentMetricsService metricsService;
 
     public OrangeCallbackController(OrangeMoneyPort orangeMoneyPort,
                                     StringRedisTemplate redis,
                                     OrangeMoneyConfig orangeMoneyConfig,
-                                    ObjectMapper objectMapper) {
+                                    ObjectMapper objectMapper,
+                                    PaymentMetricsService metricsService) {
         this.orangeMoneyPort = orangeMoneyPort;
         this.redis = redis;
         this.orangeMoneyConfig = orangeMoneyConfig;
         this.objectMapper = objectMapper;
+        this.metricsService = metricsService;
     }
 
     /**
@@ -107,7 +111,13 @@ public class OrangeCallbackController {
         }
 
         // 2. Delegate to port — correlation + notifToken validation inside processWebhook
-        orangeMoneyPort.processWebhook(payload, notifToken);
+        metricsService.recordCallbackReceived();
+        try {
+            orangeMoneyPort.processWebhook(payload, notifToken);
+        } catch (Exception e) {
+            log.warn("Orange callback processing failed, payToken={}: {}", payload.getPayToken(), e.getMessage());
+            metricsService.recordCallbackFailed();
+        }
 
         // 3. Return 200 immediately — state transition is Plan 06-02 responsibility (double-check pattern)
         return ResponseEntity.ok().build();
