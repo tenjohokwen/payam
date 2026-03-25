@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 11 (Fee Exposure) — Complete. Phases 1–11 done. Phase 12 (Test & Doc Polish) remaining.
+**Current focus:** Phase 12 (Test & Doc Polish) — Complete. All 12 phases done. v1 milestone complete.
 
 ## Current Position
 
-Phase: 11 of 12 (Fee Exposure) — Complete
-Plan: 1 of 1 done (11-01 complete)
-Status: Phase 11 COMPLETE — feeAmount+feeRuleId in API response; feeAmount in webhook payload; verified 4/4
-Last activity: 2026-03-25 — Completed 11-01: feeAmount+feeRuleId in PaymentResponse; feeAmount in OutboundWebhookPayload; PaymentOrchestratorIT 8/8, WebhookDeliveryIT 3/3
+Phase: 12 of 12 (Test & Doc Polish) — Complete
+Plan: 1 of 1 done (12-01 complete)
+Status: Phase 12 COMPLETE — deviceFingerprintIsPersistedInDb IT test added; PaymentResource Javadoc FRAUD_BLOCKED documented; FraudEngineIT 3/3
+Last activity: 2026-03-25 — Completed 12-01: device_fingerprint IT assertion + PaymentResource Javadoc polish. ALL 12 PHASES COMPLETE.
 
-Progress: ████████████████████████ ~100% (27 of ~27 plans)
+Progress: ████████████████████████ 100% (28 of 28 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 26
-- Average duration: 22 min
-- Total execution time: ~7.1 hours
+- Total plans completed: 28
+- Average duration: 21 min
+- Total execution time: ~7.2 hours
 
 **By Phase:**
 
@@ -38,10 +38,11 @@ Progress: ███████████████████████�
 | 09-reconciliation | 2/2 | 43 min | 21 min |
 | 10-operational-hardening | 4/4 | ~100 min | ~25 min |
 | 11-fee-exposure | 1/1 | 27 min | 27 min |
+| 12-test-doc-polish | 1/1 | 4 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 11 min, 3 min, 25 min, 23 min, 30 min avg
-- Trend: Infrastructure plans fast (3-6 min); service+test plans 10-30 min
+- Last 5 plans: 4 min, 27 min, 11 min, 3 min, 25 min avg
+- Trend: Infrastructure plans fast (3-6 min); service+test plans 10-30 min; polish plans very fast (4 min)
 
 ## Accumulated Context
 
@@ -206,6 +207,8 @@ Recent decisions affecting current work:
 - 11-01 decision: cachedResponse (not cached) used in idempotency replay — 'cached' already declared as Optional<CachedResponse> in same method scope; compiler error without rename
 - 11-01 decision: WebhookDeliveryLog.feeAmount nullable (no Flyway migration needed for dev create-drop tests); null-guarded to ZERO in enqueue() and attemptDeliveryInternal()
 - 11-01 decision: fee_rule JDBC seed requires rule_name column (NOT NULL) — add 'TEST-FIXED-50' literal to any new fee_rule JDBC INSERT in tests
+- 12-01 decision: buildMtnRequestWithFingerprint() added as separate helper (not overloading buildMtnRequest) — preserves existing test call sites unchanged; separate helper avoids cross-test regression
+- 12-01 decision: MSISDN +237671000005 reserved for device fingerprint IT test — distinct from +237671000001 (velocityBlock) and +237671000003 (riskScore) to prevent velocity bucket interference
 - OPS-01 COMPLETE: fee rules configurable via POST /v1/admin/fees without restart; FeeEvaluationService evaluates FEE_FIXED and FEE_PERCENTAGE; fee_amount stored on transaction row (idempotency-safe via Pitfall 2 pattern)
 - OPS-02 COMPLETE (gap closed in 10-04): CALLBACK_ANOMALY metric now computes failed/received ratio from real Micrometer counters; OrangeCallbackController and MtnCallbackController both instrument callback.received.total and callback.failed.total; AlertRuleIT 5/5 including test_callbackAnomalyAlertFires
 - 10-01 decision: FeeRuleCache uses volatile List (not AtomicReference) — simpler; list replacement is atomic on 64-bit JVMs
@@ -224,5 +227,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-25
-Stopped at: Completed 11-01 — fee exposure (feeAmount+feeRuleId in PaymentResponse, feeAmount in OutboundWebhookPayload). PaymentOrchestratorIT 8/8, WebhookDeliveryIT 3/3. Phase 11 Plan 1 complete.
+Stopped at: Completed 12-01 — device_fingerprint IT assertion (FraudEngineIT 3/3) + PaymentResource Javadoc FRAUD_BLOCKED. Phase 12 Plan 1 complete. ALL 12 PHASES COMPLETE — v1 milestone done.
 Resume file: None
