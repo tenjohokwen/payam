@@ -7,6 +7,7 @@ import com.softropic.payam.common.payment.PaymentCommand;
 import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.common.util.JsonUtil;
 import com.softropic.payam.admin.service.PaymentMetricsService;
+import com.softropic.payam.fee.service.FeeEvaluationService;
 import com.softropic.payam.fraud.contract.FraudDecision;
 import com.softropic.payam.fraud.service.FraudScoringService;
 import com.softropic.payam.mtn.contract.exception.MtnAccountInactiveException;
@@ -35,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 /**
@@ -67,6 +69,7 @@ public class PaymentOrchestrator {
     private final TransactionTemplate transactionTemplate;
     private final FraudScoringService fraudScoringService;
     private final PaymentMetricsService metricsService;
+    private final FeeEvaluationService feeEvaluationService;
 
     public PaymentOrchestrator(OrangeMoneyPort orangePort,
                                MtnMoMoPort mtnPort,
@@ -77,7 +80,8 @@ public class PaymentOrchestrator {
                                EventLogService eventLogService,
                                TransactionTemplate transactionTemplate,
                                FraudScoringService fraudScoringService,
-                               PaymentMetricsService metricsService) {
+                               PaymentMetricsService metricsService,
+                               FeeEvaluationService feeEvaluationService) {
         this.orangePort = orangePort;
         this.mtnPort = mtnPort;
         this.msisdnRouter = msisdnRouter;
@@ -88,6 +92,7 @@ public class PaymentOrchestrator {
         this.transactionTemplate = transactionTemplate;
         this.fraudScoringService = fraudScoringService;
         this.metricsService = metricsService;
+        this.feeEvaluationService = feeEvaluationService;
     }
 
     /**
@@ -165,11 +170,16 @@ public class PaymentOrchestrator {
                     OrchestratorError.FRAUD_BLOCKED.getErrorCode(),
                     "Payment blocked: " + fraud.reason());
         }
-        // Persist risk score and device fingerprint on the transaction (no connection held open)
+        // Persist risk score, device fingerprint, and fee on the transaction (no connection held open)
         transactionTemplate.execute(status -> {
             Transaction locked = transactionRepository.findByTransactionIdForUpdate(tx.getTransactionId()).orElseThrow();
             locked.setRiskScore(fraud.riskScore());
             locked.setDeviceFingerprint(cmd.deviceFingerprint());
+            // Fee evaluation — after idempotency check, before provider dispatch (Pitfall 2)
+            BigDecimal fee = feeEvaluationService.evaluateFee(tenantId, request.amount());
+            locked.setFeeAmount(fee);
+            feeEvaluationService.findRuleForTenant(tenantId)
+                    .ifPresent(r -> locked.setFeeRuleId(r.getId()));
             return null;
         });
 

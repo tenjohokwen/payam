@@ -98,6 +98,23 @@ public class Transaction extends AbstractAuditingEntity {
     private String deviceFingerprint;
 
     /**
+     * Fee amount computed at payment initiation by FeeEvaluationService. Nullable — null for
+     * transactions created before Phase 10. Both columns use @NotAudited because V14 adds columns
+     * to main.transaction only; Envers _AUD table lacks them.
+     */
+    @NotAudited
+    @Column(name = "fee_amount", precision = 20, scale = 2)
+    private java.math.BigDecimal feeAmount;
+
+    /**
+     * ID of the fee rule applied at payment initiation time. Nullable — null for
+     * transactions created before Phase 10.
+     */
+    @NotAudited
+    @Column(name = "fee_rule_id")
+    private Long feeRuleId;
+
+    /**
      * Apply a state transition. Delegates to the state machine guard in TransactionStatus.
      * Throws IllegalStateTransitionException if the transition is not allowed.
      */
@@ -134,5 +151,13 @@ public class Transaction extends AbstractAuditingEntity {
 
     public void setDeviceFingerprint(String deviceFingerprint) {
         this.deviceFingerprint = deviceFingerprint;
+    }
+
+    public void setFeeAmount(java.math.BigDecimal feeAmount) {
+        this.feeAmount = feeAmount;
+    }
+
+    public void setFeeRuleId(Long feeRuleId) {
+        this.feeRuleId = feeRuleId;
     }
 }
