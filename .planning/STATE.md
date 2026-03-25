@@ -5,13 +5,13 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 11 (Fee Exposure) — In progress. Plan 11-01 complete.
+**Current focus:** Phase 11 (Fee Exposure) — Complete. Phases 1–11 done. Phase 12 (Test & Doc Polish) remaining.
 
 ## Current Position
 
-Phase: 11 of 11 (Fee Exposure) — In progress
+Phase: 11 of 12 (Fee Exposure) — Complete
 Plan: 1 of 1 done (11-01 complete)
-Status: Phase 11 Plan 1 complete — fee fields exposed in API response and webhook payload
+Status: Phase 11 COMPLETE — feeAmount+feeRuleId in API response; feeAmount in webhook payload; verified 4/4
 Last activity: 2026-03-25 — Completed 11-01: feeAmount+feeRuleId in PaymentResponse; feeAmount in OutboundWebhookPayload; PaymentOrchestratorIT 8/8, WebhookDeliveryIT 3/3
 
 Progress: ████████████████████████ ~100% (27 of ~27 plans)

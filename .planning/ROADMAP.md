@@ -218,7 +218,7 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 11-01: Add `feeAmount` + `feeRuleId` to `PaymentResponse` DTO and `OutboundWebhookPayload`; update IT assertions
+- [x] 11-01: Add `feeAmount` + `feeRuleId` to `PaymentResponse` DTO and `OutboundWebhookPayload`; update IT assertions
 
 ### Phase 12: Test & Doc Polish
 **Goal**: Close two minor tech-debt items from the v1 audit — a missing IT test path and an incomplete Javadoc entry
@@ -253,5 +253,5 @@ Note: Phases 3 and 4 can run in parallel once Phase 2 completes and `ProviderGat
 | 8. Admin Dashboard + Monitoring | 3/3 | Complete | 2026-03-24 |
 | 9. Reconciliation | 2/2 | Complete | 2026-03-25 |
 | 10. Operational Hardening | 4/4 | Complete | 2026-03-25 |
-| 11. Fee Exposure | 0/1 | Pending | — |
+| 11. Fee Exposure | 1/1 | Complete | 2026-03-25 |
 | 12. Test & Doc Polish | 0/1 | Pending | — |
