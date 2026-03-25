@@ -97,6 +97,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain chain) throws ServletException, IOException {
         String rawKey = request.getHeader(API_KEY_HEADER);
         if (rawKey == null || rawKey.isBlank()) {
+            log.error("Expected X-Api-Key header");
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing X-Api-Key header");
             return;
         }

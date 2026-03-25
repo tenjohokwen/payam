@@ -11,8 +11,8 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
@@ -86,33 +86,35 @@ public class TenantSecurityConfig {
     @Order(1)
     public SecurityFilterChain tenantApiKeyFilterChain(HttpSecurity http,
                                                        ApiKeyAuthenticationFilter apiKeyFilter)
-                                                       throws Exception {
+            throws Exception {
+
+        // Reusable builder — uses PathPatternParser.defaultInstance (Spring MVC default)
+        PathPatternRequestMatcher.Builder path = PathPatternRequestMatcher.withDefaults();
+
         // Match /v1/** BUT NOT /v1/account/** AND NOT /v1/admin/**
-        // /v1/account/** is user account management (JWT territory).
-        // /v1/admin/** requires JWT + ROLE_ADMIN — must not be intercepted by the API-key chain.
         RequestMatcher tenantPaths = new AndRequestMatcher(
-            new AntPathRequestMatcher("/v1/**"),
-            new NegatedRequestMatcher(new OrRequestMatcher(
-                new AntPathRequestMatcher("/v1/account/**"),
-                new AntPathRequestMatcher("/v1/admin/**")
-            ))
+                path.matcher("/v1/**"),
+                new NegatedRequestMatcher(new OrRequestMatcher(
+                        path.matcher("/v1/account/**"),
+                        path.matcher("/v1/admin/**")
+                ))
         );
 
         // Build PUBLIC_ENDPOINTS permit-all matchers for paths within this chain's scope
         List<RequestMatcher> publicMatchers = AppEndpoints.PUBLIC_ENDPOINTS.stream()
-            .map(AntPathRequestMatcher::new)
-            .collect(Collectors.toList());
+                                                                           .map(pattern -> path.matcher(pattern))
+                                                                           .collect(Collectors.toList());
         RequestMatcher publicPathsMatcher = new OrRequestMatcher(publicMatchers);
 
         http
-            .securityMatcher(tenantPaths)
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(sm ->
-                sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(publicPathsMatcher).permitAll()   // PUBLIC_ENDPOINTS pass through
-                .anyRequest().authenticated())
-            .addFilterBefore(apiKeyFilter, UsernamePasswordAuthenticationFilter.class);
+                .securityMatcher(tenantPaths)
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(sm ->
+                                           sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(publicPathsMatcher).permitAll()
+                        .anyRequest().authenticated())
+                .addFilterBefore(apiKeyFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
-    }
-}
+    }}
