@@ -24,4 +24,13 @@ public interface PaymentEventLogRepository extends JpaRepository<PaymentEventLog
      * Used for hash chain verification traversal.
      */
     List<PaymentEventLog> findByTransactionIdOrderByCreatedDateAsc(String transactionId);
+
+    /**
+     * Returns all distinct transactionIds present in the event log.
+     * Used by {@link com.softropic.payam.admin.api.AuditResource} for full hash-chain audit.
+     *
+     * <p>WARNING: may be slow on large tables — caller should apply date windowing in production.
+     */
+    @Query("SELECT DISTINCT e.transactionId FROM PaymentEventLog e")
+    List<String> findAllDistinctTransactionIds();
 }
