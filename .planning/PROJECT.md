@@ -27,28 +27,29 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ Circuit breaker / retry for outbound calls (Resilience4j) — existing
 - ✓ Flyway database migrations — existing
 - ✓ Vue 3 + Quasar frontend SPA — existing
+- ✓ Multi-tenant API key management (generation, rotation, revocation, per-client scoping) — v1
+- ✓ Transaction lifecycle state machine: INITIATED → AUTH_PENDING → AUTHORIZED → PROCESSING → SUCCESS | FAILED | REVERSED — v1
+- ✓ Idempotency key enforcement — reject or return cached response for duplicate requests — v1
+- ✓ Immutable event-sourced transaction log with SHA-256 hash chain — v1
+- ✓ Distributed trace IDs (trace_id / transaction_id / external_reference) propagated throughout — v1
+- ✓ Internal double-entry ledger (debit customer, credit provider clearing) — v1
+- ✓ Orange Money adapter (merchant payment, cashout deferred) — v1
+- ✓ MTN MoMo adapter (request-to-pay, disbursement, account validation, KYC, balance) — v1
+- ✓ Unified payment initiation API (MTN MoMo + Orange Money behind one endpoint) — v1
+- ✓ Webhook receiver with IP whitelist + HMAC signature verification + replay protection — v1
+- ✓ Double-check pattern: re-verify every webhook against provider status API before state change — v1
+- ✓ Fraud engine: velocity checks (per IP/user/app), risk scoring (0–100), device fingerprinting — v1
+- ✓ Real-time admin dashboard: TPS, success/failure rates, fraud rate, provider latency — v1
+- ✓ Transaction investigation tools: search by transaction_id, phone, trace_id; show full event timeline — v1
+- ✓ Daily reconciliation against MTN/Orange reports (detect missing, mismatched, delayed) — v1
+- ✓ Fee management: configurable fixed fee per transaction, per-client or global rules — v1
+- ✓ Real-time alerts: fraud spikes, repeated failures, callback anomalies — v1
 
 ### Active
 
-<!-- Payment layer — current build scope -->
+<!-- Next milestone scope — TBD -->
 
-- [ ] Unified payment initiation API (MTN MoMo + Orange Money behind one endpoint)
-- [ ] Transaction lifecycle state machine: INITIATED → AUTH_PENDING → AUTHORIZED → PROCESSING → SUCCESS | FAILED | REVERSED
-- [ ] Idempotency key enforcement — reject or return cached response for duplicate requests
-- [ ] Orange Money adapter (merchant payment, cashout, C2C, account validation, bulk status)
-- [ ] MTN MoMo adapter (request-to-pay, disbursement, account validation, KYC, balance)
-- [ ] Webhook receiver with IP whitelist + HMAC signature verification + replay protection
-- [ ] Double-check pattern: re-verify every webhook against provider status API before state change
-- [ ] Immutable event-sourced transaction log with SHA-256 hash chain
-- [ ] Distributed trace IDs (trace_id / transaction_id / external_reference) propagated throughout
-- [ ] Multi-tenant API key management (generation, rotation, revocation, per-client scoping)
-- [ ] Fraud engine: velocity checks (per IP/user/app), risk scoring (0–100), device fingerprinting
-- [ ] Internal double-entry ledger (debit customer, credit provider clearing)
-- [ ] Daily reconciliation against MTN/Orange reports (detect missing, mismatched, delayed)
-- [ ] Real-time admin dashboard: TPS, success/failure rates, fraud rate, provider latency
-- [ ] Transaction investigation tools: search by transaction_id, phone, trace_id; show full event timeline
-- [ ] Fee management: configurable fixed fee per transaction, per-client or global rules
-- [ ] Real-time alerts: fraud spikes, repeated failures, callback anomalies
+(None defined — run `/gsd:define-requirements` to scope next milestone)
 
 ### Out of Scope
 
@@ -80,11 +81,22 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Monolith (not microservices) | Matches existing architecture; team size doesn't justify service overhead | — Pending |
-| Event sourcing for transactions | Required for tamper-proof audit trail and full traceability | — Pending |
-| Double-check webhook pattern | Cameroon fraud risk; webhooks can be forged; provider API is ground truth | — Pending |
-| Redis for idempotency/velocity | Fast read/write for high-frequency checks; PostgreSQL for durability | — Pending |
-| MTN + Orange from day one | Building the abstraction layer for one is the same effort; both in scope | — Pending |
+| Monolith (not microservices) | Matches existing architecture; team size doesn't justify service overhead | ✓ Good — v1 built cleanly in layered monolith |
+| Event sourcing for transactions | Required for tamper-proof audit trail and full traceability | ✓ Good — SHA-256 hash chain + `@Immutable` PaymentEventLog working |
+| Double-check webhook pattern | Cameroon fraud risk; webhooks can be forged; provider API is ground truth | ✓ Good — `WebhookDoubleCheckHandler` always re-queries provider before state change |
+| Redis for idempotency/velocity | Fast read/write for high-frequency checks; PostgreSQL for durability | ✓ Good — Redis NX+EX atomic reservation with PostgreSQL fallback |
+| MTN + Orange from day one | Building the abstraction layer for one is the same effort; both in scope | ✓ Good — shared `ProviderGateway` interface worked well |
+| Spring Modulith events (not Kafka/RabbitMQ) | Research confirmed sufficient for v1; no operational overhead | ✓ Good — `@TransactionalEventListener(AFTER_COMMIT)` + PostgreSQL Event Publication Registry |
+| `@CircuitBreaker` without `fallbackMethod` | Fallback fires for ALL exceptions, not just circuit-open | ✓ Good — `ignoreExceptions` for domain exceptions; `CallNotPermittedException` propagates |
+| No `@Transactional` on `PaymentOrchestrator.initiate()` | Holding DB connection during provider HTTP exhausts connection pool | ✓ Good — `TransactionTemplate` for discrete DB operations |
+| `FilterRegistrationBean(setEnabled=false)` for `ApiKeyAuthenticationFilter` | Prevents double-registration as servlet container filter | ✓ Good — established pattern for any `OncePerRequestFilter` defined as `@Bean` |
+| Ledger caller deferred to audit gap closure | Infrastructure existed in Phase 2 but production caller added only in Phase 13 | ⚠ Revisit — wire ledger caller in same phase as infrastructure next time |
+
+## Current State
+
+**Shipped:** v1 (2026-03-26) — 13 phases, 29 plans, ~41,200 LOC
+**Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + Vue 3 + Quasar
+**Known tech debt:** See `.planning/milestones/v1-MILESTONE-AUDIT.md` — 11 non-critical items; no blockers
 
 ---
-*Last updated: 2026-03-23 after initialization*
+*Last updated: 2026-03-26 after v1 milestone completion*
