@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 ## Current Position
 
 Phase: 15 of 17 (v2: MDC & Request Lifecycle)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-26 — Phase 14 complete (1/1 plans, verified 5/5 must-haves, LOG-INF-01/02/03 Complete)
+Plan: 1 of ? in phase
+Status: In progress
+Last activity: 2026-03-26 — Completed 15-01-PLAN.md (request_start/request_end/request_error, requestId + tenantId MDC)
 
-Progress: █████████████████████████ v1 complete | ██░░░░░░░░ v2 25%
+Progress: █████████████████████████ v1 complete | ███░░░░░░░ v2 30%
 
 ## Performance Metrics
 
@@ -42,6 +42,9 @@ Recent decisions affecting current work:
 - **[14-01] Hard-coded root level=INFO in logback:** Eliminates null/empty level risk from missing `logging.level.root` property. Per-package overrides still possible via YAML `logging.level.*`.
 - **[14-01] LoggingEventCompositeJsonEncoder as canonical encoder:** All JSON log output goes through this encoder. PatternLayoutEncoder must not be used for structured logging.
 - **[14-01] MDC flattening via `<mdc/>` provider:** traceId/spanId injected by micrometer-tracing-bridge-otel appear as top-level JSON fields automatically — no Java code needed.
+- **[15-01] tenantRef as MDC tenantId value:** `tenantRef` (String UUID) is used for the "tenantId" MDC key, not the Long database PK. Matches TenantContext and is the canonical Loki-queryable tenant identifier.
+- **[15-01] MDC.remove() ownership split:** LoggingFilter owns requestId (set/remove in its own try/finally). ApiKeyAuthenticationFilter owns tenantId (set/remove in its own try/finally). Each filter cleans up exactly what it set.
+- **[15-01] Conditional tenantId in request_end:** tenantId appended to args list only when TenantContext.get() != null — absent for JWT paths, always present for API-key paths. request_error intentionally omits it.
 
 ### Pending Todos
 
@@ -53,6 +56,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T09:06:56Z
-Stopped at: Completed 14-01-PLAN.md — JSON stdout logging pipeline active
+Last session: 2026-03-26T23:11:40Z
+Stopped at: Completed 15-01-PLAN.md — structured request lifecycle events active, requestId + tenantId in MDC
 Resume file: None
