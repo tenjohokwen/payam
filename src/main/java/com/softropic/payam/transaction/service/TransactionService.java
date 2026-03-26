@@ -34,7 +34,7 @@ public class TransactionService {
         String transactionId = UUID.randomUUID().toString();
         String traceId = Optional.ofNullable(tracer.currentSpan())
             .map(span -> span.context().traceId())
-            .orElse(transactionId);  // fallback: use transaction_id if no active span
+            .orElse(transactionId);  // fallback: use transactionId if no active span
 
         MDC.put("transactionId", transactionId);
         // Note: "traceId" is injected automatically by micrometer-tracing-bridge-otel via the <mdc/> provider.
