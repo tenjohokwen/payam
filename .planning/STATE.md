@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 ## Current Position
 
 Phase: 15 of 17 (v2: MDC & Request Lifecycle)
-Plan: 1 of ? in phase
+Plan: 2 of ? in phase
 Status: In progress
-Last activity: 2026-03-26 — Completed 15-01-PLAN.md (request_start/request_end/request_error, requestId + tenantId MDC)
+Last activity: 2026-03-26 — Completed 15-02-PLAN.md (transactionId + externalReference MDC camelCase rename, TXN_ID_NAME aligned)
 
-Progress: █████████████████████████ v1 complete | ███░░░░░░░ v2 30%
+Progress: █████████████████████████ v1 complete | ████░░░░░░ v2 40%
 
 ## Performance Metrics
 
@@ -45,6 +45,9 @@ Recent decisions affecting current work:
 - **[15-01] tenantRef as MDC tenantId value:** `tenantRef` (String UUID) is used for the "tenantId" MDC key, not the Long database PK. Matches TenantContext and is the canonical Loki-queryable tenant identifier.
 - **[15-01] MDC.remove() ownership split:** LoggingFilter owns requestId (set/remove in its own try/finally). ApiKeyAuthenticationFilter owns tenantId (set/remove in its own try/finally). Each filter cleans up exactly what it set.
 - **[15-01] Conditional tenantId in request_end:** tenantId appended to args list only when TenantContext.get() != null — absent for JWT paths, always present for API-key paths. request_error intentionally omits it.
+- **[15-02] Do not call MDC.put("traceId", ...) in application code:** micrometer-tracing-bridge-otel injects traceId automatically via `<mdc/>` provider for every active OTel span. Manual put was redundant and used the wrong snake_case key.
+- **[15-02] TXN_ID_NAME canonical MDC key is "transactionId":** Updated from "txnId" (was never aligned with what TransactionService wrote). All TransactionIdProvider operations now use the correct key.
+- **[15-02] MDC camelCase contract enforced:** All application-owned MDC fields use camelCase. OTel-owned fields (traceId, spanId) must not be manually overridden.
 
 ### Pending Todos
 
@@ -56,6 +59,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T23:11:40Z
-Stopped at: Completed 15-01-PLAN.md — structured request lifecycle events active, requestId + tenantId in MDC
+Last session: 2026-03-26T23:13:57Z
+Stopped at: Completed 15-02-PLAN.md — transactionId/externalReference MDC keys camelCase, TXN_ID_NAME aligned
 Resume file: None
