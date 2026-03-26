@@ -9,6 +9,7 @@ import com.softropic.payam.transaction.contract.TransactionStatus;
 import com.softropic.payam.transaction.repo.Transaction;
 import com.softropic.payam.transaction.repo.TransactionRepository;
 import com.softropic.payam.transaction.service.EventLogService;
+import com.softropic.payam.transaction.service.LedgerService;
 import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
 
 import org.slf4j.Logger;
@@ -31,13 +32,16 @@ public class WebhookTransitionService {
     private final TransactionRepository transactionRepository;
     private final EventLogService eventLogService;
     private final WebhookDeliveryService webhookDeliveryService;
+    private final LedgerService ledgerService;
 
     public WebhookTransitionService(TransactionRepository transactionRepository,
                                     EventLogService eventLogService,
-                                    WebhookDeliveryService webhookDeliveryService) {
+                                    WebhookDeliveryService webhookDeliveryService,
+                                    LedgerService ledgerService) {
         this.transactionRepository = transactionRepository;
         this.eventLogService = eventLogService;
         this.webhookDeliveryService = webhookDeliveryService;
+        this.ledgerService = ledgerService;
     }
 
     /**
@@ -71,6 +75,15 @@ public class WebhookTransitionService {
 
         tx.applyTransition(target);
         transactionRepository.save(tx);
+
+        if (target == TransactionStatus.SUCCESS) {
+            ledgerService.postEntry(
+                tx.getTransactionId(),
+                tx.getTenantId(),
+                tx.getAmount(),
+                tx.getCurrency()
+            );
+        }
 
         TransactionEventType eventType = target == TransactionStatus.SUCCESS
             ? TransactionEventType.PROVIDER_SUCCESS
