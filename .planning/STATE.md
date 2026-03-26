@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Full-stack observability — every payment event traceable from Loki logs through Tempo traces to Prometheus metrics without manual correlation.
-**Current focus:** Phase 15 — MDC & Request Lifecycle
+**Current focus:** Phase 16 — Business Event Logging
 
 ## Current Position
 
-Phase: 15 of 17 (v2: MDC & Request Lifecycle)
-Plan: 2 of ? in phase
-Status: In progress
-Last activity: 2026-03-26 — Completed 15-02-PLAN.md (transactionId + externalReference MDC camelCase rename, TXN_ID_NAME aligned)
+Phase: 16 of 17 (v2: Business Event Logging)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-03-27 — Phase 15 complete (2/2 plans, verified 5/5 must-haves, LOG-MDC-01/02 + LOG-REQ-01/02/03 Complete)
 
-Progress: █████████████████████████ v1 complete | ████░░░░░░ v2 40%
+Progress: █████████████████████████ v1 complete | ██████░░░░ v2 50%
 
 ## Performance Metrics
 
@@ -59,6 +59,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T23:13:57Z
-Stopped at: Completed 15-02-PLAN.md — transactionId/externalReference MDC keys camelCase, TXN_ID_NAME aligned
+Last session: 2026-03-27
+Stopped at: Phase 15 complete — all plans executed, phase goal verified 5/5
 Resume file: None

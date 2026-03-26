@@ -68,11 +68,11 @@ Which phases cover which requirements. Updated by create-roadmap.
 | LOG-INF-01 | Phase 14 | Complete |
 | LOG-INF-02 | Phase 14 | Complete |
 | LOG-INF-03 | Phase 14 | Complete |
-| LOG-MDC-01 | Phase 15 | Pending |
-| LOG-MDC-02 | Phase 15 | Pending |
-| LOG-REQ-01 | Phase 15 | Pending |
-| LOG-REQ-02 | Phase 15 | Pending |
-| LOG-REQ-03 | Phase 15 | Pending |
+| LOG-MDC-01 | Phase 15 | Complete |
+| LOG-MDC-02 | Phase 15 | Complete |
+| LOG-REQ-01 | Phase 15 | Complete |
+| LOG-REQ-02 | Phase 15 | Complete |
+| LOG-REQ-03 | Phase 15 | Complete |
 | LOG-BUS-01 | Phase 16 | Pending |
 | LOG-BUS-02 | Phase 16 | Pending |
 | LOG-BUS-03 | Phase 16 | Pending |

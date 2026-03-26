@@ -31,7 +31,7 @@
 **Milestone Goal:** Full-stack observability — every payment event traceable from Loki logs through Tempo traces to Prometheus metrics without manual correlation.
 
 - [x] **Phase 14: Logging Infrastructure** — JSON encoder, stdout-only, OTel trace correlation — completed 2026-03-26
-- [ ] **Phase 15: MDC & Request Lifecycle** — Per-request MDC enrichment + structured HTTP lifecycle events
+- [x] **Phase 15: MDC & Request Lifecycle** — Per-request MDC enrichment + structured HTTP lifecycle events — completed 2026-03-27
 - [ ] **Phase 16: Business Event Logging** — Structured logs for all payment domain events
 - [ ] **Phase 17: Code Standards Enforcement** — No interpolation, no flow logs, no PII
 
@@ -111,6 +111,6 @@ Plans:
 | 12. Test & Doc Polish | v1 | 1/1 | Complete | 2026-03-25 |
 | 13. Ledger Wiring + Webhook Access Control | v1 | 1/1 | Complete | 2026-03-26 |
 | 14. Logging Infrastructure | v2 | 1/1 | Complete | 2026-03-26 |
-| 15. MDC & Request Lifecycle | v2 | 0/TBD | Not started | - |
+| 15. MDC & Request Lifecycle | v2 | 2/2 | Complete | 2026-03-27 |
 | 16. Business Event Logging | v2 | 0/TBD | Not started | - |
 | 17. Code Standards Enforcement | v2 | 0/TBD | Not started | - |
