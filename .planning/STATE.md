@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 13 (Ledger Wiring + Webhook Access Control) — Plan 1 complete.
+**Current focus:** Phase 13 (Ledger Wiring + Webhook Access Control) — Complete. All 13 phases done. v1 milestone complete.
 
 ## Current Position
 

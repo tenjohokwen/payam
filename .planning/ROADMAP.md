@@ -248,7 +248,7 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 13-01: Wire `ledgerService.postEntry()` in `WebhookTransitionService`; add `@PreAuthorize` to `WebhookDeliveryResource`; IT assertions for both
+- [x] 13-01: Wire `ledgerService.postEntry()` in `WebhookTransitionService`; add `@PreAuthorize` to `WebhookDeliveryResource`; IT assertions for both
 
 ## Progress
 
@@ -271,4 +271,4 @@ Note: Phases 3 and 4 can run in parallel once Phase 2 completes and `ProviderGat
 | 10. Operational Hardening | 4/4 | Complete | 2026-03-25 |
 | 11. Fee Exposure | 1/1 | Complete | 2026-03-25 |
 | 12. Test & Doc Polish | 1/1 | Complete | 2026-03-25 |
-| 13. Ledger Wiring + Webhook Access Control | 0/1 | Pending | — |
+| 13. Ledger Wiring + Webhook Access Control | 1/1 | Complete | 2026-03-26 |
