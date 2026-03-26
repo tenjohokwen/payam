@@ -5,6 +5,8 @@ import com.softropic.payam.fraud.contract.FraudDecision;
 import com.softropic.payam.fraud.contract.FraudSignal;
 import com.softropic.payam.fraud.repo.FraudRule;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -52,6 +54,8 @@ public class FraudScoringService {
      * @return FraudDecision with blocked flag, risk score, and reason if blocked
      */
     public FraudDecision evaluate(PaymentCommand cmd) {
+        long start = System.currentTimeMillis();
+
         // Step 1: Check IP velocity
         boolean ipAllowed = velocityCheckService.checkVelocity(FraudSignal.IP_VELOCITY,
                 cmd.clientIp() != null ? cmd.clientIp() : "unknown");
@@ -95,8 +99,12 @@ public class FraudScoringService {
         boolean anyVelocityViolated = !ipAllowed || !msisdnAllowed || !appAllowed || !householdAllowed;
         if (anyVelocityViolated && firstBlockedSignal != null) {
             String reason = "Velocity limit exceeded: " + firstBlockedSignal;
-            log.warn("Payment blocked by fraud engine (direct velocity): transactionId={}, riskScore={}, reason={}",
-                    cmd.transactionId(), riskScore, reason);
+            log.warn("Fraud evaluation blocked",
+                kv("operation", "fraud_evaluation"),
+                kv("transactionId", cmd.transactionId()),
+                kv("riskScore", riskScore),
+                kv("blocked", true),
+                kv("durationMs", System.currentTimeMillis() - start));
             return FraudDecision.block(riskScore, reason);
         }
 
@@ -107,12 +115,21 @@ public class FraudScoringService {
 
         if (riskScore >= blockThreshold) {
             String reason = "Risk score exceeded: " + firstBlockedSignal;
-            log.warn("Payment blocked by fraud engine (score): transactionId={}, riskScore={}, reason={}",
-                    cmd.transactionId(), riskScore, reason);
+            log.warn("Fraud evaluation blocked",
+                kv("operation", "fraud_evaluation"),
+                kv("transactionId", cmd.transactionId()),
+                kv("riskScore", riskScore),
+                kv("blocked", true),
+                kv("durationMs", System.currentTimeMillis() - start));
             return FraudDecision.block(riskScore, reason);
         }
 
-        log.debug("Fraud evaluation allowed: transactionId={}, riskScore={}", cmd.transactionId(), riskScore);
+        log.info("Fraud evaluation allowed",
+            kv("operation", "fraud_evaluation"),
+            kv("transactionId", cmd.transactionId()),
+            kv("riskScore", riskScore),
+            kv("blocked", false),
+            kv("durationMs", System.currentTimeMillis() - start));
         return FraudDecision.allow(riskScore);
     }
 
