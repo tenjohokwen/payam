@@ -2,6 +2,7 @@ package com.softropic.payam.webhook;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
+import com.softropic.payam.common.AdminLogin;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.tenant.service.TenantService;
 import com.softropic.payam.tenant.repo.TenantRepository;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -31,6 +33,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.client.RestTemplate;
 import org.wiremock.spring.ConfigureWireMock;
 import org.wiremock.spring.EnableWireMock;
 import org.wiremock.spring.InjectWireMock;
@@ -90,6 +93,10 @@ class WebhookDeliveryIT {
     @Autowired TransactionRepository transactionRepository;
     @Autowired WebhookDeliveryLogRepository deliveryLogRepo;
     @Autowired CircuitBreakerRegistry circuitBreakerRegistry;
+    @Autowired RestTemplateBuilder restTemplateBuilder;
+
+    private RestTemplate noRetryRestTemplate;
+    private HttpHeaders adminCookies;
 
     @LocalServerPort int serverPort;
 
@@ -100,6 +107,10 @@ class WebhookDeliveryIT {
 
     @BeforeEach
     void setUp() {
+        noRetryRestTemplate = restTemplateBuilder
+            .requestFactory(org.springframework.http.client.SimpleClientHttpRequestFactory.class)
+            .build();
+
         // Seed JWT secret required by SecurityAdviceFilter.addSecretToThread()
         transactionTemplate.execute(status -> {
             jdbcTemplate.execute(
@@ -112,6 +123,42 @@ class WebhookDeliveryIT {
                 "ON CONFLICT DO NOTHING");
             return null;
         });
+
+        // Seed admin user for Test 3 (delivery endpoint now admin-only)
+        transactionTemplate.execute(status -> {
+            jdbcTemplate.execute(
+                "INSERT INTO main.authority (id, name, status, created_by, created_date, last_modified_by, last_modified_date, request_id) " +
+                "VALUES (6747751741842104908, 'ROLE_ADMIN', 'ACTIVE', 'system', '2016-04-26 20:41:25', 'system', '2016-04-26 20:41:25', '') " +
+                "ON CONFLICT DO NOTHING");
+            jdbcTemplate.execute(
+                "INSERT INTO main.authority (id, name, status, created_by, created_date, last_modified_by, last_modified_date, request_id) " +
+                "VALUES (5418719445932238328, 'ROLE_USER', 'ACTIVE', 'system', '2016-04-26 20:41:25', 'system', '2016-04-26 20:41:25', '') " +
+                "ON CONFLICT DO NOTHING");
+            jdbcTemplate.execute(
+                "INSERT INTO main.\"user\" " +
+                "(id, created_by, created_date, last_modified_by, last_modified_date, request_id, session_id, " +
+                " status, dob, email, first_name, gender, lang_key, last_name, iso2_country, phone, phone_type, " +
+                " title, activated, activation_date, activation_key, locked, login, login_id_type, " +
+                " password_hash, reset_expiration, reset_key, otp_enabled) " +
+                "VALUES " +
+                "(675373350208068096, 'anonymousUser', '2025-02-06 16:12:34.516705', 'anonymousUser', '2025-02-06 16:12:35.198266', " +
+                " 'd503b412-b576-48c2-8ead-ec9e10d42880', NULL, 'ACTIVE', '1990-02-20', 'queb@yahoo.com', " +
+                " 'VAYM', 'MALE', 'en', 'FXFUOUQBUO', 'DE', '01724527687', 'MOBILE', NULL, " +
+                " true, NULL, NULL, false, 'queb@yahoo.com', 'EMAIL', " +
+                " '$2a$10$Sdo/qTAcMcYaIAV6XXw3dejlsDwL93g6zb.uPUwFohPpC8q3bEg5i', NULL, NULL, false) " +
+                "ON CONFLICT DO NOTHING");
+            jdbcTemplate.execute(
+                "INSERT INTO main.user_authority (user_id, authority_id) VALUES (675373350208068096, 5418719445932238328) " +
+                "ON CONFLICT DO NOTHING");
+            jdbcTemplate.execute(
+                "INSERT INTO main.user_authority (user_id, authority_id) VALUES (675373350208068096, 6747751741842104908) " +
+                "ON CONFLICT DO NOTHING");
+            return null;
+        });
+
+        // Obtain admin JWT cookies for Test 3
+        adminCookies = AdminLogin.loginAsAdmin(
+            "http://localhost:" + serverPort + "/authenticate", noRetryRestTemplate);
 
         // Stub provider token endpoints
         orangeServer.stubFor(post(urlPathEqualTo("/token"))
@@ -155,12 +202,16 @@ class WebhookDeliveryIT {
 
         // FK-safe DELETE order — webhook_delivery_log before transaction before tenant
         transactionTemplate.execute(status -> {
+            jdbcTemplate.execute("DELETE FROM main.ledger_entry");
             jdbcTemplate.execute("DELETE FROM main.webhook_delivery_log");
             jdbcTemplate.execute("DELETE FROM main.payment_event_log");
             jdbcTemplate.execute("DELETE FROM main.transaction");
             jdbcTemplate.execute("DELETE FROM main.tenant_api_key");
             jdbcTemplate.execute("DELETE FROM main.tenant");
             jdbcTemplate.execute("DELETE FROM main.sec");
+            jdbcTemplate.execute("DELETE FROM main.user_authority WHERE user_id = 675373350208068096");
+            jdbcTemplate.execute("DELETE FROM main.\"user\" WHERE id = 675373350208068096");
+            jdbcTemplate.execute("DELETE FROM main.authority WHERE id IN (6747751741842104908, 5418719445932238328)");
             return null;
         });
     }
@@ -344,13 +395,11 @@ class WebhookDeliveryIT {
 
         Thread.sleep(500);
 
-        // GET /v1/webhooks/deliveries/{transactionId} with tenant API key
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-API-KEY", apiKey);
-        ResponseEntity<List<WebhookDeliveryLog>> response = testRestTemplate.exchange(
-            "http://localhost:" + serverPort + "/v1/webhooks/deliveries/" + txId,
+        // GET /v1/admin/webhooks/deliveries/{transactionId} with admin JWT
+        ResponseEntity<List<WebhookDeliveryLog>> response = noRetryRestTemplate.exchange(
+            "http://localhost:" + serverPort + "/v1/admin/webhooks/deliveries/" + txId,
             HttpMethod.GET,
-            new HttpEntity<>(headers),
+            new HttpEntity<>(adminCookies),
             new ParameterizedTypeReference<List<WebhookDeliveryLog>>() {});
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
