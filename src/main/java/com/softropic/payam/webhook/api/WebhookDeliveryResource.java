@@ -1,9 +1,11 @@
 package com.softropic.payam.webhook.api;
 
+import com.softropic.payam.security.common.util.SecurityConstants;
 import com.softropic.payam.webhook.repo.WebhookDeliveryLog;
 import com.softropic.payam.webhook.service.WebhookDeliveryService;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,7 +19,8 @@ import java.util.List;
  * Requires JWT authentication (standard secured endpoint under /v1/**).
  */
 @RestController
-@RequestMapping("/v1/webhooks")
+@RequestMapping("/v1/admin/webhooks")
+@PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
 public class WebhookDeliveryResource {
 
     private final WebhookDeliveryService deliveryService;
