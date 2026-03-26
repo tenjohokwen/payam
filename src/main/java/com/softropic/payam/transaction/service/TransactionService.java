@@ -36,10 +36,12 @@ public class TransactionService {
             .map(span -> span.context().traceId())
             .orElse(transactionId);  // fallback: use transaction_id if no active span
 
-        MDC.put("transaction_id", transactionId);
-        MDC.put("trace_id", traceId);
+        MDC.put("transactionId", transactionId);
+        // Note: "traceId" is injected automatically by micrometer-tracing-bridge-otel via the <mdc/> provider.
+        // The local traceId variable is persisted in the Transaction entity (database column) only.
+        // Do NOT call MDC.put("traceId", ...) here — the OTel bridge owns that MDC key.
         if (externalReference != null) {
-            MDC.put("external_reference", externalReference);
+            MDC.put("externalReference", externalReference);
         }
 
         Transaction tx = Transaction.builder()
