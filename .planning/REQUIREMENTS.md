@@ -65,9 +65,9 @@ Which phases cover which requirements. Updated by create-roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LOG-INF-01 | Phase 14 | Pending |
-| LOG-INF-02 | Phase 14 | Pending |
-| LOG-INF-03 | Phase 14 | Pending |
+| LOG-INF-01 | Phase 14 | Complete |
+| LOG-INF-02 | Phase 14 | Complete |
+| LOG-INF-03 | Phase 14 | Complete |
 | LOG-MDC-01 | Phase 15 | Pending |
 | LOG-MDC-02 | Phase 15 | Pending |
 | LOG-REQ-01 | Phase 15 | Pending |

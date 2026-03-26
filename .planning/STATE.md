@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Full-stack observability — every payment event traceable from Loki logs through Tempo traces to Prometheus metrics without manual correlation.
-**Current focus:** Phase 14 — Logging Infrastructure (plan 01 complete)
+**Current focus:** Phase 15 — MDC & Request Lifecycle
 
 ## Current Position
 
-Phase: 14 of 17 (v2: Logging Infrastructure)
-Plan: 1 of N (plan 01 complete)
-Status: In progress
-Last activity: 2026-03-26 — Completed 14-01-PLAN.md (JSON logging pipeline)
+Phase: 15 of 17 (v2: MDC & Request Lifecycle)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-03-26 — Phase 14 complete (1/1 plans, verified 5/5 must-haves, LOG-INF-01/02/03 Complete)
 
-Progress: █████████████████████████ v1 complete | █░░░░░░░░░ v2 ~10%
+Progress: █████████████████████████ v1 complete | ██░░░░░░░░ v2 25%
 
 ## Performance Metrics
 
