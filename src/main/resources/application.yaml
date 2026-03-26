@@ -151,6 +151,13 @@ management:
     health:
       show-details: when-authorized
       roles: ROLE_ADMIN
+    info:
+      show-details: when-authorized
+      roles: ROLE_ADMIN
+    env:
+      show-details: when-authorized
+      show-values: when-authorized
+      roles: ROLE_ADMIN
   tracing:
     sampling:
       probability: 1.0
@@ -167,31 +174,6 @@ defaultTcpConfig: &DEFAULT_TCP
   maxConnections: 50
   maxConnectionsPerRoute: 25
   checkCertificate: false
-
-client:
-  momo:
-    host: https://sandbox.momodeveloper.mtn.com/collection
-    headers:
-      X-Target-Environment: sandbox
-      Ocp-Apim-Subscription-Key: ${MOMO_SUBSCRIPTION_KEY}
-    tcpConfig:
-      <<: *DEFAULT_TCP
-    endpoints:
-      requestToPay:
-        uri: https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay
-        method: POST
-      getRequestToPayTransactionStatus:
-        uri: https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay/{referenceId}
-        method: GET
-      getAccountBalance:
-        uri: https://sandbox.momodeveloper.mtn.com/collection/v1_0/account/balance
-        method: GET
-      getBasicUserInfo:
-        uri: https://sandbox.momodeveloper.mtn.com/collection/v1_0/accountholder/{accountHolderIdType}/{accountHolderId}/basicuserinfo
-        method: GET
-      requestAuthToken:
-        uri: https://sandbox.momodeveloper.mtn.com/collection/token/
-        method: POST
 
 # Immutable Log Component Configuration
 immutable-log:

@@ -36,6 +36,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
+ *  Non-profile files (application.yaml, application.properties) share the same priority tier, within which application.properties from test resources wins — so the ${mtn.collection-base-url}/token/ expression is used, token URL → WireMock → test passes.
+ *   - Profile-specific files (application-dev.yaml) always have higher priority than any non-profile file, including src/test/resources/application.properties.
+ *
  * End-to-end integration test for fraud engine wired into POST /v1/payments.
  *
  * <p>Verifies two FRAUD-01 requirements end-to-end:
