@@ -10,7 +10,7 @@ public final class Constants {
     public static final String HEARTBEAT_OK = "OK";
     public static final String REQUEST_ID_HEADER_NAME = "X-Request-Id";
     public static final String REQUEST_ID_NAME = "requestId";
-    public static final String TXN_ID_NAME = "txnId";
+    public static final String TXN_ID_NAME = "transactionId";
     public static final String ENTITY_NAME = "entityName";
     public static final String SMARTIX_CONFIG_NAME = "smartixConfig";
     public static final String HTTP_REQUEST_ID_DELIM = "REQTXN";
