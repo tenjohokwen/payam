@@ -65,8 +65,16 @@ public class MailService {
     public void sendEmailFromTemplate(final Recipient recipient,
                                       final EmailTemplate emailTemplate,
                                       final Map<String, Object> values) throws MessagingException {
-        log.debug("Sending activation e-mail to '{}'", recipient.getEmail());
+        log.debug("Sending e-mail to '{}' with template '{}'", recipient.getEmail(), emailTemplate);
         final Locale locale = Locale.forLanguageTag(recipient.getLangKey());
+
+        if (EmailTemplate.NONE.equals(emailTemplate)) {
+            final String subject = (String) values.get("subject");
+            final String content = (String) values.get("body");
+            sendEmail(recipient.getEmail(), subject, content, false, false);
+            return;
+        }
+
         final Context context = new Context(locale);
         context.setVariable(RECIPIENT, recipient);
         context.setVariable("map", values);
