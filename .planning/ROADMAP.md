@@ -234,10 +234,26 @@ Plans:
 Plans:
 - [ ] 12-01: Add device fingerprint IT assertion; fix `PaymentResource` Javadoc
 
+### Phase 13: Ledger Wiring + Webhook Access Control
+**Goal**: Close two audit gaps — wire `LedgerService.postEntry()` on SUCCESS transitions so `ledger_entry` is populated in production, and add `@PreAuthorize` to `WebhookDeliveryResource` to prevent cross-tenant information disclosure
+**Depends on**: Phase 12
+**Requirements**: TX-05 (gap closure — ledger infrastructure exists but has no production callers)
+**Gap Closure**: Closes gaps from v1 milestone audit
+**Research flag**: Unlikely — targeted wiring and one annotation; no new infrastructure
+**Success Criteria** (what must be TRUE):
+  1. A successful payment (SUCCESS transition via `WebhookTransitionService.applyFinalTransition()`) writes a balanced DEBIT+CREDIT pair to `ledger_entry`
+  2. A `LedgerIT` (or extended `WebhookTransitionIT`) test confirms two `ledger_entry` rows exist after a simulated SUCCESS transition
+  3. `GET /v1/webhooks/deliveries/{transactionId}` requires `ROLE_ADMIN` (or authenticated tenant ownership) — a `ROLE_USER` JWT returns 403
+  4. All existing tests continue to pass
+**Plans**: TBD
+
+Plans:
+- [ ] 13-01: Wire `ledgerService.postEntry()` in `WebhookTransitionService`; add `@PreAuthorize` to `WebhookDeliveryResource`; IT assertions for both
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13
 
 Note: Phases 3 and 4 can run in parallel once Phase 2 completes and `ProviderGateway` interface + DTOs are defined.
 
@@ -255,3 +271,4 @@ Note: Phases 3 and 4 can run in parallel once Phase 2 completes and `ProviderGat
 | 10. Operational Hardening | 4/4 | Complete | 2026-03-25 |
 | 11. Fee Exposure | 1/1 | Complete | 2026-03-25 |
 | 12. Test & Doc Polish | 1/1 | Complete | 2026-03-25 |
+| 13. Ledger Wiring + Webhook Access Control | 0/1 | Pending | — |
