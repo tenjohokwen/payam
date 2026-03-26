@@ -65,29 +65,29 @@ Which phases cover which requirements. Updated by create-roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LOG-INF-01 | TBD | Pending |
-| LOG-INF-02 | TBD | Pending |
-| LOG-INF-03 | TBD | Pending |
-| LOG-MDC-01 | TBD | Pending |
-| LOG-MDC-02 | TBD | Pending |
-| LOG-REQ-01 | TBD | Pending |
-| LOG-REQ-02 | TBD | Pending |
-| LOG-REQ-03 | TBD | Pending |
-| LOG-BUS-01 | TBD | Pending |
-| LOG-BUS-02 | TBD | Pending |
-| LOG-BUS-03 | TBD | Pending |
-| LOG-BUS-04 | TBD | Pending |
-| LOG-BUS-05 | TBD | Pending |
-| LOG-BUS-06 | TBD | Pending |
-| LOG-BUS-07 | TBD | Pending |
-| LOG-CODE-01 | TBD | Pending |
-| LOG-CODE-02 | TBD | Pending |
-| LOG-CODE-03 | TBD | Pending |
+| LOG-INF-01 | Phase 14 | Pending |
+| LOG-INF-02 | Phase 14 | Pending |
+| LOG-INF-03 | Phase 14 | Pending |
+| LOG-MDC-01 | Phase 15 | Pending |
+| LOG-MDC-02 | Phase 15 | Pending |
+| LOG-REQ-01 | Phase 15 | Pending |
+| LOG-REQ-02 | Phase 15 | Pending |
+| LOG-REQ-03 | Phase 15 | Pending |
+| LOG-BUS-01 | Phase 16 | Pending |
+| LOG-BUS-02 | Phase 16 | Pending |
+| LOG-BUS-03 | Phase 16 | Pending |
+| LOG-BUS-04 | Phase 16 | Pending |
+| LOG-BUS-05 | Phase 16 | Pending |
+| LOG-BUS-06 | Phase 16 | Pending |
+| LOG-BUS-07 | Phase 16 | Pending |
+| LOG-CODE-01 | Phase 17 | Pending |
+| LOG-CODE-02 | Phase 17 | Pending |
+| LOG-CODE-03 | Phase 17 | Pending |
 
 **Coverage:**
 - v2 requirements: 18 total
-- Mapped to phases: 0 (TBD — run /gsd:create-roadmap)
-- Unmapped: 18 ⚠
+- Mapped to phases: 18 ✓
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-26*
