@@ -2,6 +2,7 @@ package com.softropic.payam.tenant.config;
 
 import com.softropic.payam.security.common.util.TenantContext;
 import com.softropic.payam.security.config.AppEndpoints;
+import org.slf4j.MDC;
 import com.softropic.payam.tenant.contract.TenantPrincipal;
 import com.softropic.payam.tenant.repo.TenantApiKey;
 import com.softropic.payam.tenant.service.ApiKeyService;
@@ -115,6 +116,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         String tenantRef = tenantApiKey.getTenant().getTenantRef();
         Long   tenantId  = tenantApiKey.getTenant().getId();
         TenantContext.set(tenantRef);
+        MDC.put("tenantId", tenantRef);  // LOG-MDC-01: tenantId in MDC for every log in this request thread
 
         TenantPrincipal principal = new TenantPrincipal(tenantRef, tenantId);
         UsernamePasswordAuthenticationToken auth =
@@ -124,7 +126,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         try {
             chain.doFilter(request, response);
         } finally {
-            TenantContext.clear();   // ALWAYS clear — servlet containers reuse threads
+            TenantContext.clear();               // ALWAYS clear — servlet containers reuse threads
+            MDC.remove("tenantId");             // Mirror MDC.put — remove exactly what was added
             SecurityContextHolder.clearContext();
         }
     }
