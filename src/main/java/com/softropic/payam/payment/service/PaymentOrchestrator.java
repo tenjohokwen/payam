@@ -31,6 +31,10 @@ import com.softropic.payam.transaction.service.TransactionService;
 
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
+import com.softropic.payam.security.common.util.TenantContext;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -114,6 +118,7 @@ public class PaymentOrchestrator {
      * @return PaymentResponse — always non-null; check {@code errorCode} for failure
      */
     public PaymentResponse initiate(Long tenantId, PaymentRequest request) {
+        long start = System.currentTimeMillis();
 
         // Step 1: Resolve MSISDN to provider
         MobilePaymentProvider provider;
@@ -170,7 +175,15 @@ public class PaymentOrchestrator {
         // Step 4.5: Fraud check — evaluate before any provider call (see P7.1 / FRAUD-01)
         FraudDecision fraud = fraudScoringService.evaluate(cmd);
         if (fraud.blocked()) {
-            log.warn("Payment blocked by fraud engine: transactionId={}, reason={}", tx.getTransactionId(), fraud.reason());
+            log.warn("Payment initiation blocked",
+                kv("operation", "initiate_payment"),
+                kv("tenantId", TenantContext.get()),
+                kv("transactionId", tx.getTransactionId()),
+                kv("provider", provider.name()),
+                kv("msisdn", msisdnLast4(request.msisdn())),
+                kv("durationMs", System.currentTimeMillis() - start),
+                kv("status", "FAILED"),
+                kv("errorCode", OrchestratorError.FRAUD_BLOCKED.getErrorCode()));
             applyFailed(tx, TransactionStatus.INITIATED, OrchestratorError.FRAUD_BLOCKED, fraud.reason());
             return PaymentResponse.failed(tx.getTransactionId(),
                     OrchestratorError.FRAUD_BLOCKED.getErrorCode(),
@@ -226,32 +239,72 @@ public class PaymentOrchestrator {
                     capturedFee[0], capturedFeeRuleId[0]);
             idempotencyService.store(tenantId, request.idempotencyKey(), 202, JsonUtil.toJson(response));
             metricsService.recordSuccess(provider.name());
-            log.info("Payment dispatched successfully: transactionId={}, provider={}", tx.getTransactionId(), provider);
+            log.info("Payment initiated",
+                kv("operation", "initiate_payment"),
+                kv("tenantId", TenantContext.get()),
+                kv("transactionId", tx.getTransactionId()),
+                kv("provider", provider.name()),
+                kv("msisdn", msisdnLast4(request.msisdn())),
+                kv("durationMs", System.currentTimeMillis() - start),
+                kv("status", "SUCCESS"));
             return response;
 
         } catch (CallNotPermittedException e) {
-            log.warn("Circuit open for provider={}: transactionId={}", provider, tx.getTransactionId());
+            log.warn("Payment initiation failed",
+                kv("operation", "initiate_payment"),
+                kv("tenantId", TenantContext.get()),
+                kv("transactionId", tx.getTransactionId()),
+                kv("provider", provider.name()),
+                kv("msisdn", msisdnLast4(request.msisdn())),
+                kv("durationMs", System.currentTimeMillis() - start),
+                kv("status", "FAILED"),
+                kv("errorCode", OrchestratorError.PROVIDER_UNAVAILABLE.getErrorCode()));
             applyFailed(tx, TransactionStatus.INITIATED, OrchestratorError.PROVIDER_UNAVAILABLE, "Circuit open");
             return PaymentResponse.failed(tx.getTransactionId(),
                     OrchestratorError.PROVIDER_UNAVAILABLE.getErrorCode(),
                     "Provider temporarily unavailable");
 
         } catch (SubscriberInactiveException | MtnAccountInactiveException e) {
-            log.warn("Subscriber inactive: transactionId={}, msisdn={}", tx.getTransactionId(), request.msisdn());
+            log.warn("Payment initiation failed",
+                kv("operation", "initiate_payment"),
+                kv("tenantId", TenantContext.get()),
+                kv("transactionId", tx.getTransactionId()),
+                kv("provider", provider.name()),
+                kv("msisdn", msisdnLast4(request.msisdn())),
+                kv("durationMs", System.currentTimeMillis() - start),
+                kv("status", "FAILED"),
+                kv("errorCode", OrchestratorError.SUBSCRIBER_INACTIVE.getErrorCode()));
             applyFailed(tx, TransactionStatus.INITIATED, OrchestratorError.SUBSCRIBER_INACTIVE, e.getMessage());
             return PaymentResponse.failed(tx.getTransactionId(),
                     OrchestratorError.SUBSCRIBER_INACTIVE.getErrorCode(),
                     e.getMessage());
 
         } catch (HttpClientException e) {
-            log.warn("Provider HTTP error: transactionId={}, httpStatus={}", tx.getTransactionId(), e.getHttpStatusCode());
+            log.warn("Payment initiation failed",
+                kv("operation", "initiate_payment"),
+                kv("tenantId", TenantContext.get()),
+                kv("transactionId", tx.getTransactionId()),
+                kv("provider", provider.name()),
+                kv("msisdn", msisdnLast4(request.msisdn())),
+                kv("durationMs", System.currentTimeMillis() - start),
+                kv("status", "FAILED"),
+                kv("errorCode", OrchestratorError.PROVIDER_ERROR.getErrorCode()));
             applyFailed(tx, TransactionStatus.INITIATED, OrchestratorError.PROVIDER_ERROR, e.getMessage());
             return PaymentResponse.failed(tx.getTransactionId(),
                     OrchestratorError.PROVIDER_ERROR.getErrorCode(),
                     "Provider error: " + e.getHttpStatusCode());
 
         } catch (Exception e) {
-            log.error("Unexpected error during payment dispatch: transactionId={}", tx.getTransactionId(), e);
+            log.error("Payment initiation failed",
+                kv("operation", "initiate_payment"),
+                kv("tenantId", TenantContext.get()),
+                kv("transactionId", tx.getTransactionId()),
+                kv("provider", provider.name()),
+                kv("msisdn", msisdnLast4(request.msisdn())),
+                kv("durationMs", System.currentTimeMillis() - start),
+                kv("status", "FAILED"),
+                kv("errorCode", OrchestratorError.PROVIDER_ERROR.getErrorCode()),
+                e);
             applyFailed(tx, TransactionStatus.INITIATED, OrchestratorError.PROVIDER_ERROR, e.getMessage());
             return PaymentResponse.failed(tx.getTransactionId(),
                     OrchestratorError.PROVIDER_ERROR.getErrorCode(),
@@ -260,6 +313,11 @@ public class PaymentOrchestrator {
     }
 
     // ---- private helpers ----
+
+    private static String msisdnLast4(String msisdn) {
+        if (msisdn == null || msisdn.length() < 4) return "****";
+        return msisdn.substring(msisdn.length() - 4);
+    }
 
     private MobileMoneyPort resolvePort(MobilePaymentProvider provider) {
         return switch (provider) {
