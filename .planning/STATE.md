@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 12 (Test & Doc Polish) — Complete. All 12 phases done. v1 milestone complete.
+**Current focus:** Phase 13 (Ledger Wiring + Webhook Access Control) — Plan 1 complete.
 
 ## Current Position
 
-Phase: 12 of 12 (Test & Doc Polish) — Complete
-Plan: 1 of 1 done (12-01 complete)
-Status: Phase 12 COMPLETE — deviceFingerprintIsPersistedInDb IT test added; PaymentResource Javadoc FRAUD_BLOCKED documented; FraudEngineIT 3/3
-Last activity: 2026-03-25 — Completed 12-01: device_fingerprint IT assertion + PaymentResource Javadoc polish. ALL 12 PHASES COMPLETE.
+Phase: 13 of 13 (Ledger Wiring + Webhook Access Control)
+Plan: 1 of 1 done (13-01 complete)
+Status: Phase 13 Plan 1 COMPLETE — LedgerService wired into WebhookTransitionService SUCCESS path; WebhookDeliveryResource moved to /v1/admin/webhooks with @PreAuthorize; 14/14 IT tests pass
+Last activity: 2026-03-26 — Completed 13-01: LedgerService production caller + WebhookDeliveryResource admin access control
 
-Progress: ████████████████████████ 100% (28 of 28 plans)
+Progress: █████████████████████████ 100% (29 of 29 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 28
+- Total plans completed: 29
 - Average duration: 21 min
-- Total execution time: ~7.2 hours
+- Total execution time: ~7.4 hours
 
 **By Phase:**
 
@@ -39,6 +39,7 @@ Progress: ███████████████████████�
 | 10-operational-hardening | 4/4 | ~100 min | ~25 min |
 | 11-fee-exposure | 1/1 | 27 min | 27 min |
 | 12-test-doc-polish | 1/1 | 4 min | 4 min |
+| 13-ledger-wiring-webhook-access-control | 1/1 | 14 min | 14 min |
 
 **Recent Trend:**
 - Last 5 plans: 4 min, 27 min, 11 min, 3 min, 25 min avg
@@ -200,6 +201,7 @@ Recent decisions affecting current work:
 - TlsStartupAssertion dev-profile guard: assertion skips when "dev" profile active; in non-dev throws AppSetupException if client.momo.tcp-config.check-certificate=false; OrangeMoneyConfig/MtnMoMoConfig have NO tcpConfig field — use Environment.getProperty() not config.getTcpConfig()
 - ProviderStatusResource Pitfall 5 guard: always call circuitBreakerRegistry.circuitBreaker("orange") and circuitBreakerRegistry.circuitBreaker("mtn") before getAllCircuitBreakers() — CBs are lazily created and won't appear in the set until force-created or first used
 - payment_event_log.transaction_id is NOT a FK to transaction.transaction_id — it is a plain VARCHAR column; PaymentEventLog rows can be seeded without a corresponding main.transaction row
+- IT sec value pattern: IT test classes that call /authenticate MUST use the b8 sec variant (not k8); the k8 variant decrypts to a Base64 string containing ~ (0x7e) which fails Base64.getDecoder().decode() with IllegalArgumentException; see WebhookDoubleCheckIT fix in 13-01
 - IT test real-login pattern: ReconciliationApiIT.loginAsAdmin() seeds admin user/authority rows, POSTs /authenticate, extracts Set-Cookie, forwards cookies on admin requests — exercises full JWT filter chain
 - FilterRegistrationBean(setEnabled=false) pattern: use this in any @Configuration that defines a OncePerRequestFilter @Bean to prevent Spring Boot auto-registration with servlet container
 
@@ -209,6 +211,9 @@ Recent decisions affecting current work:
 - 11-01 decision: fee_rule JDBC seed requires rule_name column (NOT NULL) — add 'TEST-FIXED-50' literal to any new fee_rule JDBC INSERT in tests
 - 12-01 decision: buildMtnRequestWithFingerprint() added as separate helper (not overloading buildMtnRequest) — preserves existing test call sites unchanged; separate helper avoids cross-test regression
 - 12-01 decision: MSISDN +237671000005 reserved for device fingerprint IT test — distinct from +237671000001 (velocityBlock) and +237671000003 (riskScore) to prevent velocity bucket interference
+- 13-01 decision: sec value k8 variant in WebhookDoubleCheckIT causes IllegalArgumentException (Illegal base64 character 7e) when /authenticate called — Jasypt-decrypted Base64 string contains ~ (0x7e) invalid in standard Base64.getDecoder(); fixed to b8 variant; existing 3 tests unaffected (never call /authenticate)
+- 13-01 decision: TenantFilterChainIT uses try/catch around GET /v1/payments to accept any non-401 response — /v1/payments (POST-only) returns 500 for GET but API key chain passes request proving key acceptance; test intent is filter chain behavior not endpoint logic
+- 13-01 decision: ledgerService.postEntry() placed after transactionRepository.save(tx) and before eventLogService.append() in applyFinalTransition() — REQUIRES_NEW boundary means postEntry() REQUIRED propagation joins same transaction; ledger rows commit atomically with tx update
 - OPS-01 COMPLETE: fee rules configurable via POST /v1/admin/fees without restart; FeeEvaluationService evaluates FEE_FIXED and FEE_PERCENTAGE; fee_amount stored on transaction row (idempotency-safe via Pitfall 2 pattern)
 - OPS-02 COMPLETE (gap closed in 10-04): CALLBACK_ANOMALY metric now computes failed/received ratio from real Micrometer counters; OrangeCallbackController and MtnCallbackController both instrument callback.received.total and callback.failed.total; AlertRuleIT 5/5 including test_callbackAnomalyAlertFires
 - 10-01 decision: FeeRuleCache uses volatile List (not AtomicReference) — simpler; list replacement is atomic on 64-bit JVMs
@@ -226,6 +231,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-25
-Stopped at: Completed 12-01 — device_fingerprint IT assertion (FraudEngineIT 3/3) + PaymentResource Javadoc FRAUD_BLOCKED. Phase 12 Plan 1 complete. ALL 12 PHASES COMPLETE — v1 milestone done.
+Last session: 2026-03-26
+Stopped at: Completed 13-01 — LedgerService wired into WebhookTransitionService SUCCESS path; WebhookDeliveryResource moved to /v1/admin/webhooks with @PreAuthorize(HAS_ADMIN_ROLE); 14/14 IT tests pass. Phase 13 Plan 1 complete.
 Resume file: None
