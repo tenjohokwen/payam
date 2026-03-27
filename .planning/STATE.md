@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 ## Current Position
 
 Phase: 16 of 17 (v2: Business Event Logging)
-Plan: 4 of 5 complete (16-01, 16-03, 16-04, 16-05 done; 16-02 remains)
-Status: In progress
-Last activity: 2026-03-27 — Completed 16-04-PLAN.md (LOG-BUS-06 MtnMoMoClient + OrangeMoneyClient provider HTTP call latency)
+Plan: 5 of 5 complete (16-01, 16-02, 16-03, 16-04, 16-05 done)
+Status: Phase complete
+Last activity: 2026-03-27 — Completed 16-02-PLAN.md (LOG-BUS-02 transaction_state_change at all 9 applyTransition() sites)
 
-Progress: █████████████████████████ v1 complete | ████████░░ v2 80%
+Progress: █████████████████████████ v1 complete | ██████████ v2 100%
 
 ## Performance Metrics
 
@@ -63,6 +63,8 @@ Recent decisions affecting current work:
 - **[16-04] externalLatencyMs scope is makeHttpRequest() only:** long start immediately before call, log immediately after call returns before any conditional throw.
 - **[16-04] validateAccountHolder exception path omits log:** start inside try block; on HttpClientException (404), log.info() line is never reached — acceptable, exception is the signal.
 - **[16-04] cashout/c2c direct-return pattern:** Assign makeHttpRequest() to local variable, log, then return — required to access response for status check before returning.
+- **[16-02] LOG-BUS-02 fromState hardcoded at poller/webhook sites:** `TransactionStatus.PROCESSING.name()` used instead of `tx.getTxStatus().name()` — post-transition status is already mutated. Hardcoded constant is safe since pollers and webhook double-check only ever transition from PROCESSING.
+- **[16-02] State change log placed between applyTransition() and eventLogService.append():** Co-locates Loki structured event adjacent to event sourcing append for correlation. Pattern consistent across all 4 files.
 
 ### Pending Todos
 
@@ -75,5 +77,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-27
-Stopped at: Completed 16-04-PLAN.md — LOG-BUS-06 (MtnMoMoClient 7 methods + OrangeMoneyClient 7 methods provider HTTP call latency)
+Stopped at: Completed 16-02-PLAN.md — LOG-BUS-02 (transaction_state_change at all 9 applyTransition() sites across 4 files)
 Resume file: None
