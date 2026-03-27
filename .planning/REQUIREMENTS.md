@@ -136,19 +136,19 @@ Which phases cover which requirements. Updated by create-roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01–09 | Phase 1 | Pending |
-| VERIF-01–10 | Phase 2 | Pending |
-| BUILD-01–08 | Phase 2 | Pending |
-| FLOWS-PAY-01–07 | Phase 3 | Pending |
-| FLOWS-HOOK-01–06 | Phase 4 | Pending |
-| FLOWS-FRAUD-01–03 | Phase 5 | Pending |
-| FLOWS-RECON-01–04 | Phase 5 | Pending |
-| FLOWS-ADMIN-01 | Phase 5 | Pending |
-| INV-01-TEST–INV-10-TEST | Phase 6 | Pending |
-| CONC-01–04 | Phase 6 | Pending |
-| SM-01–04 | Phase 6 | Pending |
-| TXN-01–04 | Phase 6 | Pending |
-| MUT-01–02 | Phase 6 | Pending |
+| INFRA-01–09 | Phase 18 | Pending |
+| VERIF-01–10 | Phase 19 | Pending |
+| BUILD-01–08 | Phase 19 | Pending |
+| FLOWS-PAY-01–07 | Phase 20 | Pending |
+| FLOWS-HOOK-01–06 | Phase 21 | Pending |
+| FLOWS-FRAUD-01–03 | Phase 22 | Pending |
+| FLOWS-RECON-01–04 | Phase 22 | Pending |
+| FLOWS-ADMIN-01 | Phase 22 | Pending |
+| INV-01-TEST–INV-10-TEST | Phase 23 | Pending |
+| CONC-01–04 | Phase 23 | Pending |
+| SM-01–04 | Phase 23 | Pending |
+| TXN-01–04 | Phase 23 | Pending |
+| MUT-01–02 | Phase 23 | Pending |
 
 **Coverage:**
 - v1 requirements: 64 total
