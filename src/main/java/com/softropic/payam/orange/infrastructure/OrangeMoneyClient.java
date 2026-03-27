@@ -12,6 +12,8 @@ import com.softropic.payam.orange.contract.dto.PayResponse;
 import com.softropic.payam.orange.contract.dto.SubscriberInfoResponse;
 import com.softropic.payam.orange.contract.exception.OrangeApiException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -25,7 +27,11 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 public class OrangeMoneyClient extends AbstractClient {
+
+    private static final Logger log = LoggerFactory.getLogger(OrangeMoneyClient.class);
 
     private final OrangeMoneyConfig config;
 
@@ -54,8 +60,15 @@ public class OrangeMoneyClient extends AbstractClient {
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("grant_type", "client_credentials");
 
+        long start = System.currentTimeMillis();
         ResponseEntity<OrangeTokenResponse> response = makeHttpRequest(
                 config.getTokenUrl(), HttpMethod.POST, body, OrangeTokenResponse.class, headers);
+        // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
+        log.info("Provider HTTP call",
+                kv("externalService", "ORANGE_MONEY"),
+                kv("operation", "fetchToken"),
+                kv("externalLatencyMs", System.currentTimeMillis() - start),
+                kv("status", response.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             throw new OrangeApiException("Failed to fetch Orange token — status: " + response.getStatusCode());
@@ -69,8 +82,15 @@ public class OrangeMoneyClient extends AbstractClient {
                 Map.of(),
                 Map.of("msisdn", msisdn)).toString();
 
+        long start = System.currentTimeMillis();
         ResponseEntity<SubscriberInfoResponse> response = makeHttpRequest(
                 url, HttpMethod.GET, null, SubscriberInfoResponse.class, bearerHeaders(bearerToken));
+        // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
+        log.info("Provider HTTP call",
+                kv("externalService", "ORANGE_MONEY"),
+                kv("operation", "getSubscriberInfo"),
+                kv("externalLatencyMs", System.currentTimeMillis() - start),
+                kv("status", response.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             throw new OrangeApiException("getSubscriberInfo failed — status: " + response.getStatusCode());
@@ -82,8 +102,15 @@ public class OrangeMoneyClient extends AbstractClient {
     public MerchantInfoResponse getMerchantInfo(String bearerToken) {
         String url = buildClientURL("/infos/merchant");
 
+        long start = System.currentTimeMillis();
         ResponseEntity<MerchantInfoResponse> response = makeHttpRequest(
                 url, HttpMethod.GET, null, MerchantInfoResponse.class, bearerHeaders(bearerToken));
+        // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
+        log.info("Provider HTTP call",
+                kv("externalService", "ORANGE_MONEY"),
+                kv("operation", "getMerchantInfo"),
+                kv("externalLatencyMs", System.currentTimeMillis() - start),
+                kv("status", response.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             throw new OrangeApiException("getMerchantInfo failed — status: " + response.getStatusCode());
@@ -95,8 +122,15 @@ public class OrangeMoneyClient extends AbstractClient {
     public PayResponse pay(String bearerToken, PayRequest request) {
         String url = config.getPayUrl() + "/mp/pay";
 
+        long start = System.currentTimeMillis();
         ResponseEntity<PayResponse> response = makeHttpRequest(
                 url, HttpMethod.POST, request, PayResponse.class, bearerHeaders(bearerToken));
+        // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
+        log.info("Provider HTTP call",
+                kv("externalService", "ORANGE_MONEY"),
+                kv("operation", "pay"),
+                kv("externalLatencyMs", System.currentTimeMillis() - start),
+                kv("status", response.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             throw new OrangeApiException("pay failed — status: " + response.getStatusCode());
@@ -108,8 +142,15 @@ public class OrangeMoneyClient extends AbstractClient {
     public PayResponse getPaymentStatus(String bearerToken, String payToken) {
         String url = buildClientURL("/mp/paymentstatus/" + payToken);
 
+        long start = System.currentTimeMillis();
         ResponseEntity<PayResponse> response = makeHttpRequest(
                 url, HttpMethod.GET, null, PayResponse.class, bearerHeaders(bearerToken));
+        // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
+        log.info("Provider HTTP call",
+                kv("externalService", "ORANGE_MONEY"),
+                kv("operation", "getPaymentStatus"),
+                kv("externalLatencyMs", System.currentTimeMillis() - start),
+                kv("status", response.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             throw new OrangeApiException("getPaymentStatus failed — status: " + response.getStatusCode());
@@ -120,13 +161,29 @@ public class OrangeMoneyClient extends AbstractClient {
     /** POST /cashout */
     public ResponseEntity<Map> cashout(String bearerToken, CashoutRequest request) {
         String url = buildClientURL("/cashout");
-        return makeHttpRequest(url, HttpMethod.POST, request, Map.class, bearerHeaders(bearerToken));
+        long start = System.currentTimeMillis();
+        ResponseEntity<Map> result = makeHttpRequest(url, HttpMethod.POST, request, Map.class, bearerHeaders(bearerToken));
+        // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
+        log.info("Provider HTTP call",
+                kv("externalService", "ORANGE_MONEY"),
+                kv("operation", "cashout"),
+                kv("externalLatencyMs", System.currentTimeMillis() - start),
+                kv("status", result.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
+        return result;
     }
 
     /** POST /c2c */
     public ResponseEntity<Map> c2c(String bearerToken, C2CRequest request) {
         String url = buildClientURL("/c2c");
-        return makeHttpRequest(url, HttpMethod.POST, request, Map.class, bearerHeaders(bearerToken));
+        long start = System.currentTimeMillis();
+        ResponseEntity<Map> result = makeHttpRequest(url, HttpMethod.POST, request, Map.class, bearerHeaders(bearerToken));
+        // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
+        log.info("Provider HTTP call",
+                kv("externalService", "ORANGE_MONEY"),
+                kv("operation", "c2c"),
+                kv("externalLatencyMs", System.currentTimeMillis() - start),
+                kv("status", result.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
+        return result;
     }
 
     private HttpHeaders bearerHeaders(String token) {
