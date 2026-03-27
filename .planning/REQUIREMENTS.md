@@ -8,15 +8,15 @@
 
 ### INFRA: Test Infrastructure
 
-- [ ] **INFRA-01**: `AbstractPayamE2ETest` bootstraps Spring Boot with Testcontainers (PostgreSQL + Redis) and WireMock (MTN + Orange)
-- [ ] **INFRA-02**: `AbstractPaymentFlowTest` enforces `setupPreconditions / executeFlow / simulateProviderCallback / verifyFinalState` structure
-- [ ] **INFRA-03**: `AbstractWebhookFlowTest` adds inbound webhook dispatch + double-check verification steps
-- [ ] **INFRA-04**: `AbstractFailureFlowTest` provides fault-injection hook points
-- [ ] **INFRA-05**: `PostgresContainerConfig` and `RedisContainerConfig` use Testcontainers with real Flyway schema
-- [ ] **INFRA-06**: `WireMockConfig` stubs MTN MoMo and Orange Money endpoints
-- [ ] **INFRA-07**: `TestClockConfig` provides a fixed WAT (UTC+1) clock for deterministic Orange timestamp tests
-- [ ] **INFRA-08**: `E2ESecurityConfig` injects test API keys without real key generation overhead
-- [ ] **INFRA-09**: `TestDataCleaner` wipes all payment tables and Redis keys before each test
+- [x] **INFRA-01**: `AbstractPayamE2ETest` bootstraps Spring Boot with Testcontainers (PostgreSQL + Redis) and WireMock (MTN + Orange)
+- [x] **INFRA-02**: `AbstractPaymentFlowTest` enforces `setupPreconditions / executeFlow / simulateProviderCallback / verifyFinalState` structure
+- [x] **INFRA-03**: `AbstractWebhookFlowTest` adds inbound webhook dispatch + double-check verification steps
+- [x] **INFRA-04**: `AbstractFailureFlowTest` provides fault-injection hook points
+- [x] **INFRA-05**: `PostgresContainerConfig` and `RedisContainerConfig` use Testcontainers with real Flyway schema
+- [x] **INFRA-06**: `WireMockConfig` stubs MTN MoMo and Orange Money endpoints
+- [x] **INFRA-07**: `TestClockConfig` provides a fixed WAT (UTC+1) clock for deterministic Orange timestamp tests
+- [x] **INFRA-08**: `E2ESecurityConfig` injects test API keys without real key generation overhead
+- [x] **INFRA-09**: `TestDataCleaner` wipes all payment tables and Redis keys before each test
 
 ### VERIF: Verifier Components
 
@@ -136,7 +136,7 @@ Which phases cover which requirements. Updated by create-roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01–09 | Phase 18 | Pending |
+| INFRA-01–09 | Phase 18 | Complete |
 | VERIF-01–10 | Phase 19 | Pending |
 | BUILD-01–08 | Phase 19 | Pending |
 | FLOWS-PAY-01–07 | Phase 20 | Pending |

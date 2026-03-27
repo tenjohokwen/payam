@@ -51,11 +51,11 @@
   3. Test data is wiped clean before each test (no state bleed between tests)
   4. Test API keys are injectable without real key-generation overhead
   5. Fixed WAT clock available for deterministic Orange timestamp tests
-**Plans**: TBD
+**Plans**: 2/2 — completed 2026-03-27
 
 Plans:
-- [ ] 18-01: AbstractPayamE2ETest, AbstractPaymentFlowTest, AbstractWebhookFlowTest, AbstractFailureFlowTest base classes
-- [ ] 18-02: PostgresContainerConfig, RedisContainerConfig, WireMockConfig, TestClockConfig, E2ESecurityConfig, TestDataCleaner
+- [x] 18-01: AbstractPayamE2ETest, AbstractPaymentFlowTest, AbstractWebhookFlowTest, AbstractFailureFlowTest base classes
+- [x] 18-02: PostgresContainerConfig, RedisContainerConfig, WireMockConfig, TestClockConfig, E2ESecurityConfig, TestDataCleaner
 
 #### Phase 19: Verifiers + Test Data Builders
 **Goal**: All verifier components and data builders exist and are composable for any test scenario
@@ -156,7 +156,7 @@ Plans:
 | 15. MDC & Request Lifecycle | v2 | 2/2 | Complete | 2026-03-27 |
 | 16. Business Event Logging | v2 | 5/5 | Complete | 2026-03-27 |
 | 17. Code Standards Enforcement | v2 | 4/4 | Complete | 2026-03-27 |
-| 18. Test Infrastructure | v3 | 0/2 | Not started | - |
+| 18. Test Infrastructure | v3 | 2/2 | Complete | 2026-03-27 |
 | 19. Verifiers + Test Data Builders | v3 | 0/2 | Not started | - |
 | 20. Payment Flow Tests | v3 | 0/2 | Not started | - |
 | 21. Webhook Flow Tests | v3 | 0/2 | Not started | - |
