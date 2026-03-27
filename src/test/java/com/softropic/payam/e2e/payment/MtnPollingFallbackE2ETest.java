@@ -20,6 +20,10 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.RestTemplate;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -52,6 +56,12 @@ public class MtnPollingFallbackE2ETest extends AbstractPaymentFlowTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @Autowired
     private MtnStatusPollerJob mtnStatusPollerJob;
@@ -126,9 +136,17 @@ public class MtnPollingFallbackE2ETest extends AbstractPaymentFlowTest {
         // A freshly created PROCESSING transaction has lastModifiedDate=now, which is NOT before
         // the 2-minute cutoff. Without this backdating, executeInternal() logs "stuckCount=0"
         // and the transaction stays PROCESSING indefinitely.
-        jdbcTemplate.update(
-            "UPDATE main.transaction SET last_modified_date = NOW() - INTERVAL '3 minutes' " +
-            "WHERE transaction_id = ?", transactionId);
+        // Backdate last_modified_date so the poller's 2-minute cutoff is satisfied.
+        // Use REQUIRES_NEW to immediately commit the backdate in its own transaction,
+        // independent of any active JPA session or L1 cache.
+        DefaultTransactionDefinition requiresNew = new DefaultTransactionDefinition();
+        requiresNew.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        new TransactionTemplate(transactionManager, requiresNew).execute(status -> {
+            jdbcTemplate.update(
+                "UPDATE main.transaction SET last_modified_date = NOW() - INTERVAL '3 minutes' " +
+                "WHERE transaction_id = ?", transactionId);
+            return null;
+        });
 
         // Stub the GET status endpoint with SUCCESSFUL BEFORE invoking poller (pitfall: stub must
         // exist before poller calls the provider — not stubbed in setupPreconditions to keep
@@ -136,17 +154,30 @@ public class MtnPollingFallbackE2ETest extends AbstractPaymentFlowTest {
         mtnServer.stubFor(get(urlPathMatching("/v1_0/requesttopay/.*"))
             .willReturn(okJson("{\"status\":\"SUCCESSFUL\",\"financialTransactionId\":\"fin-poll-001\"}")));
 
-        // Direct poller invocation via reflection — bypasses Quartz scheduler.
-        // executeInternal is protected in QuartzJobBean; reflection is required from a different package.
-        // The Spring bean may be wrapped in a @Transactional CGLIB proxy — use AopTestUtils to get
-        // the actual target and call the method on it.
+        // Direct poller invocation via reflection inside an explicit TransactionTemplate.
+        //
+        // MtnStatusPollerJob.executeInternal is @Transactional.  However, reflection on a
+        // protected method from MtnStatusPollerJob.class invoked on a CGLIB proxy object does
+        // NOT go through CGLIB's method interception (the method reference bypasses the proxy
+        // dispatch mechanism).  Without @Transactional, dirty-tracked entity changes from
+        // applyTransition() are never flushed to the DB.
+        //
+        // Solution: wrap the reflection call in a TransactionTemplate so JPA's EntityManager
+        // participates in a managed transaction and flushes on commit.
+        //
         // MtnStatusPollerJob does not use the JobExecutionContext parameter — passing null is safe.
         try {
-            Object target = org.springframework.test.util.AopTestUtils.getTargetObject(mtnStatusPollerJob);
-            java.lang.reflect.Method exec = target.getClass()
+            java.lang.reflect.Method exec = MtnStatusPollerJob.class
                 .getDeclaredMethod("executeInternal", org.quartz.JobExecutionContext.class);
             exec.setAccessible(true);
-            exec.invoke(target, (Object) null);
+            transactionTemplate.execute(status -> {
+                try {
+                    exec.invoke(mtnStatusPollerJob, (Object) null);
+                } catch (Exception e) {
+                    throw new RuntimeException("MtnStatusPollerJob.executeInternal failed", e);
+                }
+                return null;
+            });
         } catch (Exception e) {
             throw new RuntimeException("Failed to invoke MtnStatusPollerJob.executeInternal", e);
         }

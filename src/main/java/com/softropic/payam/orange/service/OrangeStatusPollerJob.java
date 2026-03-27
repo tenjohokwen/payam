@@ -104,7 +104,7 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
             eventLogService.append(tx.getTransactionId(), tx.getTraceId(), tx.getExternalReference(),
                 TransactionEventType.PROVIDER_FAILED,
                 TransactionStatus.PROCESSING, TransactionStatus.FAILED,
-                "ORANGE_POLLER", "max_poll_attempts_exceeded");
+                "ORANGE_POLLER", "\"max_poll_attempts_exceeded\"");
             return;
         }
 
@@ -124,9 +124,12 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
                 TransactionEventType eventType = next == TransactionStatus.SUCCESS
                     ? TransactionEventType.PROVIDER_SUCCESS
                     : TransactionEventType.PROVIDER_FAILED;
+                // Wrap rawStatus in JSON double-quotes: metadata column is jsonb,
+                // a bare string like SUCCESSFULL is invalid JSON.
+                String metadata = "\"" + result.rawStatus() + "\"";
                 eventLogService.append(tx.getTransactionId(), tx.getTraceId(), tx.getExternalReference(),
                     eventType, TransactionStatus.PROCESSING, next,
-                    "ORANGE_POLLER", result.rawStatus());
+                    "ORANGE_POLLER", metadata);
             } else {
                 tx.incrementPollAttempts();
                 log.info("Orange poller: still PENDING",

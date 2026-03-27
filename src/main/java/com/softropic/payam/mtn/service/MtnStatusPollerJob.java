@@ -95,7 +95,7 @@ public class MtnStatusPollerJob extends QuartzJobBean {
             eventLogService.append(tx.getTransactionId(), tx.getTraceId(), tx.getExternalReference(),
                 TransactionEventType.PROVIDER_FAILED,
                 TransactionStatus.PROCESSING, TransactionStatus.FAILED,
-                "MTN_POLLER", "max_poll_attempts_exceeded");
+                "MTN_POLLER", "\"max_poll_attempts_exceeded\"");
             return;
         }
 
@@ -115,9 +115,13 @@ public class MtnStatusPollerJob extends QuartzJobBean {
                 TransactionEventType eventType = next == TransactionStatus.SUCCESS
                     ? TransactionEventType.PROVIDER_SUCCESS
                     : TransactionEventType.PROVIDER_FAILED;
+                // Wrap rawStatus in JSON double-quotes: metadata column is jsonb,
+                // a bare string like SUCCESSFUL is invalid JSON.
+                // WebhookTransitionService uses the same quoting pattern.
+                String metadata = "\"" + result.rawStatus() + "\"";
                 eventLogService.append(tx.getTransactionId(), tx.getTraceId(), tx.getExternalReference(),
                     eventType, TransactionStatus.PROCESSING, next,
-                    "MTN_POLLER", result.rawStatus());
+                    "MTN_POLLER", metadata);
             } else {
                 tx.incrementPollAttempts();
                 log.info("MTN poller: still PENDING",
