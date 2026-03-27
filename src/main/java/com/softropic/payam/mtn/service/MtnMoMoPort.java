@@ -21,6 +21,8 @@ import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -169,7 +171,12 @@ public class MtnMoMoPort implements MobileMoneyPort {
             return;
         }
 
-        log.info("MTN callback received: externalId={}, status={}", payload.getExternalId(), payload.getStatus());
+        log.info("Webhook received",
+            kv("operation", "webhook_received"),
+            kv("provider", "MTN"),
+            kv("transactionId", payload.getExternalId()),
+            kv("externalReference", payload.getFinancialTransactionId()),
+            kv("providerStatus", payload.getStatus()));
         if (payload.getFinancialTransactionId() != null) {
             storeFinancialTxId(payload.getExternalId(), payload.getFinancialTransactionId());
         }

@@ -26,6 +26,8 @@ import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -173,9 +175,6 @@ public class OrangeMoneyPort implements MobileMoneyPort {
      * Without this boundary, there is no active transaction and the listener never fires.
      */
     public String processWebhook(OrangeWebhookPayload payload, String notifToken) {
-        log.info("Orange webhook received: payToken={}, status={}, txnid={}",
-            payload.getPayToken(), payload.getStatus(), payload.getTxnid());
-
         // Validate notifToken correlation
         if (notifToken != null && !notifToken.equals(payload.getNotifToken())) {
             log.warn("Orange webhook notifToken mismatch — possible replay: expected={}, got={}",
@@ -186,6 +185,13 @@ public class OrangeMoneyPort implements MobileMoneyPort {
         transactionRepository.findByPayToken(payload.getPayToken()).ifPresentOrElse(tx -> {
             String txId = tx.getTransactionId();
             String traceId = tx.getTraceId();
+            // LOG-BUS-03: structured webhook receipt event (emitted here where txId is available)
+            log.info("Webhook received",
+                kv("operation", "webhook_received"),
+                kv("provider", "ORANGE"),
+                kv("transactionId", txId),
+                kv("externalReference", tx.getExternalReference()),
+                kv("providerStatus", payload.getStatus()));
             // Publish inside a transaction boundary so @TransactionalEventListener(AFTER_COMMIT) fires
             transactionTemplate.execute(status -> {
                 eventPublisher.publishEvent(new WebhookReceivedEvent(
