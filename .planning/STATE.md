@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 21 — Webhook Flow Tests (plan 01 complete; plan 02 next)
+**Current focus:** Phase 21 — Webhook Flow Tests — COMPLETE (both plans done)
 
 ## Current Position
 
-Phase: 21 of 23 (Webhook Flow Tests) — In progress
-Plan: 1 of 2 complete
-Status: In progress
-Last activity: 2026-03-27 — Completed 21-01-PLAN — 5/5 tests passing (FLOWS-HOOK-01, FLOWS-HOOK-02, FLOWS-HOOK-03, FLOWS-HOOK-06)
+Phase: 21 of 23 (Webhook Flow Tests) — COMPLETE
+Plan: 2 of 2 complete
+Status: Phase complete
+Last activity: 2026-03-27 — Completed 21-02-PLAN — 7/7 tests passing (FLOWS-HOOK-01 through FLOWS-HOOK-06)
 
-Progress: ██████████████████████████████ v1+v2 complete | ████████░░ v3 ~65%
+Progress: ██████████████████████████████ v1+v2 complete | █████████░ v3 ~70%
 
 ## Performance Metrics
 
@@ -32,6 +32,7 @@ Progress: ███████████████████████�
 | 17 (plan 02) | 1 | 11 min | 11 min |
 | 17 (plan 03) | 1 | 12 min | 12 min |
 | 21 (plan 01) | 1 | 13 min | 13 min |
+| 21 (plan 02) | 1 | 15 min | 15 min |
 
 ## Accumulated Context
 
@@ -98,6 +99,9 @@ Recent decisions affecting current work:
 - **[21-01] MTN SUCCESSFUL (single-L) vs Orange SUCCESSFULL (double-L):** Provider-specific status string difference — MtnStatusMapper and OrangeStatusMapper only recognise their respective spellings. All MTN stubs must use single-L; all Orange stubs must use double-L.
 - **[21-01] noErrorRestTemplate for non-2xx assertion:** DefaultResponseErrorHandler returning false prevents Spring from throwing exceptions on 4xx/5xx — required when the test must assert the error status code value.
 - **[21-01] ApiAdvice missing HttpRequestMethodNotSupportedException handler:** Bug: catch-all Throwable handler returned 500 for POST to @PutMapping endpoint. Fixed by adding specific handler with @ResponseStatus(METHOD_NOT_ALLOWED).
+- **[21-02] OutboundWebhookDeliveryE2ETest standalone pattern:** Does not extend AbstractPayamE2ETest — that base only declares mtn+orange WireMock servers. Outbound delivery tests need a third tenant-wh server; all 3 must be declared at class level in @EnableWireMock. Mirrors WebhookDeliveryIT.
+- **[21-02] Awaitility for delivery log row existence:** Use Awaitility.await().until() instead of Thread.sleep() to wait for the first async delivery attempt to complete before reading delivery log rows.
+- **[21-02] Direct attemptDelivery() for retry count verification:** Bypass Quartz 1-minute scheduler by calling webhookDeliveryService.attemptDelivery() directly for deterministic retry count assertions. MAX_ATTEMPTS=5 so after 3 attempts nextRetryAt stays non-null.
 
 ### Pending Todos
 
@@ -110,5 +114,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-27
-Stopped at: Completed Phase 21 plan 01 — 4 inbound webhook E2E tests (FLOWS-HOOK-01, FLOWS-HOOK-02, FLOWS-HOOK-03, FLOWS-HOOK-06), 5 test methods passing
+Stopped at: Completed Phase 21 plan 02 — 2 outbound webhook E2E tests (FLOWS-HOOK-04, FLOWS-HOOK-05); full phase 21 suite 7/7 passing
 Resume file: None
