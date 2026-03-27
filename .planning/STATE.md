@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 22 — Fraud, Reconciliation, and Admin Flow Tests — In Progress (plan 01 done)
+**Current focus:** Phase 22 — Fraud, Reconciliation, and Admin Flow Tests — COMPLETE (all 3 plans done)
 
 ## Current Position
 
-Phase: 22 of 23 (Fraud, Reconciliation, and Admin Flow Tests) — In Progress
-Plan: 1 of 3 complete
-Status: In progress
-Last activity: 2026-03-27 — Completed 22-01-PLAN — FraudVelocityBlockE2ETest passing (FLOWS-FRAUD-01/02/03)
+Phase: 22 of 23 (Fraud, Reconciliation, and Admin Flow Tests) — COMPLETE
+Plan: 3 of 3 complete
+Status: Phase complete
+Last activity: 2026-03-28 — Completed 22-02-PLAN — 9/9 phase-22 tests passing (FLOWS-RECON-01 through FLOWS-RECON-04, FLOWS-ADMIN-01)
 
-Progress: ██████████████████████████████ v1+v2 complete | ██████████░ v3 ~75%
+Progress: ██████████████████████████████ v1+v2 complete | ███████████░ v3 ~80%
 
 ## Performance Metrics
 
@@ -34,6 +34,7 @@ Progress: ███████████████████████�
 | 21 (plan 01) | 1 | 13 min | 13 min |
 | 21 (plan 02) | 1 | 15 min | 15 min |
 | 22 (plan 01) | 1 | 8 min | 8 min |
+| 22 (plan 02) | 1 | 25 min | 25 min |
 
 ## Accumulated Context
 
@@ -106,6 +107,11 @@ Recent decisions affecting current work:
 - **[22-01] seedFraudRule() is a local private helper in each test class:** AbstractFailureFlowTest does not expose this helper; FraudBlockedPaymentE2ETest and FraudVelocityBlockE2ETest both define it locally. Consistent with established pattern.
 - **[22-01] blockedResponse stored as ResponseEntity<PaymentResponse> field:** Allows verifyFailureHandled() to assert HTTP status and errorCode separately from executeFlow(). Same pattern used in FraudBlockedPaymentE2ETest.
 - **[22-01] exactly(1) WireMock verifier for POST count:** More precise than moreThanOrEqualTo — proves strictly one provider call (the allowed path); zero additional calls from the blocked path.
+- **[22-02] ProviderResult(null, null, false, null, null) as notFound sentinel:** No factory method exists; null rawStatus is what MtnReportAdapter passes as providerStatus to ReconciliationService — triggers MISSING_IN_PROVIDER path.
+- **[22-02] Admin tenantId param is Long (database PK), not UUID:** AdminTransactionResource.search() @RequestParam type is Long; JPQL compares t.tenantId (Long PK) directly.
+- **[22-02] URI.create() with manual + → %2B for + in query params:** RestTemplate.exchange(URI) passes URI as-is; URLEncoder, UriComponentsBuilder, new URI() all cause double-encoding or wrong behavior.
+- **[22-02] transactionTemplate.execute() wraps all admin user seeding:** Prevents FK constraint errors on user_authority → authority FK when bare jdbcTemplate.execute() runs as auto-commit statements.
+- **[22-02] discrepancy_type is the reconciliation_discrepancy column name:** Not 'type' — @Column(name = "discrepancy_type") per JPA entity annotation.
 
 ### Pending Todos
 
@@ -117,6 +123,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-27
-Stopped at: Completed Phase 22 plan 01 — FraudVelocityBlockE2ETest (FLOWS-FRAUD-01/02/03); both fraud E2E tests passing (2/2)
+Last session: 2026-03-28
+Stopped at: Completed Phase 22 plan 02 — DailyReconciliationE2ETest + TransactionInvestigationE2ETest; full phase-22 suite 9/9 passing
 Resume file: None
