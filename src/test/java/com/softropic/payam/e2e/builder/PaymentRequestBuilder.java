@@ -8,7 +8,7 @@ import java.util.UUID;
 /**
  * Fluent builder for {@link PaymentRequest} test data (BUILD-03).
  *
- * <p>Defaults to an MTN payment (Cameroon MTN prefix 2376 — V16 migration seeds this route).
+ * <p>Defaults to an MTN payment (Cameroon MTN prefix 67, MSISDN 237672000001 — V16 migration seeds this route).
  * Call {@link #forOrange()} to switch to the Orange MSISDN prefix.
  *
  * <p>Usage:
@@ -25,11 +25,19 @@ import java.util.UUID;
  */
 public class PaymentRequestBuilder {
 
-    /** MTN Cameroon MSISDN prefix — seeded by V16 migration as the MTN route. */
-    private static final String MTN_MSISDN = "237690000001";
+    /**
+     * MTN Cameroon MSISDN — national prefix "67", seeded by V16 migration as MTN route.
+     * Full: 237 + 67 + 2000001. Strips to national "672000001", prefix "67" → MTN.
+     * (The original "237690000001" incorrectly used prefix "69" which maps to ORANGE.)
+     */
+    private static final String MTN_MSISDN = "237672000001";
 
-    /** Orange Cameroon MSISDN prefix — seeded by V16 migration as the Orange route. */
-    private static final String ORANGE_MSISDN = "237690000002";
+    /**
+     * Orange Cameroon MSISDN — national prefix "65", seeded by V16 migration as Orange route.
+     * Full: 237 + 65 + 3000001. Strips to national "653000001", prefix "65" → ORANGE.
+     * (The original "237690000002" also used prefix "69" → ORANGE but was inconsistent with the IT.)
+     */
+    private static final String ORANGE_MSISDN = "237653000001";
 
     private String msisdn = MTN_MSISDN;
     private BigDecimal amount = new BigDecimal("1000.00");
@@ -69,7 +77,7 @@ public class PaymentRequestBuilder {
     }
 
     /**
-     * Switches the MSISDN to the Orange prefix (237690000002) for Orange payment flows.
+     * Switches the MSISDN to the Orange prefix (237653000001, national prefix "65") for Orange payment flows.
      */
     public PaymentRequestBuilder forOrange() {
         this.msisdn = ORANGE_MSISDN;

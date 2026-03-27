@@ -15,7 +15,7 @@ import java.util.UUID;
  * Fluent builder for {@link OrangeWebhookPayload} test data (BUILD-05).
  *
  * <p>Critical: the {@code createtime} field must be in WAT (Africa/Douala, UTC+1) local format
- * {@code yyyy-MM-dd HH:mm:ss} with NO timezone offset appended. This matches what
+ * {@code yyyy-MM-dd'T'HH:mm:ss} (T separator, no timezone offset appended). This matches what
  * {@code OrangeTimeUtil.parseOrangeTimestamp} expects — it applies the +01:00 offset implicitly.
  *
  * <p>Usage:
@@ -29,8 +29,13 @@ import java.util.UUID;
 public class OrangeWebhookPayloadBuilder {
 
     private static final ZoneId WAT = ZoneId.of("Africa/Douala");
+    /**
+     * OrangeTimeUtil.ORANGE_FMT = "yyyy-MM-dd'T'HH:mm:ss" — T separator required.
+     * The original space-separated format "yyyy-MM-dd HH:mm:ss" would fail to parse
+     * in OrangeTimeUtil.parseOrangeTimestamp and cause serialization errors.
+     */
     private static final DateTimeFormatter WAT_FORMAT =
-        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private String payToken;
