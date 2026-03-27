@@ -80,9 +80,9 @@ Which phases cover which requirements. Updated by create-roadmap.
 | LOG-BUS-05 | Phase 16 | Complete |
 | LOG-BUS-06 | Phase 16 | Complete |
 | LOG-BUS-07 | Phase 16 | Complete |
-| LOG-CODE-01 | Phase 17 | Pending |
-| LOG-CODE-02 | Phase 17 | Pending |
-| LOG-CODE-03 | Phase 17 | Pending |
+| LOG-CODE-01 | Phase 17 | Complete |
+| LOG-CODE-02 | Phase 17 | Complete |
+| LOG-CODE-03 | Phase 17 | Complete |
 
 **Coverage:**
 - v2 requirements: 18 total
