@@ -63,20 +63,20 @@
 
 ### FLOWS-FRAUD: Fraud Engine Tests
 
-- [ ] **FLOWS-FRAUD-01**: `FraudVelocityBlockE2ETest` — velocity limit exceeded blocks payment before provider call
-- [ ] **FLOWS-FRAUD-02**: Allowed path — payment below fraud threshold reaches provider; fraud evaluation timestamp recorded before provider call timestamp
-- [ ] **FLOWS-FRAUD-03**: `invariantVerifier.assertFraudEvaluatedBeforeProviderCall` passes on every flow test
+- [x] **FLOWS-FRAUD-01**: `FraudVelocityBlockE2ETest` — velocity limit exceeded blocks payment before provider call
+- [x] **FLOWS-FRAUD-02**: Allowed path — payment below fraud threshold reaches provider; fraud evaluation timestamp recorded before provider call timestamp
+- [x] **FLOWS-FRAUD-03**: `invariantVerifier.assertFraudEvaluatedBeforeProviderCall` passes on every flow test
 
 ### FLOWS-RECON: Reconciliation Tests
 
-- [ ] **FLOWS-RECON-01**: `DailyReconciliationE2ETest` — matched transactions: Payam ledger and provider report agree; no discrepancy flagged
-- [ ] **FLOWS-RECON-02**: Missing transaction — in Payam ledger but absent from provider report; flagged as discrepancy
-- [ ] **FLOWS-RECON-03**: Mismatched transaction — Payam shows SUCCESS, provider shows FAILED; flagged as discrepancy
-- [ ] **FLOWS-RECON-04**: Orange WAT timestamp — `createtime` parsed as UTC+1, not UTC; reconciliation entries correct
+- [x] **FLOWS-RECON-01**: `DailyReconciliationE2ETest` — matched transactions: Payam ledger and provider report agree; no discrepancy flagged
+- [x] **FLOWS-RECON-02**: Missing transaction — in Payam ledger but absent from provider report; flagged as discrepancy
+- [x] **FLOWS-RECON-03**: Mismatched transaction — Payam shows SUCCESS, provider shows FAILED; flagged as discrepancy
+- [x] **FLOWS-RECON-04**: Orange WAT timestamp — `createtime` parsed as UTC+1, not UTC; reconciliation entries correct
 
 ### FLOWS-ADMIN: Admin Flow Tests
 
-- [ ] **FLOWS-ADMIN-01**: `TransactionInvestigationE2ETest` — search by `transactionId`, phone number, and `traceId` returns correct results scoped to caller's tenant
+- [x] **FLOWS-ADMIN-01**: `TransactionInvestigationE2ETest` — search by `transactionId`, phone number, and `traceId` returns correct results scoped to caller's tenant
 
 ### INV: Domain Invariant Tests
 
@@ -141,9 +141,9 @@ Which phases cover which requirements. Updated by create-roadmap.
 | BUILD-01–08 | Phase 19 | Complete |
 | FLOWS-PAY-01–07 | Phase 20 | Complete |
 | FLOWS-HOOK-01–06 | Phase 21 | Complete |
-| FLOWS-FRAUD-01–03 | Phase 22 | Pending |
-| FLOWS-RECON-01–04 | Phase 22 | Pending |
-| FLOWS-ADMIN-01 | Phase 22 | Pending |
+| FLOWS-FRAUD-01–03 | Phase 22 | Complete |
+| FLOWS-RECON-01–04 | Phase 22 | Complete |
+| FLOWS-ADMIN-01 | Phase 22 | Complete |
 | INV-01-TEST–INV-10-TEST | Phase 23 | Pending |
 | CONC-01–04 | Phase 23 | Pending |
 | SM-01–04 | Phase 23 | Pending |

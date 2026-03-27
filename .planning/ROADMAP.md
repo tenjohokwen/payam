@@ -112,11 +112,11 @@ Plans:
   2. Fraud evaluation timestamp is recorded before provider HTTP call timestamp on every flow
   3. Reconciliation detects missing, mismatched, and WAT-offset entries correctly
   4. Admin transaction search returns results scoped to caller's tenant only
-**Plans**: TBD
+**Plans**: 2/2 — completed 2026-03-27
 
 Plans:
-- [ ] 22-01: FraudVelocityBlockE2ETest, allowed path, invariantVerifier.assertFraudEvaluatedBeforeProviderCall
-- [ ] 22-02: DailyReconciliationE2ETest (matched, missing, mismatched, WAT timestamp), TransactionInvestigationE2ETest
+- [x] 22-01: FraudVelocityBlockE2ETest, allowed path, invariantVerifier.assertFraudEvaluatedBeforeProviderCall
+- [x] 22-02: DailyReconciliationE2ETest (matched, missing, mismatched, WAT timestamp), TransactionInvestigationE2ETest
 
 #### Phase 23: Domain Invariants, Concurrency, State Machine, and Mutation Tests
 **Goal**: All critical domain invariants provably hold under concurrency; mutation testing ≥90%
@@ -160,5 +160,5 @@ Plans:
 | 19. Verifiers + Test Data Builders | v3 | 0/2 | Not started | - |
 | 20. Payment Flow Tests | v3 | 0/2 | Not started | - |
 | 21. Webhook Flow Tests | v3 | 2/2 | Complete | 2026-03-27 |
-| 22. Fraud, Reconciliation, Admin Flow Tests | v3 | 0/2 | Not started | - |
+| 22. Fraud, Reconciliation, Admin Flow Tests | v3 | 2/2 | Complete | 2026-03-27 |
 | 23. Domain Invariants, Concurrency, SM, Mutation | v3 | 0/3 | Not started | - |
