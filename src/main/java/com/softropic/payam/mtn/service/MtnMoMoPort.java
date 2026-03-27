@@ -167,7 +167,11 @@ public class MtnMoMoPort implements MobileMoneyPort {
         String dedupKey = "webhook:mtn:" + payload.getExternalId() + ":" + payload.getStatus();
         Boolean wasAbsent = redis.opsForValue().setIfAbsent(dedupKey, "SEEN", Duration.ofHours(24));
         if (Boolean.FALSE.equals(wasAbsent)) {
-            log.info("MTN callback duplicate suppressed: externalId={}", payload.getExternalId());
+            log.info("MTN callback duplicate suppressed",
+                kv("operation", "webhook_received"),
+                kv("provider", "MTN"),
+                kv("externalId", payload.getExternalId()),
+                kv("status", "DUPLICATE"));
             return;
         }
 
@@ -196,7 +200,6 @@ public class MtnMoMoPort implements MobileMoneyPort {
                 ));
                 return null;
             });
-            log.info("WebhookReceivedEvent published for MTN transactionId={}", txId);
         });
     }
 

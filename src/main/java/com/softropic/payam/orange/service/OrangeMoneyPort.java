@@ -177,8 +177,10 @@ public class OrangeMoneyPort implements MobileMoneyPort {
     public String processWebhook(OrangeWebhookPayload payload, String notifToken) {
         // Validate notifToken correlation
         if (notifToken != null && !notifToken.equals(payload.getNotifToken())) {
-            log.warn("Orange webhook notifToken mismatch — possible replay: expected={}, got={}",
-                notifToken, payload.getNotifToken());
+            log.warn("Orange notifToken mismatch",
+                kv("operation", "webhook_received"),
+                kv("provider", "ORANGE"),
+                kv("mismatch", true));
         }
 
         // Look up Transaction by payToken (Pitfall 3: NOT txnid — txnid is Orange-internal)
@@ -202,8 +204,10 @@ public class OrangeMoneyPort implements MobileMoneyPort {
                 ));
                 return null;
             });
-            log.info("WebhookReceivedEvent published for transactionId={}", txId);
-        }, () -> log.warn("Orange webhook: no transaction found for payToken={}", payload.getPayToken()));
+        }, () -> log.warn("Orange webhook: no transaction found",
+            kv("operation", "webhook_received"),
+            kv("provider", "ORANGE"),
+            kv("status", "TRANSACTION_NOT_FOUND")));
 
         return payload.getPayToken();
     }
@@ -222,7 +226,11 @@ public class OrangeMoneyPort implements MobileMoneyPort {
         if (payTokenIssuedAt == null) return;
         Duration age = Duration.between(payTokenIssuedAt, Instant.now());
         if (age.toMinutes() >= config.getPayTokenExpiryThresholdMinutes()) {
-            log.warn("payToken expired for transaction={}, age={}min", transactionId, age.toMinutes());
+            log.warn("Orange payToken expired",
+                kv("operation", "orange_poller_scan"),
+                kv("transactionId", transactionId),
+                kv("ageMinutes", age.toMinutes()),
+                kv("status", "TOKEN_EXPIRED"));
             throw new PayTokenExpiredException(transactionId);
         }
     }

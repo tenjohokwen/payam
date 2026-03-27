@@ -125,7 +125,7 @@ public class PaymentOrchestrator {
         try {
             provider = msisdnRouter.resolve(request.msisdn());
         } catch (UnknownMsisdnPrefixException e) {
-            log.warn("Unknown MSISDN prefix: msisdn={}", request.msisdn());
+            log.warn("Unknown MSISDN prefix", kv("operation", "route_msisdn"), kv("status", "UNKNOWN_PREFIX"));
             return PaymentResponse.failed(null,
                     OrchestratorError.UNKNOWN_MSISDN_PREFIX.getErrorCode(),
                     e.getMessage());
@@ -136,13 +136,21 @@ public class PaymentOrchestrator {
         if (cached.isPresent()) {
             CachedResponse cr = cached.get();
             if ("RESERVED".equals(cr.responseBody())) {
-                log.warn("Payment already in progress: tenantId={}, idempotencyKey={}", tenantId, request.idempotencyKey());
+                log.info("Payment already in progress",
+                    kv("operation", "initiate_payment"),
+                    kv("tenantId", tenantId),
+                    kv("idempotencyKey", request.idempotencyKey()),
+                    kv("status", "IN_PROGRESS"));
                 return PaymentResponse.failed(null,
                         OrchestratorError.PAYMENT_ALREADY_PROCESSING.getErrorCode(),
                         "Payment already in progress");
             }
             // Deserialize cached successful response and replay it
-            log.info("Replaying cached idempotency response: tenantId={}, idempotencyKey={}", tenantId, request.idempotencyKey());
+            log.info("Idempotency replay",
+                kv("operation", "initiate_payment"),
+                kv("tenantId", tenantId),
+                kv("idempotencyKey", request.idempotencyKey()),
+                kv("status", "REPLAYED"));
             PaymentResponse cachedResponse = JsonUtil.toObject(cr.responseBody(), PaymentResponse.class);
             // Null-guard feeAmount for cached entries that predate Phase 11 (old JSON has no feeAmount)
             if (cachedResponse.feeAmount() == null) {
@@ -387,7 +395,11 @@ public class PaymentOrchestrator {
                 metricsService.recordFailed(null);
             }
         } catch (Exception ex) {
-            log.error("Failed to apply FAILED transition: transactionId={}", tx.getTransactionId(), ex);
+            log.error("Failed to apply FAILED transition",
+                kv("operation", "transaction_state_change"),
+                kv("transactionId", tx.getTransactionId()),
+                kv("status", "ERROR"),
+                ex);
         }
     }
 }
