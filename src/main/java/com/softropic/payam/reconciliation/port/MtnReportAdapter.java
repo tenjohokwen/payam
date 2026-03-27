@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import java.time.LocalDate;
 
 /**
@@ -41,8 +43,12 @@ public class MtnReportAdapter implements ProviderReportPort {
             // MTN status API does not return amount; providerAmount stays null
             return new ProviderTransactionRecord(providerRef, result.rawStatus(), null, false);
         } catch (Exception e) {
-            log.warn("MTN reconciliation: failed to fetch status for providerRef={} on date={}: {}",
-                providerRef, reportDate, e.getMessage());
+            log.warn("MTN reconciliation: failed to fetch status",
+                kv("operation", "reconciliation_run"),
+                kv("provider", "MTN"),
+                kv("providerRef", providerRef),
+                kv("status", "FETCH_ERROR"),
+                e);
             return new ProviderTransactionRecord(providerRef, null, null, true);
         }
     }

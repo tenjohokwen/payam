@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import java.time.LocalDate;
 
 /**
@@ -50,8 +52,12 @@ public class OrangeReportAdapter implements ProviderReportPort {
         } catch (Exception e) {
             // Catch ALL exceptions including CallNotPermittedException (circuit-open).
             // Orange adapter MUST never propagate — UNCONFIRMED is the resilience fallback.
-            log.warn("Orange reconciliation: failed to fetch status for providerRef={} on date={}: {}",
-                providerRef, reportDate, e.getMessage());
+            log.warn("Orange reconciliation: failed to fetch status",
+                kv("operation", "reconciliation_run"),
+                kv("provider", "ORANGE"),
+                kv("providerRef", providerRef),
+                kv("status", "FETCH_ERROR"),
+                e);
             return new ProviderTransactionRecord(providerRef, null, null, true);
         }
     }

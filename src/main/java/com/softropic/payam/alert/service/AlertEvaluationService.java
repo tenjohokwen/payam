@@ -11,6 +11,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 /**
  * Evaluates DB-configured alert rules against Micrometer counters on a fixed schedule.
  *
@@ -56,8 +58,12 @@ public class AlertEvaluationService {
                 continue;
             }
             if (actualValue >= rule.getThreshold().doubleValue()) {
-                log.debug("Alert threshold breached: metric={} actual={} threshold={}",
-                        rule.getMetricName(), actualValue, rule.getThreshold());
+                log.warn("Alert threshold breached",
+                        kv("operation", "alert_evaluation"),
+                        kv("metric", rule.getMetricName()),
+                        kv("actual", actualValue),
+                        kv("threshold", rule.getThreshold()),
+                        kv("status", "BREACHED"));
                 eventPublisher.publishEvent(new AlertFiredEvent(
                         rule.getMetricName(),
                         actualValue,

@@ -5,8 +5,6 @@ import com.softropic.payam.payment.repo.MsisdnPrefixRoute;
 import com.softropic.payam.payment.repo.MsisdnPrefixRouteRepository;
 
 import jakarta.annotation.PostConstruct;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -26,8 +24,6 @@ import java.util.Optional;
  */
 @Service
 public class MsisdnPrefixRouteCache {
-
-    private static final Logger log = LoggerFactory.getLogger(MsisdnPrefixRouteCache.class);
 
     private final MsisdnPrefixRouteRepository msisdnPrefixRouteRepository;
     private volatile List<MsisdnPrefixRoute> cachedRoutes = List.of();
@@ -49,7 +45,6 @@ public class MsisdnPrefixRouteCache {
     public void refresh() {
         List<MsisdnPrefixRoute> routes = msisdnPrefixRouteRepository.findAllByEnabledTrue();
         cachedRoutes = routes;
-        log.debug("MSISDN prefix route cache refreshed: {} routes loaded", routes.size());
     }
 
     /**

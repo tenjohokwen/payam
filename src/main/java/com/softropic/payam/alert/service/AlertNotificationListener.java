@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -41,10 +43,12 @@ public class AlertNotificationListener {
      */
     @EventListener(AlertFiredEvent.class)
     public void onAlertFired(AlertFiredEvent event) {
-        log.warn("ALERT FIRED: metric={} actual={} threshold={}",
-                event.metricName(),
-                String.format("%.4f", event.actualValue()),
-                String.format("%.4f", event.threshold()));
+        log.warn("Alert fired",
+                kv("operation", "alert_notification"),
+                kv("metric", event.metricName()),
+                kv("actual", event.actualValue()),
+                kv("threshold", event.threshold()),
+                kv("status", "FIRED"));
 
         if ("EMAIL".equalsIgnoreCase(event.notificationChannel())) {
             try {
@@ -69,7 +73,11 @@ public class AlertNotificationListener {
                 mailManager.sendEmailSync(envelope);
             } catch (Exception e) {
                 // Mail failure must not break the scheduling loop — log and continue
-                log.error("Failed to send alert email for metric {}: {}", event.metricName(), e.getMessage());
+                log.error("Failed to send alert email",
+                    kv("operation", "alert_notification"),
+                    kv("metric", event.metricName()),
+                    kv("status", "EMAIL_ERROR"),
+                    e);
             }
         }
     }

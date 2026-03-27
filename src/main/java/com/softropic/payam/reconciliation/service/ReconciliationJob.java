@@ -8,6 +8,8 @@ import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 
@@ -33,13 +35,15 @@ public class ReconciliationJob extends QuartzJobBean {
     @Transactional
     protected void executeInternal(JobExecutionContext context) {
         LocalDate yesterday = LocalDate.now(ZoneOffset.UTC).minusDays(1);
-        log.info("ReconciliationJob: running for date {}", yesterday);
         try {
             reconciliationService.runForDate(yesterday);
-            log.info("ReconciliationJob: completed successfully for date {}", yesterday);
         } catch (Exception e) {
             // Catch top-level exceptions to prevent Quartz from unscheduling the trigger
-            log.error("ReconciliationJob: fatal error for date {}: {}", yesterday, e.getMessage(), e);
+            log.error("Reconciliation job fatal error",
+                kv("operation", "reconciliation_run"),
+                kv("date", yesterday),
+                kv("status", "FATAL_ERROR"),
+                e);
         }
     }
 }

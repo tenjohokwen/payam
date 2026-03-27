@@ -11,6 +11,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -61,7 +63,10 @@ public class IdempotencyService {
             return Optional.empty();
 
         } catch (Exception e) {
-            log.warn("Redis unavailable for idempotency check — falling back to PostgreSQL. key={}", redisKey, e);
+            log.warn("Redis unavailable for idempotency check",
+                kv("operation", "idempotency_check"),
+                kv("status", "REDIS_UNAVAILABLE"),
+                e);
             return fallbackToPostgres(tenantId, idempotencyKey);
         }
     }
@@ -77,7 +82,10 @@ public class IdempotencyService {
         try {
             redis.opsForValue().set(redisKey, CachedResponse.toJson(httpStatus, responseBody), TTL);
         } catch (Exception e) {
-            log.warn("Redis unavailable for idempotency store — continuing with PostgreSQL only. key={}", redisKey, e);
+            log.warn("Redis unavailable for idempotency store",
+                kv("operation", "idempotency_store"),
+                kv("status", "REDIS_UNAVAILABLE"),
+                e);
         }
 
         // Upsert PostgreSQL record
@@ -102,7 +110,6 @@ public class IdempotencyService {
         int affectedRows = repo.reserve(tsid, tenantId, idempotencyKey, expiresAt, now);
 
         if (affectedRows == 1) {
-            log.info("Successfully reserved idempotency key in PostgreSQL: tenantId={}, key={}", tenantId, idempotencyKey);
             return Optional.empty(); // NEW reservation, proceed
         }
 

@@ -8,8 +8,6 @@ import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
 import io.lettuce.core.RedisClient;
 
 import jakarta.annotation.PostConstruct;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.stereotype.Service;
 
@@ -29,8 +27,6 @@ import java.time.Duration;
  */
 @Service
 public class VelocityCheckService {
-
-    private static final Logger log = LoggerFactory.getLogger(VelocityCheckService.class);
 
     private final LettuceConnectionFactory lettuceConnectionFactory;
     private final FraudRuleCache fraudRuleCache;
@@ -57,7 +53,6 @@ public class VelocityCheckService {
         int port = lettuceConnectionFactory.getPort();
         RedisClient redisClient = RedisClient.create("redis://" + host + ":" + port);
         this.proxyManager = LettuceBasedProxyManager.builderFor(redisClient).build();
-        log.info("VelocityCheckService initialized with LettuceBasedProxyManager at {}:{}", host, port);
     }
 
     /**

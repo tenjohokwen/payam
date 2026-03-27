@@ -4,8 +4,6 @@ import com.softropic.payam.fraud.repo.FraudRule;
 import com.softropic.payam.fraud.repo.FraudRuleRepository;
 
 import jakarta.annotation.PostConstruct;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -28,8 +26,6 @@ import java.util.concurrent.atomic.AtomicReference;
 @Component
 public class FraudRuleCache {
 
-    private static final Logger log = LoggerFactory.getLogger(FraudRuleCache.class);
-
     private final FraudRuleRepository fraudRuleRepository;
     private final AtomicReference<List<FraudRule>> rulesCache = new AtomicReference<>(List.of());
 
@@ -50,7 +46,6 @@ public class FraudRuleCache {
     public void refreshRules() {
         List<FraudRule> rules = fraudRuleRepository.findByEnabledTrue();
         rulesCache.set(rules);
-        log.debug("Fraud rule cache refreshed: {} rules loaded", rules.size());
     }
 
     /**

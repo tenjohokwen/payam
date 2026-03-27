@@ -4,8 +4,6 @@ import com.softropic.payam.fee.repo.FeeRule;
 import com.softropic.payam.fee.repo.FeeRuleRepository;
 
 import jakarta.annotation.PostConstruct;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -30,8 +28,6 @@ import java.util.Optional;
 @Service
 public class FeeRuleCache {
 
-    private static final Logger log = LoggerFactory.getLogger(FeeRuleCache.class);
-
     private final FeeRuleRepository feeRuleRepository;
     private volatile List<FeeRule> cachedRules = List.of();
 
@@ -52,7 +48,6 @@ public class FeeRuleCache {
     public void refresh() {
         List<FeeRule> rules = feeRuleRepository.findAllByEnabledTrue();
         cachedRules = rules;
-        log.debug("Fee rule cache refreshed: {} rules loaded", rules.size());
     }
 
     /**

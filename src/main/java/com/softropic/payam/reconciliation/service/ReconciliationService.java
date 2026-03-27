@@ -75,7 +75,6 @@ public class ReconciliationService {
     @Transactional
     public void runForDate(LocalDate reportDate) {
         long start = System.currentTimeMillis();
-        log.info("ReconciliationService: starting reconciliation for date={}", reportDate);
 
         int totalChecked = 0;
         int totalDiscrepancies = 0;
@@ -86,12 +85,14 @@ public class ReconciliationService {
                 totalChecked += providerTotals[0];
                 totalDiscrepancies += providerTotals[1];
             } catch (Exception e) {
-                log.error("ReconciliationService: unexpected error reconciling provider={} date={}: {}",
-                    provider, reportDate, e.getMessage(), e);
+                log.error("Reconciliation unexpected error",
+                    kv("operation", "reconciliation_run"),
+                    kv("provider", provider),
+                    kv("status", "ERROR"),
+                    e);
             }
         }
 
-        log.info("ReconciliationService: completed reconciliation for date={}", reportDate);
         // LOG-BUS-07: structured reconciliation summary event
         log.info("Reconciliation run completed",
             kv("operation", "reconciliation_run"),
@@ -105,7 +106,10 @@ public class ReconciliationService {
     private int[] runForProviderAndDate(MobilePaymentProvider provider, LocalDate reportDate) {
         ProviderReportPort port = providerPorts.get(provider);
         if (port == null) {
-            log.warn("ReconciliationService: no ProviderReportPort registered for provider={}", provider);
+            log.warn("No ProviderReportPort registered",
+                kv("operation", "reconciliation_run"),
+                kv("provider", provider),
+                kv("status", "NO_ADAPTER"));
             return new int[]{0, 0};
         }
 
@@ -125,8 +129,6 @@ public class ReconciliationService {
 
         // Step 2: fetch eligible ledger transactions
         List<Transaction> ledgerTxs = ledgerSnapshotService.findTransactionsForDateAndProvider(reportDate, provider);
-        log.info("ReconciliationService: provider={} date={} — found {} transactions to reconcile",
-            provider, reportDate, ledgerTxs.size());
 
         // Step 3: compare each transaction against the provider record
         List<ReconciliationDiscrepancy> discrepancies = new ArrayList<>();
@@ -151,8 +153,6 @@ public class ReconciliationService {
         report.setStatus("COMPLETE");
         reportRepository.save(report);
 
-        log.info("ReconciliationService: provider={} date={} — checked={}, matched={}, discrepancies={}",
-            provider, reportDate, ledgerTxs.size(), matched, discrepancies.size());
         return new int[]{ledgerTxs.size(), discrepancies.size()};
     }
 

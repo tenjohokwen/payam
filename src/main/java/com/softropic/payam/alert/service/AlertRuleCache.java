@@ -4,8 +4,6 @@ import com.softropic.payam.alert.repo.AlertRule;
 import com.softropic.payam.alert.repo.AlertRuleRepository;
 
 import jakarta.annotation.PostConstruct;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -23,8 +21,6 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 @Service
 public class AlertRuleCache {
-
-    private static final Logger log = LoggerFactory.getLogger(AlertRuleCache.class);
 
     private final AlertRuleRepository alertRuleRepository;
     private final AtomicReference<List<AlertRule>> cachedRules = new AtomicReference<>(List.of());
@@ -46,7 +42,6 @@ public class AlertRuleCache {
     public void refresh() {
         List<AlertRule> rules = alertRuleRepository.findAllByEnabledTrue();
         cachedRules.set(rules);
-        log.debug("Alert rule cache refreshed: {} rules loaded", rules.size());
     }
 
     /**
