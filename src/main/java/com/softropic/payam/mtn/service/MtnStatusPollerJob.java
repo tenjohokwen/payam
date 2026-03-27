@@ -61,7 +61,9 @@ public class MtnStatusPollerJob extends QuartzJobBean {
             .findByTxStatusAndProviderAndLastModifiedDateBefore(
                 TransactionStatus.PROCESSING, MobilePaymentProvider.MTN, cutoff);
 
-        log.info("MtnStatusPollerJob: found {} stuck PROCESSING transactions", stuck.size());
+        log.info("Poller scan",
+            kv("operation", "mtn_poller_scan"),
+            kv("stuckCount", stuck.size()));
 
         for (Transaction tx : stuck) {
             pollTransaction(tx);
@@ -71,14 +73,16 @@ public class MtnStatusPollerJob extends QuartzJobBean {
     private void pollTransaction(Transaction tx) {
         // Guard: providerRef is null if initiateMerchantPayment crashed before persistProviderRef committed
         if (tx.getProviderRef() == null) {
-            log.warn("PROCESSING MTN transaction {} has no providerRef — skipping poll", tx.getTransactionId());
+            log.warn("MTN poller: transaction missing providerRef",
+                kv("operation", "mtn_poller_scan"),
+                kv("transactionId", tx.getTransactionId()),
+                kv("status", "SKIPPED_NO_PROVIDER_REF"));
             return;
         }
 
         // Check max attempts
         int attempts = tx.getPollAttempts() != null ? tx.getPollAttempts() : 0;
         if (attempts >= 15) {
-            log.warn("Transaction {} exceeded max poll attempts — marking FAILED", tx.getTransactionId());
             Transaction locked = transactionRepository.findByTransactionIdForUpdate(tx.getTransactionId())
                 .orElseThrow();
             locked.applyTransition(TransactionStatus.FAILED);
@@ -114,13 +118,20 @@ public class MtnStatusPollerJob extends QuartzJobBean {
                 eventLogService.append(tx.getTransactionId(), tx.getTraceId(), tx.getExternalReference(),
                     eventType, TransactionStatus.PROCESSING, next,
                     "MTN_POLLER", result.rawStatus());
-                log.info("Transaction {} transitioned to {} via MTN polling", tx.getTransactionId(), next);
             } else {
                 tx.incrementPollAttempts();
-                log.debug("Transaction {} still PENDING after MTN poll attempt {}", tx.getTransactionId(), attempts + 1);
+                log.info("MTN poller: still PENDING",
+                    kv("operation", "mtn_poller_scan"),
+                    kv("transactionId", tx.getTransactionId()),
+                    kv("pollAttempt", attempts + 1),
+                    kv("status", "STILL_PENDING"));
             }
         } catch (MtnApiException e) {
-            log.error("MTN API error polling transaction {}", tx.getTransactionId(), e);
+            log.warn("MTN poller: API error",
+                kv("operation", "mtn_poller_scan"),
+                kv("transactionId", tx.getTransactionId()),
+                kv("status", "ERROR"),
+                e);
             tx.incrementPollAttempts();
         }
     }

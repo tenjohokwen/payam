@@ -67,8 +67,11 @@ public class WebhookTransitionService {
         // Guard: already in terminal state (webhook race with poller — Pitfall 2)
         if (tx.getTxStatus() == TransactionStatus.SUCCESS
                 || tx.getTxStatus() == TransactionStatus.FAILED) {
-            log.info("Double-check: transactionId={} already in terminal state {} — skipping",
-                event.transactionId(), tx.getTxStatus());
+            log.info("Double-check: already terminal",
+                kv("operation", "webhook_double_check"),
+                kv("transactionId", event.transactionId()),
+                kv("currentState", tx.getTxStatus()),
+                kv("status", "ALREADY_TERMINAL"));
             return;
         }
 
@@ -108,8 +111,6 @@ public class WebhookTransitionService {
             TransactionStatus.PROCESSING, target,
             "WEBHOOK_DOUBLE_CHECK", metadata
         );
-
-        log.info("Double-check: transactionId={} transitioned to {}", event.transactionId(), target);
 
         // Enqueue outbound tenant notification — async delivery via WebhookDeliveryJob
         // tx.getFeeAmount() is null for pre-Phase-10 transactions; enqueue() null-guards to ZERO

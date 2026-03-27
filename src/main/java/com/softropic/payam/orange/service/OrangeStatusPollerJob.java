@@ -59,7 +59,9 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
             .findByTxStatusAndProviderAndLastModifiedDateBefore(
                 TransactionStatus.PROCESSING, MobilePaymentProvider.ORANGE, cutoff);
 
-        log.info("OrangeStatusPollerJob: found {} stuck PROCESSING transactions", stuck.size());
+        log.info("Poller scan",
+            kv("operation", "orange_poller_scan"),
+            kv("stuckCount", stuck.size()));
 
         for (Transaction tx : stuck) {
             pollTransaction(tx);
@@ -68,7 +70,10 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
 
     private void pollTransaction(Transaction tx) {
         if (tx.getPayToken() == null) {
-            log.warn("PROCESSING transaction {} has no payToken — skipping poll", tx.getTransactionId());
+            log.warn("Orange poller: transaction missing payToken",
+                kv("operation", "orange_poller_scan"),
+                kv("transactionId", tx.getTransactionId()),
+                kv("status", "SKIPPED_NO_PAY_TOKEN"));
             return;
         }
 
@@ -76,8 +81,10 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
         try {
             orangeMoneyPort.assertPayTokenFresh(tx.getTransactionId(), tx.getPayTokenIssuedAt());
         } catch (PayTokenExpiredException e) {
-            log.warn("payToken expired for transaction {} — skipping poll; Phase 5 orchestrator must re-initiate",
-                     tx.getTransactionId());
+            log.warn("Orange poller: payToken expired",
+                kv("operation", "orange_poller_scan"),
+                kv("transactionId", tx.getTransactionId()),
+                kv("status", "TOKEN_EXPIRED"));
             tx.incrementPollAttempts();
             return;
         }
@@ -85,7 +92,6 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
         // Check max attempts
         int attempts = tx.getPollAttempts() != null ? tx.getPollAttempts() : 0;
         if (attempts >= 15) {
-            log.warn("Transaction {} exceeded max poll attempts — marking FAILED", tx.getTransactionId());
             Transaction locked = transactionRepository.findByTransactionIdForUpdate(tx.getTransactionId())
                 .orElseThrow();
             locked.applyTransition(TransactionStatus.FAILED);
@@ -121,13 +127,20 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
                 eventLogService.append(tx.getTransactionId(), tx.getTraceId(), tx.getExternalReference(),
                     eventType, TransactionStatus.PROCESSING, next,
                     "ORANGE_POLLER", result.rawStatus());
-                log.info("Transaction {} transitioned to {} via polling", tx.getTransactionId(), next);
             } else {
                 tx.incrementPollAttempts();
-                log.debug("Transaction {} still PENDING after poll attempt {}", tx.getTransactionId(), attempts + 1);
+                log.info("Orange poller: still PENDING",
+                    kv("operation", "orange_poller_scan"),
+                    kv("transactionId", tx.getTransactionId()),
+                    kv("pollAttempt", attempts + 1),
+                    kv("status", "STILL_PENDING"));
             }
         } catch (OrangeApiException e) {
-            log.error("Orange API error polling transaction {}", tx.getTransactionId(), e);
+            log.warn("Orange poller: API error",
+                kv("operation", "orange_poller_scan"),
+                kv("transactionId", tx.getTransactionId()),
+                kv("status", "ERROR"),
+                e);
             tx.incrementPollAttempts();
         }
     }
