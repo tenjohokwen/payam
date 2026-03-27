@@ -9,6 +9,8 @@ import com.softropic.payam.orange.service.OrangeMoneyPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
+
+import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -94,7 +96,11 @@ public class OrangeCallbackController {
                     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
                 }
             } catch (Exception e) {
-                log.error("Orange callback HMAC verification error: {}", e.getMessage());
+                log.error("Orange callback HMAC verification error",
+                        kv("operation", "webhook_received"),
+                        kv("provider", "ORANGE"),
+                        kv("status", "HMAC_ERROR"),
+                        e);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
         }
@@ -106,7 +112,10 @@ public class OrangeCallbackController {
         String dedupKey = "webhook:orange:" + payToken + ":" + createtime;
         Boolean wasAbsent = redis.opsForValue().setIfAbsent(dedupKey, "SEEN", Duration.ofHours(24));
         if (Boolean.FALSE.equals(wasAbsent)) {
-            log.info("Orange webhook duplicate suppressed: payToken={}", payload.getPayToken());
+            log.info("Orange webhook duplicate suppressed",
+                    kv("operation", "webhook_received"),
+                    kv("provider", "ORANGE"),
+                    kv("status", "DUPLICATE"));
             return ResponseEntity.ok().build();
         }
 
@@ -115,7 +124,11 @@ public class OrangeCallbackController {
         try {
             orangeMoneyPort.processWebhook(payload, notifToken);
         } catch (Exception e) {
-            log.warn("Orange callback processing failed, payToken={}: {}", payload.getPayToken(), e.getMessage());
+            log.error("Orange callback processing failed",
+                    kv("operation", "webhook_received"),
+                    kv("provider", "ORANGE"),
+                    kv("status", "ERROR"),
+                    e);
             metricsService.recordCallbackFailed();
         }
 

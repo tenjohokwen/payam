@@ -4,6 +4,8 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import lombok.extern.slf4j.Slf4j;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 /**
  * Bean Validation constraint validator for Cameroon mobile numbers.
  * Validates a phone number String using CamMobileValidator logic.
@@ -67,6 +69,9 @@ public class CamPhoneValidator implements ConstraintValidator<CamPhone, String> 
         // Use pipe separator to pass both key and fallback to ApiAdvice
         context.buildConstraintViolationWithTemplate(messageKey + "|" + fallbackMessage)
                .addConstraintViolation();
-        log.debug("Phone validation failed: {} - {}", messageKey, fallbackMessage);
+        log.warn("Phone validation failed",
+                kv("operation", "phone_validation"),
+                kv("reason", messageKey),
+                kv("status", "INVALID"));
     }
 }

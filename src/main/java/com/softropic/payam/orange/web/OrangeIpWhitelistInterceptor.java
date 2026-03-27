@@ -5,6 +5,8 @@ import com.softropic.payam.orange.config.OrangeMoneyConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -67,7 +69,11 @@ public class OrangeIpWhitelistInterceptor implements HandlerInterceptor {
         });
 
         if (!allowed) {
-            log.warn("Orange callback rejected — IP not whitelisted: {}", clientIp);
+            log.warn("Orange callback rejected: IP not whitelisted",
+                    kv("operation", "ip_whitelist_check"),
+                    kv("provider", "ORANGE"),
+                    kv("remoteIp", clientIp),
+                    kv("status", "REJECTED"));
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             return false;
         }

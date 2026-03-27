@@ -5,6 +5,8 @@ import com.softropic.payam.mtn.config.MtnMoMoConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -67,7 +69,11 @@ public class MtnIpWhitelistInterceptor implements HandlerInterceptor {
         });
 
         if (!allowed) {
-            log.warn("MTN callback rejected — IP not whitelisted: {}", clientIp);
+            log.warn("MTN callback rejected: IP not whitelisted",
+                    kv("operation", "ip_whitelist_check"),
+                    kv("provider", "MTN"),
+                    kv("remoteIp", clientIp),
+                    kv("status", "REJECTED"));
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             return false;
         }

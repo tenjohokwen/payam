@@ -10,6 +10,8 @@ import com.softropic.payam.tenant.service.ApiKeyService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+
+import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -107,8 +109,10 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         try {
             tenantApiKey = apiKeyService.authenticate(rawKey);
         } catch (Exception e) {
-            log.warn("API key authentication failed for prefix [{}]",
-                rawKey.length() >= 8 ? rawKey.substring(0, 8) : "[short]");
+            log.warn("API key authentication failed",
+                    kv("operation", "api_key_auth"),
+                    kv("keyPrefix", rawKey.length() >= 8 ? rawKey.substring(0, 8) : "[short]"),
+                    kv("status", "UNAUTHORIZED"));
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired API key");
             return;
         }

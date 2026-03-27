@@ -7,6 +7,8 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import lombok.extern.slf4j.Slf4j;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 
 @Slf4j
 public class PhoneNumberValidator implements ConstraintValidator<Phone, PhoneNumber> {
@@ -29,7 +31,10 @@ public class PhoneNumberValidator implements ConstraintValidator<Phone, PhoneNum
         }
         catch (NumberParseException e) {
             if (phoneNumber != null) {
-                log.warn("Invalid phone number: {}", phoneNumber.getPhone(), e);
+                log.warn("Invalid phone number",
+                        kv("operation", "phone_validation"),
+                        kv("status", "INVALID"),
+                        e);
             }
             return false;
         }

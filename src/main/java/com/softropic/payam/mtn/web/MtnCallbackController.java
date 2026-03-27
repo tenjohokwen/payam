@@ -7,6 +7,8 @@ import com.softropic.payam.mtn.service.MtnMoMoPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+
+import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -52,7 +54,11 @@ public class MtnCallbackController {
         try {
             mtnMoMoPort.processCallback(payload);
         } catch (Exception e) {
-            log.warn("MTN callback processing failed: {}", e.getMessage());
+            log.error("MTN callback processing failed",
+                    kv("operation", "webhook_received"),
+                    kv("provider", "MTN"),
+                    kv("status", "ERROR"),
+                    e);
             metricsService.recordCallbackFailed();
         }
         return ResponseEntity.ok().build();

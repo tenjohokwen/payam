@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import java.util.Optional;
 
 /**
@@ -63,7 +65,9 @@ public class MsisdnRouter {
         }
 
         // Step 2: Hardcoded fallback — log WARN when fired (Pitfall 4 guard)
-        log.warn("MSISDN prefix '{}' not found in DB route table — using hardcoded fallback", prefix);
+        log.warn("MSISDN prefix not found in route table",
+                kv("operation", "route_msisdn"),
+                kv("status", "PREFIX_NOT_FOUND"));
 
         if (national.startsWith("65") || national.startsWith("69")) {
             return MobilePaymentProvider.ORANGE;
