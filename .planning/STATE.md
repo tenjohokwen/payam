@@ -66,6 +66,9 @@ Recent decisions affecting current work:
 - **[16-04] cashout/c2c direct-return pattern:** Assign makeHttpRequest() to local variable, log, then return — required to access response for status check before returning.
 - **[16-02] LOG-BUS-02 fromState hardcoded at poller/webhook sites:** `TransactionStatus.PROCESSING.name()` used instead of `tx.getTxStatus().name()` — post-transition status is already mutated. Hardcoded constant is safe since pollers and webhook double-check only ever transition from PROCESSING.
 - **[16-02] State change log placed between applyTransition() and eventLogService.append():** Co-locates Loki structured event adjacent to event sourcing append for correlation. Pattern consistent across all 4 files.
+- **[17-01] Still-PENDING logs upgraded from log.debug to log.info in both pollers:** Poller backpressure (many transactions stuck pending) is a Loki-queryable production signal; debug is invisible in production.
+- **[17-01] No-webhook-URL log upgraded from log.debug to log.warn:** Silently skipping delivery on a billable-path event warrants visibility; per plan spec.
+- **[17-01] Exception arg preserved as last positional arg in all error/warn catch blocks:** kv() varargs followed by throwable is the correct SLF4J overload pattern; stack traces included in structured Loki entries.
 - **[17-03] BodySanitizer SENSITIVE_KEYS adds msisdn, merchant_key, merchantKey:** Substring matching means "msisdn" catches any field name containing it; merchant_key and merchantKey added as separate entries since neither contains the other as a substring.
 - **[17-03] RestRequestInterceptor: no headers object in log args:** Headers may contain Authorization Bearer token; content-type extracted separately for sanitization only.
 - **[17-03] OrangeCallbackController line 118 upgraded warn to error:** Callback processing failure is error-severity; exception object passed as last arg (not e.getMessage()) for full stack trace.
@@ -82,5 +85,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-27
-Stopped at: Completed 17-03-PLAN.md — LOG-CODE-03 PII closure and kv() conversion (BodySanitizer + API/filter/validation layer)
+Stopped at: Completed 17-01-PLAN.md — LOG-CODE-01/02/03 payment domain kv() enforcement (9 files, 8 duplicate logs deleted)
 Resume file: None
