@@ -31,7 +31,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = {"enable.test.mail=true"})
 @Import({PostgresContainerConfig.class, RedisContainerConfig.class,
-         WireMockConfig.class, E2ESecurityConfig.class, TestClockConfig.class})
+         E2ESecurityConfig.class, TestClockConfig.class})
 @TestPropertySource(properties = {
     "spring.cloud.compatibility-verifier.enabled=false",
     "mtn.callback-ip-whitelist=",
