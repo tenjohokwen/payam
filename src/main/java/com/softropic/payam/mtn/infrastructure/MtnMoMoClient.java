@@ -12,6 +12,8 @@ import com.softropic.payam.mtn.contract.dto.RequestToPayStatusResponse;
 import com.softropic.payam.mtn.contract.exception.MtnAccountInactiveException;
 import com.softropic.payam.mtn.contract.exception.MtnApiException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -21,7 +23,11 @@ import org.springframework.web.client.HttpClientErrorException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 public class MtnMoMoClient extends AbstractClient {
+
+    private static final Logger log = LoggerFactory.getLogger(MtnMoMoClient.class);
 
     private final MtnMoMoConfig config;
 
@@ -43,8 +49,15 @@ public class MtnMoMoClient extends AbstractClient {
 
         HttpHeaders headers = mtnBasicAuthHeaders(basicAuth, config.getCollectionSubscriptionKey());
 
+        long start = System.currentTimeMillis();
         ResponseEntity<MtnTokenResponse> response = makeHttpRequest(
                 config.getCollectionTokenUrl(), HttpMethod.POST, null, MtnTokenResponse.class, headers);
+        // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
+        log.info("Provider HTTP call",
+                kv("externalService", "MTN_MOMO"),
+                kv("operation", "fetchCollectionToken"),
+                kv("externalLatencyMs", System.currentTimeMillis() - start),
+                kv("status", response.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             throw new MtnApiException("Failed to fetch MTN collection token — status: " + response.getStatusCode());
@@ -63,8 +76,15 @@ public class MtnMoMoClient extends AbstractClient {
 
         HttpHeaders headers = mtnBasicAuthHeaders(basicAuth, config.getDisbursementSubscriptionKey());
 
+        long start = System.currentTimeMillis();
         ResponseEntity<MtnTokenResponse> response = makeHttpRequest(
                 config.getDisbursementTokenUrl(), HttpMethod.POST, null, MtnTokenResponse.class, headers);
+        // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
+        log.info("Provider HTTP call",
+                kv("externalService", "MTN_MOMO"),
+                kv("operation", "fetchDisbursementToken"),
+                kv("externalLatencyMs", System.currentTimeMillis() - start),
+                kv("status", response.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             throw new MtnApiException("Failed to fetch MTN disbursement token — status: " + response.getStatusCode());
@@ -81,7 +101,14 @@ public class MtnMoMoClient extends AbstractClient {
 
         HttpHeaders headers = mtnHeaders(bearerToken, referenceId, config.getCollectionSubscriptionKey());
 
+        long start = System.currentTimeMillis();
         ResponseEntity<Void> response = makeHttpRequest(url, HttpMethod.POST, request, Void.class, headers);
+        // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
+        log.info("Provider HTTP call",
+                kv("externalService", "MTN_MOMO"),
+                kv("operation", "requestToPay"),
+                kv("externalLatencyMs", System.currentTimeMillis() - start),
+                kv("status", response.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
 
         if (!response.getStatusCode().is2xxSuccessful()) {
             throw new MtnApiException("requestToPay failed — referenceId: " + referenceId
@@ -97,8 +124,15 @@ public class MtnMoMoClient extends AbstractClient {
 
         HttpHeaders headers = mtnHeaders(bearerToken, null, config.getCollectionSubscriptionKey());
 
+        long start = System.currentTimeMillis();
         ResponseEntity<RequestToPayStatusResponse> response = makeHttpRequest(
                 url, HttpMethod.GET, null, RequestToPayStatusResponse.class, headers);
+        // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
+        log.info("Provider HTTP call",
+                kv("externalService", "MTN_MOMO"),
+                kv("operation", "getRequestToPayStatus"),
+                kv("externalLatencyMs", System.currentTimeMillis() - start),
+                kv("status", response.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             throw new MtnApiException("getRequestToPayStatus failed — referenceId: " + referenceId
@@ -117,8 +151,16 @@ public class MtnMoMoClient extends AbstractClient {
         HttpHeaders headers = mtnHeaders(bearerToken, null, config.getCollectionSubscriptionKey());
 
         try {
+            long start = System.currentTimeMillis();
             ResponseEntity<AccountHolderInfoResponse> response = makeHttpRequest(
                     url, HttpMethod.GET, null, AccountHolderInfoResponse.class, headers);
+            // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
+            // Note: log does NOT emit on exception path — that is acceptable; the exception propagates for the not-found case.
+            log.info("Provider HTTP call",
+                    kv("externalService", "MTN_MOMO"),
+                    kv("operation", "validateAccountHolder"),
+                    kv("externalLatencyMs", System.currentTimeMillis() - start),
+                    kv("status", response.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
 
             if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
                 throw new MtnApiException("validateAccountHolder failed — msisdn: " + msisdn
@@ -151,8 +193,15 @@ public class MtnMoMoClient extends AbstractClient {
 
         HttpHeaders headers = mtnHeaders(bearerToken, null, config.getCollectionSubscriptionKey());
 
+        long start = System.currentTimeMillis();
         ResponseEntity<AccountBalanceResponse> response = makeHttpRequest(
                 url, HttpMethod.GET, null, AccountBalanceResponse.class, headers);
+        // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
+        log.info("Provider HTTP call",
+                kv("externalService", "MTN_MOMO"),
+                kv("operation", "getBalance"),
+                kv("externalLatencyMs", System.currentTimeMillis() - start),
+                kv("status", response.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             throw new MtnApiException("getBalance failed — status: " + response.getStatusCode());
@@ -170,7 +219,14 @@ public class MtnMoMoClient extends AbstractClient {
 
         HttpHeaders headers = mtnHeaders(bearerToken, referenceId, config.getDisbursementSubscriptionKey());
 
+        long start = System.currentTimeMillis();
         ResponseEntity<Void> response = makeHttpRequest(url, HttpMethod.POST, request, Void.class, headers);
+        // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
+        log.info("Provider HTTP call",
+                kv("externalService", "MTN_MOMO"),
+                kv("operation", "disburse"),
+                kv("externalLatencyMs", System.currentTimeMillis() - start),
+                kv("status", response.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
 
         if (!response.getStatusCode().is2xxSuccessful()) {
             throw new MtnApiException("disburse failed — referenceId: " + referenceId
