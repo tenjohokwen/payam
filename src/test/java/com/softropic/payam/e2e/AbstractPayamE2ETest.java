@@ -6,6 +6,7 @@ import com.softropic.payam.config.PostgresContainerConfig;
 import com.softropic.payam.config.RedisContainerConfig;
 import com.softropic.payam.config.TestClockConfig;
 import com.softropic.payam.config.TestDataCleaner;
+import com.softropic.payam.config.TestMailConfig;
 import com.softropic.payam.config.WireMockConfig;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -31,7 +32,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = {"enable.test.mail=true"})
 @Import({PostgresContainerConfig.class, RedisContainerConfig.class,
-         E2ESecurityConfig.class, TestClockConfig.class})
+         E2ESecurityConfig.class, TestClockConfig.class, TestMailConfig.class})
 @TestPropertySource(properties = {
     "spring.cloud.compatibility-verifier.enabled=false",
     "mtn.callback-ip-whitelist=",
