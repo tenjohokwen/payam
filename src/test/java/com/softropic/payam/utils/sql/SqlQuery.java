@@ -67,6 +67,11 @@ public abstract class SqlQuery {
         return this;
     }
 
+    /** Returns the number of recorded query strings. */
+    public int size() {
+        return queryStrings.size();
+    }
+
     void registerQuery(String qStr) {
         queryStrings.add(qStr);
     }
