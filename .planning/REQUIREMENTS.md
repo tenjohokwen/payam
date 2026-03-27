@@ -26,13 +26,13 @@ Requirements for logging standardization milestone. Each maps to roadmap phases.
 
 ### Business Event Logging
 
-- [ ] **LOG-BUS-01**: Payment initiation logs a structured INFO event with: `operation=initiate_payment`, `tenantId`, `transactionId`, `provider`, `msisdn` (last 4 digits only), `durationMs`, `status`
-- [ ] **LOG-BUS-02**: Every transaction state transition logs a structured INFO event with: `operation=transaction_state_change`, `transactionId`, `fromState`, `toState`, `actor`
-- [ ] **LOG-BUS-03**: Inbound webhook receipt logs a structured INFO event with: `operation=webhook_received`, `provider`, `transactionId`, `externalReference`, `providerStatus`
-- [ ] **LOG-BUS-04**: Outbound webhook delivery logs a structured INFO/WARN event with: `operation=webhook_delivery`, `transactionId`, `tenantId`, `durationMs`, `httpStatus`, `status`, `retryCount`
-- [ ] **LOG-BUS-05**: Fraud evaluation logs a structured INFO/WARN event with: `operation=fraud_evaluation`, `transactionId`, `riskScore`, `blocked`, `durationMs`
-- [ ] **LOG-BUS-06**: All provider adapter HTTP calls (MTN, Orange) log a structured INFO event with: `externalService`, `operation`, `externalLatencyMs`, `status`
-- [ ] **LOG-BUS-07**: Daily reconciliation job logs a structured INFO event with: `operation=reconciliation_run`, `date`, `totalChecked`, `discrepancyCount`, `durationMs`, `status`
+- [x] **LOG-BUS-01**: Payment initiation logs a structured INFO event with: `operation=initiate_payment`, `tenantId`, `transactionId`, `provider`, `msisdn` (last 4 digits only), `durationMs`, `status`
+- [x] **LOG-BUS-02**: Every transaction state transition logs a structured INFO event with: `operation=transaction_state_change`, `transactionId`, `fromState`, `toState`, `actor`
+- [x] **LOG-BUS-03**: Inbound webhook receipt logs a structured INFO event with: `operation=webhook_received`, `provider`, `transactionId`, `externalReference`, `providerStatus`
+- [x] **LOG-BUS-04**: Outbound webhook delivery logs a structured INFO/WARN event with: `operation=webhook_delivery`, `transactionId`, `tenantId`, `durationMs`, `httpStatus`, `status`, `retryCount`
+- [x] **LOG-BUS-05**: Fraud evaluation logs a structured INFO/WARN event with: `operation=fraud_evaluation`, `transactionId`, `riskScore`, `blocked`, `durationMs`
+- [x] **LOG-BUS-06**: All provider adapter HTTP calls (MTN, Orange) log a structured INFO event with: `externalService`, `operation`, `externalLatencyMs`, `status`
+- [x] **LOG-BUS-07**: Daily reconciliation job logs a structured INFO event with: `operation=reconciliation_run`, `date`, `totalChecked`, `discrepancyCount`, `durationMs`, `status`
 
 ### Code Standards
 
@@ -73,13 +73,13 @@ Which phases cover which requirements. Updated by create-roadmap.
 | LOG-REQ-01 | Phase 15 | Complete |
 | LOG-REQ-02 | Phase 15 | Complete |
 | LOG-REQ-03 | Phase 15 | Complete |
-| LOG-BUS-01 | Phase 16 | Pending |
-| LOG-BUS-02 | Phase 16 | Pending |
-| LOG-BUS-03 | Phase 16 | Pending |
-| LOG-BUS-04 | Phase 16 | Pending |
-| LOG-BUS-05 | Phase 16 | Pending |
-| LOG-BUS-06 | Phase 16 | Pending |
-| LOG-BUS-07 | Phase 16 | Pending |
+| LOG-BUS-01 | Phase 16 | Complete |
+| LOG-BUS-02 | Phase 16 | Complete |
+| LOG-BUS-03 | Phase 16 | Complete |
+| LOG-BUS-04 | Phase 16 | Complete |
+| LOG-BUS-05 | Phase 16 | Complete |
+| LOG-BUS-06 | Phase 16 | Complete |
+| LOG-BUS-07 | Phase 16 | Complete |
 | LOG-CODE-01 | Phase 17 | Pending |
 | LOG-CODE-02 | Phase 17 | Pending |
 | LOG-CODE-03 | Phase 17 | Pending |

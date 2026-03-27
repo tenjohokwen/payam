@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Full-stack observability — every payment event traceable from Loki logs through Tempo traces to Prometheus metrics without manual correlation.
-**Current focus:** Phase 16 — Business Event Logging
+**Current focus:** Phase 17 — Code Standards Enforcement
 
 ## Current Position
 
-Phase: 16 of 17 (v2: Business Event Logging)
-Plan: 5 of 5 complete (16-01, 16-02, 16-03, 16-04, 16-05 done)
-Status: Phase complete
-Last activity: 2026-03-27 — Completed 16-02-PLAN.md (LOG-BUS-02 transaction_state_change at all 9 applyTransition() sites)
+Phase: 17 of 17 (v2: Code Standards Enforcement)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-03-27 — Phase 16 complete (5/5 plans, verified 6/6 must-haves, LOG-BUS-01/02/03/04/05/06/07 Complete)
 
-Progress: █████████████████████████ v1 complete | ██████████ v2 100%
+Progress: █████████████████████████ v1 complete | ████████░░ v2 75%
 
 ## Performance Metrics
 
