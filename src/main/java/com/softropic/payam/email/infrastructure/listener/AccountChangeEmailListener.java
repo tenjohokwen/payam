@@ -10,6 +10,8 @@ import com.softropic.payam.security.contract.util.ShortCode;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+
+import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -41,7 +43,7 @@ public class AccountChangeEmailListener {
     @Transactional
     @EventListener
     public void handleAccountChange(AccountChangeEvent event) {
-        log.info("Sending notification email for account change: {}", event.getAction());
+        log.info("Sending account change notification email", kv("action", event.getAction()));
         sendNotificationEmail(event);
     }
 

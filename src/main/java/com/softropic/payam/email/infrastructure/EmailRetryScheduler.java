@@ -10,6 +10,8 @@ import com.softropic.payam.email.service.MailManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
+
+import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,17 +71,16 @@ public class EmailRetryScheduler {
         if (candidates.isEmpty()) {
             return;
         }
-        log.info("Retrying {} failed email(s)", candidates.size());
+        log.info("Retrying failed emails", kv("count", candidates.size()));
         for (EnvelopeEntity entity : candidates) {
             if (Instant.now().isAfter(entity.getDeadline())) {
-                log.warn("Deadline expired for sendId='{}', marking as DEADLINE_EXPIRED", entity.getSendId());
+                log.warn("Email deadline expired", kv("sendId", entity.getSendId()), kv("newStatus", "DEADLINE_EXPIRED"));
                 entity.setStatus(EmailDeliveryStatus.DEADLINE_EXPIRED);
                 entity.setRetry(false);
                 continue;
             }
             if (entity.getAttempts() >= MAX_RETRY_ATTEMPTS) {
-                log.warn("Attempts exhausted for sendId='{}' (attempts={}), marking as ATTEMPTS_EXHAUSTED",
-                        entity.getSendId(), entity.getAttempts());
+                log.warn("Email attempts exhausted", kv("sendId", entity.getSendId()), kv("attempts", entity.getAttempts()), kv("newStatus", "ATTEMPTS_EXHAUSTED"));
                 entity.setStatus(EmailDeliveryStatus.ATTEMPTS_EXHAUSTED);
                 entity.setRetry(false);
                 continue;
@@ -88,7 +89,7 @@ public class EmailRetryScheduler {
                 Envelope envelope = EnvelopeMapper.toEnvelope(entity);
                 mailManager.sendEmailSync(envelope);
             } catch (Exception e) {
-                log.error("Retry attempt failed for sendId='{}': {}", entity.getSendId(), e.getMessage());
+                log.error("Email retry attempt failed", kv("sendId", entity.getSendId()), e);
             }
         }
     }
