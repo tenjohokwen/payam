@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 ## Current Position
 
 Phase: 18 of 23 (Test Infrastructure)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-27 — v3 roadmap created (Phases 18–23, 6 phases, 64 requirements)
+Plan: 1 of 3 complete
+Status: In progress
+Last activity: 2026-03-27 — Completed 18-01-PLAN.md (E2E abstract base class hierarchy)
 
-Progress: ██████████████████████████████ v1+v2 complete | ░░░░░░░░░░ v3 0%
+Progress: ██████████████████████████████ v1+v2 complete | █░░░░░░░░░ v3 ~3%
 
 ## Performance Metrics
 
@@ -80,6 +80,9 @@ Recent decisions affecting current work:
 - **[17-03] OrangeCallbackController line 118 upgraded warn to error:** Callback processing failure is error-severity; exception object passed as last arg (not e.getMessage()) for full stack trace.
 - **[17-03] Exception as last log arg pattern:** Pass raw `e` not `e.getMessage()` to preserve stack trace without {} placeholder — established across all fixed log.error/warn calls.
 - **[17-04] RequestMetadataProvider/JWTAuthorizationFilter deviation:** 7 additional ##### violations found during Task 3 full-codebase grep. Fixed as Rule 2 deviation — pure deletions, no architectural change. Both files brought into LOG-CODE-02 compliance.
+- **[18-01] AbstractFailureFlowTest extends AbstractPayamE2ETest directly:** Failure flows inject faults before executeFlow — a different phase structure from payment flows. Separate hierarchy branch (AbstractPayamE2ETest -> AbstractFailureFlowTest) not a subtype of AbstractPaymentFlowTest.
+- **[18-01] stubTokenEndpoints() is protected and overrideable:** Default stubs both mtn and orange token endpoints using WireMockConfig constants. Circuit-breaker tests that flush Redis mid-test can override to re-stub after cache clear.
+- **[18-01] final on runFlow()/runFailureScenario() is mandatory:** Prevents subclasses from overriding the orchestration phase order — structural contract for all v3 E2E tests.
 
 ### Pending Todos
 
@@ -92,5 +95,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-27
-Stopped at: v3 roadmap created — 6 phases (18–23), all 64 requirements mapped
+Stopped at: Completed 18-01-PLAN.md — four abstract E2E base classes in com.softropic.payam.e2e
 Resume file: None
