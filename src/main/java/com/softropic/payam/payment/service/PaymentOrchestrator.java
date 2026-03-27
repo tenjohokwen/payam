@@ -230,8 +230,26 @@ public class PaymentOrchestrator {
                         .orElseThrow(() -> new IllegalStateException("Transaction not found: " + tx.getTransactionId()));
                 //TODO Verify if this is needed. This doesn't seem to make much sense. I think putting TransactionStatus.PROCESSING directly makes sense
                 locked.applyTransition(TransactionStatus.AUTH_PENDING);
+                log.info("Transaction state changed",
+                    kv("operation", "transaction_state_change"),
+                    kv("transactionId", tx.getTransactionId()),
+                    kv("fromState", TransactionStatus.INITIATED.name()),
+                    kv("toState", TransactionStatus.AUTH_PENDING.name()),
+                    kv("actor", "ORCHESTRATOR"));
                 locked.applyTransition(TransactionStatus.AUTHORIZED);
+                log.info("Transaction state changed",
+                    kv("operation", "transaction_state_change"),
+                    kv("transactionId", tx.getTransactionId()),
+                    kv("fromState", TransactionStatus.AUTH_PENDING.name()),
+                    kv("toState", TransactionStatus.AUTHORIZED.name()),
+                    kv("actor", "ORCHESTRATOR"));
                 locked.applyTransition(TransactionStatus.PROCESSING);
+                log.info("Transaction state changed",
+                    kv("operation", "transaction_state_change"),
+                    kv("transactionId", tx.getTransactionId()),
+                    kv("fromState", TransactionStatus.AUTHORIZED.name()),
+                    kv("toState", TransactionStatus.PROCESSING.name()),
+                    kv("actor", "ORCHESTRATOR"));
                 return null;
             });
 
@@ -343,6 +361,12 @@ public class PaymentOrchestrator {
                         .findByTransactionIdForUpdate(tx.getTransactionId())
                         .orElseThrow(() -> new IllegalStateException("Transaction not found: " + tx.getTransactionId()));
                 locked.applyTransition(TransactionStatus.FAILED);
+                log.info("Transaction state changed",
+                    kv("operation", "transaction_state_change"),
+                    kv("transactionId", tx.getTransactionId()),
+                    kv("fromState", from.name()),
+                    kv("toState", TransactionStatus.FAILED.name()),
+                    kv("actor", "ORCHESTRATOR"));
                 return null;
             });
             // Wrap error name in JSON quotes — metadata column is jsonb; bare strings are invalid JSON
