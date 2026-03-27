@@ -12,14 +12,10 @@ import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
-import lombok.extern.slf4j.Slf4j;
-
-
 /**
  * Adds functionality to the 'AuthenticationManager' by using a login decision manager that blocks clients suspected of fraud.
  * Should not be autowired or auto-created since this is just a wrapper around the real AuthenticationManager (Or else the real one may not be auto-created by the framework).
  */
-@Slf4j
 public class FraudAwareAuthenticationManager implements AuthenticationManager {
 
     private final AuthenticationManager                 authenticationManager;
@@ -49,7 +45,6 @@ public class FraudAwareAuthenticationManager implements AuthenticationManager {
      */
     @Override
     public Authentication authenticate(final Authentication authentication) {
-        log.info("################# Do a fraud check then let 'AuthenticationManager' handle authentication or else throws a LockedException");
         try {
             return verifyAccountStatusThenAuthenticate(authentication);
         } catch (AccountStatusException ase) {

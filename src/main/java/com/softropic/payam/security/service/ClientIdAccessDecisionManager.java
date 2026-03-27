@@ -16,13 +16,9 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.function.Supplier;
 
-import lombok.extern.slf4j.Slf4j;
-
-
 /**
  * AccessDecisionVoter that determines whether access may be granted to a client based on its clientIdentifier and ip.
  */
-@Slf4j
 @Service
 public class ClientIdAccessDecisionManager implements AuthorizationManager<RequestAuthorizationContext> {
 
@@ -38,7 +34,6 @@ public class ClientIdAccessDecisionManager implements AuthorizationManager<Reque
     }
 
     public boolean isClientIdAllowed() {
-        log.info("################# Get info from 'RequestMetadataProvider' and check black lists and client type.");
         final RequestMetadata requestMetadata = RequestMetadataProvider.getClientInfo();
         if(requestMetadata.isMachineClient()) {
             return allowedMachineClients.contains(requestMetadata.getApiKey());

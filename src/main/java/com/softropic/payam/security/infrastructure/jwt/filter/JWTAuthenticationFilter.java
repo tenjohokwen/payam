@@ -16,7 +16,6 @@ import com.softropic.payam.security.common.util.RequestMetadataProvider;
 import com.softropic.payam.security.contract.util.ShortCode;
 import com.softropic.payam.security.service.TwoFactorLoginService;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -43,7 +42,6 @@ import static com.softropic.payam.security.common.util.SecurityConstants.JWT_SES
 import static com.softropic.payam.security.contract.exception.SecurityError.IO_RESPONSE_ERROR;
 
 
-@Slf4j
 public class JWTAuthenticationFilter extends AbstractAuthenticationProcessingFilter {
 
     private final AuthenticationManager     authenticationManager;
@@ -71,7 +69,6 @@ public class JWTAuthenticationFilter extends AbstractAuthenticationProcessingFil
                                                 final HttpServletResponse res) {
         if(req.getMethod().equals("POST")) {
             loginTokenManager.ensureClientHasPreLoginId();
-            log.info("################# Authentication Attempt.... [JWTAuthenticationFilter]");
             //The assumption here is that only login info is passed in the body
             final UserDetails userDetails = buildUserDetails(req);
             final UsernamePasswordAuthenticationToken authentication = UsernamePasswordAuthenticationToken.unauthenticated(
@@ -88,7 +85,6 @@ public class JWTAuthenticationFilter extends AbstractAuthenticationProcessingFil
                                             final HttpServletResponse res,
                                             final FilterChain chain,
                                             final Authentication auth) {
-        log.info("################# JWT creation Attempt.... [JWTAuthenticationFilter]");
         final Principal principal = (Principal) auth.getPrincipal();
         // This will help to be able to trace how user logged and all actions. Session id should be stored in JWT.
         // The auditTrail also needs it.

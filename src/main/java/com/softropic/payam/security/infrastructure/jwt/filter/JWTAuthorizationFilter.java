@@ -103,7 +103,6 @@ public class JWTAuthorizationFilter extends OncePerRequestFilter {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         publisher.publishEvent(new PreAuthEvent(authentication, AuthenticationAction.PRE_AUTHORIZATION));
-        logger.info("################# Fork. If token theft throw exception, if time to refresh, use authenticationManager to authenticate then recreate JWT else extend Ttl .... [JWTAuthenticationFilter]");
         if(loginTokenManager.isTokenFixed(req)) {
             throw new JWTTheftException("An attempt to use a token from a different client detected.");
         }

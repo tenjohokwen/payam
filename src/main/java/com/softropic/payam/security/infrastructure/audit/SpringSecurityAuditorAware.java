@@ -1,6 +1,5 @@
 package com.softropic.payam.security.infrastructure.audit;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -13,7 +12,6 @@ import java.util.Optional;
 /**
  * Implementation of AuditorAware based on Spring Security.
  */
-@Slf4j
 @Component(SpringSecurityAuditorAware.NAME)
 public class SpringSecurityAuditorAware implements AuditorAware<String> {
 
@@ -21,7 +19,6 @@ public class SpringSecurityAuditorAware implements AuditorAware<String> {
 
     @Override
     public Optional<String> getCurrentAuditor() {
-        log.info("################# Audit current user name");
         final SecurityContext securityContext = SecurityContextHolder.getContext();
         final Authentication authentication = securityContext.getAuthentication();
         String userName = null;

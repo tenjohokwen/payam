@@ -24,7 +24,6 @@ public class PhoneNumberValidator implements ConstraintValidator<Phone, PhoneNum
             return false;
         }
         try {
-            log.info("Validating phone number...");
             PhoneNumberUtil phoneNumberUtil = PhoneNumberUtil.getInstance();
             return phoneNumberUtil.isValidNumber(phoneNumberUtil.parse(phoneNumber.getPhone(),
                                                                        phoneNumber.getIso2Country()));
