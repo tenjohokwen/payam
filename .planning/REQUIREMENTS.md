@@ -44,13 +44,13 @@
 
 ### FLOWS-PAY: Payment Flow Tests
 
-- [ ] **FLOWS-PAY-01**: `MtnPaymentInitiationE2ETest` — MTN happy path: `INITIATED → PROCESSING → SUCCESS` via webhook; all verifiers asserted
-- [ ] **FLOWS-PAY-02**: `OrangePaymentInitiationE2ETest` — Orange happy path: `INITIATED → AUTH_PENDING → PROCESSING → SUCCESS` via webhook; WAT timestamp verified
-- [ ] **FLOWS-PAY-03**: MTN polling fallback — payment reaches SUCCESS via Quartz polling when no webhook arrives
-- [ ] **FLOWS-PAY-04**: Orange payToken expiry — `/pay` returns 401 after TTL; no partial state; idempotency key NOT consumed
-- [ ] **FLOWS-PAY-05**: `PaymentIdempotencyE2ETest` — all three rounds: new creation, duplicate returns same response, cross-tenant creates separate transaction
-- [ ] **FLOWS-PAY-06**: Fraud-blocked path — payment with score ≥ threshold → `FAILED` with `FRAUD_BLOCKED`; zero provider calls; zero ledger entries
-- [ ] **FLOWS-PAY-07**: Provider timeout path — Resilience4j circuit breaker fires; transaction → `FAILED`; circuit OPEN; error propagated to caller
+- [x] **FLOWS-PAY-01**: `MtnPaymentInitiationE2ETest` — MTN happy path: `INITIATED → PROCESSING → SUCCESS` via webhook; all verifiers asserted
+- [x] **FLOWS-PAY-02**: `OrangePaymentInitiationE2ETest` — Orange happy path: `INITIATED → AUTH_PENDING → PROCESSING → SUCCESS` via webhook; WAT timestamp verified
+- [x] **FLOWS-PAY-03**: MTN polling fallback — payment reaches SUCCESS via Quartz polling when no webhook arrives
+- [x] **FLOWS-PAY-04**: Orange payToken expiry — `/pay` returns 401 after TTL; no partial state; idempotency key NOT consumed
+- [x] **FLOWS-PAY-05**: `PaymentIdempotencyE2ETest` — all three rounds: new creation, duplicate returns same response, cross-tenant creates separate transaction
+- [x] **FLOWS-PAY-06**: Fraud-blocked path — payment with score ≥ threshold → `FAILED` with `FRAUD_BLOCKED`; zero provider calls; zero ledger entries
+- [x] **FLOWS-PAY-07**: Provider timeout path — Resilience4j circuit breaker fires; transaction → `FAILED`; circuit OPEN; error propagated to caller
 
 ### FLOWS-HOOK: Webhook Flow Tests
 
@@ -139,7 +139,7 @@ Which phases cover which requirements. Updated by create-roadmap.
 | INFRA-01–09 | Phase 18 | Complete |
 | VERIF-01–10 | Phase 19 | Complete |
 | BUILD-01–08 | Phase 19 | Complete |
-| FLOWS-PAY-01–07 | Phase 20 | Pending |
+| FLOWS-PAY-01–07 | Phase 20 | Complete |
 | FLOWS-HOOK-01–06 | Phase 21 | Pending |
 | FLOWS-FRAUD-01–03 | Phase 22 | Pending |
 | FLOWS-RECON-01–04 | Phase 22 | Pending |

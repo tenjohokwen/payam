@@ -85,8 +85,8 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 20-01: MtnPaymentInitiationE2ETest, OrangePaymentInitiationE2ETest, polling fallback, Orange payToken expiry
-- [ ] 20-02: PaymentIdempotencyE2ETest, fraud-blocked path, provider timeout + circuit breaker
+- [x] 20-01: MtnPaymentInitiationE2ETest, OrangePaymentInitiationE2ETest, polling fallback, Orange payToken expiry
+- [x] 20-02: PaymentIdempotencyE2ETest, fraud-blocked path, provider timeout + circuit breaker
 
 #### Phase 21: Webhook Flow Tests
 **Goal**: Inbound and outbound webhook pipelines verified end-to-end
