@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 ## Current Position
 
 Phase: 18 of 23 (Test Infrastructure)
-Plan: 1 of 3 complete
+Plan: 2 of 3 complete
 Status: In progress
-Last activity: 2026-03-27 — Completed 18-01-PLAN.md (E2E abstract base class hierarchy)
+Last activity: 2026-03-27 — Completed 18-02-PLAN.md (E2E test infrastructure config classes)
 
 Progress: ██████████████████████████████ v1+v2 complete | █░░░░░░░░░ v3 ~3%
 
@@ -83,6 +83,9 @@ Recent decisions affecting current work:
 - **[18-01] AbstractFailureFlowTest extends AbstractPayamE2ETest directly:** Failure flows inject faults before executeFlow — a different phase structure from payment flows. Separate hierarchy branch (AbstractPayamE2ETest -> AbstractFailureFlowTest) not a subtype of AbstractPaymentFlowTest.
 - **[18-01] stubTokenEndpoints() is protected and overrideable:** Default stubs both mtn and orange token endpoints using WireMockConfig constants. Circuit-breaker tests that flush Redis mid-test can override to re-stub after cache clear.
 - **[18-01] final on runFlow()/runFailureScenario() is mandatory:** Prevents subclasses from overriding the orchestration phase order — structural contract for all v3 E2E tests.
+- **[18-02] WireMockConfig excluded from @Import:** Non-instantiable utility class (private constructor, no Spring annotations) — cannot be imported as @Configuration. Used only as static constant provider.
+- **[18-02] E2ESecurityConfig dual-seed pattern:** ApplicationListener<ContextRefreshedEvent> seeds main.sec at context startup. AbstractPayamE2ETest.baseSetUp() calls seedSecurityRow() per-test after TestDataCleaner.wipeAll() clears it. ON CONFLICT DO NOTHING makes both calls idempotent.
+- **[18-02] TestDataCleaner preserves Flyway seed rows:** fee_rule id=1 and fraud_rule id 1-5 preserved via NOT IN clauses — relied upon by FeeEvaluationService and FraudEvaluationService. msisdn_prefix_route never deleted — Flyway V16 seeds it; all MSISDN routing fails without it.
 
 ### Pending Todos
 
@@ -95,5 +98,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-27
-Stopped at: Completed 18-01-PLAN.md — four abstract E2E base classes in com.softropic.payam.e2e
+Stopped at: Completed 18-02-PLAN.md — six E2E test infrastructure config classes in com.softropic.payam.config
 Resume file: None
