@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 20 — Payment Flow Tests (v3 E2E Test Suite)
+**Current focus:** Phase 21 — next phase after Payment Flow Tests
 
 ## Current Position
 
-Phase: 20 of 23 (Payment Flow Tests)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-27 — Phase 19 (Verifiers + Test Data Builders) complete — 12/12 must-haves verified
+Phase: 20 of 23 (Payment Flow Tests) — COMPLETE
+Plan: 2 of 2 complete
+Status: Phase complete
+Last activity: 2026-03-27 — Completed 20-01-PLAN and 20-02-PLAN — 7/7 tests passing (FLOWS-PAY-01 through FLOWS-PAY-07)
 
-Progress: ██████████████████████████████ v1+v2 complete | ████░░░░░░ v3 ~35%
+Progress: ██████████████████████████████ v1+v2 complete | ███████░░░ v3 ~60%
 
 ## Performance Metrics
 
@@ -86,6 +86,13 @@ Recent decisions affecting current work:
 - **[18-02] WireMockConfig excluded from @Import:** Non-instantiable utility class (private constructor, no Spring annotations) — cannot be imported as @Configuration. Used only as static constant provider.
 - **[18-02] E2ESecurityConfig dual-seed pattern:** ApplicationListener<ContextRefreshedEvent> seeds main.sec at context startup. AbstractPayamE2ETest.baseSetUp() calls seedSecurityRow() per-test after TestDataCleaner.wipeAll() clears it. ON CONFLICT DO NOTHING makes both calls idempotent.
 - **[18-02] TestDataCleaner preserves Flyway seed rows:** fee_rule id=1 and fraud_rule id 1-5 preserved via NOT IN clauses — relied upon by FeeEvaluationService and FraudEvaluationService. msisdn_prefix_route never deleted — Flyway V16 seeds it; all MSISDN routing fails without it.
+- **[20-01] PROPAGATION_REQUIRES_NEW for jdbcTemplate backdating in poller tests:** When a raw JDBC update must survive Hibernate L1 cache flush on TransactionTemplate commit, use DefaultTransactionDefinition(REQUIRES_NEW) + new TransactionTemplate(transactionManager, requiresNew).execute(). The outer TX commits after the JPA session flushes; only REQUIRES_NEW guarantees the update is durable before the poller reads it.
+- **[20-01] TransactionTemplate wrapping for protected @Transactional poller invocation:** reflection on MtnStatusPollerJob.class (not AopTestUtils.getTargetObject()) + transactionTemplate.execute() wrapper. AopTestUtils.getTargetObject() unwraps CGLIB proxy — protected method reflection on the raw bean bypasses @Transactional advice, so dirty entity changes are never flushed.
+- **[20-01] JSONB metadata must be JSON-quoted in pollers:** MtnStatusPollerJob and OrangeStatusPollerJob were passing bare strings to the JSONB metadata column. PostgreSQL rejects non-JSON values. Wrap rawStatus and literals in double-quotes: "\"" + value + "\"". WebhookTransitionService already did this correctly.
+- **[20-01] OrangePayTokenExpiry asserts PROCESSING (not FAILED):** The expiry path in OrangeStatusPollerJob increments pollAttempts and returns early — FAILED only fires at pollAttempts >= 15. Plan spec was incorrect; actual code behavior determines the test assertion.
+- **[20-01] assertAll() not usable on polling paths:** assertAll() includes assertLedgerBalanced(), but the polling path does not post ledger entries (only WebhookTransitionService does). Use individual invariant assertions on poller-driven tests.
+- **[20-02] noRetryRestTemplate pattern:** RestTemplate(SimpleClientHttpRequestFactory) with DefaultResponseErrorHandler that never throws. Required for circuit-breaker tests — Apache HC default retry behavior on 503 masks whether the CB is actually open.
+- **[20-02] Fraud threshold injection requires cache refresh:** jdbcTemplate.update on fraud_rule alone has no effect; fraudRuleCache.refreshRules() must be called immediately after to invalidate in-memory cache.
 
 ### Pending Todos
 
@@ -98,5 +105,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-27
-Stopped at: Completed Phase 19 — 10 verifier classes + 9 builder classes (19-01 and 19-02), 12/12 must-haves verified
+Stopped at: Completed Phase 20 — 7 payment flow E2E tests (FLOWS-PAY-01 through FLOWS-PAY-07), 2/2 plans complete
 Resume file: None
