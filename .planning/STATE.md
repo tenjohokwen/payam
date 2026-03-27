@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 21 — next phase after Payment Flow Tests
+**Current focus:** Phase 21 — Webhook Flow Tests (plan 01 complete; plan 02 next)
 
 ## Current Position
 
-Phase: 20 of 23 (Payment Flow Tests) — COMPLETE
-Plan: 2 of 2 complete
-Status: Phase complete
-Last activity: 2026-03-27 — Completed 20-01-PLAN and 20-02-PLAN — 7/7 tests passing (FLOWS-PAY-01 through FLOWS-PAY-07)
+Phase: 21 of 23 (Webhook Flow Tests) — In progress
+Plan: 1 of 2 complete
+Status: In progress
+Last activity: 2026-03-27 — Completed 21-01-PLAN — 5/5 tests passing (FLOWS-HOOK-01, FLOWS-HOOK-02, FLOWS-HOOK-03, FLOWS-HOOK-06)
 
-Progress: ██████████████████████████████ v1+v2 complete | ███████░░░ v3 ~60%
+Progress: ██████████████████████████████ v1+v2 complete | ████████░░ v3 ~65%
 
 ## Performance Metrics
 
@@ -31,6 +31,7 @@ Progress: ███████████████████████�
 | 16 (plan 01) | 1 | 6 min | 6 min |
 | 17 (plan 02) | 1 | 11 min | 11 min |
 | 17 (plan 03) | 1 | 12 min | 12 min |
+| 21 (plan 01) | 1 | 13 min | 13 min |
 
 ## Accumulated Context
 
@@ -93,6 +94,10 @@ Recent decisions affecting current work:
 - **[20-01] assertAll() not usable on polling paths:** assertAll() includes assertLedgerBalanced(), but the polling path does not post ledger entries (only WebhookTransitionService does). Use individual invariant assertions on poller-driven tests.
 - **[20-02] noRetryRestTemplate pattern:** RestTemplate(SimpleClientHttpRequestFactory) with DefaultResponseErrorHandler that never throws. Required for circuit-breaker tests — Apache HC default retry behavior on 503 masks whether the CB is actually open.
 - **[20-02] Fraud threshold injection requires cache refresh:** jdbcTemplate.update on fraud_rule alone has no effect; fraudRuleCache.refreshRules() must be called immediately after to invalidate in-memory cache.
+- **[21-01] WebhookReplayProtectionE2ETest extends AbstractPayamE2ETest directly:** Replay tests send two callbacks in one @Test method — the AbstractWebhookFlowTest 4-phase template enforces one callback dispatch per test. AbstractPayamE2ETest used directly for flat @Test structure.
+- **[21-01] MTN SUCCESSFUL (single-L) vs Orange SUCCESSFULL (double-L):** Provider-specific status string difference — MtnStatusMapper and OrangeStatusMapper only recognise their respective spellings. All MTN stubs must use single-L; all Orange stubs must use double-L.
+- **[21-01] noErrorRestTemplate for non-2xx assertion:** DefaultResponseErrorHandler returning false prevents Spring from throwing exceptions on 4xx/5xx — required when the test must assert the error status code value.
+- **[21-01] ApiAdvice missing HttpRequestMethodNotSupportedException handler:** Bug: catch-all Throwable handler returned 500 for POST to @PutMapping endpoint. Fixed by adding specific handler with @ResponseStatus(METHOD_NOT_ALLOWED).
 
 ### Pending Todos
 
@@ -105,5 +110,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-27
-Stopped at: Completed Phase 20 — 7 payment flow E2E tests (FLOWS-PAY-01 through FLOWS-PAY-07), 2/2 plans complete
+Stopped at: Completed Phase 21 plan 01 — 4 inbound webhook E2E tests (FLOWS-HOOK-01, FLOWS-HOOK-02, FLOWS-HOOK-03, FLOWS-HOOK-06), 5 test methods passing
 Resume file: None
