@@ -34,6 +34,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -74,6 +75,18 @@ public class ApiAdvice {
     public ApiAdvice(MessageSource messageSource, ApplicationEventPublisher publisher) {
         this.messageSource = messageSource;
         this.publisher = publisher;
+    }
+
+    /**
+     * Handles HTTP method not supported (405). Spring raises HttpRequestMethodNotSupportedException
+     * when a request uses an HTTP method not mapped on the target controller.
+     * Without this handler the default Throwable handler returns 500 instead of 405.
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    public ErrorDto methodNotSupportedHandler(final HttpRequestMethodNotSupportedException exception) {
+        final String defaultMsg = "HTTP method not supported";
+        return logErrorAndReturnDTO(exception, defaultMsg, "generic.methodNotAllowed");
     }
 
     /**
