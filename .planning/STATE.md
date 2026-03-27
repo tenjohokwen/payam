@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 ## Current Position
 
 Phase: 16 of 17 (v2: Business Event Logging)
-Plan: 1 of 2 complete
+Plan: 2 of 5 complete (16-01, 16-05 done; 16-02, 16-03, 16-04 remain)
 Status: In progress
-Last activity: 2026-03-27 — Completed 16-01-PLAN.md (LOG-BUS-01 + LOG-BUS-05)
+Last activity: 2026-03-27 — Completed 16-05-PLAN.md (LOG-BUS-07 ReconciliationService)
 
-Progress: █████████████████████████ v1 complete | ███████░░░ v2 62.5%
+Progress: █████████████████████████ v1 complete | ████░░░░░░ v2 40%
 
 ## Performance Metrics
 
@@ -53,6 +53,8 @@ Recent decisions affecting current work:
 - **[16-01] LOG-BUS-01 excluded paths:** Unknown MSISDN prefix path (no transactionId yet) and idempotency replay path (not a new initiation) are intentionally not logged under initiate_payment.
 - **[16-01] Fraud allowed path upgraded DEBUG → INFO:** Every payment passes through fraud evaluation; DEBUG is invisible in production. INFO makes allow decisions traceable alongside block decisions.
 - **[16-01] LOG-BUS-05 start timer before velocity checks:** Declared as first line of evaluate() so durationMs covers all 4 Redis velocity lookups, not just score computation.
+- **[16-05] runForProviderAndDate() returns int[] {totalChecked, discrepancyCount}:** Minimal structural change to accumulate cross-provider totals in runForDate(); no changes to comparison logic.
+- **[16-05] reconciliation_run status="SUCCESS" unconditional:** runForDate() always completes normally (provider exceptions caught inside try/catch); discrepancyCount communicates financial outcome, status reflects execution completion.
 
 ### Pending Todos
 
@@ -65,5 +67,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-27
-Stopped at: Completed 16-01-PLAN.md — LOG-BUS-01 (PaymentOrchestrator) + LOG-BUS-05 (FraudScoringService)
+Stopped at: Completed 16-05-PLAN.md — LOG-BUS-07 (ReconciliationService reconciliation_run event)
 Resume file: None
