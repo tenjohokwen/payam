@@ -69,8 +69,8 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 19-01: DatabaseVerifier, HashChainVerifier, InvariantVerifier, EventVerifier, LedgerVerifier, ProviderCallVerifier, WebhookDeliveryVerifier, TenantIsolationVerifier, CacheVerifier, QueryCountVerifier
-- [ ] 19-02: TenantBuilder, ApiKeyBuilder, PaymentRequestBuilder, MtnWebhookPayloadBuilder, OrangeWebhookPayloadBuilder, FraudSignalBuilder, ReconciliationReportBuilder + deterministic UUID seeding
+- [x] 19-01: DatabaseVerifier, HashChainVerifier, InvariantVerifier, EventVerifier, LedgerVerifier, ProviderCallVerifier, WebhookDeliveryVerifier, TenantIsolationVerifier, CacheVerifier, QueryCountVerifier
+- [x] 19-02: TenantBuilder, ApiKeyBuilder, PaymentRequestBuilder, MtnWebhookPayloadBuilder, OrangeWebhookPayloadBuilder, FraudSignalBuilder, ReconciliationReportBuilder + deterministic UUID seeding
 
 #### Phase 20: Payment Flow Tests
 **Goal**: MTN and Orange happy/unhappy paths verified end-to-end through all verifiers

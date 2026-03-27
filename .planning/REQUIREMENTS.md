@@ -137,8 +137,8 @@ Which phases cover which requirements. Updated by create-roadmap.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | INFRA-01–09 | Phase 18 | Complete |
-| VERIF-01–10 | Phase 19 | Pending |
-| BUILD-01–08 | Phase 19 | Pending |
+| VERIF-01–10 | Phase 19 | Complete |
+| BUILD-01–08 | Phase 19 | Complete |
 | FLOWS-PAY-01–07 | Phase 20 | Pending |
 | FLOWS-HOOK-01–06 | Phase 21 | Pending |
 | FLOWS-FRAUD-01–03 | Phase 22 | Pending |
