@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 ## Current Position
 
 Phase: 17 of 17 (v2: Code Standards Enforcement)
-Plan: 3 of 3 (17-03 complete)
+Plan: 4 of 4 (17-04 complete)
 Status: Phase complete
-Last activity: 2026-03-27 — Completed 17-03-PLAN.md — LOG-CODE-03 PII closure (BodySanitizer + API/filter/validation layer kv() conversion)
+Last activity: 2026-03-27 — Completed 17-04-PLAN.md — LOG-CODE-01/02 gap closure (9 files + 2 deviation files; zero violations remain in full codebase)
 
 Progress: █████████████████████████ v1 complete | ██████████ v2 100%
 
@@ -79,6 +79,7 @@ Recent decisions affecting current work:
 - **[17-03] RestRequestInterceptor: no headers object in log args:** Headers may contain Authorization Bearer token; content-type extracted separately for sanitization only.
 - **[17-03] OrangeCallbackController line 118 upgraded warn to error:** Callback processing failure is error-severity; exception object passed as last arg (not e.getMessage()) for full stack trace.
 - **[17-03] Exception as last log arg pattern:** Pass raw `e` not `e.getMessage()` to preserve stack trace without {} placeholder — established across all fixed log.error/warn calls.
+- **[17-04] RequestMetadataProvider/JWTAuthorizationFilter deviation:** 7 additional ##### violations found during Task 3 full-codebase grep. Fixed as Rule 2 deviation — pure deletions, no architectural change. Both files brought into LOG-CODE-02 compliance.
 
 ### Pending Todos
 
@@ -91,5 +92,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-27
-Stopped at: Completed 17-02-PLAN.md — LOG-CODE-01/02/03 clean for 24 infrastructure and security service files
+Stopped at: Completed 17-04-PLAN.md — LOG-CODE-01/02 gap closure; all violations resolved across full codebase
 Resume file: None
