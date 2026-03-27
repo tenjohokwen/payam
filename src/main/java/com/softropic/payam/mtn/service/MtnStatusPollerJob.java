@@ -8,6 +8,8 @@ import com.softropic.payam.transaction.repo.Transaction;
 import com.softropic.payam.transaction.repo.TransactionRepository;
 import com.softropic.payam.transaction.service.EventLogService;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,6 +82,12 @@ public class MtnStatusPollerJob extends QuartzJobBean {
             Transaction locked = transactionRepository.findByTransactionIdForUpdate(tx.getTransactionId())
                 .orElseThrow();
             locked.applyTransition(TransactionStatus.FAILED);
+            log.info("Transaction state changed",
+                kv("operation", "transaction_state_change"),
+                kv("transactionId", tx.getTransactionId()),
+                kv("fromState", TransactionStatus.PROCESSING.name()),
+                kv("toState", TransactionStatus.FAILED.name()),
+                kv("actor", "MTN_POLLER"));
             eventLogService.append(tx.getTransactionId(), tx.getTraceId(), tx.getExternalReference(),
                 TransactionEventType.PROVIDER_FAILED,
                 TransactionStatus.PROCESSING, TransactionStatus.FAILED,
@@ -94,6 +102,12 @@ public class MtnStatusPollerJob extends QuartzJobBean {
                     .orElseThrow();
                 TransactionStatus next = MtnStatusMapper.toInternal(result.rawStatus());
                 locked.applyTransition(next);
+                log.info("Transaction state changed",
+                    kv("operation", "transaction_state_change"),
+                    kv("transactionId", tx.getTransactionId()),
+                    kv("fromState", TransactionStatus.PROCESSING.name()),
+                    kv("toState", next.name()),
+                    kv("actor", "MTN_POLLER"));
                 TransactionEventType eventType = next == TransactionStatus.SUCCESS
                     ? TransactionEventType.PROVIDER_SUCCESS
                     : TransactionEventType.PROVIDER_FAILED;

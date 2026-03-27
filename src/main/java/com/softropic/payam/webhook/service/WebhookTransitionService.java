@@ -12,6 +12,8 @@ import com.softropic.payam.transaction.service.EventLogService;
 import com.softropic.payam.transaction.service.LedgerService;
 import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -92,6 +94,13 @@ public class WebhookTransitionService {
         String metadata = target == TransactionStatus.SUCCESS
             ? null
             : "\"" + result.rawStatus() + "\""; // JSON-quoted for jsonb column (05-02 decision)
+
+        log.info("Transaction state changed",
+            kv("operation", "transaction_state_change"),
+            kv("transactionId", tx.getTransactionId()),
+            kv("fromState", TransactionStatus.PROCESSING.name()),
+            kv("toState", target.name()),
+            kv("actor", "WEBHOOK_DOUBLE_CHECK"));
 
         eventLogService.append(
             tx.getTransactionId(), tx.getTraceId(), tx.getExternalReference(),
