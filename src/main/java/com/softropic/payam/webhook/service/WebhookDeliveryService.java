@@ -10,6 +10,8 @@ import com.softropic.payam.webhook.repo.WebhookDeliveryLogRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -170,6 +172,7 @@ public class WebhookDeliveryService {
         delivery.setAttemptCount(delivery.getAttemptCount() + 1);
         delivery.setLastAttemptAt(Instant.now());
 
+        long deliveryStart = System.currentTimeMillis();
         try {
             ResponseEntity<String> response = noRetryRestTemplate.exchange(
                 delivery.getWebhookUrl(), HttpMethod.POST,
@@ -181,22 +184,46 @@ public class WebhookDeliveryService {
             if (httpStatus >= 200 && httpStatus < 300) {
                 delivery.setDelivered(true);
                 delivery.setNextRetryAt(null);
-                log.info("Webhook delivered: transactionId={}, url={}, status={}",
-                    delivery.getTransactionId(), delivery.getWebhookUrl(), httpStatus);
+                log.info("Webhook delivery",
+                    kv("operation", "webhook_delivery"),
+                    kv("transactionId", delivery.getTransactionId()),
+                    kv("tenantId", tenant.getTenantRef()),
+                    kv("durationMs", System.currentTimeMillis() - deliveryStart),
+                    kv("httpStatus", httpStatus),
+                    kv("status", "SUCCESS"),
+                    kv("retryCount", delivery.getAttemptCount()));
             } else {
-                log.warn("Webhook delivery non-2xx: transactionId={}, status={}",
-                    delivery.getTransactionId(), httpStatus);
+                log.warn("Webhook delivery",
+                    kv("operation", "webhook_delivery"),
+                    kv("transactionId", delivery.getTransactionId()),
+                    kv("tenantId", tenant.getTenantRef()),
+                    kv("durationMs", System.currentTimeMillis() - deliveryStart),
+                    kv("httpStatus", httpStatus),
+                    kv("status", "FAILED"),
+                    kv("retryCount", delivery.getAttemptCount()));
                 scheduleRetry(delivery);
             }
         } catch (org.springframework.web.client.HttpStatusCodeException e) {
             // HTTP error response (4xx/5xx) — extract status for logging/querying
             delivery.setHttpStatus(e.getStatusCode().value());
-            log.warn("Webhook delivery HTTP error: transactionId={}, status={}",
-                delivery.getTransactionId(), e.getStatusCode().value());
+            log.warn("Webhook delivery",
+                kv("operation", "webhook_delivery"),
+                kv("transactionId", delivery.getTransactionId()),
+                kv("tenantId", tenant.getTenantRef()),
+                kv("durationMs", System.currentTimeMillis() - deliveryStart),
+                kv("httpStatus", e.getStatusCode().value()),
+                kv("status", "FAILED"),
+                kv("retryCount", delivery.getAttemptCount()));
             scheduleRetry(delivery);
         } catch (Exception e) {
-            log.warn("Webhook delivery failed (network/other): transactionId={}: {}",
-                delivery.getTransactionId(), e.getMessage());
+            log.warn("Webhook delivery",
+                kv("operation", "webhook_delivery"),
+                kv("transactionId", delivery.getTransactionId()),
+                kv("tenantId", tenant.getTenantRef()),
+                kv("durationMs", System.currentTimeMillis() - deliveryStart),
+                kv("httpStatus", -1),
+                kv("status", "FAILED"),
+                kv("retryCount", delivery.getAttemptCount()));
             scheduleRetry(delivery);
         }
     }
