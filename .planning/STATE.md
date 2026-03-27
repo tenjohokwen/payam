@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 21 — Webhook Flow Tests — COMPLETE (both plans done)
+**Current focus:** Phase 22 — Fraud, Reconciliation, and Admin Flow Tests — In Progress (plan 01 done)
 
 ## Current Position
 
-Phase: 21 of 23 (Webhook Flow Tests) — COMPLETE
-Plan: 2 of 2 complete
-Status: Phase complete
-Last activity: 2026-03-27 — Completed 21-02-PLAN — 7/7 tests passing (FLOWS-HOOK-01 through FLOWS-HOOK-06)
+Phase: 22 of 23 (Fraud, Reconciliation, and Admin Flow Tests) — In Progress
+Plan: 1 of 3 complete
+Status: In progress
+Last activity: 2026-03-27 — Completed 22-01-PLAN — FraudVelocityBlockE2ETest passing (FLOWS-FRAUD-01/02/03)
 
-Progress: ██████████████████████████████ v1+v2 complete | █████████░ v3 ~70%
+Progress: ██████████████████████████████ v1+v2 complete | ██████████░ v3 ~75%
 
 ## Performance Metrics
 
@@ -33,6 +33,7 @@ Progress: ███████████████████████�
 | 17 (plan 03) | 1 | 12 min | 12 min |
 | 21 (plan 01) | 1 | 13 min | 13 min |
 | 21 (plan 02) | 1 | 15 min | 15 min |
+| 22 (plan 01) | 1 | 8 min | 8 min |
 
 ## Accumulated Context
 
@@ -102,6 +103,9 @@ Recent decisions affecting current work:
 - **[21-02] OutboundWebhookDeliveryE2ETest standalone pattern:** Does not extend AbstractPayamE2ETest — that base only declares mtn+orange WireMock servers. Outbound delivery tests need a third tenant-wh server; all 3 must be declared at class level in @EnableWireMock. Mirrors WebhookDeliveryIT.
 - **[21-02] Awaitility for delivery log row existence:** Use Awaitility.await().until() instead of Thread.sleep() to wait for the first async delivery attempt to complete before reading delivery log rows.
 - **[21-02] Direct attemptDelivery() for retry count verification:** Bypass Quartz 1-minute scheduler by calling webhookDeliveryService.attemptDelivery() directly for deterministic retry count assertions. MAX_ATTEMPTS=5 so after 3 attempts nextRetryAt stays non-null.
+- **[22-01] seedFraudRule() is a local private helper in each test class:** AbstractFailureFlowTest does not expose this helper; FraudBlockedPaymentE2ETest and FraudVelocityBlockE2ETest both define it locally. Consistent with established pattern.
+- **[22-01] blockedResponse stored as ResponseEntity<PaymentResponse> field:** Allows verifyFailureHandled() to assert HTTP status and errorCode separately from executeFlow(). Same pattern used in FraudBlockedPaymentE2ETest.
+- **[22-01] exactly(1) WireMock verifier for POST count:** More precise than moreThanOrEqualTo — proves strictly one provider call (the allowed path); zero additional calls from the blocked path.
 
 ### Pending Todos
 
@@ -114,5 +118,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-27
-Stopped at: Completed Phase 21 plan 02 — 2 outbound webhook E2E tests (FLOWS-HOOK-04, FLOWS-HOOK-05); full phase 21 suite 7/7 passing
+Stopped at: Completed Phase 22 plan 01 — FraudVelocityBlockE2ETest (FLOWS-FRAUD-01/02/03); both fraud E2E tests passing (2/2)
 Resume file: None
