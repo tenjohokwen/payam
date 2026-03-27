@@ -4,6 +4,7 @@ package com.softropic.payam.common.client;
 import com.softropic.payam.common.TransactionIdProvider;
 import com.softropic.payam.common.client.exception.HttpClientException;
 import com.softropic.payam.common.client.exception.MomoError;
+import com.softropic.payam.common.util.BodySanitizer;
 import com.softropic.payam.security.common.util.RequestIdProvider;
 
 import org.apache.commons.lang3.StringUtils;
@@ -20,12 +21,12 @@ import org.springframework.util.StreamUtils;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
 
 import lombok.extern.slf4j.Slf4j;
 
 import static com.softropic.payam.common.Constants.HTTP_REQUEST_ID_DELIM;
 import static com.softropic.payam.common.Constants.REQUEST_ID_HEADER_NAME;
+import static net.logstash.logback.argument.StructuredArguments.kv;
 
 
 @Slf4j
@@ -47,11 +48,15 @@ public class RestRequestInterceptor implements ClientHttpRequestInterceptor {
         try {
             addTransactionIdToThread(request.getHeaders());
             if (log.isDebugEnabled()) {
-                log.debug("Request method: {} url: {} headers: {} Payload: {}",
-                        request.getMethod(),
-                        request.getURI().toASCIIString(),
-                        request.getHeaders(),
-                        HttpMethod.POST.equals(request.getMethod()) ? new String(body, StandardCharsets.UTF_8): "");
+                log.debug("Provider HTTP request",
+                        kv("operation", "provider_http_call"),
+                        kv("method", request.getMethod()),
+                        kv("url", request.getURI().toASCIIString()),
+                        kv("body", HttpMethod.POST.equals(request.getMethod())
+                                ? BodySanitizer.sanitize(body,
+                                        request.getHeaders().getContentType() != null
+                                                ? request.getHeaders().getContentType().toString() : null)
+                                : ""));
             }
             ClientHttpResponse httpResponse = execution.execute(request, body);
             //latencyHistogram.update(System.currentTimeMillis() - startTime);
@@ -61,15 +66,14 @@ public class RestRequestInterceptor implements ClientHttpRequestInterceptor {
             if(httpResponse.getStatusCode().value() > 399) {
                 markResponse(request, httpStatus);
                 logRequestMetrics(request, httpStatus.name(), startTime);
-                final String response = StreamUtils.copyToString(httpResponse.getBody(),
-                                                                 StandardCharsets.UTF_8);
-                log.error("Response method: {} url: {} headers: {} status: {} Payload: {}",
-                         request.getMethod(),
-                         request.getURI().toASCIIString(),
-                         httpResponse.getHeaders(),
-                         httpResponse.getStatusCode().value(),
-                         response
-                         );
+                final byte[] responseBytes = StreamUtils.copyToByteArray(httpResponse.getBody());
+                final String response = BodySanitizer.sanitize(responseBytes,
+                        httpResponse.getHeaders().getContentType() != null
+                                ? httpResponse.getHeaders().getContentType().toString() : null);
+                log.error("Provider API error response",
+                        kv("operation", "provider_http_call"),
+                        kv("httpStatus", httpResponse.getStatusCode().value()),
+                        kv("status", "ERROR"));
 
                 throw HttpClientException.builder(RequestIdProvider.provideRequestId())
                                          .withHttpMethod(request.getMethod())
@@ -79,14 +83,13 @@ public class RestRequestInterceptor implements ClientHttpRequestInterceptor {
                                          .build();
 
             }
-            log.info("Response method: {} url: {} headers: {} status: {} Payload: {}",
-                      request.getMethod(),
-                      request.getURI().toASCIIString(),
-                      httpResponse.getHeaders(),
-                      httpResponse.getStatusCode().value(),
-                      StreamUtils.copyToString(httpResponse.getBody(), //This is a buffering response so no issues
-                                               StandardCharsets.UTF_8)
-            );
+            if (log.isDebugEnabled()) {
+                byte[] responseBodyBytes = StreamUtils.copyToByteArray(httpResponse.getBody());
+                String sanitizedBody = BodySanitizer.sanitize(responseBodyBytes,
+                        httpResponse.getHeaders().getContentType() != null
+                                ? httpResponse.getHeaders().getContentType().toString() : null);
+                log.debug("Provider response body", kv("body", sanitizedBody));
+            }
 
             return httpResponse;
         } catch (UnknownHostException uhe){
@@ -109,7 +112,12 @@ public class RestRequestInterceptor implements ClientHttpRequestInterceptor {
     }
 
     private void logRequestMetrics(HttpRequest request, String status, long startTime) {
-        log.info("RESPONSE method: {}  url: {}  status: {}  latency: {}", request.getMethod(), request.getURI().toASCIIString(), StringUtils.trim(status), System.currentTimeMillis() - startTime);
+        log.info("Provider HTTP response",
+                kv("operation", "provider_http_call"),
+                kv("method", request.getMethod()),
+                kv("url", request.getURI().toASCIIString()),
+                kv("httpStatus", StringUtils.trim(status)),
+                kv("latencyMs", System.currentTimeMillis() - startTime));
     }
 
     public void addTransactionIdToThread(HttpHeaders httpHeaders) {
@@ -125,7 +133,9 @@ public class RestRequestInterceptor implements ClientHttpRequestInterceptor {
             }
             TransactionIdProvider.addTransactionIdToThread(txnId);
         } catch (Exception e) {
-            log.error("Error occurred while trying to set txnId for http request with headers: {}", httpHeaders, e);
+            log.warn("Error occurred while trying to set txnId for http request",
+                    kv("operation", "provider_http_call"),
+                    kv("status", "TXN_ID_SET_ERROR"));
         }
     }
 

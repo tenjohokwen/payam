@@ -12,6 +12,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 /**
  * Utility to sanitize request/response bodies for logging.
  */
@@ -23,7 +25,8 @@ public class BodySanitizer {
             "password", "newPassword", "oldPassword", "currentPassword",
             "otp", "otpCode", "verificationCode", "activationKey", "resetKey",
             "token", "accessToken", "refreshToken", "jwt",
-            "cvv", "cvc", "pin", "apiKey"
+            "cvv", "cvc", "pin", "apiKey",
+            "msisdn", "merchant_key", "merchantKey"
     );
 
     private static final String REDACTED_VALUE = "[REDACTED]";
@@ -47,7 +50,9 @@ public class BodySanitizer {
                 return truncateIfNeeded(sanitized);
             } catch (Exception e) {
                 // If it's not valid JSON despite the content type, just return truncated raw body
-                log.debug("Failed to parse body as JSON for sanitization: {}", e.getMessage());
+                log.warn("Failed to parse body as JSON for sanitization",
+                        kv("operation", "body_sanitization"),
+                        kv("status", "PARSE_ERROR"));
             }
         }
 
