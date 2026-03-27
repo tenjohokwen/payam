@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Full-stack observability — every payment event traceable from Loki logs through Tempo traces to Prometheus metrics without manual correlation.
-**Current focus:** Phase 17 — Code Standards Enforcement
+**Current focus:** Phase 17 — Code Standards Enforcement (complete)
 
 ## Current Position
 
 Phase: 17 of 17 (v2: Code Standards Enforcement)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-27 — Phase 16 complete (5/5 plans, verified 6/6 must-haves, LOG-BUS-01/02/03/04/05/06/07 Complete)
+Plan: 3 of 3 (17-03 complete)
+Status: Phase complete
+Last activity: 2026-03-27 — Completed 17-03-PLAN.md — LOG-CODE-03 PII closure (BodySanitizer + API/filter/validation layer kv() conversion)
 
-Progress: █████████████████████████ v1 complete | ████████░░ v2 75%
+Progress: █████████████████████████ v1 complete | ██████████ v2 100%
 
 ## Performance Metrics
 
@@ -29,6 +29,7 @@ Progress: ███████████████████████�
 |-------|-------|-------|----------|
 | 14 (plan 01) | 1 | 1 min | 1 min |
 | 16 (plan 01) | 1 | 6 min | 6 min |
+| 17 (plan 03) | 1 | 12 min | 12 min |
 
 ## Accumulated Context
 
@@ -65,6 +66,10 @@ Recent decisions affecting current work:
 - **[16-04] cashout/c2c direct-return pattern:** Assign makeHttpRequest() to local variable, log, then return — required to access response for status check before returning.
 - **[16-02] LOG-BUS-02 fromState hardcoded at poller/webhook sites:** `TransactionStatus.PROCESSING.name()` used instead of `tx.getTxStatus().name()` — post-transition status is already mutated. Hardcoded constant is safe since pollers and webhook double-check only ever transition from PROCESSING.
 - **[16-02] State change log placed between applyTransition() and eventLogService.append():** Co-locates Loki structured event adjacent to event sourcing append for correlation. Pattern consistent across all 4 files.
+- **[17-03] BodySanitizer SENSITIVE_KEYS adds msisdn, merchant_key, merchantKey:** Substring matching means "msisdn" catches any field name containing it; merchant_key and merchantKey added as separate entries since neither contains the other as a substring.
+- **[17-03] RestRequestInterceptor: no headers object in log args:** Headers may contain Authorization Bearer token; content-type extracted separately for sanitization only.
+- **[17-03] OrangeCallbackController line 118 upgraded warn to error:** Callback processing failure is error-severity; exception object passed as last arg (not e.getMessage()) for full stack trace.
+- **[17-03] Exception as last log arg pattern:** Pass raw `e` not `e.getMessage()` to preserve stack trace without {} placeholder — established across all fixed log.error/warn calls.
 
 ### Pending Todos
 
@@ -77,5 +82,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-27
-Stopped at: Completed 16-02-PLAN.md — LOG-BUS-02 (transaction_state_change at all 9 applyTransition() sites across 4 files)
+Stopped at: Completed 17-03-PLAN.md — LOG-CODE-03 PII closure and kv() conversion (BodySanitizer + API/filter/validation layer)
 Resume file: None
