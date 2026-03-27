@@ -5,8 +5,6 @@ import com.google.common.base.CaseFormat;
 import com.softropic.payam.email.contract.EmailTemplate;
 import com.softropic.payam.email.contract.Recipient;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -26,8 +24,6 @@ import jakarta.mail.internet.MimeMessage;
 @Observed(name = "mail.service")
 public class MailService {
 
-    private final Logger log = LoggerFactory.getLogger(MailService.class);
-
     private static final String RECIPIENT = "recipient";
 
     private final SenderProvider senderProvider;
@@ -43,8 +39,6 @@ public class MailService {
     }
 
     public void sendEmail(String to, String subject, String content, boolean isMultipart, boolean isHtml) throws MessagingException {
-        log.debug("Send e-mail[multipart '{}' and html '{}'] to '{}' with subject '{}' and content={}",
-            isMultipart, isHtml, to, subject, content);
         JavaMailSenderImpl javaMailSender = senderProvider.nextSender();
         MimeMessage mimeMessage = javaMailSender.createMimeMessage();
         MimeMessageHelper message = new MimeMessageHelper(mimeMessage,
@@ -59,13 +53,11 @@ public class MailService {
         // catches it, marks the envelope FAILED with retry=true, and persists it. The
         // EmailRetryScheduler then picks it up via SELECT FOR UPDATE SKIP LOCKED.
         javaMailSender.send(mimeMessage);
-        log.debug("Sent e-mail to User '{}'", to);
     }
 
     public void sendEmailFromTemplate(final Recipient recipient,
                                       final EmailTemplate emailTemplate,
                                       final Map<String, Object> values) throws MessagingException {
-        log.debug("Sending e-mail to '{}' with template '{}'", recipient.getEmail(), emailTemplate);
         final Locale locale = Locale.forLanguageTag(recipient.getLangKey());
 
         if (EmailTemplate.NONE.equals(emailTemplate)) {

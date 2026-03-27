@@ -18,6 +18,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -56,12 +58,17 @@ public class SecurityAuditListener {
             trailService.recordTrail(auditTrail);
         }
         catch (Exception e) {
-            log.error("Could not save trail in db. AUDIT_TRAIL: {} LOG_ID/EVENT_ID: {}", auditTrail, authEvent.getEventId(), e);
+            log.error("Security audit event: could not save trail",
+                kv("operation", "security_audit"),
+                kv("status", "DB_ERROR"),
+                e);
             logged = true;
         }
         finally {
             if(!logged) {
-                log.info("AUDIT_TRAIL: {} LOG_ID/EVENT_ID: {}", auditTrail, authEvent.getEventId());
+                log.info("Security audit event",
+                    kv("operation", "security_audit"),
+                    kv("status", "RECORDED"));
             }
         }
     }
@@ -99,12 +106,17 @@ public class SecurityAuditListener {
             trailService.recordTrail(auditTrail);
         }
         catch (Exception e) {
-            log.error("Could not save trail in db. AUDIT_TRAIL: {}", auditTrail, e);
+            log.error("Security audit event: could not save trail",
+                kv("operation", "security_audit"),
+                kv("status", "DB_ERROR"),
+                e);
             logged = true;
         }
         finally {
             if(!logged) {
-                log.info("AUDIT_TRAIL: {}", auditTrail);
+                log.info("Security audit event",
+                    kv("operation", "security_audit"),
+                    kv("status", "RECORDED"));
             }
         }
     }

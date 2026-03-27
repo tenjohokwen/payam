@@ -9,7 +9,6 @@ import com.softropic.payam.security.repo.AuthorityRepository;
 import com.softropic.payam.security.repo.UserRepository;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +20,6 @@ import java.util.Set;
 /**
  * Service for handling user registration and activation.
  */
-@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -70,7 +68,6 @@ public class UserRegistrationService {
         newUser.setAuthorities(authorities);
 
         userRepository.save(newUser);
-        log.debug("Created Information for User: {}", newUser);
         return newUser;
     }
 
@@ -83,12 +80,10 @@ public class UserRegistrationService {
      * @return the activated user if found, empty otherwise
      */
     public Optional<User> activateUser(final String key) {
-        log.debug("Activating user for activation key {}", key);
         return userRepository.findInactivatedByActivationKey(key)
                 .map(user -> {
                     user.activate(); // Use domain method
                     user.setStatus(EntityStatus.ACTIVE);
-                    log.debug("Activated user: {}", user);
                     return user;
                 });
     }

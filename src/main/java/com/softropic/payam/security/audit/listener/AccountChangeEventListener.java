@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -28,7 +30,10 @@ public class AccountChangeEventListener {
 
     @EventListener
     public void handleAccountChange(AccountChangeEvent event) {
-        log.info("Account change event received: {}", event.getAction());
+        log.info("Account change event",
+            kv("operation", "account_change"),
+            kv("eventType", event.getClass().getSimpleName()),
+            kv("status", "RECEIVED"));
         recordAuditTrail(event);
     }
 
@@ -55,12 +60,17 @@ public class AccountChangeEventListener {
             trailService.recordTrail(auditTrail);
         }
         catch (Exception e) {
-            log.error("Could not save trail in db. AUDIT_TRAIL: {} LOG_ID: {}", auditTrail, logId, e);
+            log.error("Account change audit trail: could not save",
+                kv("operation", "account_change"),
+                kv("status", "DB_ERROR"),
+                e);
             logged = true;
         }
         finally {
             if (!logged) {
-                log.info("AUDIT_TRAIL: {} LOG_ID: {}", auditTrail, logId);
+                log.info("Account change audit trail recorded",
+                    kv("operation", "account_change"),
+                    kv("status", "RECORDED"));
             }
         }
     }

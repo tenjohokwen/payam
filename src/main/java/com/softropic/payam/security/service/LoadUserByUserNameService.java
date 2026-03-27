@@ -6,7 +6,6 @@ import com.softropic.payam.security.contract.Principal;
 import com.softropic.payam.security.repo.User;
 import com.softropic.payam.security.repo.UserRepository;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -20,7 +19,6 @@ import java.util.Optional;
 /**
  * Authenticate a user from the database.
  */
-@Slf4j
 @Service
 public class LoadUserByUserNameService implements UserDetailsService {
 
@@ -30,7 +28,6 @@ public class LoadUserByUserNameService implements UserDetailsService {
     @Override
     @Transactional
     public UserDetails loadUserByUsername(final String loginId) {
-        log.debug("Authenticating {}", loginId);
         final String lowercaseLogin = loginId.toLowerCase();
         final Optional<User> userFromDbOpt = userRepository.findOneByLogin(lowercaseLogin);
         if(userFromDbOpt.isPresent()) {

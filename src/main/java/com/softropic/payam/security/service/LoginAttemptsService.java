@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -95,13 +97,11 @@ public class LoginAttemptsService implements LoginDecisionManager<RequestMetadat
 
     @Override
     public void loginSucceeded(final RequestMetadata metadata) {
-        log.info("Login succeeded. Clearing failed login attempts.");
         deRecordAttempts(metadata);
     }
 
     @Override
     public void loginFailed(final RequestMetadata metadata) {
-        log.info("Login failed. Recording failed login attempts.");
         //username will be blank if userName validation fails
         if(StringUtils.isNotBlank(metadata.getUserName())) {
             recordAttempts(attemptsByUserCache, metadata.getUserName());
@@ -112,7 +112,6 @@ public class LoginAttemptsService implements LoginDecisionManager<RequestMetadat
 
     @Override
     public boolean isAllowed(final RequestMetadata metadata) {
-        log.info("Verifying if login is allowed based on previous attempts.");
         if(StringUtils.isBlank(metadata.getUserName())) {
             // Nothing is recorded for blank usernames (see loginFailed).
             // Upstream validation should reject blank usernames before this point.
@@ -129,7 +128,10 @@ public class LoginAttemptsService implements LoginDecisionManager<RequestMetadat
                     &&
                     clientNotBlacklisted(metadata.getClientIdentifier());
         } catch (ExecutionException e) {
-            log.error("{} Unexpected cache error during login decision, failing open.", LOG_TAG, e);
+            log.error("Unexpected cache error during login decision, failing open",
+                kv("operation", "login_attempts"),
+                kv("status", "CACHE_ERROR"),
+                e);
             return true;
         }
     }
@@ -137,7 +139,9 @@ public class LoginAttemptsService implements LoginDecisionManager<RequestMetadat
     private boolean isClientIdAllowed() {
         final boolean clientIdAllowed = clientIdAccessDecisionVoter.isClientIdAllowed();
         if(!clientIdAllowed) {
-            log.error("{} Client id is already blacklisted." , LOG_TAG);
+            log.error("Client id is already blacklisted",
+                kv("operation", "login_attempts"),
+                kv("status", "CLIENT_BLACKLISTED"));
         }
         return clientIdAllowed;
     }
@@ -146,8 +150,9 @@ public class LoginAttemptsService implements LoginDecisionManager<RequestMetadat
         final String userName = metadata.getUserName();
         final boolean isBelowUserAttemptLimit = attemptsByUserCache.get(userName) < MAX_FAILED_USER_ATTEMPTS;
         if(!isBelowUserAttemptLimit) {
-            log.error("{} The current user has exceeded permitted login attempts for current window. User: {}", LOG_TAG,
-                      userName);
+            log.error("User exceeded permitted login attempts for current window",
+                kv("operation", "login_attempts"),
+                kv("status", "USER_ATTEMPTS_EXCEEDED"));
         }
         return isBelowUserAttemptLimit;
     }
@@ -155,7 +160,9 @@ public class LoginAttemptsService implements LoginDecisionManager<RequestMetadat
     private boolean isBelowClientAttemptLimit(RequestMetadata metadata) throws ExecutionException {
         final boolean isBelowMaxClientAttempts = attemptsByClientUserCache.get(getClientIdUserKey(metadata)) < MAX_FAILED_CLIENT_ATTEMPTS;
         if(!isBelowMaxClientAttempts) {
-            log.error("{} Client login attempts exceed amount permitted within window", LOG_TAG );
+            log.error("Client login attempts exceed amount permitted within window",
+                kv("operation", "login_attempts"),
+                kv("status", "CLIENT_ATTEMPTS_EXCEEDED"));
         }
         return isBelowMaxClientAttempts;
     }
@@ -164,7 +171,9 @@ public class LoginAttemptsService implements LoginDecisionManager<RequestMetadat
         if(StringUtils.isNotBlank(clientId)) {
             final boolean isNotBlacklisted = blacklistedClients.get(clientId) == 0;
             if(!isNotBlacklisted) { //is blacklisted
-                log.error("{} Client is already blacklisted." , LOG_TAG);
+                log.error("Client is already blacklisted",
+                    kv("operation", "login_attempts"),
+                    kv("status", "CLIENT_BLACKLISTED"));
             }
             return isNotBlacklisted;
         }
@@ -182,7 +191,9 @@ public class LoginAttemptsService implements LoginDecisionManager<RequestMetadat
     public void blacklistClient(final RequestMetadata metadata) {
         //TODO could create a table in db and add a service here to populate blacklisted clients and the reasons
         //Blacklisted clients will not have access to the system anymore regardless of the user they use
-        log.warn("Blacklisting client with metadata {}", metadata);
+        log.warn("Blacklisting client",
+            kv("operation", "login_attempts"),
+            kv("status", "CLIENT_BLACKLISTING"));
         //The user is probably not known so just the client is blacklisted.
         //The getClientIdentifier here may not exist e.g for a browser (or else many users will share the same key)
         if(StringUtils.isNotBlank(metadata.getClientIdentifier())) {
@@ -196,7 +207,6 @@ public class LoginAttemptsService implements LoginDecisionManager<RequestMetadat
 
     @Override
     public void unblockClient(final RequestMetadata metadata) {
-        log.info("Unblocking client.");
         deRecordAttempts(metadata);
     }
 
@@ -211,12 +221,14 @@ public class LoginAttemptsService implements LoginDecisionManager<RequestMetadat
      * @param username the login name of the user to unlock
      */
     public void unlockUser(final String username) {
-        log.info("Admin unlock requested for user '{}'.", username);
         final String userKeySuffix = KEY_SEPARATOR + escapeField(username);
         attemptsByUserCache.invalidate(username);
         attemptsByClientUserCache.asMap().keySet().removeIf(key -> key.endsWith(userKeySuffix));
         attemptsByIpUserCache.asMap().keySet().removeIf(key -> key.endsWith(userKeySuffix));
-        log.info("All login-attempt locks cleared for user '{}'.", username);
+        log.info("Login-attempt locks cleared",
+            kv("operation", "login_attempts"),
+            kv("action", "unlock"),
+            kv("status", "SUCCESS"));
     }
 
     private String getClientIdUserKey(final RequestMetadata metadata) {
@@ -265,7 +277,7 @@ public class LoginAttemptsService implements LoginDecisionManager<RequestMetadat
                 countDownAttempts(attemptsByUserCache, metadata.getUserName(), attempts);
             }
         } catch (ExecutionException e) {
-            log.debug("'{}' not found in 'attemptsByClientUserCache'.", clientIdUserKey, e);
+            // key not found in cache — nothing to clear
         }
         // Always clear the user-level lock regardless of which client was used during failures.
         // This covers the case where the successful login comes from a different client than the failed attempts.
@@ -288,11 +300,16 @@ public class LoginAttemptsService implements LoginDecisionManager<RequestMetadat
         try {
             final boolean isAttemptsByIpBelowLimit = attemptsByIpUserCache.get(getIpUserKey(metadata)) < MAX_FAILED_IP_ATTEMPTS;
             if(!isAttemptsByIpBelowLimit) {
-                log.error(LOG_TAG + "Current IP address has exceeded login attempt limits for given window");
+                log.error("Current IP address has exceeded login attempt limits for given window",
+                    kv("operation", "login_attempts"),
+                    kv("status", "IP_ATTEMPTS_EXCEEDED"));
             }
             return isAttemptsByIpBelowLimit;
         } catch (ExecutionException e) {
-            log.error("{} Unexpected cache error during IP check, failing open.", LOG_TAG, e);
+            log.error("Unexpected cache error during IP check, failing open",
+                kv("operation", "login_attempts"),
+                kv("status", "CACHE_ERROR"),
+                e);
             return true;
         }
     }

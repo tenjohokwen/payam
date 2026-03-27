@@ -8,7 +8,6 @@ import com.softropic.payam.security.contract.ChangePasswordDto;
 import com.softropic.payam.security.repo.UserRepository;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,7 +20,6 @@ import java.util.Optional;
 /**
  * Service for handling password reset operations.
  */
-@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -61,8 +59,6 @@ public class PasswordResetService {
      * @return the user with updated password if successful, empty otherwise
      */
     public Optional<User> completePasswordReset(final String newPassword, final String key) {
-        log.debug("Reset user password for reset key {}", key);
-
         return userRepository.findOneByResetKey(key)
                 .filter(User::isActivated)
                 .filter(User::hasValidResetKey) // Use domain method

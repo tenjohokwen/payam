@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+
+import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -43,7 +45,6 @@ public class UserAdminService {
     public void deleteUserInformation(final String login) {
         userRepository.findOneByLogin(login).ifPresent(u -> {
             userRepository.delete(u);
-            log.debug("Deleted User: {}", u);
         });
     }
 
@@ -88,8 +89,6 @@ public class UserAdminService {
         int batchSize = securityProperties.getUserCleanupBatchSize();
         int totalDeleted = 0;
 
-        log.info("Starting removal of non-activated users created before {}", cutoffDate);
-
         boolean hasMore = true;
         while (hasMore) {
             List<User> users = findExpiredUsers(cutoffDate, batchSize);
@@ -102,14 +101,17 @@ public class UserAdminService {
                         deleteUserInTransaction(user.getLogin());
                         totalDeleted++;
                     } catch (Exception e) {
-                        log.error("Failed to delete non-activated user: {}", user.getLogin(), e);
+                        log.error("Failed to delete non-activated user",
+                            kv("operation", "user_admin"),
+                            kv("action", "delete_inactive"),
+                            kv("status", "ERROR"),
+                            e);
                         // Continue processing other users even if one fails
                     }
                 }
             }
         }
 
-        log.info("Completed removal of non-activated users. Total deleted: {}", totalDeleted);
     }
 
     /**
@@ -133,7 +135,6 @@ public class UserAdminService {
     protected void deleteUserInTransaction(String login) {
         userRepository.findOneByLogin(login).ifPresent(user -> {
             userRepository.delete(user);
-            log.debug("Deleted non-activated user: {}", login);
         });
     }
 }

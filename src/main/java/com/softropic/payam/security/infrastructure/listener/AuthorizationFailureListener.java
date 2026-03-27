@@ -2,16 +2,12 @@ package com.softropic.payam.security.infrastructure.listener;
 
 
 
-import com.softropic.payam.security.common.util.RequestMetadataProvider;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.access.event.AuthorizationFailureEvent;
 import org.springframework.security.authorization.event.AuthorizationDeniedEvent;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
+import static net.logstash.logback.argument.StructuredArguments.kv;
 
 
 /**
@@ -26,9 +22,9 @@ public class AuthorizationFailureListener {
     @SuppressWarnings("PMD")
     public void recordFailure(final AuthorizationDeniedEvent event) {
         //TODO test this
-        final Object object = event.getObject();
-        log.info("The current user does not have permission. Client metadata: '{}'",
-                    RequestMetadataProvider.getClientInfo());
+        log.warn("Authorization failure",
+            kv("operation", "authorization"),
+            kv("status", "FORBIDDEN"));
     }
 
 }

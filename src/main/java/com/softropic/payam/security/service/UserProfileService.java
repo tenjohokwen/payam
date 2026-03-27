@@ -26,6 +26,8 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 /**
  * Service for handling user profile management operations.
  */
@@ -57,7 +59,10 @@ public class UserProfileService {
             u.setNationalId(nationalId);
             u.setGender(gender);
             u.setTitle(title);
-            log.debug("Changed Information for User: {}", u);
+            log.debug("User profile updated",
+                kv("operation", "user_profile"),
+                kv("field", "information"),
+                kv("status", "UPDATED"));
             return u;
         });
     }
@@ -109,7 +114,10 @@ public class UserProfileService {
                 String capturedOldEmail = u.getEmail();
                 u.setEmail(newEmail);
                 u.setLogin(newEmail);
-                log.debug("Changed email for User: {}", u);
+                log.debug("User profile updated",
+                    kv("operation", "user_profile"),
+                    kv("field", "email"),
+                    kv("status", "UPDATED"));
 
                 // Publish event for notification and audit (send to old email address)
                 AccountChangeUserInfo userInfo = new AccountChangeUserInfo(
@@ -157,7 +165,10 @@ public class UserProfileService {
                                 SecurityError.EMAIL_OR_PW_MISMATCH);
                     }
                     user.setPassword(passwordEncoder.encode(newPassword));
-                    log.debug("Changed password for User: {}", user.getLogin());
+                    log.debug("User profile updated",
+                        kv("operation", "user_profile"),
+                        kv("field", "password"),
+                        kv("status", "UPDATED"));
 
                     // Publish event for notification and audit
                     AccountChangeEvent event = new AccountChangeEvent(
@@ -187,7 +198,10 @@ public class UserProfileService {
 
                     PhoneNumber phoneNumber = toPhoneNumber(phone);
                     user.setPhone(phoneNumber);
-                    log.debug("Changed phone for User: {}", user.getLogin());
+                    log.debug("User profile updated",
+                        kv("operation", "user_profile"),
+                        kv("field", "phone"),
+                        kv("status", "UPDATED"));
 
                     // Publish event for notification and audit
                     AccountChangeEvent event = new AccountChangeEvent(
@@ -221,7 +235,10 @@ public class UserProfileService {
                                                          SecurityError.EMAIL_OR_PW_MISMATCH);
                     }
                     user.setOtpEnabled(enabled);
-                    log.debug("Changed 2FA status for User: {} to {}", user.getLogin(), enabled);
+                    log.debug("User profile updated",
+                        kv("operation", "user_profile"),
+                        kv("field", "2fa"),
+                        kv("status", "UPDATED"));
 
                     // Publish event for notification and audit
                     AccountChangeEvent.Action action = enabled

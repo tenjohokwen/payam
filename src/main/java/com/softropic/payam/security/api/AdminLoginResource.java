@@ -6,6 +6,8 @@ import com.softropic.payam.security.service.LoginAttemptsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+
+import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -45,8 +47,10 @@ public class AdminLoginResource {
         if (StringUtils.isBlank(username)) {
             return ResponseEntity.badRequest().build();
         }
-        final String adminName = admin != null ? admin.getUsername() : "unknown";
-        log.warn("ADMIN ACTION: '{}' is clearing login-attempt locks for user '{}'.", adminName, username);
+        log.info("Admin cleared login-attempt locks",
+            kv("operation", "admin_action"),
+            kv("action", "clear_login_attempts"),
+            kv("status", "SUCCESS"));
         loginAttemptsService.unlockUser(username);
         return ResponseEntity.noContent().build();
     }
