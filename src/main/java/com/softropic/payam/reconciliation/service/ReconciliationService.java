@@ -16,6 +16,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -72,11 +74,17 @@ public class ReconciliationService {
      */
     @Transactional
     public void runForDate(LocalDate reportDate) {
+        long start = System.currentTimeMillis();
         log.info("ReconciliationService: starting reconciliation for date={}", reportDate);
+
+        int totalChecked = 0;
+        int totalDiscrepancies = 0;
 
         for (MobilePaymentProvider provider : new MobilePaymentProvider[]{MobilePaymentProvider.MTN, MobilePaymentProvider.ORANGE}) {
             try {
-                runForProviderAndDate(provider, reportDate);
+                int[] providerTotals = runForProviderAndDate(provider, reportDate);
+                totalChecked += providerTotals[0];
+                totalDiscrepancies += providerTotals[1];
             } catch (Exception e) {
                 log.error("ReconciliationService: unexpected error reconciling provider={} date={}: {}",
                     provider, reportDate, e.getMessage(), e);
@@ -84,13 +92,21 @@ public class ReconciliationService {
         }
 
         log.info("ReconciliationService: completed reconciliation for date={}", reportDate);
+        // LOG-BUS-07: structured reconciliation summary event
+        log.info("Reconciliation run completed",
+            kv("operation", "reconciliation_run"),
+            kv("date", reportDate.toString()),
+            kv("totalChecked", totalChecked),
+            kv("discrepancyCount", totalDiscrepancies),
+            kv("durationMs", System.currentTimeMillis() - start),
+            kv("status", "SUCCESS"));
     }
 
-    private void runForProviderAndDate(MobilePaymentProvider provider, LocalDate reportDate) {
+    private int[] runForProviderAndDate(MobilePaymentProvider provider, LocalDate reportDate) {
         ProviderReportPort port = providerPorts.get(provider);
         if (port == null) {
             log.warn("ReconciliationService: no ProviderReportPort registered for provider={}", provider);
-            return;
+            return new int[]{0, 0};
         }
 
         // Step 1: create or reset the report for this provider+date
@@ -137,6 +153,7 @@ public class ReconciliationService {
 
         log.info("ReconciliationService: provider={} date={} — checked={}, matched={}, discrepancies={}",
             provider, reportDate, ledgerTxs.size(), matched, discrepancies.size());
+        return new int[]{ledgerTxs.size(), discrepancies.size()};
     }
 
     /**
