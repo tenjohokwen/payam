@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 ## Current Position
 
 Phase: 16 of 17 (v2: Business Event Logging)
-Plan: 3 of 5 complete (16-01, 16-03, 16-05 done; 16-02, 16-04 remain)
+Plan: 4 of 5 complete (16-01, 16-03, 16-04, 16-05 done; 16-02 remains)
 Status: In progress
-Last activity: 2026-03-27 — Completed 16-03-PLAN.md (LOG-BUS-03 MtnMoMoPort + OrangeMoneyPort + LOG-BUS-04 WebhookDeliveryService)
+Last activity: 2026-03-27 — Completed 16-04-PLAN.md (LOG-BUS-06 MtnMoMoClient + OrangeMoneyClient provider HTTP call latency)
 
-Progress: █████████████████████████ v1 complete | █████░░░░░ v2 50%
+Progress: █████████████████████████ v1 complete | ████████░░ v2 80%
 
 ## Performance Metrics
 
@@ -59,6 +59,10 @@ Recent decisions affecting current work:
 - **[16-03] MTN externalReference = financialTransactionId (nullable):** payload.getFinancialTransactionId() may be null at callback time — passed as-is, Loki omits null fields.
 - **[16-03] deliveryStart timer before try block in WebhookDeliveryService:** Covers all 4 outcome paths so durationMs is always computable in any catch branch.
 - **[16-03] httpStatus=-1 for network errors (generic Exception):** Sentinel signals no HTTP response received, consistent with delivery.setHttpStatus() only called on actual responses.
+- **[16-04] LOG-BUS-06 co-exists with RestRequestInterceptor log:** Interceptor logs raw debug strings; kv() events provide structured Loki-queryable fields. Both intentional.
+- **[16-04] externalLatencyMs scope is makeHttpRequest() only:** long start immediately before call, log immediately after call returns before any conditional throw.
+- **[16-04] validateAccountHolder exception path omits log:** start inside try block; on HttpClientException (404), log.info() line is never reached — acceptable, exception is the signal.
+- **[16-04] cashout/c2c direct-return pattern:** Assign makeHttpRequest() to local variable, log, then return — required to access response for status check before returning.
 
 ### Pending Todos
 
@@ -71,5 +75,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-27
-Stopped at: Completed 16-03-PLAN.md — LOG-BUS-03 (MtnMoMoPort + OrangeMoneyPort webhook_received) + LOG-BUS-04 (WebhookDeliveryService webhook_delivery)
+Stopped at: Completed 16-04-PLAN.md — LOG-BUS-06 (MtnMoMoClient 7 methods + OrangeMoneyClient 7 methods provider HTTP call latency)
 Resume file: None
