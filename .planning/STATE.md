@@ -2,17 +2,17 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-26)
+See: .planning/PROJECT.md (updated 2026-03-27)
 
-**Core value:** Full-stack observability — every payment event traceable from Loki logs through Tempo traces to Prometheus metrics without manual correlation.
-**Current focus:** Phase 17 — Code Standards Enforcement (complete)
+**Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
+**Current focus:** Planning next milestone (v3)
 
 ## Current Position
 
-Phase: 17 of 17 (v2: Code Standards Enforcement)
-Plan: 4 of 4 (17-04 complete)
-Status: Phase complete
-Last activity: 2026-03-27 — Completed 17-04-PLAN.md — LOG-CODE-01/02 gap closure (9 files + 2 deviation files; zero violations remain in full codebase)
+Phase: 17 of 17 (v2 complete — all milestones shipped)
+Plan: Not started
+Status: Ready to plan next milestone
+Last activity: 2026-03-27 — v2 Logging Standardization milestone shipped (Phases 14–17, 12 plans, 18/18 requirements)
 
 Progress: █████████████████████████ v1 complete | ██████████ v2 100%
 
@@ -92,5 +92,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-27
-Stopped at: Completed 17-04-PLAN.md — LOG-CODE-01/02 gap closure; all violations resolved across full codebase
+Stopped at: v2 milestone completion — archived to milestones/v2-ROADMAP.md and milestones/v2-REQUIREMENTS.md
 Resume file: None

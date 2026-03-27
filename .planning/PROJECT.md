@@ -44,6 +44,11 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ Daily reconciliation against MTN/Orange reports (detect missing, mismatched, delayed) — v1
 - ✓ Fee management: configurable fixed fee per transaction, per-client or global rules — v1
 - ✓ Real-time alerts: fraud spikes, repeated failures, callback anomalies — v1
+- ✓ JSON stdout logging pipeline via `LoggingEventCompositeJsonEncoder` with OTel traceId/spanId MDC flattening — v2
+- ✓ Per-request MDC enrichment: requestId, tenantId, transactionId, externalReference in every log line — v2
+- ✓ Structured request lifecycle events (request_start, request_end, request_error) with durationMs — v2
+- ✓ 7 business event types queryable in Loki: initiate_payment, transaction_state_change, webhook_received, webhook_delivery, fraud_evaluation, provider HTTP latency, reconciliation_run — v2
+- ✓ Full codebase LOG-CODE-01/02/03 compliance: zero {} interpolation, zero code-flow logs, BodySanitizer covers all payment fields — v2
 
 ### Active
 
@@ -94,9 +99,10 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ## Current State
 
-**Shipped:** v1 (2026-03-26) — 13 phases, 29 plans, ~41,200 LOC
-**Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + Vue 3 + Quasar
-**Known tech debt:** See `.planning/milestones/v1-MILESTONE-AUDIT.md` — 11 non-critical items; no blockers
+**Shipped:** v2 (2026-03-27) — 17 phases total (13 v1 + 4 v2), 41 plans, ~25,400 LOC Java
+**Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar
+**Observability:** Full Loki-queryable structured logging — every log line is valid JSON with traceId, spanId, requestId, tenantId, transactionId as top-level fields
+**Known tech debt:** v1 items in `.planning/milestones/v1-MILESTONE-AUDIT.md` (11 non-critical); none from v2
 
 ---
-*Last updated: 2026-03-26 after v1 milestone completion*
+*Last updated: 2026-03-27 after v2 milestone completion*

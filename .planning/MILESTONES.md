@@ -1,5 +1,34 @@
 # Project Milestones: Payam
 
+## v2 Logging Standardization (Shipped: 2026-03-27)
+
+**Delivered:** Full-stack observability layer added to the payment API — every payment event is now traceable from Loki logs through Tempo traces to Prometheus metrics with structured kv() fields, zero PII, and no string interpolation anywhere in the codebase.
+
+**Phases completed:** 14–17 (12 plans total)
+
+**Key accomplishments:**
+
+- JSON stdout logging pipeline via `LoggingEventCompositeJsonEncoder` with OTel traceId/spanId MDC flattening — every log line is valid Loki-parseable JSON
+- Per-request MDC enrichment: requestId and tenantId on every HTTP request thread; transactionId and externalReference on every payment thread
+- Structured request lifecycle events (request_start, request_end, request_error) with durationMs and operation enabling HTTP SLO queries in Loki
+- Business event coverage: 7 event types — initiate_payment, transaction_state_change, webhook_received, webhook_delivery, fraud_evaluation, provider HTTP latency, reconciliation_run — all queryable by transactionId/tenantId/provider
+- Full codebase LOG-CODE-01/02/03 enforcement: zero {} string interpolation, zero code-flow/decorative logs, BodySanitizer covers all payment fields (tokens, MSISDNs, passwords, merchant keys)
+
+**Stats:**
+
+- 95 files modified
+- ~7,100 lines changed (+6,660 / -473)
+- 4 phases, 12 plans
+- 1 day (2026-03-26 → 2026-03-27)
+
+**Git range:** `docs(14-logging-infrastructure)` → `docs(17): mark LOG-CODE-01/02/03 complete`
+
+**Archive:** `.planning/milestones/v2-ROADMAP.md`
+
+**What's next:** v3 — TBD
+
+---
+
 ## v1 Payment API (Shipped: 2026-03-26)
 
 **Delivered:** Unified, multi-tenant payment API for Cameroon wrapping MTN MoMo and Orange Money behind a single interface with full fraud protection, event-sourced audit trail, and daily reconciliation.
