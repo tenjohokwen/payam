@@ -82,7 +82,10 @@ public class WebhookDeliveryService {
                         TransactionStatus status, String externalReference, BigDecimal feeAmount) {
         Tenant tenant = tenantRepository.findById(tenantId).orElse(null);
         if (tenant == null || tenant.getWebhookUrl() == null || tenant.getWebhookUrl().isBlank()) {
-            log.debug("No webhook URL configured for tenantId={} — skipping delivery", tenantId);
+            log.warn("No webhook URL configured",
+                kv("operation", "webhook_delivery"),
+                kv("tenantId", tenantId),
+                kv("status", "SKIPPED_NO_URL"));
             return;
         }
         WebhookDeliveryLog entry = WebhookDeliveryLog.builder()
@@ -112,7 +115,10 @@ public class WebhookDeliveryService {
     public void attemptDelivery(WebhookDeliveryLog delivery) {
         Tenant tenant = tenantRepository.findById(delivery.getTenantId()).orElse(null);
         if (tenant == null) {
-            log.warn("Tenant not found for delivery tenantId={} — skipping", delivery.getTenantId());
+            log.warn("Tenant not found for webhook delivery",
+                kv("operation", "webhook_delivery"),
+                kv("tenantId", delivery.getTenantId()),
+                kv("status", "TENANT_NOT_FOUND"));
             return;
         }
         attemptDeliveryInternal(delivery, tenant);
@@ -142,8 +148,11 @@ public class WebhookDeliveryService {
         try {
             payloadJson = objectMapper.writeValueAsString(payload);
         } catch (Exception e) {
-            log.error("Failed to serialize outbound webhook payload for transactionId={}: {}",
-                delivery.getTransactionId(), e.getMessage());
+            log.error("Failed to serialize webhook payload",
+                kv("operation", "webhook_delivery"),
+                kv("transactionId", delivery.getTransactionId()),
+                kv("status", "SERIALIZATION_ERROR"),
+                e);
             return;
         }
 
@@ -163,8 +172,11 @@ public class WebhookDeliveryService {
                     org.apache.commons.codec.binary.Hex.encodeHexString(hmacBytes);
                 headers.set("X-Payam-Signature", signature);
             } catch (Exception e) {
-                log.error("HMAC signing failed for transactionId={}: {}",
-                    delivery.getTransactionId(), e.getMessage());
+                log.error("HMAC signing failed",
+                    kv("operation", "webhook_delivery"),
+                    kv("transactionId", delivery.getTransactionId()),
+                    kv("status", "HMAC_ERROR"),
+                    e);
                 // Do not abort delivery — send unsigned; tenant can detect missing header
             }
         }
@@ -234,8 +246,11 @@ public class WebhookDeliveryService {
      */
     private void scheduleRetry(WebhookDeliveryLog delivery) {
         if (delivery.getAttemptCount() >= MAX_ATTEMPTS) {
-            log.warn("Max delivery attempts ({}) reached for transactionId={} — giving up",
-                MAX_ATTEMPTS, delivery.getTransactionId());
+            log.warn("Max delivery attempts reached",
+                kv("operation", "webhook_delivery"),
+                kv("transactionId", delivery.getTransactionId()),
+                kv("maxAttempts", MAX_ATTEMPTS),
+                kv("status", "MAX_RETRIES_EXCEEDED"));
             delivery.setDelivered(false); // stays false — queryable as permanently failed
             delivery.setNextRetryAt(null); // null = no more retries
             return;

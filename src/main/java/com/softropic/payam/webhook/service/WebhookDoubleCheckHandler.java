@@ -8,6 +8,7 @@ import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
 
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -43,8 +44,10 @@ public class WebhookDoubleCheckHandler {
      */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleWebhookReceived(WebhookReceivedEvent event) {
-        log.info("Double-check triggered: transactionId={}, provider={}",
-            event.transactionId(), event.provider());
+        log.info("Double-check triggered",
+            kv("operation", "webhook_double_check"),
+            kv("transactionId", event.transactionId()),
+            kv("provider", event.provider()));
 
         // Step 1: Call provider status API — NEVER skip (P1.4, Pitfall 1)
         ProviderResult result;
@@ -56,18 +59,26 @@ public class WebhookDoubleCheckHandler {
             }
         } catch (CallNotPermittedException e) {
             // Circuit open — leave transaction in PROCESSING; poller will retry
-            log.warn("Circuit open during double-check for transactionId={} — skipping state transition",
-                event.transactionId());
+            log.warn("Double-check: circuit open",
+                kv("operation", "webhook_double_check"),
+                kv("transactionId", event.transactionId()),
+                kv("status", "CIRCUIT_OPEN"));
             return;
         } catch (Exception e) {
-            log.error("Double-check failed for transactionId={}: {}", event.transactionId(), e.getMessage());
+            log.error("Double-check failed",
+                kv("operation", "webhook_double_check"),
+                kv("transactionId", event.transactionId()),
+                kv("status", "ERROR"),
+                e);
             return; // Poller safety net will pick this up
         }
 
         // Step 2: If still PROCESSING, do nothing — poller handles it
         if (result.pending()) {
-            log.info("Double-check: transactionId={} still PROCESSING — poller will handle",
-                event.transactionId());
+            log.info("Double-check: still PROCESSING",
+                kv("operation", "webhook_double_check"),
+                kv("transactionId", event.transactionId()),
+                kv("status", "STILL_PROCESSING"));
             return;
         }
 

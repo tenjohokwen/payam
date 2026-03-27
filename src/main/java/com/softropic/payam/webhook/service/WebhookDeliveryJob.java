@@ -2,6 +2,7 @@ package com.softropic.payam.webhook.service;
 
 import com.softropic.payam.webhook.repo.WebhookDeliveryLog;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,13 +35,18 @@ public class WebhookDeliveryJob extends QuartzJobBean {
     @Transactional
     protected void executeInternal(JobExecutionContext context) {
         List<WebhookDeliveryLog> pending = deliveryService.findPendingDeliveries();
-        log.info("WebhookDeliveryJob: {} pending deliveries to process", pending.size());
+        log.info("Webhook delivery job scan",
+            kv("operation", "webhook_delivery_scan"),
+            kv("pendingCount", pending.size()));
         for (WebhookDeliveryLog delivery : pending) {
             try {
                 deliveryService.attemptDelivery(delivery);
             } catch (Exception e) {
-                log.error("Delivery attempt failed for transactionId={}: {}",
-                    delivery.getTransactionId(), e.getMessage());
+                log.warn("Webhook delivery attempt failed",
+                    kv("operation", "webhook_delivery"),
+                    kv("transactionId", delivery.getTransactionId()),
+                    kv("status", "ERROR"),
+                    e);
             }
         }
     }
