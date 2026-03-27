@@ -97,11 +97,11 @@ Plans:
   2. Duplicate webhook delivery is rejected; transaction state unchanged; no duplicate outbox event
   3. Outbound delivery to tenant callback URL includes HMAC-SHA256 signature
   4. 5xx from tenant triggers retry with exponential backoff (≥3 attempts)
-**Plans**: TBD
+**Plans**: 2/2 — completed 2026-03-27
 
 Plans:
-- [ ] 21-01: MtnWebhookDoubleCheckE2ETest, OrangeWebhookDoubleCheckE2ETest, replay protection, MTN PUT acceptance
-- [ ] 21-02: OutboundWebhookDeliveryE2ETest, retry + exponential backoff
+- [x] 21-01: MtnWebhookDoubleCheckE2ETest, OrangeWebhookDoubleCheckE2ETest, replay protection, MTN PUT acceptance
+- [x] 21-02: OutboundWebhookDeliveryE2ETest, retry + exponential backoff
 
 #### Phase 22: Fraud, Reconciliation, and Admin Flow Tests
 **Goal**: Fraud engine, daily reconciliation, and admin transaction investigation verified end-to-end
@@ -159,6 +159,6 @@ Plans:
 | 18. Test Infrastructure | v3 | 2/2 | Complete | 2026-03-27 |
 | 19. Verifiers + Test Data Builders | v3 | 0/2 | Not started | - |
 | 20. Payment Flow Tests | v3 | 0/2 | Not started | - |
-| 21. Webhook Flow Tests | v3 | 0/2 | Not started | - |
+| 21. Webhook Flow Tests | v3 | 2/2 | Complete | 2026-03-27 |
 | 22. Fraud, Reconciliation, Admin Flow Tests | v3 | 0/2 | Not started | - |
 | 23. Domain Invariants, Concurrency, SM, Mutation | v3 | 0/3 | Not started | - |

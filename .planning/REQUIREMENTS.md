@@ -54,12 +54,12 @@
 
 ### FLOWS-HOOK: Webhook Flow Tests
 
-- [ ] **FLOWS-HOOK-01**: `MtnWebhookDoubleCheckE2ETest` — MTN PUT webhook received; double-check re-queries provider; transaction transitions to SUCCESS
-- [ ] **FLOWS-HOOK-02**: `OrangeWebhookDoubleCheckE2ETest` — Orange POST webhook received; double-check fires; state transition verified
-- [ ] **FLOWS-HOOK-03**: Webhook replay protection — duplicate webhook delivery rejected; transaction state unchanged; no duplicate outbox event
-- [ ] **FLOWS-HOOK-04**: `OutboundWebhookDeliveryE2ETest` — outbound webhook delivered to tenant callback URL with HMAC-SHA256 signature
-- [ ] **FLOWS-HOOK-05**: Outbound webhook retry — 5xx from tenant triggers retry scheduling with exponential backoff (minimum 3 attempts)
-- [ ] **FLOWS-HOOK-06**: MTN callback via PUT (not POST) — accepted and processed, not 405 Method Not Allowed
+- [x] **FLOWS-HOOK-01**: `MtnWebhookDoubleCheckE2ETest` — MTN PUT webhook received; double-check re-queries provider; transaction transitions to SUCCESS
+- [x] **FLOWS-HOOK-02**: `OrangeWebhookDoubleCheckE2ETest` — Orange POST webhook received; double-check fires; state transition verified
+- [x] **FLOWS-HOOK-03**: Webhook replay protection — duplicate webhook delivery rejected; transaction state unchanged; no duplicate outbox event
+- [x] **FLOWS-HOOK-04**: `OutboundWebhookDeliveryE2ETest` — outbound webhook delivered to tenant callback URL with HMAC-SHA256 signature
+- [x] **FLOWS-HOOK-05**: Outbound webhook retry — 5xx from tenant triggers retry scheduling with exponential backoff (minimum 3 attempts)
+- [x] **FLOWS-HOOK-06**: MTN callback via PUT (not POST) — accepted and processed, not 405 Method Not Allowed
 
 ### FLOWS-FRAUD: Fraud Engine Tests
 
@@ -140,7 +140,7 @@ Which phases cover which requirements. Updated by create-roadmap.
 | VERIF-01–10 | Phase 19 | Complete |
 | BUILD-01–08 | Phase 19 | Complete |
 | FLOWS-PAY-01–07 | Phase 20 | Complete |
-| FLOWS-HOOK-01–06 | Phase 21 | Pending |
+| FLOWS-HOOK-01–06 | Phase 21 | Complete |
 | FLOWS-FRAUD-01–03 | Phase 22 | Pending |
 | FLOWS-RECON-01–04 | Phase 22 | Pending |
 | FLOWS-ADMIN-01 | Phase 22 | Pending |
