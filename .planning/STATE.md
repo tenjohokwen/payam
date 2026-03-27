@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 ## Current Position
 
 Phase: 16 of 17 (v2: Business Event Logging)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-27 — Phase 15 complete (2/2 plans, verified 5/5 must-haves, LOG-MDC-01/02 + LOG-REQ-01/02/03 Complete)
+Plan: 1 of 2 complete
+Status: In progress
+Last activity: 2026-03-27 — Completed 16-01-PLAN.md (LOG-BUS-01 + LOG-BUS-05)
 
-Progress: █████████████████████████ v1 complete | ██████░░░░ v2 50%
+Progress: █████████████████████████ v1 complete | ███████░░░ v2 62.5%
 
 ## Performance Metrics
 
@@ -28,6 +28,7 @@ Progress: ███████████████████████�
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 14 (plan 01) | 1 | 1 min | 1 min |
+| 16 (plan 01) | 1 | 6 min | 6 min |
 
 ## Accumulated Context
 
@@ -48,6 +49,10 @@ Recent decisions affecting current work:
 - **[15-02] Do not call MDC.put("traceId", ...) in application code:** micrometer-tracing-bridge-otel injects traceId automatically via `<mdc/>` provider for every active OTel span. Manual put was redundant and used the wrong snake_case key.
 - **[15-02] TXN_ID_NAME canonical MDC key is "transactionId":** Updated from "txnId" (was never aligned with what TransactionService wrote). All TransactionIdProvider operations now use the correct key.
 - **[15-02] MDC camelCase contract enforced:** All application-owned MDC fields use camelCase. OTel-owned fields (traceId, spanId) must not be manually overridden.
+- **[16-01] tenantId log event field uses TenantContext.get() (UUID tenantRef):** Consistent with MDC decision 15-01. PaymentOrchestrator receives Long tenantId param but log event uses the UUID string — the Loki-queryable canonical tenant identifier.
+- **[16-01] LOG-BUS-01 excluded paths:** Unknown MSISDN prefix path (no transactionId yet) and idempotency replay path (not a new initiation) are intentionally not logged under initiate_payment.
+- **[16-01] Fraud allowed path upgraded DEBUG → INFO:** Every payment passes through fraud evaluation; DEBUG is invisible in production. INFO makes allow decisions traceable alongside block decisions.
+- **[16-01] LOG-BUS-05 start timer before velocity checks:** Declared as first line of evaluate() so durationMs covers all 4 Redis velocity lookups, not just score computation.
 
 ### Pending Todos
 
@@ -60,5 +65,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-27
-Stopped at: Phase 15 complete — all plans executed, phase goal verified 5/5
+Stopped at: Completed 16-01-PLAN.md — LOG-BUS-01 (PaymentOrchestrator) + LOG-BUS-05 (FraudScoringService)
 Resume file: None
