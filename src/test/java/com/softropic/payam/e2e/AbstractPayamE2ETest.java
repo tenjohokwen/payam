@@ -51,6 +51,9 @@ public abstract class AbstractPayamE2ETest {
     protected WireMockServer orangeServer;
 
     @Autowired
+    private E2ESecurityConfig e2eSecurityConfig;
+
+    @Autowired
     protected TestDataCleaner testDataCleaner;
 
     @Autowired
@@ -64,6 +67,7 @@ public abstract class AbstractPayamE2ETest {
 
     @BeforeEach
     void baseSetUp() {
+        e2eSecurityConfig.seedSecurityRow();
         redis.getConnectionFactory().getConnection().serverCommands().flushDb();
         circuitBreakerRegistry.circuitBreaker("mtn").reset();
         circuitBreakerRegistry.circuitBreaker("orange").reset();
