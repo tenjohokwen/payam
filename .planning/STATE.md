@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 ## Current Position
 
 Phase: 16 of 17 (v2: Business Event Logging)
-Plan: 2 of 5 complete (16-01, 16-05 done; 16-02, 16-03, 16-04 remain)
+Plan: 3 of 5 complete (16-01, 16-03, 16-05 done; 16-02, 16-04 remain)
 Status: In progress
-Last activity: 2026-03-27 — Completed 16-05-PLAN.md (LOG-BUS-07 ReconciliationService)
+Last activity: 2026-03-27 — Completed 16-03-PLAN.md (LOG-BUS-03 MtnMoMoPort + OrangeMoneyPort + LOG-BUS-04 WebhookDeliveryService)
 
-Progress: █████████████████████████ v1 complete | ████░░░░░░ v2 40%
+Progress: █████████████████████████ v1 complete | █████░░░░░ v2 50%
 
 ## Performance Metrics
 
@@ -55,6 +55,10 @@ Recent decisions affecting current work:
 - **[16-01] LOG-BUS-05 start timer before velocity checks:** Declared as first line of evaluate() so durationMs covers all 4 Redis velocity lookups, not just score computation.
 - **[16-05] runForProviderAndDate() returns int[] {totalChecked, discrepancyCount}:** Minimal structural change to accumulate cross-provider totals in runForDate(); no changes to comparison logic.
 - **[16-05] reconciliation_run status="SUCCESS" unconditional:** runForDate() always completes normally (provider exceptions caught inside try/catch); discrepancyCount communicates financial outcome, status reflects execution completion.
+- **[16-03] Orange webhook_received log inside present-branch lambda:** txId is only available after transactionRepository.findByPayToken() resolves; log emitted there to include transactionId in structured event. Top-level log.info removed.
+- **[16-03] MTN externalReference = financialTransactionId (nullable):** payload.getFinancialTransactionId() may be null at callback time — passed as-is, Loki omits null fields.
+- **[16-03] deliveryStart timer before try block in WebhookDeliveryService:** Covers all 4 outcome paths so durationMs is always computable in any catch branch.
+- **[16-03] httpStatus=-1 for network errors (generic Exception):** Sentinel signals no HTTP response received, consistent with delivery.setHttpStatus() only called on actual responses.
 
 ### Pending Todos
 
@@ -67,5 +71,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-27
-Stopped at: Completed 16-05-PLAN.md — LOG-BUS-07 (ReconciliationService reconciliation_run event)
+Stopped at: Completed 16-03-PLAN.md — LOG-BUS-03 (MtnMoMoPort + OrangeMoneyPort webhook_received) + LOG-BUS-04 (WebhookDeliveryService webhook_delivery)
 Resume file: None
