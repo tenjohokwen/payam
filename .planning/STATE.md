@@ -29,6 +29,7 @@ Progress: ███████████████████████�
 |-------|-------|-------|----------|
 | 14 (plan 01) | 1 | 1 min | 1 min |
 | 16 (plan 01) | 1 | 6 min | 6 min |
+| 17 (plan 02) | 1 | 11 min | 11 min |
 | 17 (plan 03) | 1 | 12 min | 12 min |
 
 ## Accumulated Context
@@ -69,6 +70,11 @@ Recent decisions affecting current work:
 - **[17-01] Still-PENDING logs upgraded from log.debug to log.info in both pollers:** Poller backpressure (many transactions stuck pending) is a Loki-queryable production signal; debug is invisible in production.
 - **[17-01] No-webhook-URL log upgraded from log.debug to log.warn:** Silently skipping delivery on a billable-path event warrants visibility; per plan spec.
 - **[17-01] Exception arg preserved as last positional arg in all error/warn catch blocks:** kv() varargs followed by throwable is the correct SLF4J overload pattern; stack traces included in structured Loki entries.
+- **[17-02] AlertEvaluationService threshold log upgraded debug → warn:** Threshold breach triggers AlertFiredEvent and email; log promoted to match consequence severity for Loki visibility.
+- **[17-02] Cache Logger removal:** When all log calls deleted from a class, static Logger field and imports removed to avoid compiler warnings.
+- **[17-02] SecurityAuditListener AUDIT_TRAIL toString() replaced with kv():** AuditTrail contains login, IP, sessionId — full object is PII. Log ID already persisted to DB; Loki event uses operation + status only.
+- **[17-02] PII removal contract finalized:** Usernames, emails, loginIds, reset keys, activation keys never appear as log arguments. Omit entirely; do not hash.
+- **[17-02] @Slf4j removed from no-log classes:** UserRegistrationService, PasswordResetService, LoadUserByUserNameService — annotation removed after all log calls deleted to prevent unused field warnings.
 - **[17-03] BodySanitizer SENSITIVE_KEYS adds msisdn, merchant_key, merchantKey:** Substring matching means "msisdn" catches any field name containing it; merchant_key and merchantKey added as separate entries since neither contains the other as a substring.
 - **[17-03] RestRequestInterceptor: no headers object in log args:** Headers may contain Authorization Bearer token; content-type extracted separately for sanitization only.
 - **[17-03] OrangeCallbackController line 118 upgraded warn to error:** Callback processing failure is error-severity; exception object passed as last arg (not e.getMessage()) for full stack trace.
@@ -85,5 +91,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-27
-Stopped at: Completed 17-01-PLAN.md — LOG-CODE-01/02/03 payment domain kv() enforcement (9 files, 8 duplicate logs deleted)
+Stopped at: Completed 17-02-PLAN.md — LOG-CODE-01/02/03 clean for 24 infrastructure and security service files
 Resume file: None
