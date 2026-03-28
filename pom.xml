@@ -461,4 +461,49 @@
 		</plugins>
 	</build>
 
+	<profiles>
+		<profile>
+			<id>mutation</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.pitest</groupId>
+						<artifactId>pitest-maven</artifactId>
+						<version>1.15.3</version>
+						<dependencies>
+							<dependency>
+								<groupId>org.pitest</groupId>
+								<artifactId>pitest-junit5-plugin</artifactId>
+								<version>1.2.1</version>
+							</dependency>
+						</dependencies>
+						<configuration>
+							<targetClasses>
+								<param>com.softropic.payam.payment.service.*</param>
+								<param>com.softropic.payam.payment.domain.*</param>
+								<param>com.softropic.payam.transaction.service.*</param>
+								<param>com.softropic.payam.transaction.repo.*</param>
+								<param>com.softropic.payam.fraud.service.*</param>
+								<param>com.softropic.payam.fraud.infrastructure.*</param>
+								<param>com.softropic.payam.webhook.service.*</param>
+								<param>com.softropic.payam.reconciliation.service.*</param>
+								<param>com.softropic.payam.orange.util.*</param>
+								<param>com.softropic.payam.transaction.contract.*</param>
+							</targetClasses>
+							<targetTests>
+								<param>com.softropic.payam.domain.*</param>
+							</targetTests>
+							<mutators>
+								<mutator>STRONGER</mutator>
+							</mutators>
+							<mutationThreshold>90</mutationThreshold>
+							<timeoutConstant>10000</timeoutConstant>
+							<threads>2</threads>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 </project>
