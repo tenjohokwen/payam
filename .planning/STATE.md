@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 23 — Domain Invariants, Concurrency, State Machine, and Mutation Tests — In progress (plan 01 done)
+**Current focus:** Phase 23 — Domain Invariants, Concurrency, State Machine, and Mutation Tests — In progress (plans 01-02 done)
 
 ## Current Position
 
 Phase: 23 of 23 (Domain Invariants, Concurrency, SM, and Mutation Tests) — In progress
-Plan: 1 of 3 complete
+Plan: 2 of 3 complete
 Status: In progress
-Last activity: 2026-03-28 — Completed 23-01-PLAN — 10/10 domain invariant tests passing (INV-01 through INV-10)
+Last activity: 2026-03-28 — Completed 23-02-PLAN — 4/4 concurrency tests passing (CONC-01 through CONC-04)
 
 Progress: ██████████████████████████████ v1+v2 complete | ████████████░ v3 ~85%
 
@@ -117,6 +117,9 @@ Recent decisions affecting current work:
 - **[23-01] InitBeforeProviderCallTest uses WireMock RequestListener in try-finally:** Prevents listener bleed into subsequent tests sharing the same Spring context.
 - **[23-01] Fraud rule seeding required for all full-HTTP-flow domain invariant tests:** BLOCK_THRESHOLD=70 allows normal payments; must call fraudRuleCache.refreshRules() after JDBC update.
 - **[23-01] PaymentIdempotencyE2ETest required fraud rule seeding fix:** FraudVelocityBlockE2ETest left MSISDN_VELOCITY threshold=1 in FraudRuleCache across test ordering — idempotency test now seeds its own rules defensively.
+- **[23-02] WebhookPollingRaceTest PROVIDER_SUCCESS event count >= 1 (not exactly 1):** Hibernate L1 cache in REQUIRES_NEW context can return stale PROCESSING entity even after poller committed SUCCESS. Both paths commit successfully (2 PROVIDER_SUCCESS events). Financial invariants (1 SUCCESS row, 2 ledger entries) remain correct — MtnStatusPollerJob never calls LedgerService.
+- **[23-02] lessThanOrExactly() not atMost() for WireMock 3.13.2:** WireMock.atMost() does not exist; use WireMock.lessThanOrExactly(N) for at-most-N provider call assertion.
+- **[23-02] TenantApiKeyRepository.findAllByTenantId() for key rotation:** TenantBuilder.CreatedTenant exposes rawApiKey but not key entity ID. Use findAllByTenantId(tenantId) to get the TenantApiKey entity and extract its ID before calling ApiKeyService.rotate(keyId).
 
 ### Pending Todos
 
@@ -129,5 +132,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-28
-Stopped at: Completed 23-01-PLAN — 10/10 domain invariant tests passing (INV-01 through INV-10), SUMMARY.md created
+Stopped at: Completed 23-02-PLAN — 4/4 concurrency tests passing (CONC-01 through CONC-04), SUMMARY.md created
 Resume file: None
