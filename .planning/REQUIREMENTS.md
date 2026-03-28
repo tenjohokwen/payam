@@ -80,42 +80,42 @@
 
 ### INV: Domain Invariant Tests
 
-- [ ] **INV-01-TEST**: `HashChainIntegrityTest` — every event's `hashValue = SHA256(prev.hashValue + eventData)`; genesis event uses "GENESIS" seed
-- [ ] **INV-02-TEST**: `LedgerDoubleEntryTest` — SUCCESS creates balanced debit/credit; FAILED creates no ledger entry; reversed payment remains balanced
-- [ ] **INV-03-TEST**: `IdempotencyNoDoubleChargeTest` — `(tenantId, idempotencyKey)` maps to exactly one payment row and one provider call
-- [ ] **INV-04-TEST**: `TenantIsolationTest` — no API key can query data from a different tenant across all payment tables
-- [ ] **INV-05-TEST**: `StateMachineLegalTransitionsTest` — full transition matrix tested; all illegal cells throw `IllegalStateTransitionException` and leave DB unchanged
-- [ ] **INV-06-TEST**: `WebhookDoubleCheckTest` — provider status re-queried at least once before any state change for every inbound webhook
-- [ ] **INV-07-TEST**: `FraudBeforeProviderCallTest` — fraud evaluation timestamp < provider HTTP call timestamp on every initiation
-- [ ] **INV-08-TEST**: `CallbackUrlSsrfGuardTest` — outbound provider HTTP call always uses Payam-owned callback URL, never tenant-supplied URL
-- [ ] **INV-09-TEST**: `InitBeforeProviderCallTest` — INIT row committed to PostgreSQL before WireMock receives the provider HTTP call
-- [ ] **INV-10-TEST**: `OrangeTimestampWatTest` — Orange `createtime` parsed with +01:00 offset; UTC parse produces wrong result (mutation caught)
+- [x] **INV-01-TEST**: `HashChainIntegrityTest` — every event's `hashValue = SHA256(prev.hashValue + eventData)`; genesis event uses "GENESIS" seed
+- [x] **INV-02-TEST**: `LedgerDoubleEntryTest` — SUCCESS creates balanced debit/credit; FAILED creates no ledger entry; reversed payment remains balanced
+- [x] **INV-03-TEST**: `IdempotencyNoDoubleChargeTest` — `(tenantId, idempotencyKey)` maps to exactly one payment row and one provider call
+- [x] **INV-04-TEST**: `TenantIsolationTest` — no API key can query data from a different tenant across all payment tables
+- [x] **INV-05-TEST**: `StateMachineLegalTransitionsTest` — full transition matrix tested; all illegal cells throw `IllegalStateTransitionException` and leave DB unchanged
+- [x] **INV-06-TEST**: `WebhookDoubleCheckTest` — provider status re-queried at least once before any state change for every inbound webhook
+- [x] **INV-07-TEST**: `FraudBeforeProviderCallTest` — fraud evaluation timestamp < provider HTTP call timestamp on every initiation
+- [x] **INV-08-TEST**: `CallbackUrlSsrfGuardTest` — outbound provider HTTP call always uses Payam-owned callback URL, never tenant-supplied URL
+- [x] **INV-09-TEST**: `InitBeforeProviderCallTest` — INIT row committed to PostgreSQL before WireMock receives the provider HTTP call
+- [x] **INV-10-TEST**: `OrangeTimestampWatTest` — Orange `createtime` parsed with +01:00 offset; UTC parse produces wrong result (mutation caught)
 
 ### CONC: Concurrency Tests
 
-- [ ] **CONC-01**: `ConcurrentIdempotencyRaceTest` — 20 threads, same `(tenantId, idempotencyKey)`, CyclicBarrier release: exactly 1 payment row, 1 provider call, all 20 responses return same `transactionId`
-- [ ] **CONC-02**: `WebhookPollingRaceTest` — Thread A: MTN PUT webhook; Thread B: Quartz polling job; both attempt `PROCESSING→SUCCESS`: exactly 1 SUCCESS row, 1 SUCCESS event, 2 ledger entries, 1 outbound webhook delivery
-- [ ] **CONC-03**: `VelocityCounterFloodTest` — 100 threads, same source IP: Redis velocity counter = 100; threads exceeding threshold blocked; exactly N (≤ threshold) provider calls made
-- [ ] **CONC-04**: `ApiKeyRotationGracePeriodTest` — Thread A uses old key, Thread B uses new key simultaneously during rotation window: both succeed; both attributed to correct tenant
+- [x] **CONC-01**: `ConcurrentIdempotencyRaceTest` — 20 threads, same `(tenantId, idempotencyKey)`, CyclicBarrier release: exactly 1 payment row, 1 provider call, all 20 responses return same `transactionId`
+- [x] **CONC-02**: `WebhookPollingRaceTest` — Thread A: MTN PUT webhook; Thread B: Quartz polling job; both attempt `PROCESSING→SUCCESS`: exactly 1 SUCCESS row, 1 SUCCESS event, 2 ledger entries, 1 outbound webhook delivery
+- [x] **CONC-03**: `VelocityCounterFloodTest` — 100 threads, same source IP: Redis velocity counter = 100; threads exceeding threshold blocked; exactly N (≤ threshold) provider calls made
+- [x] **CONC-04**: `ApiKeyRotationGracePeriodTest` — Thread A uses old key, Thread B uses new key simultaneously during rotation window: both succeed; both attributed to correct tenant
 
 ### SM: State Machine Tests
 
-- [ ] **SM-01**: All legal transitions drive payment through expected states via `StateMachineDriver` with hash chain growth asserted at each step
-- [ ] **SM-02**: All illegal transitions throw `IllegalStateTransitionException`, leave payment status unchanged, and append no new event
-- [ ] **SM-03**: Parameterized test covers full MTN path matrix: success, fraud-blocked, provider timeout, webhook-failed, polling-fallback-success
-- [ ] **SM-04**: Parameterized test covers full Orange path matrix: success, payToken expiry, init failure, polling fallback
+- [x] **SM-01**: All legal transitions drive payment through expected states via `StateMachineDriver` with hash chain growth asserted at each step
+- [x] **SM-02**: All illegal transitions throw `IllegalStateTransitionException`, leave payment status unchanged, and append no new event
+- [x] **SM-03**: Parameterized test covers full MTN path matrix: success, fraud-blocked, provider timeout, webhook-failed, polling-fallback-success
+- [x] **SM-04**: Parameterized test covers full Orange path matrix: success, payToken expiry, init failure, polling fallback
 
 ### TXN: Transaction Boundary Tests
 
-- [ ] **TXN-01**: WireMock transformer confirms INIT row exists in DB at the exact moment the provider HTTP call arrives
-- [ ] **TXN-02**: Exception after INIT commit does NOT roll back the INIT row; no provider call made; no ledger entry created
-- [ ] **TXN-03**: Spring Modulith event fires after payment row is committed (`AFTER_COMMIT`), not during the transaction
-- [ ] **TXN-04**: Redis NX+EX atomic reservation — concurrent requests cannot both see "key absent"
+- [x] **TXN-01**: WireMock transformer confirms INIT row exists in DB at the exact moment the provider HTTP call arrives
+- [x] **TXN-02**: Exception after INIT commit does NOT roll back the INIT row; no provider call made; no ledger entry created
+- [x] **TXN-03**: Spring Modulith event fires after payment row is committed (`AFTER_COMMIT`), not during the transaction
+- [x] **TXN-04**: Redis NX+EX atomic reservation — concurrent requests cannot both see "key absent"
 
 ### MUT: Mutation Testing
 
-- [ ] **MUT-01**: PITest configured in `pom.xml` targeting `payment.service`, `payment.domain`, `payment.infrastructure.fraud`, `payment.infrastructure.webhook`, `payment.infrastructure.reconciliation` with `mutationThreshold=90` and `STRONGER` mutators
-- [ ] **MUT-02**: Six critical mutations killed: INITIATED→SUCCESS guard, ledger `==` balance check, idempotency tenant scope, fraud blocking `>=` threshold, hash chain `previousHash` inclusion, Orange `+01:00` timestamp offset
+- [x] **MUT-01**: PITest configured in `pom.xml` targeting `payment.service`, `payment.domain`, `payment.infrastructure.fraud`, `payment.infrastructure.webhook`, `payment.infrastructure.reconciliation` with `mutationThreshold=90` and `STRONGER` mutators
+- [x] **MUT-02**: Six critical mutations killed: INITIATED→SUCCESS guard, ledger `==` balance check, idempotency tenant scope, fraud blocking `>=` threshold, hash chain `previousHash` inclusion, Orange `+01:00` timestamp offset
 
 ## v2 Requirements
 
@@ -144,11 +144,11 @@ Which phases cover which requirements. Updated by create-roadmap.
 | FLOWS-FRAUD-01–03 | Phase 22 | Complete |
 | FLOWS-RECON-01–04 | Phase 22 | Complete |
 | FLOWS-ADMIN-01 | Phase 22 | Complete |
-| INV-01-TEST–INV-10-TEST | Phase 23 | Pending |
-| CONC-01–04 | Phase 23 | Pending |
-| SM-01–04 | Phase 23 | Pending |
-| TXN-01–04 | Phase 23 | Pending |
-| MUT-01–02 | Phase 23 | Pending |
+| INV-01-TEST–INV-10-TEST | Phase 23 | Complete |
+| CONC-01–04 | Phase 23 | Complete |
+| SM-01–04 | Phase 23 | Complete |
+| TXN-01–04 | Phase 23 | Complete |
+| MUT-01–02 | Phase 23 | Complete |
 
 **Coverage:**
 - v1 requirements: 64 total

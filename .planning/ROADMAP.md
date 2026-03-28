@@ -128,12 +128,14 @@ Plans:
   3. Webhook/polling race produces exactly 1 SUCCESS row and 1 outbound delivery
   4. All illegal state transitions throw without DB mutation
   5. PITest kills all 6 critical mutations with mutationThreshold=90
-**Plans**: TBD
+**Plans**: 5/5 — completed 2026-03-28
 
 Plans:
-- [ ] 23-01: HashChainIntegrityTest, LedgerDoubleEntryTest, IdempotencyNoDoubleChargeTest, TenantIsolationTest, StateMachineLegalTransitionsTest, WebhookDoubleCheckTest, FraudBeforeProviderCallTest, CallbackUrlSsrfGuardTest, InitBeforeProviderCallTest, OrangeTimestampWatTest
-- [ ] 23-02: ConcurrentIdempotencyRaceTest, WebhookPollingRaceTest, VelocityCounterFloodTest, ApiKeyRotationGracePeriodTest
-- [ ] 23-03: SM parameterized tests (MTN + Orange path matrices), TXN boundary tests (TXN-01–04), PITest configuration + 6 critical mutation kills
+- [x] 23-01: HashChainIntegrityTest, LedgerDoubleEntryTest, IdempotencyNoDoubleChargeTest, TenantIsolationTest, StateMachineLegalTransitionsTest, WebhookDoubleCheckTest, FraudBeforeProviderCallTest, CallbackUrlSsrfGuardTest, InitBeforeProviderCallTest, OrangeTimestampWatTest
+- [x] 23-02: ConcurrentIdempotencyRaceTest, WebhookPollingRaceTest, VelocityCounterFloodTest, ApiKeyRotationGracePeriodTest
+- [x] 23-03: SM parameterized tests (MTN + Orange path matrices), TXN boundary tests (TXN-01–04), PITest configuration + 6 critical mutation kills
+- [x] 23-04: CONC-02 gap closure — WebhookPollingRaceTest outbound provider call count assertion
+- [x] 23-05: MUT-02 gap closure — PITest targetClasses expanded to all 6 MUT-02 classes; domain unit tests rewritten to call real production classes
 
 ## Progress
 
@@ -161,4 +163,4 @@ Plans:
 | 20. Payment Flow Tests | v3 | 0/2 | Not started | - |
 | 21. Webhook Flow Tests | v3 | 2/2 | Complete | 2026-03-27 |
 | 22. Fraud, Reconciliation, Admin Flow Tests | v3 | 2/2 | Complete | 2026-03-27 |
-| 23. Domain Invariants, Concurrency, SM, Mutation | v3 | 0/3 | Not started | - |
+| 23. Domain Invariants, Concurrency, SM, Mutation | v3 | 5/5 | Complete | 2026-03-28 |
