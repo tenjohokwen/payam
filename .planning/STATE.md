@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 22 — Fraud, Reconciliation, and Admin Flow Tests — COMPLETE (all 3 plans done)
+**Current focus:** Phase 23 — Domain Invariants, Concurrency, State Machine, and Mutation Tests — In progress (plan 01 done)
 
 ## Current Position
 
-Phase: 22 of 23 (Fraud, Reconciliation, and Admin Flow Tests) — COMPLETE
-Plan: 3 of 3 complete
-Status: Phase complete
-Last activity: 2026-03-28 — Completed 22-02-PLAN — 9/9 phase-22 tests passing (FLOWS-RECON-01 through FLOWS-RECON-04, FLOWS-ADMIN-01)
+Phase: 23 of 23 (Domain Invariants, Concurrency, SM, and Mutation Tests) — In progress
+Plan: 1 of 3 complete
+Status: In progress
+Last activity: 2026-03-28 — Completed 23-01-PLAN — 10/10 domain invariant tests passing (INV-01 through INV-10)
 
-Progress: ██████████████████████████████ v1+v2 complete | ███████████░ v3 ~80%
+Progress: ██████████████████████████████ v1+v2 complete | ████████████░ v3 ~85%
 
 ## Performance Metrics
 
@@ -112,6 +112,11 @@ Recent decisions affecting current work:
 - **[22-02] URI.create() with manual + → %2B for + in query params:** RestTemplate.exchange(URI) passes URI as-is; URLEncoder, UriComponentsBuilder, new URI() all cause double-encoding or wrong behavior.
 - **[22-02] transactionTemplate.execute() wraps all admin user seeding:** Prevents FK constraint errors on user_authority → authority FK when bare jdbcTemplate.execute() runs as auto-commit statements.
 - **[22-02] discrepancy_type is the reconciliation_discrepancy column name:** Not 'type' — @Column(name = "discrepancy_type") per JPA entity annotation.
+- **[23-01] OrangeTimestampWatTest is a plain JUnit 5 unit test:** No @SpringBootTest — WAT offset is a pure computation; Spring context overhead unnecessary.
+- **[23-01] StateMachineLegalTransitionsTest @MethodSource covers all 32 illegal transitions:** Each case queries DB after expected throw to confirm row status unchanged.
+- **[23-01] InitBeforeProviderCallTest uses WireMock RequestListener in try-finally:** Prevents listener bleed into subsequent tests sharing the same Spring context.
+- **[23-01] Fraud rule seeding required for all full-HTTP-flow domain invariant tests:** BLOCK_THRESHOLD=70 allows normal payments; must call fraudRuleCache.refreshRules() after JDBC update.
+- **[23-01] PaymentIdempotencyE2ETest required fraud rule seeding fix:** FraudVelocityBlockE2ETest left MSISDN_VELOCITY threshold=1 in FraudRuleCache across test ordering — idempotency test now seeds its own rules defensively.
 
 ### Pending Todos
 
@@ -124,5 +129,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-28
-Stopped at: Completed Phase 22 plan 02 — DailyReconciliationE2ETest + TransactionInvestigationE2ETest; full phase-22 suite 9/9 passing
+Stopped at: Completed 23-01-PLAN — 10/10 domain invariant tests passing (INV-01 through INV-10), SUMMARY.md created
 Resume file: None
