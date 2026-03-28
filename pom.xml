@@ -487,11 +487,17 @@
 							  OrangeTimeUtil: OrangeTimestampOffsetTest calls parseOrangeTimestamp().
 							  TransactionStatus: TransactionStatusGuardTest calls transitionTo().
 							  PaymentEventLog: HashChainPreviousHashTest calls create().
+							  FraudScoringService: FraudThresholdGuardTest calls evaluate() with mocked collaborators.
+							  LedgerService: LedgerBalanceGuardTest calls postEntry() with a mock LedgerEntryRepository.
+							  IdempotencyService: IdempotencyTenantScopeTest calls checkAndReserve() with mocked Redis + repo.
 							-->
 							<targetClasses>
 								<param>com.softropic.payam.orange.service.OrangeTimeUtil</param>
 								<param>com.softropic.payam.transaction.contract.TransactionStatus</param>
 								<param>com.softropic.payam.transaction.repo.PaymentEventLog</param>
+								<param>com.softropic.payam.fraud.service.FraudScoringService</param>
+								<param>com.softropic.payam.transaction.service.LedgerService</param>
+								<param>com.softropic.payam.transaction.service.IdempotencyService</param>
 							</targetClasses>
 							<targetTests>
 								<param>com.softropic.payam.domain.*</param>
