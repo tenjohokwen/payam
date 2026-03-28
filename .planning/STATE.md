@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 23 — Domain Invariants, Concurrency, State Machine, and Mutation Tests — COMPLETE (all 3 plans done). All phases complete (v1 + v2 + v3).
+**Current focus:** Phase 23 — Domain Invariants, Concurrency, State Machine, and Mutation Tests — COMPLETE (all 5 plans done). All phases complete (v1 + v2 + v3 + gap closure).
 
 ## Current Position
 
 Phase: 23 of 23 (Domain Invariants, Concurrency, SM, and Mutation Tests) — COMPLETE
-Plan: 3 of 3 complete
+Plan: 5 of 5 complete (includes 2 gap closure plans)
 Status: ALL PHASES COMPLETE
-Last activity: 2026-03-28 — Completed 23-03-PLAN — SM path matrix tests, TXN boundary tests, PITest mutation profile (7/7 kills, 100%)
+Last activity: 2026-03-28 — Completed 23-05-PLAN — PITest targetClasses expanded to 6, three domain unit tests rewritten with Mockito constructor injection (MUT-02 gap closed)
 
-Progress: ██████████████████████████████ v1+v2 complete | █████████████ v3 100% COMPLETE
+Progress: ██████████████████████████████ v1+v2 complete | █████████████████ v3 + gap closure 100% COMPLETE
 
 ## Performance Metrics
 
@@ -128,6 +128,8 @@ Recent decisions affecting current work:
 - **[23-03] hashValue_nullStatusFrom_differFromNonNullStatusFrom() kills RemoveConditionalMutator_EQUAL_ELSE:** statusFrom != null ternary in PaymentEventLog.create() requires test with non-null statusFrom to distinguish from null path.
 - **[23-03] OrangeTimeUtil package is com.softropic.payam.orange.service (not .orange.util).**
 - **[23-03] PITest goal is pitest:mutationCoverage (not pitest:mutate).**
+- **[23-05] PITest unit-test coverage pattern:** Use `new ServiceClass(mock(Dep.class))` to call real Spring @Service methods in unit tests — no @SpringBootTest overhead. @Transactional proxy is bypassed but method logic executes directly. ArgumentCaptor.forClass(List.class) captures repository saveAll() arguments.
+- **[23-05] Mockito.argumentCaptor() does not exist:** The correct API is `ArgumentCaptor.forClass(ClassName.class)` (instance method on the class itself, not a static import from Mockito).
 
 ### Pending Todos
 
@@ -140,5 +142,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-28
-Stopped at: Completed 23-03-PLAN — SM path matrix, TXN boundary, PITest mutation (7/7 kills). ALL PHASES COMPLETE.
+Stopped at: Completed 23-05-PLAN — PITest targetClasses expanded to 6, domain unit tests rewritten with real production classes via Mockito (MUT-02 gap closed). ALL PHASES COMPLETE.
 Resume file: None
