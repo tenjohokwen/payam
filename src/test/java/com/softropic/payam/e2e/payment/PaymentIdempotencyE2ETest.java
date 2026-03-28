@@ -7,6 +7,7 @@ import com.softropic.payam.e2e.builder.PaymentRequestBuilder;
 import com.softropic.payam.e2e.builder.TenantBuilder;
 import com.softropic.payam.payment.contract.PaymentRequest;
 import com.softropic.payam.payment.contract.PaymentResponse;
+import com.softropic.payam.fraud.service.FraudRuleCache;
 import com.softropic.payam.tenant.repo.TenantRepository;
 import com.softropic.payam.tenant.service.TenantService;
 
@@ -21,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
@@ -60,6 +62,12 @@ public class PaymentIdempotencyE2ETest extends AbstractPayamE2ETest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
+    @Autowired
+    private FraudRuleCache fraudRuleCache;
+
     private DeterministicUuidFactory uuidFactory;
 
     // A non-retrying RestTemplate with no-op error handler — needed because TestRestTemplate
@@ -68,6 +76,41 @@ public class PaymentIdempotencyE2ETest extends AbstractPayamE2ETest {
 
     @Test
     void idempotency_three_round_scenario() {
+        // --- Fraud rule seeding ---
+        // FraudVelocityBlockE2ETest lowers MSISDN_VELOCITY threshold to 1 and does not restore it.
+        // This test must seed/restore fraud rules so Round 3 (second distinct payment for same MSISDN
+        // from a different tenant) is not blocked by an exhausted velocity bucket threshold.
+        // Rule 1 fix: guard against stale FraudRuleCache state from previous test runs.
+        transactionTemplate.execute(status -> {
+            jdbcTemplate.update(
+                "INSERT INTO main.fraud_rule " +
+                "(id, status, signal_name, weight, threshold, window_seconds, enabled, description) " +
+                "VALUES (1, 'ACTIVE', 'IP_VELOCITY', 40, 10, 60, true, 'IP_VELOCITY test rule') " +
+                "ON CONFLICT (id) DO UPDATE SET threshold = EXCLUDED.threshold");
+            jdbcTemplate.update(
+                "INSERT INTO main.fraud_rule " +
+                "(id, status, signal_name, weight, threshold, window_seconds, enabled, description) " +
+                "VALUES (2, 'ACTIVE', 'MSISDN_VELOCITY', 35, 5, 60, true, 'MSISDN_VELOCITY test rule') " +
+                "ON CONFLICT (id) DO UPDATE SET threshold = EXCLUDED.threshold");
+            jdbcTemplate.update(
+                "INSERT INTO main.fraud_rule " +
+                "(id, status, signal_name, weight, threshold, window_seconds, enabled, description) " +
+                "VALUES (3, 'ACTIVE', 'APP_VELOCITY', 25, 20, 60, true, 'APP_VELOCITY test rule') " +
+                "ON CONFLICT (id) DO UPDATE SET threshold = EXCLUDED.threshold");
+            jdbcTemplate.update(
+                "INSERT INTO main.fraud_rule " +
+                "(id, status, signal_name, weight, threshold, window_seconds, enabled, description) " +
+                "VALUES (4, 'ACTIVE', 'MSISDN_HOUSEHOLD', 15, 8, 3600, true, 'MSISDN_HOUSEHOLD test rule') " +
+                "ON CONFLICT (id) DO UPDATE SET threshold = EXCLUDED.threshold");
+            jdbcTemplate.update(
+                "INSERT INTO main.fraud_rule " +
+                "(id, status, signal_name, weight, threshold, window_seconds, enabled, description) " +
+                "VALUES (5, 'ACTIVE', 'BLOCK_THRESHOLD', 0, 70, 0, true, 'BLOCK_THRESHOLD test rule') " +
+                "ON CONFLICT (id) DO UPDATE SET threshold = EXCLUDED.threshold");
+            return null;
+        });
+        fraudRuleCache.refreshRules();
+
         // --- Shared setup ---
         // Stub MTN initiation endpoints — shared across all three rounds.
         // Use prefix "67" (national: 672xxxxx) which routes to MTN via hardcoded fallback.
