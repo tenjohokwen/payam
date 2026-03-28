@@ -45,6 +45,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -220,6 +221,12 @@ public class WebhookPollingRaceTest extends AbstractPayamE2ETest {
             assertThat(ledgerCount)
                 .as("Exactly 2 ledger entries must exist for transactionId=%s (double-entry)", transactionId)
                 .isEqualTo(2);
+
+            // Exactly 1 outbound POST to the provider — payment was dispatched once regardless of
+            // which path (webhook or poller) won the race. The POST /v1_0/requesttopay stub was
+            // hit during initiation; the race is only between the webhook callback and the poller
+            // status check. Provider call count must be exactly 1.
+            mtnServer.verify(1, postRequestedFor(urlPathEqualTo("/v1_0/requesttopay")));
         });
     }
 
