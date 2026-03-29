@@ -28,4 +28,4 @@ ISSUES
 * clean up logging
 * create missing migration scripts
 * ensure constraints are creating in the entities as well as migration scripts (Also ask AI to make suggestions for constraints on a module by module basis)
-* 
+* Ask AI if with the current API you can do B2C and B2B transactions for both MTN and Orange
