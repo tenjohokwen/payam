@@ -8,7 +8,8 @@ public enum EmailTemplate {
     SEND_OTP("email.otp.title"),
     EMAIL_CHANGE("email.change.title"),
     POST_PURCHASE("email.post_purchase.title"),
-    PROFILE_CHANGE("email.profile_change.title");
+    PROFILE_CHANGE("email.profile_change.title"),
+    PLATFORM_CONFIG_CHANGED("email.platform_config_changed.title");
 
     private final String subjectKey;
     EmailTemplate(final String subjectKey) {
