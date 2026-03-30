@@ -248,3 +248,6 @@ fraud:
   rule-cache:
     refresh-interval-ms: 60000
 
+payam:
+  platform:
+    notification-email: ${PLATFORM_NOTIFICATION_EMAIL:admin@example.com}
