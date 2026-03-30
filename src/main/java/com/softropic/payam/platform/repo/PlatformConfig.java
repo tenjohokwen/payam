@@ -1,0 +1,52 @@
+package com.softropic.payam.platform.repo;
+
+import com.softropic.payam.common.persistence.AbstractAuditingEntity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+
+/**
+ * Platform configuration entity — stores provider-level MSISDNs managed by admin.
+ *
+ * <p>One row per provider (ORANGE, MTN). Pre-seeded by Flyway V17 with empty MSISDNs;
+ * updated at runtime via {@link PlatformConfigRepository} without app restart.
+ *
+ * <p>Modelled after {@link com.softropic.payam.fee.repo.FeeRule} — same
+ * {@link AbstractAuditingEntity} base and immutable-field pattern.
+ */
+@Entity
+@Table(name = "platform_config", schema = "main")
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+public class PlatformConfig extends AbstractAuditingEntity {
+
+    /** Provider key: ORANGE or MTN. Unique per table. */
+    @Column(name = "provider", nullable = false, unique = true)
+    private String provider;
+
+    /**
+     * Platform-owned MSISDN for this provider.
+     * Empty string until configured by admin; never null.
+     */
+    @Column(name = "platform_msisdn", nullable = false)
+    private String platformMsisdn;
+
+    /**
+     * Update the platform MSISDN for this provider.
+     * Called by {@link com.softropic.payam.platform.service.PlatformConfigService#update}
+     * within a transaction; JPA dirty-checking persists the change on commit.
+     *
+     * @param newMsisdn the new MSISDN value; must not be null
+     */
+    public void updateMsisdn(String newMsisdn) {
+        this.platformMsisdn = newMsisdn;
+    }
+}
