@@ -42,4 +42,21 @@ export const adminApi = {
       responseType: 'blob',
     })
   },
+
+  /**
+   * Get all platform MSISDNs (one per provider).
+   * Returns: [{ provider: 'ORANGE', platformMsisdn: '...' }, { provider: 'MTN', platformMsisdn: '...' }]
+   */
+  getPlatformConfig() {
+    return api.get('/v1/admin/platform-config')
+  },
+
+  /**
+   * Update the platform MSISDN for a specific provider.
+   * @param {string} provider - 'ORANGE' or 'MTN'
+   * @param {string} platformMsisdn - new MSISDN value
+   */
+  updatePlatformConfig(provider, platformMsisdn) {
+    return api.put(`/v1/admin/platform-config/${provider}`, { provider, platformMsisdn })
+  },
 }

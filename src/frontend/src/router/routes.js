@@ -80,6 +80,11 @@ const routes = [
             component: () => import('pages/admin/ReconciliationPage.vue'),
             meta: { requiresAuth: true },
           },
+          {
+            path: 'platform-config',
+            component: () => import('pages/admin/PlatformConfigPage.vue'),
+            meta: { requiresAuth: true },
+          },
         ],
       },
     ],
