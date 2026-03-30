@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 24 of 26 in v4 (Platform Configuration)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-30 — v4 roadmap created (3 phases, 11 requirements mapped)
+Plan: 01 of 3 complete
+Status: In progress
+Last activity: 2026-03-30 — Completed 24-01-PLAN.md (platform config backend)
 
-Progress: ██████████████████████████████ v1+v2 complete | █████████████████ v3 + gap closure 100% COMPLETE
+Progress: ██████████████████████████████ v1+v2 complete | █████████████████ v3 + gap closure 100% COMPLETE | █░░ v4 phase 24 (1/3 plans)
 
 ## Performance Metrics
 
@@ -130,6 +130,10 @@ Recent decisions affecting current work:
 - **[23-03] PITest goal is pitest:mutationCoverage (not pitest:mutate).**
 - **[23-05] PITest unit-test coverage pattern:** Use `new ServiceClass(mock(Dep.class))` to call real Spring @Service methods in unit tests — no @SpringBootTest overhead. @Transactional proxy is bypassed but method logic executes directly. ArgumentCaptor.forClass(List.class) captures repository saveAll() arguments.
 - **[23-05] Mockito.argumentCaptor() does not exist:** The correct API is `ArgumentCaptor.forClass(ClassName.class)` (instance method on the class itself, not a static import from Mockito).
+- **[24-01] PayamPlatformProperties registered via @EnableConfigurationProperties in companion PlatformConfig @Configuration class:** Mirrors OrangeMoneyConfig/OrangeConfig pattern. Do not put @Configuration on the properties class itself.
+- **[24-01] PlatformConfigChangedEvent is a plain Java record (POJO event):** Spring 4.2+ supports non-ApplicationEvent events. No source/timestamp boilerplate needed.
+- **[24-01] publishEvent() inside @Transactional update() for AFTER_COMMIT listener compatibility:** Plan 24-02 email listener must use @TransactionalEventListener(phase = AFTER_COMMIT). Event must be published inside the transaction boundary.
+- **[24-01] update() normalises provider to upper-case before findByProvider():** Prevents case mismatch bugs; seeded rows use "ORANGE" and "MTN" (all caps).
 
 ### Pending Todos
 
@@ -141,6 +145,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-30
-Stopped at: v4 roadmap created — 3 phases (24–26), 11 requirements mapped. Ready to plan Phase 24.
+Last session: 2026-03-30T12:32:44Z
+Stopped at: Completed 24-01-PLAN.md — platform config backend (migration, entity, repo, service, controller, properties)
 Resume file: None
