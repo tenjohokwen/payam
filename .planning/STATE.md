@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 24 of 26 in v4 (Platform Configuration)
-Plan: 01 of 3 complete
+Plan: 02 of 3 complete
 Status: In progress
-Last activity: 2026-03-30 — Completed 24-01-PLAN.md (platform config backend)
+Last activity: 2026-03-30 — Completed 24-02-PLAN.md (platform config email notification)
 
-Progress: ██████████████████████████████ v1+v2 complete | █████████████████ v3 + gap closure 100% COMPLETE | █░░ v4 phase 24 (1/3 plans)
+Progress: ██████████████████████████████ v1+v2 complete | █████████████████ v3 + gap closure 100% COMPLETE | ██░ v4 phase 24 (2/3 plans)
 
 ## Performance Metrics
 
@@ -134,6 +134,8 @@ Recent decisions affecting current work:
 - **[24-01] PlatformConfigChangedEvent is a plain Java record (POJO event):** Spring 4.2+ supports non-ApplicationEvent events. No source/timestamp boilerplate needed.
 - **[24-01] publishEvent() inside @Transactional update() for AFTER_COMMIT listener compatibility:** Plan 24-02 email listener must use @TransactionalEventListener(phase = AFTER_COMMIT). Event must be published inside the transaction boundary.
 - **[24-01] update() normalises provider to upper-case before findByProvider():** Prevents case mismatch bugs; seeded rows use "ORANGE" and "MTN" (all caps).
+- **[24-02] PlatformConfigEmailListener uses @EventListener (not @TransactionalEventListener):** Matches AccountChangeEmailListener pattern. MailManager uses @TransactionalEventListener(AFTER_COMMIT) on the Envelope event; using it on the listener itself would prevent Envelope from being published in the same transaction.
+- **[24-02] Envelope correlation ID is UUID.randomUUID().toString():** Admin config-change notifications have no user-facing helpCode concept; UUID provides uniqueness for mail logging without ShortCode overhead.
 
 ### Pending Todos
 
@@ -145,6 +147,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-30T12:32:44Z
-Stopped at: Completed 24-01-PLAN.md — platform config backend (migration, entity, repo, service, controller, properties)
+Last session: 2026-03-30T12:37:13Z
+Stopped at: Completed 24-02-PLAN.md — platform config email notification (EmailTemplate enum, listener, Thymeleaf template)
 Resume file: None
