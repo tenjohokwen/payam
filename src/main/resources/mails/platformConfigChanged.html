@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="#{email.platform_config_changed.title}">Platform MSISDN Changed</title>
+</head>
+<body>
+    <p>Hello,</p>
+
+    <p>The platform MSISDN for provider <strong th:text="${map.provider}">PROVIDER</strong>
+    has been updated.</p>
+
+    <table>
+        <tr>
+            <td><strong>Old MSISDN:</strong></td>
+            <td th:text="${map.oldMsisdn}">—</td>
+        </tr>
+        <tr>
+            <td><strong>New MSISDN:</strong></td>
+            <td th:text="${map.newMsisdn}">—</td>
+        </tr>
+    </table>
+
+    <p>If this change was not authorized, please investigate immediately.</p>
+
+    <p th:text="#{email.closing}">Thanks, the Payam team</p>
+</body>
+</html>
