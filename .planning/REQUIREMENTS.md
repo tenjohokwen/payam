@@ -43,22 +43,22 @@ Which phases cover which requirements. Updated by create-roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PCONF-01 | TBD | Pending |
-| PCONF-02 | TBD | Pending |
-| PCONF-03 | TBD | Pending |
-| PCONF-04 | TBD | Pending |
-| HLTH-01 | TBD | Pending |
-| HLTH-02 | TBD | Pending |
-| HLTH-03 | TBD | Pending |
-| HLTH-04 | TBD | Pending |
-| HLTH-05 | TBD | Pending |
-| HLTH-06 | TBD | Pending |
-| HLTH-07 | TBD | Pending |
+| PCONF-01 | Phase 24 | Pending |
+| PCONF-02 | Phase 24 | Pending |
+| PCONF-03 | Phase 24 | Pending |
+| PCONF-04 | Phase 24 | Pending |
+| HLTH-01 | Phase 25 | Pending |
+| HLTH-02 | Phase 25 | Pending |
+| HLTH-03 | Phase 25 | Pending |
+| HLTH-04 | Phase 25 | Pending |
+| HLTH-05 | Phase 25 | Pending |
+| HLTH-06 | Phase 26 | Pending |
+| HLTH-07 | Phase 26 | Pending |
 
 **Coverage:**
 - v1 requirements: 11 total
-- Mapped to phases: 0
-- Unmapped: 11 ⚠️
+- Mapped to phases: 11
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-30*
