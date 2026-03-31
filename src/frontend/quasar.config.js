@@ -121,6 +121,10 @@ export default defineConfig((ctx) => {
           target: 'http://localhost:9990',
           changeOrigin: true,
         },
+        '/manage': {
+          target: 'http://localhost:9990',
+          changeOrigin: true,
+        },
       },
     },
 
