@@ -59,10 +59,15 @@ const isLoading = ref(false)
 onMounted(async () => {
   isLoading.value = true
   try {
-    const resp = await adminApi.getHealth()
-    health.value = resp.data
-  } catch {
-    $q.notify({ type: 'negative', message: 'Failed to load health status' })
+    health.value = await adminApi.getHealth()
+  } catch (error) {
+    // Spring returns HTTP 503 when overall status is DOWN, but the body still contains
+    // the full health JSON — extract it so the dashboard can display the DOWN state.
+    if (error?.response?.data?.status) {
+      health.value = error.response.data
+    } else {
+      $q.notify({ type: 'negative', message: 'Failed to load health status' })
+    }
   } finally {
     isLoading.value = false
   }

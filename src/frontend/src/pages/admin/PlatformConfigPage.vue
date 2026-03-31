@@ -42,8 +42,8 @@ onMounted(async () => {
   isLoading.value = true
   try {
     const resp = await adminApi.getPlatformConfig()
-    configs.value = resp.data
-    for (const config of resp.data) {
+    configs.value = resp
+    for (const config of resp) {
       editValues.value[config.provider] = config.platformMsisdn
     }
   } catch {
@@ -56,12 +56,9 @@ onMounted(async () => {
 async function saveProvider(provider) {
   savingProvider.value = provider
   try {
-    const resp = await adminApi.updatePlatformConfig(provider, editValues.value[provider])
-    const updated = resp.data
+    const updated = await adminApi.updatePlatformConfig(provider, editValues.value[provider])
     const idx = configs.value.findIndex((c) => c.provider === provider)
-    if (idx !== -1) {
-      configs.value[idx] = updated
-    }
+    if (idx !== -1) configs.value[idx] = updated
     $q.notify({ type: 'positive', message: `${provider} MSISDN updated successfully` })
   } catch {
     $q.notify({ type: 'negative', message: `Failed to update ${provider} MSISDN` })
