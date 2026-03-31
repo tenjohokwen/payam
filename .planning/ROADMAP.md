@@ -159,18 +159,18 @@ Plans:
 - [x] 24-03: PlatformConfigPage.vue (Vue 3 Composition API), admin.api.js API functions, routes.js child route
 
 #### Phase 25: Provider Health Indicators
-**Goal**: Spring Boot Actuator `/actuator/health` reflects live Orange and MTN MSISDN validation and circuit breaker state
+**Goal**: Spring Boot Actuator `/manage/health` reflects live Orange and MTN MSISDN validation and circuit breaker state
 **Depends on**: Phase 24
 **Requirements**: HLTH-01, HLTH-02, HLTH-03, HLTH-04, HLTH-05
 **Success Criteria** (what must be TRUE):
-  1. `/actuator/health` returns UP when both Orange and MTN platform MSISDNs pass their provider validations
-  2. `/actuator/health` returns DOWN when either MSISDN fails provider validation
+  1. `/manage/health` returns UP when both Orange and MTN platform MSISDNs pass their provider validations
+  2. `/manage/health` returns DOWN when either MSISDN fails provider validation
   3. Health response includes circuit breaker status for the Orange Money provider adapter
   4. Health response includes circuit breaker status for the MTN MoMo provider adapter
-**Plans**: TBD
+**Plans**: 1 planned
 
 Plans:
-- [ ] 25-01: TBD
+- [ ] 25-01: OrangePlatformHealthIndicator + MtnPlatformHealthIndicator (HealthIndicator beans, validateSubscriber, CB state detail)
 
 #### Phase 26: Health Dashboard UI
 **Goal**: Admin UI health dashboard surfaces all health check results; access is restricted to admin users
