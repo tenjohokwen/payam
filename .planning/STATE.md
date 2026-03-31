@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 25 — Provider Health Indicators
+**Current focus:** Phase 26 — Health Dashboard UI
 
 ## Current Position
 
-Phase: 25 of 26 in v4 (Provider Health Indicators)
+Phase: 26 of 26 in v4 (Health Dashboard UI)
 Plan: 0 of TBD complete
 Status: In progress — researching
-Last activity: 2026-03-31 — Phase 24 complete (3/3 plans); phase 25 research starting
+Last activity: 2026-03-31 — Phase 25 complete (1/1 plan); phase 26 research next
 
-Progress: ██████████████████████████████ v1+v2 complete | █████████████████ v3 + gap closure 100% COMPLETE | ███ v4 phase 24 COMPLETE | ░ v4 phase 25 (0/TBD plans)
+Progress: ██████████████████████████████ v1+v2 complete | █████████████████ v3 + gap closure 100% COMPLETE | █████ v4 phase 24+25 COMPLETE | ░ v4 phase 26 (0/TBD plans)
 
 ## Performance Metrics
 
@@ -148,5 +148,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-31
-Stopped at: Phase 24 complete (24-03-SUMMARY.md written); observability changes committed (Prometheus endpoint, LGTM stack fix); phase 25 research next
+Stopped at: Phase 25 complete (human-verified); phase 26 research next
 Resume file: None

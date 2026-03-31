@@ -167,10 +167,10 @@ Plans:
   2. `/manage/health` returns DOWN when either MSISDN fails provider validation
   3. Health response includes circuit breaker status for the Orange Money provider adapter
   4. Health response includes circuit breaker status for the MTN MoMo provider adapter
-**Plans**: 1 planned
+**Plans**: 1/1 — completed 2026-03-31
 
 Plans:
-- [ ] 25-01: OrangePlatformHealthIndicator + MtnPlatformHealthIndicator (HealthIndicator beans, validateSubscriber, CB state detail)
+- [x] 25-01: OrangePlatformHealthIndicator + MtnPlatformHealthIndicator (HealthIndicator beans, validateSubscriber, CB state detail)
 
 #### Phase 26: Health Dashboard UI
 **Goal**: Admin UI health dashboard surfaces all health check results; access is restricted to admin users
@@ -213,5 +213,5 @@ Plans:
 | 22. Fraud, Reconciliation, Admin Flow Tests | v3 | 2/2 | Complete | 2026-03-27 |
 | 23. Domain Invariants, Concurrency, SM, Mutation | v3 | 5/5 | Complete | 2026-03-28 |
 | 24. Platform Configuration | v4 | 3/3 | Complete | 2026-03-30 |
-| 25. Provider Health Indicators | v4 | 0/TBD | Not started | - |
+| 25. Provider Health Indicators | v4 | 1/1 | Complete | 2026-03-31 |
 | 26. Health Dashboard UI | v4 | 0/TBD | Not started | - |
