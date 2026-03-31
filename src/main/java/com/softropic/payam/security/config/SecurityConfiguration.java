@@ -25,6 +25,7 @@ import com.softropic.payam.security.service.LoadUserByUserNameService;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
@@ -170,7 +171,6 @@ public class SecurityConfiguration {
                 // handles AuthenticationException that may have by-passed the handler in JWTAuthenticationFilter.
                 // So far, I have not found a by-pass path. However this could happen if a different authenticator other than JWTAuthenticationFilter is used
                 exceptionHandling.authenticationEntryPoint(new AuthenticationExceptionHandler(handlerExceptionResolver));
-
         });
         http.formLogin(Customizer.withDefaults());
         http.logout(customizer ->
@@ -210,6 +210,9 @@ public class SecurityConfiguration {
     private static Customizer<AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry> configureRequestMatching(
             AuthorizationManager<RequestAuthorizationContext> authorizationManager, Environment env) {
         return (customizer) -> {
+            //permit scraper
+            customizer.requestMatchers(AppEndpoints.PUBLIC_MGMT_ENDPOINTS.toArray(new String[0])).permitAll();
+
             customizer.requestMatchers(PUBLIC_STATIC_RESOURCES.toArray(new String[0])).permitAll()
                       //.requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
                       .requestMatchers(PUBLIC_ENDPOINTS.toArray(new String[0])).permitAll();

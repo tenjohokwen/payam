@@ -147,7 +147,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,env
+        include: health,info,env,metrics,prometheus
       base-path: /manage  #actuator root path
   endpoint:
     health:
@@ -160,6 +160,8 @@ management:
       show-details: when-authorized
       show-values: when-authorized
       roles: ROLE_ADMIN
+    prometheus:
+      enabled: true
   tracing:
     sampling:
       probability: 1.0
@@ -250,4 +252,4 @@ fraud:
 
 payam:
   platform:
-    notification-email: ${PLATFORM_NOTIFICATION_EMAIL:admin@example.com}
+    notification-email: ${PLATFORM_NOTIFICATION_EMAIL:tenjoh_okwen@yahoo.com}

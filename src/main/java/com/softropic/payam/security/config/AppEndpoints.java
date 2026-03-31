@@ -27,6 +27,7 @@ public final class AppEndpoints {
         "/v1/callbacks/mtn",     // MTN PUT callbacks — IP whitelist via MtnIpWhitelistInterceptor
         "/v1/callbacks/orange"   // Orange POST callbacks — IP whitelist via OrangeIpWhitelistInterceptor
     );
+    public static final List<String> PUBLIC_MGMT_ENDPOINTS = List.of("/manage/prometheus", "/manage/health", "/manage/info");
     public static final List<String> ALL_UNRESTRICTED;
 
     private static final String[] SECURED_AUTHORITIES = new String[]{AuthoritiesConstants.ADMIN, AuthoritiesConstants.USER, AuthoritiesConstants.LTD_ADMIN};
@@ -41,6 +42,7 @@ public final class AppEndpoints {
         SECURED_ENDPOINTS = List.copyOf(SECURED_MAPPINGS.keySet());
         ALL_UNRESTRICTED = new ArrayList<>(PUBLIC_STATIC_RESOURCES);
         ALL_UNRESTRICTED.addAll(PUBLIC_ENDPOINTS);
+        ALL_UNRESTRICTED.addAll(PUBLIC_MGMT_ENDPOINTS);
     }
     private AppEndpoints(){}
 

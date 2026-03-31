@@ -10,12 +10,6 @@
 
 insert into main.sec (id, created_by, created_date, last_modified_by, last_modified_date, request_id, session_id, status, bus_id, value, version) values ('659287191260154475',	'SYSTEM_ACCOUNT',	'2024-12-24 06:51:55.357352',	'SYSTEM_ACCOUNT',	'2024-12-24 06:51:55.357352',	'bed78f34-3e09-4fa8-81db-32326a528cca',	null,	'ACTIVE',	'jot',	'loiI8oT2C1tWecrNXPDjN8fveYEU8rD6nb1k1NbVy92rwdd4/KO+aHhXh3A5zjsT5eSFL/xI+9Rqyj4RI6QCiFywn5nZLIwHGPNEY0F9lnDnGGmVjv/9rO5fgGt83+cxNDyGoCePaVEpBd7xHxyDdfpAoLxQs8mhKGqcEsh09Q+26qEiEm/a9bgDSbSQ0sX00VHBLd35OLmvN+ydjEluYxBTa6KzGb2CQ6Ttg4ZaELmbZOWpEjQ1Z7BbbYiXmWyaY+2HnkyhONoGbUpvVKl1c4e9IlQzeUYkekbUbADIm2LNK9Nhfv5/L5esvFrdVOUcUpLk/y8UT9f5xOMLFJ4Ct6s0eTKvNqYkSz2DFRI8Ip4p/ns6gA4V/1MUf9GeqPUWLiOa28Vw15+R8ycUMqb8NZHOP1oj9RunhSwA7EY84bZL3+yePc3n1b8ne8xzaYVEdK1WBu3J6s2AoBaOL/JLWfu8MuxXI+ub', 'v1');
 
--- system accounts
-insert into main.account (balance, frozen_amount, created_date, id, last_modified_date, version, created_by, last_modified_by, account_ref, account_status, account_type, chain_hash, owner_id, request_id, session_id, status, txn_id) values
-(0.0000,	0.0000,	'2025-08-06 11:52:44.355775+02',	'740869964889686043',	'2025-08-06 11:52:44.355775+02',	0,	'SYSTEM_ACCOUNT',	'SYSTEM_ACCOUNT',	'SYS_VOUCHER_SALES',	'ACTIVE',	'SYSTEM',	null,	'DTXGSIB',	'b5cfdb86-23e4-45e5-bd8b-821323efa02f',	null,	'INACTIVE',	'TRUCQ'),
-(0.0000,	0.0000,	'2025-08-06 11:52:44.371008+02',	'740869965061652532',	'2025-08-06 11:52:44.371008+02',	0, 'SYSTEM_ACCOUNT',	'SYSTEM_ACCOUNT',	'SYS_VOUCHER_REDEMPTIONS',	'ACTIVE',	'SYSTEM',	null,	'EZNX',	'b5cfdb86-23e4-45e5-bd8b-821323efa02f',	null,	'DELETED',	'BRDVXJRTDJ'),
-(0.0000,	0.0000,	'2025-08-06 11:52:44.372608+02',	'740869965070041265',	'2025-08-06 11:52:44.372608+02',	0,	'SYSTEM_ACCOUNT',	'SYSTEM_ACCOUNT',	'SYS_EXT_ACC',	'ACTIVE',	'SYSTEM',	null,	'GVL',	'b5cfdb86-23e4-45e5-bd8b-821323efa02f',	null,	'ACTIVE',	'ZXK'),
-(0.0000,	0.,	'2025-08-06 11:52:44.373879+02',	'740869965074235416',	'2025-08-06 11:52:44.373879+02',	0, 'SYSTEM_ACCOUNT',	'SYSTEM_ACCOUNT',	'SYS_MAIN',	'ACTIVE',	'SYSTEM',	null,	'PSAYQ',	'b5cfdb86-23e4-45e5-bd8b-821323efa02f',	null,	'INACTIVE',	'MSRZMO');
 
 --insert user data
 INSERT INTO main.authority

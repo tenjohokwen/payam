@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Prometheus for metrics (Mimir can also be used, but Prometheus is simpler for a template)
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3
     container_name: prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
@@ -22,7 +22,7 @@ services:
 
   # Tempo for traces
   tempo:
-    image: grafana/tempo:latest
+    image: grafana/tempo:2.9.0
     container_name: tempo
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
