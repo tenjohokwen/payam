@@ -38,7 +38,7 @@ spring:
   jmx.enabled: false
   jpa:
     generate-ddl: true
-    hibernate.ddl-auto: create-drop #none #update #create #create-drop #validate
+    hibernate.ddl-auto: none #none #update #create #create-drop #validate
     open-in-view: false #is enabled by default. Therefore, database queries may be performed during view rendering.
     properties:
       hibernate:
