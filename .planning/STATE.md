@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 24 — Platform Configuration (v4 milestone start)
+**Current focus:** Phase 25 — Provider Health Indicators
 
 ## Current Position
 
-Phase: 24 of 26 in v4 (Platform Configuration)
-Plan: 02 of 3 complete
-Status: In progress
-Last activity: 2026-03-30 — Completed 24-02-PLAN.md (platform config email notification)
+Phase: 25 of 26 in v4 (Provider Health Indicators)
+Plan: 0 of TBD complete
+Status: In progress — researching
+Last activity: 2026-03-31 — Phase 24 complete (3/3 plans); phase 25 research starting
 
-Progress: ██████████████████████████████ v1+v2 complete | █████████████████ v3 + gap closure 100% COMPLETE | ██░ v4 phase 24 (2/3 plans)
+Progress: ██████████████████████████████ v1+v2 complete | █████████████████ v3 + gap closure 100% COMPLETE | ███ v4 phase 24 COMPLETE | ░ v4 phase 25 (0/TBD plans)
 
 ## Performance Metrics
 
@@ -147,6 +147,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-30T12:37:13Z
-Stopped at: Completed 24-02-PLAN.md — platform config email notification (EmailTemplate enum, listener, Thymeleaf template)
+Last session: 2026-03-31
+Stopped at: Phase 24 complete (24-03-SUMMARY.md written); observability changes committed (Prometheus endpoint, LGTM stack fix); phase 25 research next
 Resume file: None

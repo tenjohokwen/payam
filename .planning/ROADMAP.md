@@ -142,19 +142,21 @@ Plans:
 
 **Milestone Goal:** Admin can view and update platform MSISDNs for both providers; Spring Boot Actuator reflects live provider health and circuit breaker state; health dashboard is accessible in the admin UI to admin users only.
 
-#### Phase 24: Platform Configuration
+#### Phase 24: Platform Configuration ✅
 **Goal**: Admin can view and update platform MSISDNs for both providers, with email notification on change
 **Depends on**: Phase 23
 **Requirements**: PCONF-01, PCONF-02, PCONF-03, PCONF-04
 **Success Criteria** (what must be TRUE):
-  1. Admin can view the current Orange and MTN platform MSISDNs in the admin UI
-  2. Admin can update the Orange platform MSISDN and see it persisted on reload
-  3. Admin can update the MTN platform MSISDN and see it persisted on reload
-  4. A notification email is sent to the configured address whenever either platform MSISDN is changed
-**Plans**: TBD
+  1. Admin can view the current Orange and MTN platform MSISDNs in the admin UI ✅
+  2. Admin can update the Orange platform MSISDN and see it persisted on reload ✅
+  3. Admin can update the MTN platform MSISDN and see it persisted on reload ✅
+  4. A notification email is sent to the configured address whenever either platform MSISDN is changed ✅
+**Plans**: 3/3 — completed 2026-03-30
 
 Plans:
-- [ ] 24-01: TBD
+- [x] 24-01: Flyway V17 migration, PlatformConfig entity/repo, PlatformConfigService, PlatformConfigAdminResource (GET + PUT)
+- [x] 24-02: EmailTemplate enum entry, PlatformConfigEmailListener, platformConfigChanged.html Thymeleaf template
+- [x] 24-03: PlatformConfigPage.vue (Vue 3 Composition API), admin.api.js API functions, routes.js child route
 
 #### Phase 25: Provider Health Indicators
 **Goal**: Spring Boot Actuator `/actuator/health` reflects live Orange and MTN MSISDN validation and circuit breaker state
@@ -210,6 +212,6 @@ Plans:
 | 21. Webhook Flow Tests | v3 | 2/2 | Complete | 2026-03-27 |
 | 22. Fraud, Reconciliation, Admin Flow Tests | v3 | 2/2 | Complete | 2026-03-27 |
 | 23. Domain Invariants, Concurrency, SM, Mutation | v3 | 5/5 | Complete | 2026-03-28 |
-| 24. Platform Configuration | v4 | 0/TBD | Not started | - |
+| 24. Platform Configuration | v4 | 3/3 | Complete | 2026-03-30 |
 | 25. Provider Health Indicators | v4 | 0/TBD | Not started | - |
 | 26. Health Dashboard UI | v4 | 0/TBD | Not started | - |
