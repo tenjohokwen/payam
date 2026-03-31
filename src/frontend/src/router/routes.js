@@ -85,6 +85,11 @@ const routes = [
             component: () => import('pages/admin/PlatformConfigPage.vue'),
             meta: { requiresAuth: true },
           },
+          {
+            path: 'health-dashboard',
+            component: () => import('pages/admin/HealthDashboardPage.vue'),
+            meta: { requiresAuth: true },
+          },
         ],
       },
     ],

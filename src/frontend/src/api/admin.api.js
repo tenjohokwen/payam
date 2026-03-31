@@ -59,4 +59,13 @@ export const adminApi = {
   updatePlatformConfig(provider, platformMsisdn) {
     return api.put(`/v1/admin/platform-config/${provider}`, { provider, platformMsisdn })
   },
+
+  /**
+   * Get the Spring Boot Actuator health response.
+   * Admin JWT required to see component details (components field absent for non-admin).
+   * Returns: { status: 'UP'|'DOWN', components?: { [name]: { status, details? } } }
+   */
+  getHealth() {
+    return api.get('/manage/health')
+  },
 }
