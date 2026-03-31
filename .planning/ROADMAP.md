@@ -178,12 +178,12 @@ Plans:
 **Requirements**: HLTH-06, HLTH-07
 **Success Criteria** (what must be TRUE):
   1. Admin users can view a health dashboard page showing all health check results
-  2. Non-admin (client/tenant) users receive a 403 when accessing the health dashboard
+  2. Non-admin (client/tenant) users see access-denied banner (no component details shown)
   3. Dashboard displays live provider MSISDN validation status and circuit breaker state for both providers
-**Plans**: TBD
+**Plans**: 1 planned
 
 Plans:
-- [ ] 26-01: TBD
+- [ ] 26-01: HealthDashboardPage.vue, getHealth() in admin.api.js, health-dashboard route
 
 ## Progress
 
