@@ -85,7 +85,10 @@
   3. A partial unique index `(tenant_id, environment) WHERE key_status = 'ACTIVE'` exists in the database and is enforced by Flyway migration
   4. A UNIQUE constraint on `key_hash` exists on the `tenant_api_key` table
   5. Flyway runs cleanly from a fresh schema with no `UPDATE before CHECK` ordering errors
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 27-01-PLAN.md — Flyway migrations V18/V19 + ApiKeyEnvironment enum + entity model + service updates
+- [ ] 27-02-PLAN.md — LIVE-to-PROD call site migration across all test files
 
 ### Phase 28: Service Layer
 **Goal**: TenantService and ApiKeyService implement the full v5 business logic — tenant CRUD, suspension cascade, reactivation with raw-key return, rotation grace period, webhook secret management, and Hibernate Envers audit on all state changes
@@ -189,7 +192,7 @@
 | 24. Platform Configuration | v4 | 3/3 | Complete | 2026-03-30 |
 | 25. Provider Health Indicators | v4 | 1/1 | Complete | 2026-03-31 |
 | 26. Health Dashboard UI | v4 | 1/1 | Complete | 2026-04-02 |
-| 27. Schema and Enum Migration | v5 | 0/? | Not started | — |
+| 27. Schema and Enum Migration | v5 | 0/2 | Planning complete | — |
 | 28. Service Layer | v5 | 0/? | Not started | — |
 | 29. Quartz Rotation Cleanup Job | v5 | 0/? | Not started | — |
 | 30. Email Notifications | v5 | 0/? | Not started | — |
