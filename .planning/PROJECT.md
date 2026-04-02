@@ -64,7 +64,18 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ### Active
 
-<!-- Next milestone scope — TBD. Run /gsd:new-milestone to define. -->
+<!-- v5 Tenant & API Key Management -->
+
+- Tenant status lifecycle (ACTIVE / SUSPENDED) — suspension immediately revokes all keys across all environments
+- Per-environment API key scoping (PROD / DEV / SANDBOX) — one ACTIVE key per environment per tenant
+- API key prefix format: first 3 chars of tenant name (uppercase, 0-padded to 3) — immutable per tenant even if name changes
+- One-time raw key display on generation; backend stores only the bcrypt/SHA-256 hash — key never retrievable again
+- Key rotation with 24-hour ROTATED grace period — automated job moves ROTATED → REVOKED after 24h
+- Tenant reactivation auto-generates a new PROD key and shows it to admin
+- WebhookSecret: unique UUID per tenant, admin-regeneratable, revealable via eye icon in admin UI
+- Email notifications for 6 events: key generation/rotation, key revocation/reactivation, webhook secret generation, tenant status change, webhookUrl change, tenant email change
+- All tenant + key state changes audited via Hibernate Envers with admin ID + timestamp per event
+- Admin UI: tenant management screens (create, edit, status toggle, key management per env)
 
 ### Out of Scope
 
@@ -112,6 +123,21 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 | `getHealth()` hardcodes management port 8367 | Simple approach for single-server deployment; JWT cookie auth on port 8367 confirmed working | — Pending — reconfigure if management port changes or moves behind reverse proxy |
 | `@EventListener` on PlatformConfigEmailListener (not `@TransactionalEventListener`) | MailManager handles AFTER_COMMIT on the Envelope event; double-wrapping would break | ✓ Good — consistent with AccountChangeEmailListener pattern |
 
+## Current Milestone: v5 Tenant & API Key Management
+
+**Goal:** Implement the complete tenant lifecycle and API key management specification — tenant status, per-environment key scoping, rotation grace period, suspension/reactivation flows, webhook secret management, email notifications, and admin UI.
+
+**Target features:**
+- Tenant status (ACTIVE/SUSPENDED) with suspension-triggered key revocation
+- Per-environment API key scoping (PROD/DEV/SANDBOX) with one-time display
+- API key prefix derived from tenant name (first 3 chars, 0-padded, immutable)
+- Key rotation with 24-hour ROTATED grace period → automated REVOKED job
+- Reactivation auto-generates new PROD key + shows it to admin
+- WebhookSecret management with admin reveal UI
+- Email notifications for 6 key/tenant state events
+- Audit trail: Hibernate Envers + per-event admin ID + timestamp
+- Admin UI: tenant management screens
+
 ## Current State
 
 **Shipped:** v4 (2026-04-02) — 26 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4), 64 plans
@@ -120,5 +146,22 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 **Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage
 **Known tech debt:** v1 items in `.planning/milestones/v1-MILESTONE-AUDIT.md` (11 non-critical); B2B-01/B2B-02 (OrangeClient channelUserMsisdn fix) deferred from v4
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-04-02 after v4 milestone completion*
+*Last updated: 2026-04-02 — v5 milestone started*
