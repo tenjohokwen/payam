@@ -1,5 +1,6 @@
 package com.softropic.payam.e2e.builder;
 
+import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.repo.Tenant;
 import com.softropic.payam.tenant.repo.TenantRepository;
 import com.softropic.payam.tenant.service.TenantService;
@@ -8,7 +9,7 @@ import com.softropic.payam.tenant.service.TenantService.TenantCreationResult;
 /**
  * Fluent builder for creating Tenant test data (BUILD-01).
  *
- * <p>Delegates to {@link TenantService#createTenant(String, String)} so API key hashing
+ * <p>Delegates to {@link TenantService#createTenant(String, ApiKeyEnvironment)} so API key hashing
  * is handled by production code — no hand-rolled SHA-256.
  *
  * <p>If webhookUrl or webhookSecret are set, the Tenant entity is updated and saved via
@@ -28,7 +29,7 @@ public class TenantBuilder {
     private String name = "Test Tenant";
     private String webhookUrl = null;
     private String webhookSecret = null;
-    private String environment = "LIVE";
+    private ApiKeyEnvironment environment = ApiKeyEnvironment.PROD;
 
     public TenantBuilder withName(String name) {
         this.name = name;
@@ -46,7 +47,7 @@ public class TenantBuilder {
         return this;
     }
 
-    public TenantBuilder withEnvironment(String environment) {
+    public TenantBuilder withEnvironment(ApiKeyEnvironment environment) {
         this.environment = environment;
         return this;
     }

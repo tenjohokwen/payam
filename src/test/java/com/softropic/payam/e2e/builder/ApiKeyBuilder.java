@@ -18,7 +18,7 @@ import java.util.UUID;
  * <pre>
  *     String rawKey = new ApiKeyBuilder()
  *         .forTenant(tenantId)
- *         .withEnvironment("LIVE")
+ *         .withEnvironment("PROD")
  *         .create(jdbcTemplate);
  *     // rawKey is the value for the Authorization: ApiKey header
  * </pre>
@@ -26,7 +26,7 @@ import java.util.UUID;
 public class ApiKeyBuilder {
 
     private Long tenantId;
-    private String environment = "LIVE";
+    private String environment = "PROD";
     private String keyStatus = "ACTIVE";
 
     public ApiKeyBuilder forTenant(Long tenantId) {
