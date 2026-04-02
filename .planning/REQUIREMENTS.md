@@ -81,32 +81,32 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TENT-01 | — | Pending |
-| TENT-02 | — | Pending |
-| TENT-03 | — | Pending |
-| TENT-04 | — | Pending |
-| TENT-05 | — | Pending |
-| TENT-06 | — | Pending |
-| TENT-07 | — | Pending |
-| TENT-08 | — | Pending |
-| TENT-09 | — | Pending |
-| AKEY-01 | — | Pending |
-| AKEY-02 | — | Pending |
-| AKEY-03 | — | Pending |
-| AKEY-04 | — | Pending |
-| AKEY-05 | — | Pending |
-| AKEY-06 | — | Pending |
-| AKEY-07 | — | Pending |
-| AKEY-08 | — | Pending |
-| WSEC-01 | — | Pending |
-| WSEC-02 | — | Pending |
-| WSEC-03 | — | Pending |
-| NOTIF-01 | — | Pending |
-| NOTIF-02 | — | Pending |
-| NOTIF-03 | — | Pending |
-| NOTIF-04 | — | Pending |
-| NOTIF-05 | — | Pending |
-| NOTIF-06 | — | Pending |
-| AUDIT-01 | — | Pending |
-| AUDIT-02 | — | Pending |
-| AUDIT-03 | — | Pending |
+| TENT-01 | Phase 28 | Pending |
+| TENT-02 | Phase 28 | Pending |
+| TENT-03 | Phase 28 | Pending |
+| TENT-04 | Phase 28 | Pending |
+| TENT-05 | Phase 31 | Pending |
+| TENT-06 | Phase 31 | Pending |
+| TENT-07 | Phase 28 | Pending |
+| TENT-08 | Phase 28 | Pending |
+| TENT-09 | Phase 31 | Pending |
+| AKEY-01 | Phase 27 | Pending |
+| AKEY-02 | Phase 28 | Pending |
+| AKEY-03 | Phase 27 | Pending |
+| AKEY-04 | Phase 28 | Pending |
+| AKEY-05 | Phase 29 | Pending |
+| AKEY-06 | Phase 28 | Pending |
+| AKEY-07 | Phase 32 | Pending |
+| AKEY-08 | Phase 28 | Pending |
+| WSEC-01 | Phase 28 | Pending |
+| WSEC-02 | Phase 32 | Pending |
+| WSEC-03 | Phase 28 | Pending |
+| NOTIF-01 | Phase 30 | Pending |
+| NOTIF-02 | Phase 30 | Pending |
+| NOTIF-03 | Phase 30 | Pending |
+| NOTIF-04 | Phase 30 | Pending |
+| NOTIF-05 | Phase 30 | Pending |
+| NOTIF-06 | Phase 30 | Pending |
+| AUDIT-01 | Phase 28 | Pending |
+| AUDIT-02 | Phase 28 | Pending |
+| AUDIT-03 | Phase 28 | Pending |

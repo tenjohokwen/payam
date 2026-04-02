@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-04-02)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** v4 complete — planning next milestone
+**Current focus:** v5 — Tenant & API Key Management (Phase 27: Schema and Enum Migration)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 27 — Schema and Enum Migration
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-02 — Milestone v5 started (Tenant & API Key Management)
+Status: Roadmap defined, ready to plan Phase 27
+Last activity: 2026-04-02 — v5 roadmap created (Phases 27–33)
 
-Progress: ██████████████████████████████ v1+v2 complete | █████████████████ v3 100% COMPLETE | ████████ v4 ALL COMPLETE | ░░░░░░░░░░ v5 starting
+Progress: ██████████████████████████████ v1+v2 complete | █████████████████ v3 100% COMPLETE | ████████ v4 ALL COMPLETE | ░░░░░░░░░░ v5 Phase 27 next
 
 ## Performance Metrics
 
@@ -137,6 +137,16 @@ Recent decisions affecting current work:
 - **[24-02] PlatformConfigEmailListener uses @EventListener (not @TransactionalEventListener):** Matches AccountChangeEmailListener pattern. MailManager uses @TransactionalEventListener(AFTER_COMMIT) on the Envelope event; using it on the listener itself would prevent Envelope from being published in the same transaction.
 - **[24-02] Envelope correlation ID is UUID.randomUUID().toString():** Admin config-change notifications have no user-facing helpCode concept; UUID provides uniqueness for mail logging without ShortCode overhead.
 
+### v5 Decisions (active)
+
+- **[v5-arch] WebhookSecret stored as plaintext:** Required for admin reveal endpoint; `webhookSecret` field is null in all list/detail API responses and only populated on the explicit reveal endpoint call.
+- **[v5-arch] Re-rotation immediately revokes prior ROTATED key:** No two overlapping grace periods per environment — if a ROTATED key is still in grace when rotation is triggered again, the still-ROTATED key moves to REVOKED immediately in `ApiKeyService.rotate()`.
+- **[v5-arch] Suspension cascade uses bulk JPQL @Modifying update:** `WHERE k.keyStatus IN ('ACTIVE', 'ROTATED')` — not a loop over loaded entities — guarantees atomicity with the status change.
+- **[v5-arch] TenantEventEmailListener uses @EventListener (not @TransactionalEventListener):** Mirrors `PlatformConfigEmailListener` pattern exactly; MailManager handles AFTER_COMMIT on the Envelope event.
+- **[v5-arch] KeyRotationCleanupJob uses @DisallowConcurrentExecution + bulk @Modifying update:** No single-transaction loop; one bulk update covers all expired ROTATED keys. `SYSTEM:grace-period-job` principal set before call for Envers audit actor.
+- **[v5-arch] Reactivation result record contains raw key:** `TenantService.reactivate()` returns a result record (not void); REST endpoint includes `rawKey` in response body — if discarded, key is permanently unrecoverable.
+- **[v5-arch] Key prefix always read from tenant.getKeyPrefix():** Never recomputed from `tenant.getName()` — name is mutable, prefix is not. `generateAndStore()` always calls `tenant.getKeyPrefix()`.
+
 ### Pending Todos
 
 None.
@@ -147,6 +157,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-31
-Stopped at: Phase 25 complete (human-verified); phase 26 research next
+Last session: 2026-04-02
+Stopped at: v5 roadmap created — Phase 27 ready to plan
 Resume file: None
