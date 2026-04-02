@@ -1,5 +1,33 @@
 # Project Milestones: Payam
 
+## v4 Platform Config & Health (Shipped: 2026-04-02)
+
+**Delivered:** Admin-facing platform operations layer — admins can update provider MSISDNs, receive email on change, and monitor live provider health (MSISDN validation + circuit breaker state) through a dedicated admin UI dashboard backed by Spring Boot Actuator.
+
+**Phases completed:** 24–26 (5 plans total)
+
+**Key accomplishments:**
+
+- Platform MSISDN CRUD: Flyway V17 migration, PlatformConfig entity + service + REST API (GET + PUT) with event-driven email notification on every change
+- Email notification on MSISDN change via PlatformConfigEmailListener + platformConfigChanged.html Thymeleaf template — AFTER_COMMIT delivery via MailManager
+- Platform Config admin UI: Vue 3 Composition API page with per-provider save buttons and instant persistence feedback
+- Two Spring Boot Actuator HealthIndicator beans — OrangePlatformHealthIndicator + MtnPlatformHealthIndicator — calling validateSubscriber() and including circuit breaker state on every `/manage/health` poll
+- Health dashboard UI: admin-only component display via `show-details: when-authorized + ROLE_ADMIN`, access-denied banner for non-admins; live-verified showing mtnPlatform + orangePlatform components with CB state
+
+**Stats:**
+
+- 23 commits
+- 3 phases, 5 plans
+- 4 days (2026-03-30 → 2026-04-02)
+
+**Git range:** `docs(24)` → `docs(26): verify health dashboard complete`
+
+**Archive:** `.planning/milestones/v4-ROADMAP.md`
+
+**What's next:** v5 — TBD
+
+---
+
 ## v3 E2E Test Suite (Shipped: 2026-03-28)
 
 **Delivered:** Machine-checked E2E test suite proving correctness of the Payam payment system — every critical invariant, race condition, and state machine transition covered, with ≥90% mutation testing across 6 critical domain classes. Built on Testcontainers (real PostgreSQL + Redis) + WireMock; zero mocking of the database.

@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-04-02)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** v4 complete — ready for milestone completion
+**Current focus:** v4 complete — planning next milestone
 
 ## Current Position
 

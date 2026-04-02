@@ -58,9 +58,13 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ Concurrency races: concurrent idempotency (20 threads → exactly 1 payment row), webhook/polling race, velocity flood, API key rotation grace period — v3
 - ✓ SM path matrix (all 32 illegal transitions throw without DB mutation); TXN boundary tests; PITest mutationThreshold=90 on 6 critical domain classes — v3
 
+- ✓ Platform MSISDN management: admin can view/update Orange + MTN platform MSISDNs; email notification on every change — v4
+- ✓ Spring Boot Actuator `/manage/health` reflects live provider MSISDN validation + circuit breaker state for both providers — v4
+- ✓ Admin health dashboard: all Actuator component results visible to ROLE_ADMIN; access-denied banner for non-admins — v4
+
 ### Active
 
-<!-- v4 requirements defined in .planning/REQUIREMENTS.md -->
+<!-- Next milestone scope — TBD. Run /gsd:new-milestone to define. -->
 
 ### Out of Scope
 
@@ -105,15 +109,16 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 | Testcontainers over mocks for E2E tests | JSONB quoting bug found during Phase 20 test authoring — mocks would have missed it | ✓ Good — real database catches production-class bugs that mock tests miss |
 | PITest targetClasses narrowed then expanded | Started with 3 pure domain classes (MUT-01); gap closure (23-05) expanded to all 6 MUT-02 targets | ⚠ Revisit — define PITest scope upfront; plan correction round adds friction |
 | QueryCountVerifier + 4 builders built but not wired | Created in Phase 19 for future use; no Phase 20-23 tests consume them | — Pending — available for future regression detection; revisit in next test expansion |
+| `getHealth()` hardcodes management port 8367 | Simple approach for single-server deployment; JWT cookie auth on port 8367 confirmed working | — Pending — reconfigure if management port changes or moves behind reverse proxy |
+| `@EventListener` on PlatformConfigEmailListener (not `@TransactionalEventListener`) | MailManager handles AFTER_COMMIT on the Envelope event; double-wrapping would break | ✓ Good — consistent with AccountChangeEmailListener pattern |
 
 ## Current State
 
-**Shipped:** v3 (2026-03-28) — 23 phases total (13 v1 + 4 v2 + 6 v3), 59 plans
+**Shipped:** v4 (2026-04-02) — 26 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4), 64 plans
 **Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar
-**Observability:** Full Loki-queryable structured logging — every log line is valid JSON with traceId, spanId, requestId, tenantId, transactionId as top-level fields
+**Observability:** Full Loki-queryable structured logging + Spring Boot Actuator health with live provider MSISDN validation + CB state
 **Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage
-**Known tech debt:** v1 items in `.planning/milestones/v1-MILESTONE-AUDIT.md` (11 non-critical); none from v2 or v3
-**In progress:** v4 Platform Config & Health (Phases 24-25 complete; Phase 26 pending)
+**Known tech debt:** v1 items in `.planning/milestones/v1-MILESTONE-AUDIT.md` (11 non-critical); B2B-01/B2B-02 (OrangeClient channelUserMsisdn fix) deferred from v4
 
 ---
-*Last updated: 2026-04-02 after v3 milestone completion*
+*Last updated: 2026-04-02 after v4 milestone completion*

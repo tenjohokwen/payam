@@ -45,6 +45,36 @@
 
 ---
 
+## Milestone: v4 — Platform Config & Health
+
+**Shipped:** 2026-04-02
+**Phases:** 3 (24–26) | **Plans:** 5
+
+### What Was Built
+- Platform MSISDN CRUD (backend + email notification + admin Vue UI)
+- Two Spring Boot Actuator HealthIndicator beans with live validateSubscriber() calls and CB state
+- Admin health dashboard with ROLE_ADMIN-gated component display and access-denied banner
+
+### What Worked
+- **POJO event pattern for email notification:** `PlatformConfigChangedEvent` as a plain record + `@EventListener` + MailManager's AFTER_COMMIT boundary worked cleanly without double-wrapping complexity
+- **Actuator `show-details: when-authorized`:** JWT cookie auth on the separate management port (8367) confirmed working — concern about cross-port auth was unfounded; Spring Security context populated correctly
+- **Live verification catching real behavior:** Testing against the actual endpoint (not a mock) immediately confirmed the 503 DOWN-state body extraction pattern and the auth behavior on port 8367
+
+### What Was Inefficient
+- **Phase 26 SUMMARY.md not written during execution:** Had to be created retroactively at milestone completion. Write SUMMARY immediately after plan execution.
+- **Verification done last:** Health dashboard was implemented but not verified until `/gsd:complete-milestone` triggered a check. Earlier verification would have caught the 503 handling requirement sooner.
+
+### Patterns Established
+- **Actuator HealthIndicator pattern:** HealthIndicator bean + CircuitBreakerRegistry + PlatformConfigService lookup + validateSubscriber() — reusable for any future provider
+- **503 DOWN-body extraction pattern:** `catch (error) { if (error?.response?.data?.status) health.value = error.response.data }` — required when Spring returns 503 for DOWN status but body contains full JSON
+
+### Key Lessons
+1. **Write SUMMARY.md immediately after plan completion.** Retroactive creation at milestone time loses nuance and requires re-reading the code.
+2. **Verify feature end-to-end before milestone completion.** The 503 handling in the Vue component was a non-obvious requirement not in the plan — only discovered during live verification.
+3. **Cross-port cookie auth just works** in Spring Boot when both servers are on localhost and CORS is configured. Don't assume separate management port breaks JWT auth.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -54,6 +84,7 @@
 | v1 | 13 | 29 | Greenfield — established module pattern + all domain features |
 | v2 | 4 | 12 | Observability layer — zero-mock strategy; kv() structured logging |
 | v3 | 6 | 18 | Test suite — Testcontainers over mocks validated by catching JSONB bug |
+| v4 | 3 | 5 | Platform ops — Actuator health indicators + admin MSISDN + health dashboard |
 
 ### Cumulative Quality
 
