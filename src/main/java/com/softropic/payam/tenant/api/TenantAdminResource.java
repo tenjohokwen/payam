@@ -2,6 +2,7 @@ package com.softropic.payam.tenant.api;
 
 import com.softropic.payam.security.common.util.SecurityConstants;
 import com.softropic.payam.tenant.contract.ApiKeyDto;
+import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.contract.TenantDto;
 import com.softropic.payam.tenant.service.ApiKeyService;
 import com.softropic.payam.tenant.service.TenantService;
@@ -39,7 +40,7 @@ public class TenantAdminResource {
     @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
     public TenantCreationResponse createTenant(@Valid @RequestBody CreateTenantRequest request) {
         TenantService.TenantCreationResult result =
-            tenantService.createTenant(request.name(), request.environment());
+            tenantService.createTenant(request.name(), ApiKeyEnvironment.valueOf(request.environment()));
 
         TenantDto tenantDto = new TenantDto(
             result.tenant().getId(),
@@ -50,7 +51,7 @@ public class TenantAdminResource {
         ApiKeyDto apiKeyDto = new ApiKeyDto(
             result.key().getId(),
             result.key().getKeyPrefix(),
-            request.environment(),
+            result.key().getEnvironment(),
             result.rawKey()   // shown exactly once — not stored
         );
         return new TenantCreationResponse(tenantDto, apiKeyDto);
@@ -77,7 +78,7 @@ public class TenantAdminResource {
 
     public record CreateTenantRequest(
         @NotBlank @Size(max = 255) String name,
-        @NotBlank @Pattern(regexp = "LIVE|SANDBOX", message = "environment must be LIVE or SANDBOX") String environment
+        @NotBlank @Pattern(regexp = "PROD|DEV|SANDBOX", message = "environment must be PROD, DEV, or SANDBOX") String environment
     ) {}
 
     public record TenantCreationResponse(TenantDto tenant, ApiKeyDto apiKey) {}

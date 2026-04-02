@@ -1,6 +1,7 @@
 package com.softropic.payam.tenant.repo;
 
 import com.softropic.payam.common.persistence.AbstractAuditingEntity;
+import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.contract.ApiKeyStatus;
 
 import org.hibernate.envers.Audited;
@@ -44,9 +45,10 @@ public class TenantApiKey extends AbstractAuditingEntity {
     @Builder.Default
     private ApiKeyStatus keyStatus = ApiKeyStatus.ACTIVE;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "environment", nullable = false, length = 10)
     @Builder.Default
-    private String environment = "LIVE";
+    private ApiKeyEnvironment environment = ApiKeyEnvironment.PROD;
 
     @Column(name = "rotated_at")
     private Instant rotatedAt;
@@ -83,11 +85,11 @@ public class TenantApiKey extends AbstractAuditingEntity {
         this.keyStatus = keyStatus;
     }
 
-    public String getEnvironment() {
+    public ApiKeyEnvironment getEnvironment() {
         return environment;
     }
 
-    public void setEnvironment(String environment) {
+    public void setEnvironment(ApiKeyEnvironment environment) {
         this.environment = environment;
     }
 

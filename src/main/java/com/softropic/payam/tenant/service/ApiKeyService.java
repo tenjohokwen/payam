@@ -1,5 +1,6 @@
 package com.softropic.payam.tenant.service;
 
+import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.contract.ApiKeyStatus;
 import com.softropic.payam.tenant.repo.Tenant;
 import com.softropic.payam.tenant.repo.TenantApiKey;
@@ -30,10 +31,10 @@ public class ApiKeyService {
         this.keyRepository = keyRepository;
     }
 
-    public ApiKeyAndRawKey generateAndStore(Tenant tenant, String environment) {
+    public ApiKeyAndRawKey generateAndStore(Tenant tenant, ApiKeyEnvironment environment) {
         String rawKey = generateSecureKey();
         String hash   = DigestUtils.sha256Hex(rawKey);
-        String prefix = rawKey.substring(0, 8);
+        String prefix = tenant.getKeyPrefix();
 
         TenantApiKey entity = TenantApiKey.builder()
             .tenant(tenant)

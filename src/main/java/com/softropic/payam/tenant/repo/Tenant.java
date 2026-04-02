@@ -51,6 +51,12 @@ public class Tenant extends AbstractAuditingEntity {
     @Column(name = "webhook_secret")
     private String webhookSecret;
 
+    @Column(name = "key_prefix", nullable = false, updatable = false, length = 4)
+    private String keyPrefix;
+
+    @Column(name = "email")
+    private String email;
+
     public String getTenantRef() {
         return tenantRef;
     }
@@ -87,4 +93,9 @@ public class Tenant extends AbstractAuditingEntity {
     public void setWebhookUrl(String webhookUrl) { this.webhookUrl = webhookUrl; }
     public String getWebhookSecret() { return webhookSecret; }
     public void setWebhookSecret(String webhookSecret) { this.webhookSecret = webhookSecret; }
+
+    public String getKeyPrefix() { return keyPrefix; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 }
