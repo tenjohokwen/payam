@@ -49,12 +49,18 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ Structured request lifecycle events (request_start, request_end, request_error) with durationMs — v2
 - ✓ 7 business event types queryable in Loki: initiate_payment, transaction_state_change, webhook_received, webhook_delivery, fraud_evaluation, provider HTTP latency, reconciliation_run — v2
 - ✓ Full codebase LOG-CODE-01/02/03 compliance: zero {} interpolation, zero code-flow logs, BodySanitizer covers all payment fields — v2
+- ✓ E2E test infrastructure: Testcontainers (real PostgreSQL + Redis), WireMock (MTN + Orange), TestDataCleaner, E2ESecurityConfig — v3
+- ✓ 10 domain invariant verifiers + 8 test data builders — every invariant assertable in one call — v3
+- ✓ MTN/Orange full payment lifecycle E2E: happy path, polling fallback, payToken expiry, fraud-blocked, idempotency race (20 threads), circuit breaker — v3
+- ✓ Inbound webhook double-check + Redis replay protection (MTN + Orange); outbound delivery with HMAC-SHA256 signing, exponential backoff, retry verification — v3
+- ✓ Fraud velocity block, daily reconciliation (matched/missing/mismatched/WAT-offset), admin tenant-scoped transaction search — all E2E verified — v3
+- ✓ Domain invariants proven: hash chain, ledger double-entry, idempotency, tenant isolation, state machine legality, webhook double-check, fraud ordering, SSRF guard, init-before-provider, Orange WAT offset — v3
+- ✓ Concurrency races: concurrent idempotency (20 threads → exactly 1 payment row), webhook/polling race, velocity flood, API key rotation grace period — v3
+- ✓ SM path matrix (all 32 illegal transitions throw without DB mutation); TXN boundary tests; PITest mutationThreshold=90 on 6 critical domain classes — v3
 
 ### Active
 
-<!-- Next milestone scope — TBD -->
-
-(None defined — run `/gsd:define-requirements` to scope next milestone)
+<!-- v4 requirements defined in .planning/REQUIREMENTS.md -->
 
 ### Out of Scope
 
@@ -96,13 +102,18 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 | No `@Transactional` on `PaymentOrchestrator.initiate()` | Holding DB connection during provider HTTP exhausts connection pool | ✓ Good — `TransactionTemplate` for discrete DB operations |
 | `FilterRegistrationBean(setEnabled=false)` for `ApiKeyAuthenticationFilter` | Prevents double-registration as servlet container filter | ✓ Good — established pattern for any `OncePerRequestFilter` defined as `@Bean` |
 | Ledger caller deferred to audit gap closure | Infrastructure existed in Phase 2 but production caller added only in Phase 13 | ⚠ Revisit — wire ledger caller in same phase as infrastructure next time |
+| Testcontainers over mocks for E2E tests | JSONB quoting bug found during Phase 20 test authoring — mocks would have missed it | ✓ Good — real database catches production-class bugs that mock tests miss |
+| PITest targetClasses narrowed then expanded | Started with 3 pure domain classes (MUT-01); gap closure (23-05) expanded to all 6 MUT-02 targets | ⚠ Revisit — define PITest scope upfront; plan correction round adds friction |
+| QueryCountVerifier + 4 builders built but not wired | Created in Phase 19 for future use; no Phase 20-23 tests consume them | — Pending — available for future regression detection; revisit in next test expansion |
 
 ## Current State
 
-**Shipped:** v2 (2026-03-27) — 17 phases total (13 v1 + 4 v2), 41 plans, ~25,400 LOC Java
+**Shipped:** v3 (2026-03-28) — 23 phases total (13 v1 + 4 v2 + 6 v3), 59 plans
 **Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar
 **Observability:** Full Loki-queryable structured logging — every log line is valid JSON with traceId, spanId, requestId, tenantId, transactionId as top-level fields
-**Known tech debt:** v1 items in `.planning/milestones/v1-MILESTONE-AUDIT.md` (11 non-critical); none from v2
+**Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage
+**Known tech debt:** v1 items in `.planning/milestones/v1-MILESTONE-AUDIT.md` (11 non-critical); none from v2 or v3
+**In progress:** v4 Platform Config & Health (Phases 24-25 complete; Phase 26 pending)
 
 ---
-*Last updated: 2026-03-27 after v2 milestone completion*
+*Last updated: 2026-04-02 after v3 milestone completion*
