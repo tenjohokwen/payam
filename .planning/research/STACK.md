@@ -1,392 +1,292 @@
-# Technology Stack: Payam Payment Gateway Module
+# Technology Stack: Payam — v5 Tenant & API Key Management
 
-**Project:** Payam — unified multi-tenant mobile money API for Cameroon (MTN MoMo + Orange Money)
-**Researched:** 2026-03-23
-**Scope:** Additive libraries for the payment gateway layer only — existing stack is NOT re-researched
-**Overall confidence:** HIGH (all recommendations verified against official Spring, Modulith, and Micrometer documentation)
+**Project:** Payam — unified multi-tenant mobile money API for Cameroon
+**Researched:** 2026-04-02
+**Scope:** Additive stack analysis for v5 Tenant & API Key Management milestone only. Existing stack is NOT re-researched.
+**Overall confidence:** HIGH — all findings verified against codebase (read 2026-04-02) and official Spring/Quasar documentation.
+
+---
+
+## Verdict: Zero New Dependencies Required
+
+Every capability needed for v5 is already provided by libraries in the existing codebase. This section documents how to use what is already present correctly, and what NOT to add.
 
 ---
 
 ## Existing Stack (Do Not Change)
 
-The following is already in place and must not be replaced or duplicated:
+The following is already in place and is the complete foundation for v5:
 
-| Component | Artifact | Version |
-|-----------|----------|---------|
-| Framework | spring-boot-starter-parent | 3.5.11 |
-| Security | spring-boot-starter-security + JJWT | in pom |
-| Persistence | spring-boot-starter-data-jpa + PostgreSQL + Flyway | in pom |
-| Resilience | spring-cloud-starter-circuitbreaker-resilience4j + spring-retry | in pom |
-| JSON logging | logstash-logback-encoder | 8.1 |
-| Log shipping | loki-logback-appender | 1.6.0 |
-| Distributed tracing | micrometer-tracing-bridge-otel + opentelemetry-exporter-otlp | in pom |
-| Metrics export | micrometer-registry-prometheus | in pom |
-| Observability infra | Prometheus + Loki + Tempo + Grafana (docker-compose-lgtm.yaml) | configured |
-| Audit | hibernate-envers | 6.6.14.Final |
-| Rate limiting | bucket4j-core | 8.10.1 |
-| HMAC primitives | commons-codec | 1.19.0 |
-| Phone validation | libphonenumber | 9.0.25 |
-| JSON utils | hypersistence-utils-hibernate-63 | 3.9.10 |
-| Mapping | mapstruct | 1.6.3 |
-| Cloud BOM | spring-cloud-dependencies | 2025.0.1 |
+| Component | Artifact | Relevant to v5 |
+|-----------|----------|----------------|
+| Framework | spring-boot-starter-parent 3.5.x | All features |
+| Security | spring-boot-starter-security + BCryptPasswordEncoder | User passwords only — NOT API keys |
+| Persistence | spring-boot-starter-data-jpa + PostgreSQL + Flyway | Tenant/key entities, Quartz schema |
+| Audit | hibernate-envers | Tenant + key audit trail (already @Audited on both entities) |
+| HMAC/Digest | commons-codec 1.19.0 (DigestUtils) | API key hashing — already in use in ApiKeyService |
+| Scheduler | spring-boot-starter-quartz (JDBC store) | Grace-period rotation cleanup job |
+| Frontend | Vue 3.5.22 + Quasar 2.16.0 | Admin tenant management screens |
+| Events | Spring Modulith (Event Publication Registry) | Email notifications via @ApplicationModuleListener |
 
 ---
 
-## Additions Required for the Payment Gateway Module
+## Area 1: API Key Hashing
 
-The seven technology areas below represent genuine gaps. Each section states what to add, the exact Maven coordinates, and why.
+### Decision: SHA-256 via DigestUtils — already implemented, no change needed
 
----
+**Confidence: HIGH** — Verified by reading `ApiKeyService.java` (2026-04-02).
 
-## 1. Async Event Processing and Event Sourcing (Within Monolith)
+The existing `ApiKeyService` already uses the correct approach:
 
-### Recommendation: Spring Modulith 1.4.9 (Events + JPA starter)
-
-**Confidence: HIGH** — Verified against official Spring Modulith compatibility matrix. Version 1.4.9 is the latest in the 1.4.x line; it is compiled against Spring Boot 3.4 and explicitly tested against Spring Boot 3.5.
-
-**What it provides:**
-
-- `@ApplicationModuleListener`: a single annotation that combines `@Async`, `@Transactional(REQUIRES_NEW)`, and `@TransactionalEventListener`. This is the correct mechanism for decoupling the payment orchestrator from downstream side-effects (ledger updates, fraud scoring, notification dispatch) without coupling them with direct method calls.
-- **Event Publication Registry**: automatically persists a row per event-listener pair in the same transaction that publishes the event. If a listener crashes mid-execution, the row survives. A staleness monitor marks abandoned rows as `FAILED`; an `IncompleteEventPublications` bean enables resubmission on restart. This gives at-least-once delivery semantics within a single PostgreSQL-backed monolith — no Kafka required.
-- The registry creates an `EVENT_PUBLICATION` table (schema auto-created with `spring.modulith.events.jdbc.schema-initialization.enabled=true` or via Flyway migration). Columns include: `id`, `listener_id`, `event_type`, `serialized_event`, `publication_date`, `completion_date`, `status`, `completion_attempts`, `last_resubmission_date`.
-
-**Why not Kafka or RabbitMQ:** Both require additional infrastructure processes and operational overhead that is unwarranted in a single-JVM monolith. The project constraint explicitly rules out microservices. Spring Modulith achieves durable async dispatch on top of the existing PostgreSQL + Spring Data JPA stack already present.
-
-**Why not raw `@TransactionalEventListener` alone:** Without the publication registry, a JVM crash between event publish and listener execution loses the event silently. This is unacceptable for financial transactions.
-
-**Maven additions (Spring Modulith needs its own BOM — it is NOT in the Spring Boot BOM):**
-
-```xml
-<!-- Add to <dependencyManagement> alongside the existing spring-cloud BOM -->
-<dependency>
-  <groupId>org.springframework.modulith</groupId>
-  <artifactId>spring-modulith-bom</artifactId>
-  <version>1.4.9</version>
-  <type>pom</type>
-  <scope>import</scope>
-</dependency>
-
-<!-- Add to <dependencies> -->
-<dependency>
-  <groupId>org.springframework.modulith</groupId>
-  <artifactId>spring-modulith-starter-jpa</artifactId>
-  <!-- version managed by BOM -->
-</dependency>
-
-<!-- Optional: test support for asserting published events -->
-<dependency>
-  <groupId>org.springframework.modulith</groupId>
-  <artifactId>spring-modulith-starter-test</artifactId>
-  <scope>test</scope>
-</dependency>
+```java
+// Already in ApiKeyService — commons-codec DigestUtils
+String hash = DigestUtils.sha256Hex(rawKey);
 ```
 
-**Key configuration:**
+The stored hash is 64 hex characters (SHA-256 output). Authentication compares `DigestUtils.sha256Hex(incomingKey)` against the stored hash using a direct string equality check inside a JPQL query (`findValidKeyByHash`). This is correct because:
+
+- API keys are 32 cryptographically random bytes (256 bits of entropy) encoded as URL-safe Base64 — effectively a high-entropy random token, not a password.
+- SHA-256 is the correct hashing algorithm for high-entropy tokens. BCrypt is designed for low-entropy human passwords (it is intentionally slow to resist brute-force on a small password space). Applying BCrypt to a 256-bit random token gains no security benefit and degrades authentication throughput significantly.
+- The industry standard for API key storage (Stripe, GitHub, Twilio) is SHA-256, not BCrypt. Source: https://fly.io/blog/api-tokens-a-tedious-survey/ (pattern confirmed across multiple providers).
+
+**What NOT to do:**
+
+Do NOT use `PasswordEncoder.encode()` / `PasswordEncoder.matches()` (BCrypt) for API key storage or comparison. The `PasswordEncoder` bean in `SecurityConfiguration` is wired for user password authentication. Introducing BCrypt for API keys would:
+1. Yield no security improvement (keys are already 256-bit random — the search space is astronomically large regardless of hash algorithm).
+2. Add ~100–300ms per authentication check (BCrypt work factor 10).
+3. Require changing the existing `findValidKeyByHash` JPQL query to a service-level loop, since BCrypt hashes are not comparable in SQL.
+
+**What the new features need from hashing (v5 additions):**
+
+The v5 spec adds:
+- Prefix derived from tenant name (first 3 chars, uppercase, 0-padded) — this is string manipulation, not hashing.
+- WebhookSecret: a plain UUID stored as-is — no hashing needed. WebhookSecret is revealed to the admin on demand; it is not a one-way stored credential.
+
+Neither requires a new library.
+
+---
+
+## Area 2: Quartz Job for 24-Hour ROTATED → REVOKED Grace Period
+
+### Decision: New QuartzJobBean + scheduler config — no new library, follows established pattern
+
+**Confidence: HIGH** — Verified by reading `WebhookSchedulerConfig.java`, `ReconciliationSchedulerConfig.java`, `ReconciliationJob.java`, and `application.yaml` (2026-04-02). Quartz JDBC store is already active.
+
+The Quartz infrastructure is fully configured:
 
 ```yaml
-spring:
-  modulith:
-    events:
-      republish-outstanding-events-on-restart: true
-      completion-mode: ARCHIVE   # keeps completed events for audit queries
-      staleness:
-        published: PT30M         # mark stale PUBLISHED rows as FAILED after 30 min
-        processing: PT10M        # mark stale PROCESSING rows as FAILED after 10 min
+# Already in application.yaml
+quartz:
+  job-store-type: jdbc
+  jdbc:
+    initialize-schema: never
+  properties:
+    org.quartz.jobStore.tablePrefix: QRTZ_
+    org.quartz.jobStore.isClustered: false
+    org.quartz.threadPool.threadCount: 3
+    org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
 ```
 
-**Conflict check:** None. Spring Modulith is additive. It does not replace or conflict with Resilience4j, Spring Retry, or Hibernate Envers.
+The rotation cleanup job must follow the exact same pattern used by `WebhookSchedulerConfig` (fires every N minutes, `SimpleScheduleBuilder`) rather than `ReconciliationSchedulerConfig` (daily cron). The grace period check is not a one-time daily event — it needs to run frequently enough to catch keys whose 24-hour window has expired since the last check.
 
----
+**Recommended schedule:** Every 10 minutes. Justification: a 10-minute polling interval means a ROTATED key transitions to REVOKED within 10 minutes of its 24-hour expiry. This is precise enough for the security requirement (keys are blocked when `rotatedAt > 24h ago` in `findValidKeyByHash` regardless of job timing — the job is cleanup, not enforcement).
 
-## 2. Idempotency Key Management and Redis-Based Deduplication
-
-### Recommendation: Spring Data Redis (already in classpath via spring-boot-starter-cache + Bucket4j) — no new library needed
-
-**Confidence: HIGH** — Verified against official Spring Data Redis Javadoc. `ValueOperations.setIfAbsent(key, value, Duration timeout)` has been available since Spring Data Redis 2.1. The project already uses Redis (Bucket4j rate limiting implies a Redis connection factory is configured).
-
-**What to do:**
-
-The correct pattern for idempotency key enforcement is:
+**Job structure (pattern to implement):**
 
 ```java
-// Atomic SETNX + TTL in one Redis round-trip — verified in Spring Data Redis docs
-Boolean accepted = redisTemplate.opsForValue()
-    .setIfAbsent(idempotencyKey, serializedResponse, Duration.ofHours(24));
+// RotatedKeyExpiryJob.java — extends QuartzJobBean, same as ReconciliationJob
+// Queries: SELECT k FROM TenantApiKey k WHERE k.keyStatus = 'ROTATED'
+//            AND k.rotatedAt < :cutoff
+// Batch-updates status to REVOKED
+
+// RotatedKeyExpirySchedulerConfig.java — @Configuration bean
+// Uses SimpleScheduleBuilder.repeatMinutelyForever(10)
+// identity: "rotatedKeyExpiryJob" / "rotatedKeyExpiryTrigger"
 ```
 
-- On `true`: first time seeing this key — proceed with the payment operation.
-- On `false`: duplicate request — deserialize and return the cached response immediately.
-- TTL of 24 hours is a common financial API standard (Stripe, Paystack both use 24h windows).
-
-**What to store as the value:** a compact JSON-serialized record containing `{ transactionId, status, httpStatusCode, responseBody }`. Serialization via Jackson (already present).
-
-**For webhook replay protection:** same pattern with a shorter TTL (2–5 minutes). Store `webhookId` or `(providerId + externalRef + timestamp)` as the key, `"processed"` as the value.
-
-**No new dependency.** The `spring-boot-starter-data-redis` artifact is the right addition if not already explicit in the pom (Bucket4j may have brought in Lettuce transitively — verify at runtime).
-
-```xml
-<!-- Add only if redis is not already a declared dependency -->
-<dependency>
-  <groupId>org.springframework.boot</groupId>
-  <artifactId>spring-boot-starter-data-redis</artifactId>
-</dependency>
-```
-
-**Conflict check:** Bucket4j 8.x has a Redis backend (`bucket4j-redis`). If the project is using that integration, a `LettuceConnectionFactory` is already configured. The idempotency service shares that connection factory — no second Redis client.
-
----
-
-## 3. HMAC Request and Webhook Signature Verification
-
-### Recommendation: Apache Commons Codec HmacUtils (already in pom) — no new library needed
-
-**Confidence: HIGH** — `commons-codec 1.19.0` is already declared in `pom.xml`. `HmacUtils` in that library provides:
-
-- `HmacUtils(HmacAlgorithms.HMAC_SHA_256, secretKey).hmacHex(payload)` — produces the hex-encoded HMAC-SHA256.
-- Constant-time comparison via `MessageDigest.isEqual()` (JDK standard) to prevent timing attacks.
-
-**Pattern for outbound request signing (to MTN/Orange):**
+**Repository query needed (addition to `TenantApiKeyRepository`):**
 
 ```java
-String signature = new HmacUtils(HmacAlgorithms.HMAC_SHA_256, apiSecret)
-    .hmacHex(payload + timestamp);
-// Attach as header: X-Signature: sha256=<signature>
+@Query("SELECT k FROM TenantApiKey k WHERE k.keyStatus = 'ROTATED' AND k.rotatedAt < :cutoff")
+List<TenantApiKey> findExpiredRotatedKeys(@Param("cutoff") Instant cutoff);
 ```
 
-**Pattern for inbound webhook verification:**
+**Thread pool note:** `threadCount: 3` is already configured. Adding a fourth Quartz job does not require increasing the thread count — three concurrent job executions is sufficient for the current job inventory (reconciliation, webhook delivery, MTN poller, Orange poller, rotation cleanup = 5 jobs, but they do not all fire simultaneously). If concurrent overlap becomes an issue, increase `threadCount` to 5 in application.yaml — no code change required.
 
-```java
-String expected = new HmacUtils(HmacAlgorithms.HMAC_SHA_256, webhookSecret)
-    .hmacHex(rawRequestBody);
-boolean valid = MessageDigest.isEqual(
-    expected.getBytes(StandardCharsets.UTF_8),
-    receivedSignature.getBytes(StandardCharsets.UTF_8)
-);
-```
-
-**Important implementation notes:**
-
-1. Read the raw request body as `byte[]` (not as a parsed DTO) before any deserialization — signature is computed over the exact bytes on the wire. Use `HttpServletRequest` with a `ContentCachingRequestWrapper` (Spring provides this) or a custom `ReadOnceRequestWrapper`.
-2. The timestamp in the signature prevents replay attacks. Enforce a maximum age (30–60 seconds) on the `X-Timestamp` header. Store processed nonces in Redis with a TTL matching that window.
-3. MTN MoMo webhooks do not use HMAC — they use IP allowlisting only. Orange Money webhook authentication specifics should be confirmed from provider documentation before implementation. The HMAC infrastructure should be built for Payam's own outbound client-facing webhooks.
-
-**No new dependency.** `commons-codec` covers all HMAC needs for this project.
+**Flyway note:** No Flyway migration needed for this job. Quartz QRTZ_* tables already exist (managed by a prior migration, `initialize-schema: never` confirms this). The new job row is inserted by Quartz at startup via `storeDurably()` on the `JobDetail`.
 
 ---
 
-## 4. Distributed Tracing and Structured JSON Logging
+## Area 3: Spring Security / PasswordEncoder Applicability to API Keys
 
-### Status: Already Fully Configured — No New Libraries Needed
+### Decision: PasswordEncoder does NOT apply to API keys — use only for user passwords
 
-**Confidence: HIGH** — Verified against official Spring Boot Actuator tracing documentation and inspection of the existing `pom.xml` and `docker-compose-lgtm.yaml`.
+**Confidence: HIGH** — Verified by reading `SecurityConfiguration.java` (2026-04-02).
 
-**What is already present:**
+The `PasswordEncoder` bean (`BCryptPasswordEncoder`) is wired into `DaoAuthProvider` for user username/password authentication only. It has no role in API key flows.
 
-| Concern | Library | Status |
-|---------|---------|--------|
-| Trace bridge | `micrometer-tracing-bridge-otel` | in pom |
-| OTLP exporter | `opentelemetry-exporter-otlp` | in pom |
-| Trace receiver | Grafana Tempo on port 4317/4318 | in docker-compose |
-| Metrics export | `micrometer-registry-prometheus` | in pom |
-| Metrics scraper | Prometheus on port 9090 | in docker-compose |
-| JSON log encoding | `logstash-logback-encoder 8.1` | in pom |
-| Log shipping | `loki-logback-appender 1.6.0` | in pom |
-| Log aggregator | Grafana Loki on port 3100 | in docker-compose |
-| Dashboards | Grafana on port 3000 | in docker-compose |
+The `ApiKeyAuthenticationFilter` (which reads the `Authorization: Bearer <rawKey>` header or `X-Api-Key` header) calls `ApiKeyService.authenticate(rawKey)`, which recomputes `DigestUtils.sha256Hex(rawKey)` and queries the database. This is the correct, complete chain. Spring Security's `PasswordEncoder` abstraction is intentionally not in this path.
 
-**What the payment module must do (not a library gap — an implementation discipline):**
+**One integration point to verify during implementation:** The `TenantSecurityConfig.java` must ensure that the `ApiKeyAuthenticationFilter` is registered with `FilterRegistrationBean(setEnabled=false)` to prevent double-registration as a servlet filter (established pattern noted in PROJECT.md Key Decisions). This is an existing concern, not a v5 addition, but it is the place where API key auth wires into Spring Security.
 
-1. Propagate `traceId` and `spanId` into every payment event payload stored in the `EVENT_PUBLICATION` table and in the custom transaction event log. Micrometer Tracing automatically populates MDC with `traceId` and `spanId`; `logstash-logback-encoder` will include them in every JSON log line.
+---
 
-2. Create custom spans for high-value operations using `ObservationRegistry`:
+## Area 4: Vue/Quasar Components for One-Time Display and Reveal Toggle
 
-```java
-Observation.createNotStarted("payment.provider.request", observationRegistry)
-    .lowCardinalityKeyValue("provider", "mtn")
-    .highCardinalityKeyValue("transactionId", txnId)
-    .observe(() -> mtnClient.requestPayment(request));
+### Decision: All needed components are already in Quasar 2.16.0 — no new frontend libraries
+
+**Confidence: HIGH** — Verified by reading `UpdatePasswordDialog.vue` and `package.json` (2026-04-02). The reveal-toggle pattern is already implemented in the codebase.
+
+#### 4a. One-Time Key Display Dialog
+
+**Pattern:** `q-dialog` (persistent) + `q-card` + `q-banner` (warning) + clipboard copy button.
+
+The project already uses this exact structure in `UpdatePasswordDialog.vue` and `SessionWarningDialog.vue`. The one-time display requirement adds:
+
+- `persistent` prop on `q-dialog` — prevents accidental close via ESC or backdrop click.
+- A `q-banner` with `bg-warning` coloring to communicate "this key will not be shown again."
+- A `q-btn` with `@click="copyToClipboard"` using the Quasar `useQuasar().$q.copyToClipboard(text)` utility (built into Quasar — no separate clipboard library needed).
+
+```vue
+<!-- Pattern: already available in Quasar 2.16.0 -->
+<q-dialog v-model="visible" persistent>
+  <q-card style="min-width: 480px">
+    <q-banner class="bg-warning text-dark q-mb-sm" rounded>
+      Copy this key now. It will not be shown again.
+    </q-banner>
+    <q-card-section>
+      <q-input v-model="rawKey" readonly outlined>
+        <template #append>
+          <q-btn flat icon="content_copy" @click="$q.copyToClipboard(rawKey)" />
+        </template>
+      </q-input>
+    </q-card-section>
+    <q-card-actions align="right">
+      <q-btn color="primary" label="I have copied it" @click="close" />
+    </q-card-actions>
+  </q-card>
+</q-dialog>
 ```
 
-3. Correlate the internal `transactionId` through Micrometer baggage propagation:
+`$q.copyToClipboard()` is documented in Quasar 2.x and confirmed available in the installed version. Source: https://quasar.dev/quasar-plugins/copyToClipboard (Quasar 2.x docs).
 
-```yaml
-management:
-  tracing:
-    baggage:
-      remote-fields: X-Transaction-Id
-      correlation:
-        fields: X-Transaction-Id
-    sampling:
-      probability: 1.0   # capture all payment traces; adjust if volume warrants sampling
+#### 4b. WebhookSecret Reveal Toggle (Eye Icon)
+
+**Pattern:** Already in `UpdatePasswordDialog.vue`. The exact same `q-input` + `q-icon` toggle pattern applies:
+
+```vue
+<!-- Already-established pattern — replicate for webhookSecret field -->
+<q-input
+  v-model="webhookSecret"
+  :type="isRevealed ? 'text' : 'password'"
+  label="Webhook Secret"
+  outlined
+  readonly
+>
+  <template #append>
+    <q-icon
+      :name="isRevealed ? 'visibility_off' : 'visibility'"
+      class="cursor-pointer"
+      @click="isRevealed = !isRevealed"
+    />
+  </template>
+</q-input>
 ```
 
-**Admin dashboard (real-time metrics in existing Quasar SPA):** The Grafana instance in docker-compose is the dedicated ops dashboard. The Quasar admin UI should surface per-tenant, per-transaction business metrics by querying the Payam API (which reads from PostgreSQL), not by embedding Prometheus/Grafana directly. Grafana is for infrastructure/operational visibility; the Quasar SPA is for business-level admin. Keep these concerns separate.
+The `visibility` and `visibility_off` Material Icons are already included via `@quasar/extras` (confirmed in `package.json`). No new icon pack needed.
+
+#### 4c. Tenant Management Table
+
+**Pattern:** `q-table` with row actions. Already used in `TransactionSearchPage.vue` and `ReconciliationPage.vue`. The tenant list page follows the same pattern with:
+
+- `q-chip` or `q-badge` for status display (ACTIVE = green `positive`, SUSPENDED = red `negative`).
+- `q-btn-dropdown` or `q-btn-group` for per-row actions (Suspend, Reactivate, Manage Keys).
+- `q-dialog` + `q-card` for confirmation dialogs on destructive actions.
+
+All of these are Quasar built-ins. No new components or libraries required.
+
+#### 4d. Per-Environment Key Management Panel
+
+**Pattern:** `q-tabs` + `q-tab-panels` for PROD / DEV / SANDBOX switching. Available in Quasar 2.x. Each panel shows the current key's prefix, status badge, and action buttons (Rotate, Revoke). No new library needed.
 
 ---
 
-## 5. Rule-Based Fraud and Risk Scoring Engine
+## Complete Delta — New Dependencies
 
-### Recommendation: Custom rule engine on top of Redis + Spring AOP (no third-party rule engine)
+**None.**
 
-**Confidence: MEDIUM** — The recommendation to NOT use Drools is based on well-documented operational experience and the project's velocity/threshold requirements (not complex stateful rules). The custom approach is affirmed by the existing `bucket4j-core` presence (already handles rate limiting, the closest cousin of velocity checks).
+All v5 capabilities are provided by existing dependencies. The following table confirms each capability maps to an existing library:
 
-**Why not Drools:**
-
-- Drools (latest: 10.x, KIE 9.x) has a very large footprint and a steep learning curve for rule authoring (DRL syntax, KieSession management, RETE algorithm tuning).
-- For a fraud engine scoring 0–100 on ~6 signals (velocity, device fingerprint, IP reputation, phone prefix, amount threshold, time-of-day), Drools introduces accidental complexity that dwarfs the problem.
-- The project already has Bucket4j for velocity checks. Adding Drools to do what a plain Java `FraudScorer` class can do is over-engineering.
-- Drools' Spring Boot integration requires a separate `kie-spring-boot-autoconfigure` dependency and has a history of version alignment pain.
-
-**Why not Easy Rules or other lightweight engines:** The scoring model is not dynamic (it does not need hot-reload of rules from a database by non-engineers). A well-structured Java class with small, testable scoring functions is more maintainable and faster.
-
-**Recommended pattern: Scoring pipeline with Redis-backed velocity counters**
-
-The following libraries are already in the pom and together implement the full fraud layer:
-
-| Capability | Library | Already in pom? |
-|-----------|---------|----------------|
-| Velocity counters (txn/min per IP, user, tenant) | `bucket4j-core 8.10.1` | YES |
-| Redis storage for counters | Spring Data Redis | YES (via Lettuce) |
-| Device fingerprint hashing | `commons-codec` | YES |
-| Phone number validation (+237 prefix check) | `libphonenumber 9.0.25` | YES |
-| Risk score aggregation | Plain Java | N/A |
-
-**No new dependency needed.** Build `FraudScoringService` as a Spring service that:
-1. Queries Redis counters (via `bucket4j-redis` or raw `RedisTemplate.opsForValue().increment()`)
-2. Checks device fingerprint history (Redis set with TTL)
-3. Assigns partial scores per signal
-4. Returns `RiskScore(value: int, signals: List<RiskSignal>)` — the score is persisted as a JSON column (JSONB via `hypersistence-utils`, already in pom) on the `transaction_event` row
-
-**One optional addition — Guava RateLimiter for in-JVM burst protection:** Guava 33.4.8 is already in the pom. `RateLimiter.create(tokensPerSecond)` can provide a per-tenant in-memory burst guard that sits in front of the Redis counter check, reducing Redis round-trips for clearly-benign traffic.
+| Capability | Library | Already in pom/package.json |
+|------------|---------|------------------------------|
+| API key SHA-256 hashing | commons-codec 1.19.0 (DigestUtils.sha256Hex) | YES |
+| API key comparison | commons-codec (string equality on hex digests) | YES |
+| ROTATED→REVOKED grace period job | spring-boot-starter-quartz (JDBC store) | YES |
+| Audit trail for tenant/key changes | hibernate-envers (@Audited already on entities) | YES |
+| Email notifications for 6 events | Spring Modulith events + existing MailManager | YES |
+| One-time key display dialog | Quasar q-dialog + q-input + $q.copyToClipboard | YES |
+| Webhook secret reveal toggle | Quasar q-input + q-icon (pattern in UpdatePasswordDialog) | YES |
+| Tenant management table | Quasar q-table + q-chip + q-dialog | YES |
+| Per-environment key panels | Quasar q-tabs + q-tab-panels | YES |
 
 ---
 
-## 6. Queue and Messaging Within a Spring Boot Monolith
+## What NOT to Add
 
-### Recommendation: Spring Modulith Event Publication Registry (chosen in Section 1) — this IS the queue
-
-**Confidence: HIGH** — The Spring Modulith Event Publication Registry with PostgreSQL persistence is the correct answer to "durable async messaging in a monolith." It is not a compromise; it is the intended architecture.
-
-**Decision matrix:**
-
-| Option | Verdict | Reason |
-|--------|---------|--------|
-| Spring Modulith events (PostgreSQL-backed) | **USE THIS** | Durable, transactional, zero new infrastructure, already chosen in Section 1 |
-| `@Async` + `ThreadPoolTaskExecutor` alone | AVOID | Not durable — JVM crash drops in-flight events. Unacceptable for payments. |
-| Spring `@TransactionalEventListener` alone | AVOID | Same durability problem without the publication registry. |
-| Kafka | AVOID | Requires a Kafka broker. Overkill for a monolith. Contradicts project constraints. |
-| RabbitMQ | AVOID | Same as Kafka — external broker, operational overhead, contradicts monolith constraint. |
-| ActiveMQ Artemis (embedded) | AVOID | Embedded JMS brokers have messy persistence semantics and complicate clustering later. |
-| Quartz JDBC job queue | CONSIDER for scheduled work | Quartz is appropriate for the reconciliation jobs and retry scheduler (see Section 7). |
-
-**For the reconciliation scheduler specifically:** Use `spring-boot-starter-quartz` with JDBC job store (`spring.quartz.job-store-type=jdbc`). This ensures the daily reconciliation job runs exactly once even when multiple application instances are deployed, because Quartz uses a database row lock to elect a single executor.
-
-```xml
-<dependency>
-  <groupId>org.springframework.boot</groupId>
-  <artifactId>spring-boot-starter-quartz</artifactId>
-</dependency>
-```
-
-**What about the double-check pattern (webhook → provider status API call)?** This is handled by a `@ApplicationModuleListener` that listens to `WebhookReceivedEvent`. The listener calls the provider status API and publishes `ProviderStatusVerifiedEvent`. Spring Modulith guarantees this listener fires at-least-once. Resilience4j's circuit breaker (already configured) wraps the provider API call.
+| What | Why Not |
+|------|---------|
+| BCryptPasswordEncoder for API key hashing | Keys are 256-bit random tokens — BCrypt provides zero security benefit and costs ~200ms per auth. SHA-256 is correct for high-entropy tokens. |
+| Argon2 / PBKDF2 for API key hashing | Same reason as BCrypt — intentionally slow KDFs are for low-entropy passwords, not random tokens. |
+| Clipboard.js or copy-to-clipboard npm package | Quasar's built-in `$q.copyToClipboard()` covers the requirement. Adding a separate library for a single use case is unnecessary. |
+| vue-clipboard2 or similar | Same reason — Quasar 2.x already provides this. |
+| ShedLock for the rotation job | Quartz JDBC store already handles distributed exclusive execution. ShedLock solves the same problem; adding both creates conflicting locking mechanisms. |
+| A new Quartz JDBC schema migration | The QRTZ_* tables already exist (application.yaml has `initialize-schema: never`, meaning the schema was applied in a prior Flyway migration). The new job is registered at startup automatically via `storeDurably()`. |
+| A separate "token prefix" library | The prefix derivation (first 3 chars of tenant name, uppercase, 0-padded) is 2 lines of plain Java — `name.substring(0, Math.min(3, name.length())).toUpperCase()` plus `String.format("%3s", prefix).replace(' ', '0')`. No library warranted. |
 
 ---
 
-## 7. Admin Dashboard and Real-Time Metrics UI
+## Integration Points to Verify During Implementation
 
-### Recommendation: Existing Quasar SPA + Spring Boot Actuator (no new library) for business metrics; Grafana for infrastructure metrics
+These are not new dependencies but implementation-time decisions that need verification:
 
-**Confidence: HIGH**
+1. **Tenant name prefix immutability**: The `Tenant.name` field is mutable (no `updatable = false` on the column). The spec requires the API key prefix to be derived from the name at key generation time and never change. The prefix must be stored as a separate immutable column on `TenantApiKey` (already present: `key_prefix` with `updatable = false`). Verify that `ApiKeyService.generateAndStore()` computes the prefix from `tenant.getName()` at generation time and stores it — not a live computation from the current name on each auth check.
 
-**Architecture decision:**
+2. **One ACTIVE key per environment per tenant**: The spec requires a constraint of one ACTIVE key per environment per tenant. This is a database-level unique partial index:
+   ```sql
+   CREATE UNIQUE INDEX uix_tenant_env_active_key
+   ON main.tenant_api_key (tenant_id, environment)
+   WHERE key_status = 'ACTIVE';
+   ```
+   This goes in a Flyway migration. There is no JPA annotation that expresses a partial unique index — `@UniqueConstraint` applies globally. The service layer must also enforce this before insert (check and revoke any existing ACTIVE key for the same tenant/environment before generating a new one).
 
-The project already has two dashboard layers:
+3. **Suspension cascades to key revocation**: When `TenantService` sets a tenant status to SUSPENDED, it must bulk-update all ACTIVE and ROTATED keys for that tenant to REVOKED in the same transaction. The `TenantApiKeyRepository` needs a bulk update query for this:
+   ```java
+   @Modifying
+   @Query("UPDATE TenantApiKey k SET k.keyStatus = 'REVOKED' WHERE k.tenant.id = :tenantId AND k.keyStatus IN ('ACTIVE', 'ROTATED')")
+   int revokeAllActiveKeysForTenant(@Param("tenantId") Long tenantId);
+   ```
 
-1. **Grafana (port 3000)** — Reads from Prometheus (metrics), Loki (logs), Tempo (traces). This is the **operational** dashboard for SREs: JVM health, request latency, error rates, circuit breaker states, provider response times.
+4. **WebhookSecret storage**: The spec requires WebhookSecret to be revealable to admins. This means it is stored in plaintext (or symmetrically encrypted if at-rest encryption is needed — but the current codebase has no symmetric encryption layer). The `Tenant.webhookSecret` column already exists as a plain `String` column. Confirm with the team whether plaintext storage is acceptable or if at-rest column encryption is needed. If plaintext is acceptable, no new library is required.
 
-2. **Quasar SPA (existing admin UI)** — This should serve as the **business** dashboard for admins: transaction volumes per tenant, success/failure rates, fraud flag counts, reconciliation diff status. These are served by new Spring Boot REST endpoints that query PostgreSQL directly via JPA.
-
-**Adding live push to the Quasar SPA:** Use Server-Sent Events (SSE) via Spring's `SseEmitter` for real-time payment status updates in the admin UI. SSE works over HTTP/1.1, requires no additional dependency, and is native to Spring MVC.
-
-```java
-@GetMapping(value = "/admin/live/transactions", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-public SseEmitter liveTransactions() {
-    SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
-    // register emitter; publish events via @ApplicationModuleListener on TransactionCompletedEvent
-    return emitter;
-}
-```
-
-**For Spring Boot Actuator custom metrics (payment-specific):** Use `MeterRegistry` (already auto-configured) to register business counters:
-
-```java
-meterRegistry.counter("payment.initiated", "provider", "mtn", "tenant", tenantId).increment();
-meterRegistry.timer("payment.provider.latency", "provider", "orange").record(duration);
-```
-
-These appear automatically in `/actuator/prometheus` and flow to Grafana without any additional library.
-
-**What NOT to add:**
-
-- Do not add Spring Boot Admin Server — it is a standalone server that manages multiple Spring Boot instances. This is a single monolith; Actuator endpoints + Grafana are sufficient.
-- Do not add Vaadin or Thymeleaf dashboards — the Quasar SPA is already the admin frontend.
-- Do not add WebSocket (SockJS/STOMP) for live updates — SSE is simpler, unidirectional, and correct for the use case (admin monitoring, not bi-directional chat).
-
----
-
-## Complete Delta — Libraries to Add
-
-The following table summarizes the net-new Maven dependencies. Everything else is already present.
-
-| Library | GroupId | ArtifactId | Version | Purpose | Confidence |
-|---------|---------|------------|---------|---------|------------|
-| Spring Modulith BOM | org.springframework.modulith | spring-modulith-bom | **1.4.9** | Version management for Modulith artifacts | HIGH |
-| Spring Modulith JPA Starter | org.springframework.modulith | spring-modulith-starter-jpa | (BOM) | Event publication registry on PostgreSQL | HIGH |
-| Spring Modulith Test | org.springframework.modulith | spring-modulith-starter-test | (BOM) | `AssertablePublishedEvents` for integration tests | HIGH |
-| Spring Data Redis | org.springframework.boot | spring-boot-starter-data-redis | (Spring Boot BOM) | Idempotency keys, webhook dedup, velocity counters | HIGH |
-| Quartz (JDBC store) | org.springframework.boot | spring-boot-starter-quartz | (Spring Boot BOM) | Distributed reconciliation scheduler | HIGH |
-
-**Total new production dependencies: 3 artifacts** (Modulith JPA starter, Redis starter, Quartz starter). Everything else is already in the pom or is implemented as application code.
-
----
-
-## Alternatives Considered and Rejected
-
-| Category | Recommended | Alternative | Why Not |
-|----------|-------------|-------------|---------|
-| In-monolith event bus | Spring Modulith events | Kafka, RabbitMQ | External broker, contradicts monolith constraint, operational overhead |
-| In-monolith event bus | Spring Modulith events | @Async alone | Not durable — events lost on JVM crash |
-| Fraud rule engine | Custom Java scoring | Drools | Heavy footprint, DRL syntax overhead, version alignment pain, overkill for 6-signal scoring |
-| Fraud rule engine | Custom Java scoring | Easy Rules | No hot-reload needed; plain Java is more testable and maintainable |
-| Distributed scheduler | Quartz (JDBC) | ShedLock | Both solve the same problem; Quartz is already managed by Spring Boot BOM and is more full-featured for job management |
-| Admin UI | Quasar SPA + SSE | Spring Boot Admin | Not needed for single-instance monolith; operational view belongs in Grafana |
-| HMAC | commons-codec (existing) | Bouncy Castle | Bouncy Castle adds 4MB+ jar for capabilities already provided by JDK + commons-codec |
-| Redis client | Lettuce (Spring Boot default) | Redisson | Redisson provides distributed locks (e.g., RLock) but ShedLock/Quartz JDBC covers all locking needs; Lettuce is already the default |
-| Tracing | micrometer-tracing-bridge-otel (existing) | OpenTelemetry Java Agent | Java agent approach conflicts with the existing `@Observation`-based Micrometer integration; bridge is the correct choice for Spring Boot 3.x |
-
----
-
-## Stack Conflict Analysis
-
-| New Addition | Potential Conflict | Assessment |
-|-------------|-------------------|------------|
-| spring-modulith-starter-jpa | Hibernate Envers | No conflict. Modulith uses a separate `EVENT_PUBLICATION` table. Envers audits entity mutations. Both can coexist. |
-| spring-modulith-starter-jpa | spring-retry | No conflict. Spring Modulith's resubmission is a different mechanism from `@Retryable`. Use Modulith for event redelivery; use Spring Retry for external provider API call retries. Do not mix. |
-| spring-boot-starter-data-redis | bucket4j-core | No conflict. Bucket4j core is the algorithm; it needs a backing store. If `bucket4j-redis` is added (as the backing store), it shares the same `LettuceConnectionFactory` as Spring Data Redis. Verify that the `LettuceConnectionFactory` bean is configured once. |
-| spring-boot-starter-quartz | Flyway | Potential conflict: Quartz can auto-initialize its schema (`spring.quartz.jdbc.initialize-schema=always`) AND Flyway manages the schema. Use `spring.quartz.jdbc.initialize-schema=never` and provide the Quartz PostgreSQL DDL as a Flyway migration script (`V_xxx__quartz_schema.sql`). |
-| spring-modulith-bom | spring-cloud-dependencies BOM | Both BOM imports coexist in `<dependencyManagement>`. Maven resolves the union. No transitive conflict expected; both target Spring Boot 3.5. |
+5. **Quartz thread pool**: Current `threadCount: 3`. With the new rotation cleanup job, the job inventory is: reconciliation (daily), webhook delivery (every 1 min), MTN poller, Orange poller, and rotation cleanup (every 10 min). At any given minute, up to 3 jobs could overlap. This is at the thread pool limit. Increase to `threadCount: 5` in application.yaml before shipping v5 to avoid job starvation.
 
 ---
 
 ## Sources
 
-- Spring Modulith compatibility matrix: https://docs.spring.io/spring-modulith/reference/appendix.html#compatibility-matrix (fetched 2026-03-23)
-- Spring Modulith Event Publication Registry: https://docs.spring.io/spring-modulith/reference/events.html (fetched 2026-03-23)
-- Spring Modulith database schemas: https://docs.spring.io/spring-modulith/reference/appendix.html#schemas (fetched 2026-03-23)
-- Spring Boot Actuator tracing: https://docs.spring.io/spring-boot/reference/actuator/tracing.html (fetched 2026-03-23)
-- Spring Boot Actuator metrics: https://docs.spring.io/spring-boot/reference/actuator/metrics.html (fetched 2026-03-23)
-- Spring Boot Quartz integration: https://docs.spring.io/spring-boot/reference/io/quartz.html (fetched 2026-03-23)
-- Spring Framework scheduling limitations: https://docs.spring.io/spring-framework/reference/integration/scheduling.html (fetched 2026-03-23)
-- Spring Data Redis ValueOperations Javadoc: https://docs.spring.io/spring-data/redis/docs/current/api/org/springframework/data/redis/core/ValueOperations.html (fetched 2026-03-23)
-- Existing pom.xml: /Users/mokwen/dev/gitrepos/bluegithub/payam/pom.xml (read 2026-03-23)
-- Existing docker-compose-lgtm.yaml: /Users/mokwen/dev/gitrepos/bluegithub/payam/docker-compose-lgtm.yaml (read 2026-03-23)
+- Codebase read 2026-04-02:
+  - `src/main/java/com/softropic/payam/tenant/service/ApiKeyService.java`
+  - `src/main/java/com/softropic/payam/tenant/repo/TenantApiKey.java`
+  - `src/main/java/com/softropic/payam/tenant/repo/TenantApiKeyRepository.java`
+  - `src/main/java/com/softropic/payam/tenant/repo/Tenant.java`
+  - `src/main/java/com/softropic/payam/security/config/SecurityConfiguration.java`
+  - `src/main/java/com/softropic/payam/reconciliation/config/ReconciliationSchedulerConfig.java`
+  - `src/main/java/com/softropic/payam/reconciliation/service/ReconciliationJob.java`
+  - `src/main/java/com/softropic/payam/webhook/config/WebhookSchedulerConfig.java`
+  - `src/main/resources/application.yaml`
+  - `src/frontend/package.json`
+  - `src/frontend/src/components/profile/UpdatePasswordDialog.vue`
+  - `.planning/PROJECT.md`
+- API token hashing survey (industry pattern confirmation): https://fly.io/blog/api-tokens-a-tedious-survey/
+- Quasar copyToClipboard utility: https://quasar.dev/quasar-plugins/copyToClipboard
+- Spring Security BCryptPasswordEncoder — intentional slowness for low-entropy passwords: https://docs.spring.io/spring-security/reference/features/authentication/password-storage.html

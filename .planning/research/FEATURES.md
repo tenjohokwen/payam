@@ -1,364 +1,356 @@
 # Feature Landscape
 
-**Domain:** Multi-tenant mobile money payment gateway wrapper (Cameroon — MTN MoMo + Orange Money)
-**Researched:** 2026-03-23
-**Confidence:** MEDIUM — competitor analysis draws on documented knowledge of Campay, Monetbil, and Notchpay APIs
-as of mid-2025; no live documentation fetch was possible. Provider capabilities are HIGH confidence (verified
-against project's own requirements documents).
+**Domain:** Multi-tenant API gateway — Tenant & API Key Management subsystem (v5 milestone)
+**Researched:** 2026-04-02
+**Confidence:** HIGH — core patterns verified against Stripe, Zuplo, and industry documentation; spec validated against tenant-management.md and PROJECT.md
 
 ---
 
-## Methodology Note
+## Scope Note
 
-Web search and WebFetch were unavailable in this environment. Competitor analysis (Campay, Monetbil, Notchpay)
-is drawn from accumulated knowledge of their public APIs and developer documentation up to August 2025.
-Claims marked [VERIFIED] were cross-checked against the project's provider documentation files.
-Claims marked [MEDIUM] reflect well-documented public APIs that should be verified against current docs before
-coding decisions are made. Claims marked [LOW] reflect observed community patterns with no direct verification.
-
----
-
-## Context: What the Providers Actually Offer
-
-Before defining features, it is essential to ground every decision in what the underlying providers expose,
-because Payam can only offer what the providers support.
-
-### MTN MoMo (Collections API) [VERIFIED]
-
-| Capability | Available | Notes |
-|---|---|---|
-| Payment collection (RequestToPay) | Yes | Async, customer approves on device |
-| Account holder validation | Yes | Active/inactive check only |
-| Balance query | Yes | Merchant wallet balance |
-| KYC / basic user info | Yes | Requires explicit customer consent |
-| Pre-approval (recurring debit) | Yes | Customer pre-authorizes future debits |
-| Refund | Via disbursement transfer | No native refund endpoint |
-| Callback (webhook from MTN) | Yes | Sent once per transaction, no retry |
-| B2B transfer (Remittance API) | Yes | Separate API product |
-
-### Orange Money (Core API v1.0.2) [VERIFIED]
-
-| Capability | Available | Notes |
-|---|---|---|
-| Merchant payment collection (/mp) | Yes | 3-step: init → pay → push/poll |
-| Cashout (partner to customer) | Yes | Payout direction |
-| C2C / Inverse C2C | Yes | Channel-to-channel, channel-to-customer |
-| Agent cashout | Yes | Agent flow |
-| Account holder validation (/infos/subscriber) | Yes | Returns subscriber name |
-| Balance query | NO | No balance endpoint in v1.0.2 |
-| Refund / reversal | NO | No reversal endpoint; back-office only |
-| Webhook (notifUrl) | Yes | Posted by Orange on completion |
-| Bulk transaction status | Yes | /transactions/paymentstatus |
-
-**Critical constraint:** Orange Money provides no balance endpoint and no refund endpoint.
-Any Payam feature that implies these must either be approximated (running balance from ledger)
-or deferred to a higher API tier requiring additional Orange partner credentials.
+This document covers the **v5 Tenant & API Key Management milestone** specifically. It is an addendum to the
+original FEATURES.md (researched 2026-03-23), which covers the broader payment gateway feature landscape.
+The question being answered: what does production-quality tenant/key management look like, what is table stakes
+vs differentiator, and what is the expected behavior and UX for each feature in the spec?
 
 ---
 
-## Competitor Analysis: Campay, Monetbil, Notchpay
+## Industry Reference Points
 
-### Campay [MEDIUM confidence]
+Before classifying features, it is worth anchoring on what mature API platforms (Stripe, Twilio, Apigee) do
+for tenant/key management. This prevents gold-plating things users will never notice and missing things
+they will absolutely notice.
 
-Campay is a Cameroon-focused aggregator supporting MTN MoMo and Orange Money.
+### Stripe Key Model (HIGH confidence — verified against Stripe docs)
 
-**What Campay offers:**
-- Unified collection endpoint: single API call routes to MTN or Orange based on phone prefix
-- Disbursement endpoint: pay out to mobile money numbers
-- Transaction status polling endpoint
-- Webhook delivery on completion (single attempt, no retry guarantee documented)
-- Sandbox / test environment with test phone numbers
-- API key authentication (username + password → access token pattern)
-- Dashboard: transaction history, balance display, basic analytics
-- Python, PHP, JavaScript SDKs
+- Two keys per environment (live/test): one publishable, one secret.
+- Live-mode secret keys: one-time display only; cannot be revealed again.
+- Sandbox keys: can be revealed repeatedly (lower risk; no real money).
+- Rotation: create new key, optionally set delayed expiry on old one for grace period.
+- Key statuses: Active, Expired (admin-set date passed), Compromised (immediate revoke candidate).
+- No hard constraint of "one ACTIVE key per environment" — Stripe allows multiple active keys.
 
-**What Campay lacks (observable gaps):**
-- No idempotency key enforcement at the API level — developers must manage duplicate prevention themselves
-- No per-webhook retry with exponential backoff — if your server is down, you miss the event
-- No structured event log exposed to developers — no way to replay missed webhooks
-- No per-client (multi-tenant) API key isolation — Campay is itself B2C, not a platform for building platforms
-- No SDK for Java / Spring Boot
-- No fraud scoring or risk API surface
-- No fee management API — fees are fixed by Campay's pricing
-- No sandbox that mirrors production failure modes (e.g., insufficient funds, user timeout)
-- No programmatic reconciliation export (CSV download only in dashboard)
+### Twilio / similar payment-adjacent platforms (MEDIUM confidence)
 
-### Monetbil [MEDIUM confidence]
+- Environment scoping (test vs. live) is universal; PROD/DEV/SANDBOX variants of this are common.
+- Key prefix from account name or product type is common (humanizes opaque UUIDs).
+- Webhook signing secrets: stored hashed server-side, shown once or reveal-on-demand with MFA prompt.
+- Audit logs for every key lifecycle event: who did what, when.
 
-Monetbil is older, widely used in Francophone Africa, supports Cameroon operators.
+### Payam v5 Design Position
 
-**What Monetbil offers:**
-- Payment widget / hosted checkout page (iframe or redirect)
-- REST API for direct integration
-- MTN MoMo + Orange Money + other operators
-- Webhook on payment completion
-- Transaction query endpoint
-- Dashboard with transaction list and filters
-- Multi-currency display (XAF primary)
-
-**What Monetbil lacks (observable gaps):**
-- API is primarily widget/redirect-oriented, not headless-first — integration pattern is different
-  from what Cameroon mobile app developers want
-- No idempotency guarantees documented
-- No programmatic sandbox with controllable outcomes
-- No multi-tenant features — one account, one merchant
-- No structured error codes — error messages vary and are hard to handle programmatically
-- No webhook signing / HMAC verification documented
-- No refund API (same underlying provider constraint)
-- No rate limit headers — developers cannot tell when they are approaching limits
-- Documentation is primarily in French, with sparse English coverage
-
-### Notchpay [MEDIUM confidence]
-
-Notchpay is the most developer-forward of the three Cameroon aggregators, positioned closer to Stripe's DX.
-
-**What Notchpay offers:**
-- Unified charge API (MTN, Orange, plus card)
-- Transfer / payout API
-- Transaction status and list endpoints
-- Webhook delivery with retry logic (documented)
-- HTTPS webhook signature verification
-- API key + secret model (public/private key pair)
-- Sandbox environment
-- Dashboard: transactions, analytics, settings
-- SDKs: JavaScript, PHP, Python
-- Refund endpoint (presumably a disbursement under the hood)
-- Customer object model (store recurring customer references)
-- Multi-currency support (XAF, USD, EUR)
-- Detailed error codes
-
-**What Notchpay lacks (observable gaps):**
-- No multi-tenant / platform model — it is a direct merchant integration, not a gateway
-  that lets you build your own payment product on top
-- No per-client fee configuration
-- No fraud/risk API surface exposed to integrators
-- Java SDK absent
-- No programmatic reconciliation report generation
-- No account balance visibility at API level (provider constraint)
-- No event replay for missed webhooks
-
-### Gap Summary: What All Three Competitors Miss
-
-| Gap | Why It Matters for Payam |
-|---|---|
-| No multi-tenant platform model | Payam's primary differentiator: you ARE the platform |
-| No idempotency enforcement | Double charges are a real risk in Cameroon's unstable network |
-| No webhook retry with replay | Missed webhooks cause manual reconciliation work |
-| No per-client fee configuration | Platform operators need revenue management |
-| No fraud/risk API | Operators have no programmatic protection |
-| No Java/Spring SDK | Payam's existing stack has no ecosystem support |
-| No structured reconciliation export | Finance teams are doing this manually |
-| No immutable audit trail | Regulatory and dispute-resolution gap |
-| No sandbox with failure modes | Developers cannot test unhappy paths |
+Payam's spec makes **stronger** constraints than Stripe: one ACTIVE key per env per tenant; 24-hour automated
+ROTATED → REVOKED job; suspension kills all keys immediately. These are all appropriate tightenings for a
+payment gateway where operators manage tenants they may not fully trust, and where an exposed key in
+a regulated environment has immediate fraud consequences.
 
 ---
 
 ## Table Stakes
 
-These are features developers and operators will expect before integrating. Missing any of these
-means the product feels incomplete and untrustworthy.
+Features operators and tenants will expect before trusting the platform. Missing any of these makes the
+admin system feel unsafe or incomplete.
 
-### Core Payment Features
-
-| Feature | Why Expected | Complexity | Notes |
-|---|---|---|---|
-| Unified payment initiation (MTN + Orange, one endpoint) | Every aggregator does this | Medium | Route by phone prefix (6X → MTN, 6[5/9] → Orange) |
-| Provider auto-detection from MSISDN | Developers should not hardcode routing | Low | Prefix lookup table |
-| Idempotency key enforcement on all write operations | Network instability in Cameroon is the norm, not exception | Medium | Redis-backed key store with TTL |
-| Transaction status endpoint (GET by reference ID) | Developers need to poll when webhooks fail | Low | Core query capability |
-| Bulk transaction status endpoint | Batch queries for reconciliation | Low | Provider already exposes this for Orange |
-| Standardized status lifecycle: INITIATED → PROCESSING → SUCCESS / FAILED / TIMEOUT | Predictable states reduce integration bugs | Medium | State machine, no hidden transitions |
-| Standardized error codes across providers | MTN and Orange have different error vocabularies | Medium | Error normalization layer |
-| Account holder validation endpoint | Validate phone is active before charging | Low | Proxy to provider validate endpoints |
-| Transaction listing with filters (date, status, provider, client) | Standard dashboard and API need | Medium | Paginated, filterable |
-| Async payment confirmation model | Both providers are async; synchronous response is not possible | Medium | Webhook + polling fallback |
-
-### Webhook / Notification Features
+### Tenant Lifecycle
 
 | Feature | Why Expected | Complexity | Notes |
 |---|---|---|---|
-| Outbound webhook delivery to client's configured URL | Developers build event-driven systems | Medium | On final transaction state change |
-| Webhook signing with HMAC-SHA256 | Without this, developers cannot verify webhook authenticity | Medium | Per-client secret used for signing |
-| Webhook retry with exponential backoff | Provider webhooks have no retry; Payam must compensate | Medium | At least 3 retries over 24 hours |
-| Webhook event log (queryable) | Developers need to replay missed events | Medium | Persisted, queryable by transaction ID |
-| Webhook endpoint validation on registration | Catch bad URLs at registration, not at payment time | Low | HTTP HEAD or GET check on URL |
-| Webhook delivery status (delivered, failed, retrying) | Developers need visibility into webhook health | Low | Expose in transaction detail response |
+| Tenant create with name + email + status | Core identity record; every multi-tenant system starts here | LOW | Name mandatory, email optional (per spec); TenantRef UUID generated on create |
+| Tenant ACTIVE / SUSPENDED status toggle | Operators need to disable a merchant without deleting them | LOW | Suspension must be atomic: all keys revoked in same transaction |
+| Tenant name and email editable by admin | Contact info changes; name typos must be correctable | LOW | Name change does NOT alter key prefix — prefix is frozen at creation |
+| Tenant list and search in admin UI | Operators manage many tenants; manual lookup is not acceptable | MEDIUM | Filterable by status; searchable by name/email/ref |
 
-### Authentication and API Key Management
+### API Key Lifecycle
 
 | Feature | Why Expected | Complexity | Notes |
 |---|---|---|---|
-| API key + secret pair per client | Standard payment API auth model | Low | Existing security module handles user management |
-| Key rotation without downtime | Keys get compromised; rotation is mandatory | Medium | Grace period where old + new key both work |
-| Key revocation | Immediate invalidation on compromise | Low | |
-| Sandbox vs. production key separation | Developers need to test without real money | Medium | Environment flag per key |
-| Per-client rate limiting | Protect the system from one noisy client | Medium | Redis sliding window counter |
-| Rate limit headers in responses (X-RateLimit-*) | Developers need to know their limits | Low | Standard HTTP headers |
+| Key generation with one-time raw display | Industry standard for any key with hash-only storage (Stripe, GitHub, Supabase) | MEDIUM | Raw key shown exactly once in modal; backend stores only hash; user must copy before closing |
+| Hash-only storage (never store plaintext) | Database breach must not leak usable keys; non-negotiable security property | LOW | bcrypt or SHA-256; spec says SHA-256; either works for API key verification |
+| Key revocation | Immediate invalidation on compromise or tenant offboarding | LOW | Status → REVOKED; authentication filter rejects immediately |
+| Key status visible to admin | Admin must know what state each key is in per env | LOW | Show ACTIVE / ROTATED / REVOKED per environment row in UI |
+| Key tied to environment (PROD/DEV/SANDBOX) | Developers must be able to test without touching production data (Stripe pattern) | MEDIUM | One row per env in key management table; env displayed in UI |
 
-### Operator / Admin Dashboard Features
-
-| Feature | Why Expected | Complexity | Notes |
-|---|---|---|---|
-| Transaction list with real-time updates | Operators need live visibility | Medium | SSE or polling |
-| Transaction detail view with full event timeline | Dispute resolution and debugging | Medium | Show every state transition with timestamps |
-| Search by transaction ID, phone number, client | Core investigation tool | Low | |
-| Client management (create, suspend, configure) | Multi-tenant admin core | Medium | |
-| Per-client transaction history | Tenant isolation in UI | Low | |
-| System health dashboard (provider latency, success rate, TPS) | Operational awareness | Medium | |
-| Fee configuration per client | Revenue management | Low | |
-| Alert configuration (failure rate thresholds, fraud spikes) | Operators should not monitor manually | Medium | |
-
-### Reconciliation Features
+### Key Rotation
 
 | Feature | Why Expected | Complexity | Notes |
 |---|---|---|---|
-| Internal ledger recording every credit and debit | Cannot rely solely on provider data | Medium | Double-entry, append-only |
-| Daily reconciliation job (Payam ledger vs. provider reports) | Finance teams require this for accounting | Medium | Detect missing/mismatched transactions |
-| Reconciliation report export (CSV/JSON) | Finance teams use this in spreadsheets | Low | |
-| Discrepancy flagging with investigation workflow | Unresolved mismatches need operator action | Medium | Mark as disputed, assignable |
+| Rotate key without downtime | Live systems cannot have a hard cutoff between old and new key | MEDIUM | Old key enters ROTATED state; both ACTIVE and ROTATED keys accepted during grace window |
+| Grace period for ROTATED keys | Clients may be deployed in multiple places; instant revocation causes outages | MEDIUM | 24 hours is tight but appropriate for a controlled B2B context (not a public API with unknown consumers) |
+| Automated ROTATED → REVOKED after grace period | Human follow-up is error-prone; automation closes the window consistently | MEDIUM | Quartz job; already in stack; runs on schedule |
+| One ACTIVE key per env per tenant | Prevents confusion about which key is current; forces clean rotation flow | LOW | DB constraint + service enforcement; rotation creates new ACTIVE, old goes ROTATED |
+
+### Suspension / Reactivation
+
+| Feature | Why Expected | Complexity | Notes |
+|---|---|---|---|
+| Suspension revokes all keys immediately (all envs) | A suspended tenant must not be able to process payments through any key | MEDIUM | Atomic update: tenant.status = SUSPENDED + all keys.status = REVOKED in same transaction |
+| Reactivation auto-generates new PROD key | Operator should not need a separate "create key" step after reactivating a tenant | MEDIUM | Auto-generate on status transition SUSPENDED → ACTIVE; show raw key in same response/modal as the status toggle |
+| Admin shown new PROD key on reactivation | One-time display applies here too; the admin must see the key because it cannot be retrieved again | MEDIUM | Not just a background operation — admin UI must surface the generated key prominently |
+
+### Webhook Secret
+
+| Feature | Why Expected | Complexity | Notes |
+|---|---|---|---|
+| WebhookSecret per tenant | Every platform that delivers signed webhooks needs a per-client signing secret (Stripe, Twilio) | LOW | UUID generated at tenant creation; stored hashed or encrypted |
+| Admin reveal (eye icon) | Support staff must be able to share the secret with a tenant who lost it | LOW | Reveal endpoint returns plaintext secret; requires storing recoverable (encrypted, not hashed) |
+| Admin regenerate | Secret rotation on compromise or periodic policy | LOW | Generates new UUID; old signature on in-flight webhooks immediately invalid |
+
+### Email Notifications
+
+| Feature | Why Expected | Complexity | Notes |
+|---|---|---|---|
+| Email on key generation/rotation | Operator and tenant need to know a new key was issued (security audit trail) | LOW | To platform notification email AND tenant email if present |
+| Email on key revocation | Unexpected revocation is a security event; both parties must be informed | LOW | Same dual-recipient pattern |
+| Email on tenant status change | Suspension/reactivation has commercial impact; tenant must be notified | LOW | Sent to tenant email + platform notification email |
+| Email on webhookUrl change | A changed webhook URL is a potential SSRF vector; platform notification required | LOW | Platform notification email especially |
+| Email on tenant email change | Email change could be an account takeover signal; audit notification required | LOW | Send to both old and new email addresses ideally; at minimum platform notification |
+| Email on webhook secret regeneration | Secret change means existing HMAC signatures will fail; tenant must re-configure | LOW | Tenant email + platform email |
+
+### Audit Trail
+
+| Feature | Why Expected | Complexity | Notes |
+|---|---|---|---|
+| Hibernate Envers on tenant and key tables | All financial platforms require immutable audit logs; state changes must be traceable | MEDIUM | Already in stack; apply @Audited to TenantEntity and ApiKeyEntity |
+| Admin ID + timestamp on every key event | "Who generated this key?" is a common support and compliance question | LOW | Columns on key generation events; Envers revision metadata captures this |
 
 ---
 
 ## Differentiators
 
-Features that set Payam apart from Campay, Monetbil, and Notchpay. Not expected by default, but
-become strong retention factors once experienced.
+Features in the spec that go beyond what most platforms offer. These are worth implementing correctly because
+they become trust signals.
 
-### Platform / Multi-Tenant Model
-
-| Feature | Value Proposition | Complexity | Notes |
-|---|---|---|---|
-| Multi-tenant API key isolation | Each client is a separate tenant with isolated data and keys | High | Payam's core value: BE the platform |
-| Per-client sandbox environments | Clients can test without affecting production data | High | Sandbox transactions isolated per tenant |
-| Per-client webhook configuration | Each tenant has its own callback URL and signing secret | Low | |
-| Per-client fee rules (fixed fee, percentage, tiered) | Operators can monetize differently per client | Medium | Fee engine evaluated at transaction time |
-| Client-facing API usage dashboard | Clients see their own transaction stats and webhook health | Medium | Scoped view of operator dashboard |
-
-### Developer Experience
+### Immutable Key Prefix Tied to Tenant Identity
 
 | Feature | Value Proposition | Complexity | Notes |
 |---|---|---|---|
-| Consistent idempotency enforcement | Payam guarantees no double charge even if client retries | Medium | Already planned; competitors lack this |
-| Replay missed webhooks on demand | GET /webhooks/{event_id}/replay | Low | Huge DX win; competitors have no equivalent |
-| Human-readable error messages with error codes | Developers debug faster | Low | Enum-based error catalog |
-| Structured sandbox with controllable outcomes | Test insufficient funds, user timeout, provider error | High | Simulate specific failure scenarios |
-| Single integration point for future providers | Adding a third provider (Wave, Moov) requires no client changes | High | Abstract provider adapter pattern |
+| API key prefix derived from tenant name at creation | Admin can identify which tenant a key belongs to without a database lookup | LOW | First 3 chars of name, uppercase, 0-padded; frozen at creation even if name changes |
 
-### Security and Auditability
+Most platforms use opaque UUIDs or environment-type prefixes (sk_live_, sk_test_). Payam's tenant-name prefix
+is more useful for operational debugging: seeing `GOO_` in a log line immediately tells a support engineer
+which tenant the request came from. The immutability (even on name change) is correct: changing the prefix
+mid-life would invalidate all existing key identifications in logs.
 
-| Feature | Value Proposition | Complexity | Notes |
-|---|---|---|---|
-| Immutable event-sourced audit log with hash chain | Tamper-evident record; regulatory compliance | High | SHA-256 chaining; already in security architecture |
-| Double-check pattern on provider webhooks | Never trust a provider webhook without verification | Medium | Already in security architecture |
-| Fraud velocity rules per client | Operators can set transaction rate limits per tenant | Medium | Redis-backed rule evaluation |
-| Risk scoring per transaction | Block or flag high-risk transactions before hitting provider | High | Score 0-100 based on signals |
-| Device fingerprinting support | Associate transactions with device identifiers | Medium | Passed by client in request |
-
-### Operational Excellence
+### Tighter Active-Key Constraint Than Stripe
 
 | Feature | Value Proposition | Complexity | Notes |
 |---|---|---|---|
-| Circuit breaker per provider | Graceful degradation when MTN or Orange is down | Medium | Stop hammering a failing provider |
-| Provider health status endpoint | Clients can check if a provider is currently degraded | Low | Exposed as GET /providers/status |
-| Estimated balance from ledger (Orange Money workaround) | Compensates for Orange's missing balance endpoint | Medium | Running balance computed from ledger; accuracy depends on completeness |
-| Automatic polling fallback when webhook not received | If no webhook arrives within N minutes, poll provider | Medium | Scheduled job per pending transaction |
+| Hard constraint: one ACTIVE key per env per tenant | Eliminates ambiguity about which key is current; reduces support load | LOW | DB unique partial index on (tenant_id, environment) WHERE status = 'ACTIVE' |
+
+Stripe allows multiple active keys. For a B2B payment gateway where the operator manages tenants (not
+developers managing their own keys), the simpler constraint is better. It prevents operators from accidentally
+leaving stale keys active on tenants.
+
+### Suspension → Reactivation as a Complete Flow (Not Two Separate Operations)
+
+| Feature | Value Proposition | Complexity | Notes |
+|---|---|---|---|
+| Reactivation auto-generates PROD key and shows it in same UX action | Reduces operator error (no "forgot to create key after reactivating") | MEDIUM | Status toggle and key generation happen in same service transaction; one modal shows result |
+
+In most platforms, key generation is a separate action from account activation. Coupling them here is
+appropriate because the previous PROD key was permanently revoked during suspension — there is guaranteed to
+be no live PROD key after a suspension cycle.
+
+### 24-Hour Automated ROTATED → REVOKED Job
+
+| Feature | Value Proposition | Complexity | Notes |
+|---|---|---|---|
+| Automated grace-period closure without operator action | Operators cannot be relied upon to manually close rotation windows | MEDIUM | Quartz JDBC job; idempotent; runs every hour or on a fixed schedule |
+
+Industry guidance (Zuplo, AWS Secrets Manager) treats 24 hours as a reasonable internal-application grace
+period. External/public APIs typically need 7–30 days. Payam's tenants are controlled B2B partners, not
+anonymous developers, so 24 hours is defensible and tighter than the industry default.
 
 ---
 
 ## Anti-Features
 
-Things to deliberately NOT build in v1, with reasoning. These represent scope that would delay
-delivery without proportional value, or that create maintenance burden before the core is proven.
+Features that seem natural to add but should be explicitly excluded from this milestone.
 
-| Anti-Feature | Why Skip in v1 | What to Do Instead |
+| Anti-Feature | Why Skip | What to Do Instead |
 |---|---|---|
-| Native refund endpoint | Neither Orange (v1.0.2) nor MTN Collections expose a refund API. Implementing it requires disbursement credentials, a separate product approval with providers, and financial risk management. | Document the limitation clearly. Route refund requests to back-office workflow. Add to v2 roadmap once disbursement API access is confirmed. |
-| Hosted payment page / checkout widget | Payam is an API-first product for developer integration, not a Monetbil-style widget. Building a hosted page doubles the surface area (web UI, CORS, CSP, redirect flows) with no benefit to the target developer audience. | Provide clear API docs and client SDKs. Merchants build their own UI. |
-| Card payment support | Cameroon card infrastructure is thin. No provider in scope offers card processing. Adding cards requires a separate acquiring relationship (Visa/Mastercard), PCI-DSS scope, and entirely different integration. | Out of scope until a card provider partner is identified. |
-| Multi-currency (USD, EUR) | Transaction currency in Cameroon is XAF. Both providers operate in XAF. Adding currency conversion introduces FX risk, regulatory complexity (COBAC), and margin management with no immediate demand. | XAF only in v1. Flag as v2 when cross-border use cases emerge. |
-| Machine learning fraud detection | Rule-based velocity checks and risk scoring cover the common fraud patterns (SIM swap, bot cashout) in Cameroon. ML requires labeled training data that does not exist yet. | Implement deterministic rule engine in v1. Collect signal data. ML is a v3+ concern once transaction volume exists. |
-| Customer wallet / stored balance | Running a wallet means becoming a financial institution under COBAC regulations. This is a different business model from a gateway. | Payam holds no customer funds. It routes. Internal ledger is for reconciliation only, not customer balance management. |
-| SDK generation for all languages | SDKs require maintenance, versioning, and documentation at least as complex as the API itself. | Provide excellent REST API docs and an OpenAPI spec. The community will generate SDKs. Prioritize Java (internal use) first if any. |
-| Recurring payment / subscription management | MTN's PreApproval endpoint exists but is poorly documented for Cameroon. Orange has no equivalent. Building a scheduler that relies on pre-approval creates provider dependency that is not production-proven at scale. | Document PreApproval as experimental. Do not build a subscription scheduler in v1. |
-| Smart retry on provider errors | Retrying a failed payment requires knowing WHY it failed. Provider error codes are inconsistent. Automatic retry without operator review risks charging customers twice for legitimately declined payments. | Expose failed transactions with provider error code. Let operator or client decide to retry explicitly. |
-| Customer-facing self-service portal | Payam's users are developers (B2B). There is no B2C customer who needs to log in and view their payment history through Payam. | The integrating merchant's app handles customer-facing UX. |
-| Real-time balance push / balance alerts | Orange has no balance endpoint. MTN balance reflects merchant wallet, not individual transactions. Balance push notifications would be misleading and operationally complex. | Provide balance query (MTN only, on-demand). Orange approximation via ledger. No push. |
-| USSD payment flow management | Both providers handle USSD prompts internally. Payam does not mediate the customer-facing USSD session. Attempting to do so would violate provider terms and create support burden. | Let providers own the USSD flow. Payam only tracks outcomes. |
+| Key-level permission scopes (read-only key, write-only key) | Adds complexity without a clear need in the current spec; Payam keys authenticate tenants, not individual operations; ACL is at the tenant level | Stay with single-scope per-env keys; revisit if a tenant requests read-only reporting key |
+| Self-service key management for tenant users | The spec is admin-driven; tenant users do not have accounts in Payam's admin system | Admin manages all keys on behalf of tenants; keep the portal admin-only in v5 |
+| Key expiration dates (calendar-based TTL) | Different from grace-period rotation; adds a "when does this expire?" question that operators will not be able to answer for tenants | Use rotation + revocation as the expiry mechanism; no calendar expiry needed |
+| Multiple ROTATED keys in flight simultaneously | If admin rotates again before 24h, should there be two ROTATED keys? No — re-rotation should revoke the previous ROTATED immediately | On rotate: if a ROTATED key already exists for this env, move it to REVOKED first before creating the new ACTIVE |
+| Webhook secret as HMAC-verifiable per-request signature | Webhook secret in this system is the shared secret given to the tenant for them to verify inbound Payam-signed webhooks — not an auth header on tenant-to-Payam requests | Keep webhook secret in its documented role: tenant uses it to verify Payam webhook signatures |
+| Audit log search UI in v5 | Hibernate Envers tables exist but building a queryable audit log viewer is a separate feature worth its own phase | Capture the data now; UI can come in a later milestone when compliance requirements drive it |
+| Email templates with full HTML design | Current email module uses transactional templates; over-designing tenant management emails in v5 adds scope | Use the existing transactional email pattern; keep templates consistent with existing notifications |
+| Bulk tenant operations (suspend 50 tenants at once) | No spec requirement; adds UI and transactional complexity | Single-tenant operations cover all stated requirements |
 
 ---
 
 ## Feature Dependencies
 
-Some features are prerequisites for others. Build in this order to avoid rework.
-
 ```
-Provider adapters (MTN + Orange)
-  └── Unified payment initiation
-        └── Transaction state machine
-              ├── Webhook delivery (outbound)
-              │     └── Webhook retry + replay
-              └── Transaction status endpoint
-                    └── Automatic polling fallback
+Tenant Create
+  ├── generates: TenantRef (UUID, immutable)
+  ├── generates: key prefix (first-3-chars, immutable)
+  └── generates: WebhookSecret (UUID)
+        └── requires: secure storage (encrypted, not hashed — must be revealable)
 
-API key management (per client)
-  ├── Per-client rate limiting
-  ├── Per-client webhook configuration
-  └── Per-client fee rules
+Tenant ACTIVE status
+  └── enables: API key generation per environment
+        └── requires: one-time raw key display modal in UI
+              └── requires: hash-only storage (backend)
 
-Internal ledger
-  ├── Daily reconciliation job
-  ├── Reconciliation report export
-  └── Estimated balance (Orange workaround)
+Key Rotation
+  ├── requires: one ACTIVE key to rotate (cannot rotate REVOKED)
+  ├── creates: new ACTIVE key (one-time display)
+  ├── moves: old key to ROTATED (24h grace)
+  └── requires: Quartz job (ROTATED → REVOKED after 24h)
+        └── requires: Quartz JDBC job store (already in stack)
 
-Fraud velocity rules
-  └── Risk scoring engine
-        └── Device fingerprinting integration
+Tenant Suspension
+  ├── requires: atomic bulk key revocation (all envs)
+  └── triggers: email notification (tenant + platform email)
+
+Tenant Reactivation (SUSPENDED → ACTIVE)
+  ├── requires: auto key generation for PROD env
+  ├── requires: one-time display of new PROD key in same UI action as status toggle
+  └── triggers: email notification (tenant + platform email)
+
+Email Notifications (all 6 events)
+  └── requires: platform notification email in application config (already established pattern)
+  └── requires: tenant email field on tenant record (optional, conditional send)
+
+Audit (Hibernate Envers)
+  └── requires: @Audited on TenantEntity and ApiKeyEntity
+  └── requires: admin ID captured per key generation event (additional column, not just Envers metadata)
 ```
 
 ---
 
-## MVP Recommendation
+## Admin UX Flow Notes
 
-For MVP (production-ready v1), prioritize:
+These describe the expected admin experience. The UI must surface these flows correctly or the security
+properties of the system are undermined.
 
-**Must have (gate to first customer):**
-1. Unified payment initiation with idempotency enforcement
-2. Transaction status lifecycle and status query endpoint
-3. Outbound webhook delivery with HMAC signing
-4. Webhook retry (minimum 3 attempts)
-5. API key authentication and rotation
-6. Per-client rate limiting
-7. Internal ledger for reconciliation
-8. Transaction investigation tools in admin dashboard
-9. Standardized error codes across both providers
-10. Automatic polling fallback (webhook safety net)
+### Tenant Create Flow
 
-**Add before public launch:**
-11. Risk scoring + velocity rules (fraud protection)
-12. Daily reconciliation job
-13. Per-client fee configuration
-14. Webhook event log with replay
-15. Sandbox environment per client
-16. Provider health status endpoint
+1. Admin fills: name, optional email, optional webhookUrl.
+2. On submit: backend generates TenantRef (UUID), derives key prefix (first 3 chars of name), generates WebhookSecret.
+3. Response shows: a modal with the generated PROD API key (raw, one-time display) + the webhook secret.
+4. Modal has prominent copy buttons for both secrets. "I have copied these safely" confirm button.
+5. After confirm: key and secret are gone from UI forever. Only hash/encrypted form remains in DB.
 
-**Defer to v2:**
-- Refund via disbursement (pending provider commercial approval)
-- Tiered/percentage fee structures (fixed fee covers v1)
-- ML fraud detection (needs data first)
-- Structured sandbox with controllable failure injection
-- Pre-approval / recurring payments (experimental MTN feature)
-- Multi-provider expansion (Wave, Moov)
+**Critical:** Do not close the modal without user acknowledgment. The Mastodon webhook UI bug (2024) showed
+that allowing webhooks to be active before the secret is copied causes immediate failures. Apply the same
+caution here.
+
+### Key Rotation Flow (per environment)
+
+1. Admin clicks "Rotate" on the ACTIVE key for a given environment.
+2. Confirmation prompt: "This will put the current key in a 24-hour grace period. The new key must be deployed before 24 hours."
+3. On confirm: new ACTIVE key generated, old key moves to ROTATED with `rotatedAt` timestamp, one-time display modal for new key.
+4. UI shows environment row with: new ACTIVE key (masked except prefix), "ROTATED — expires in Xh" indicator for old key.
+5. After 24h: Quartz job moves ROTATED → REVOKED; environment row shows only the ACTIVE key.
+
+**Note on re-rotation during grace period:** If admin rotates again before the 24h window closes, the still-ROTATED
+key must be moved to REVOKED immediately. Two overlapping grace periods on the same env should not exist.
+
+### Manual Revocation Flow
+
+1. Admin clicks "Revoke" on any key.
+2. Confirmation prompt (irreversible action warning).
+3. Key immediately moves to REVOKED. No grace period for manual revocation.
+4. If revoking the only ACTIVE key for PROD: prompt admin to generate a new one (tenant will be unable to process payments otherwise).
+
+### Suspension Flow
+
+1. Admin clicks "Suspend Tenant" on tenant detail page.
+2. Confirmation prompt: "This will immediately revoke all API keys across all environments. The tenant cannot process payments until reactivated."
+3. On confirm: tenant.status = SUSPENDED, all keys.status = REVOKED in single transaction.
+4. Email sent to tenant (if email present) + platform notification email.
+5. UI shows tenant as SUSPENDED with red badge; all environment key rows show REVOKED.
+
+### Reactivation Flow
+
+1. Admin clicks "Reactivate Tenant" on SUSPENDED tenant.
+2. On confirm: tenant.status = ACTIVE, new PROD key auto-generated.
+3. One-time display modal shows new PROD key (same UX as create flow).
+4. Email sent to tenant + platform notification email.
+5. Admin must copy the new PROD key and deliver it to the tenant (out-of-band, as with any initial key delivery).
+
+**This is the most complex UX flow.** The modal that surfaces the new PROD key is non-optional — without it,
+the admin has activated a tenant but has no way to give them credentials to work with.
+
+### WebhookSecret Reveal / Regenerate
+
+1. Eye icon next to masked webhook secret field.
+2. Click: reveals plaintext UUID in the field (no separate endpoint needed for reveal if stored encrypted).
+3. "Regenerate" button: confirmation prompt, then new UUID generated, old secret immediately invalid, new secret shown in revealed state.
+4. Email notification sent on regeneration (tenant must know to update their webhook verification code).
+
+---
+
+## MVP Scope for v5 Milestone
+
+All features in the "Table Stakes" section are required for v5. The differentiators are already in spec.
+The anti-features define the explicit scope boundary.
+
+### Must Ship in v5
+
+- [ ] Tenant create with TenantRef + key prefix generation
+- [ ] Tenant ACTIVE / SUSPENDED status toggle
+- [ ] Tenant name + email + webhookUrl edit
+- [ ] Per-environment API key generation (one-time display, hash-only storage)
+- [ ] One ACTIVE key per env constraint
+- [ ] Key rotation with 24h ROTATED grace period
+- [ ] Quartz job: ROTATED → REVOKED after 24h
+- [ ] Manual key revocation
+- [ ] Suspension: atomic revoke all keys
+- [ ] Reactivation: auto-generate new PROD key + show to admin
+- [ ] WebhookSecret: generate, reveal, regenerate
+- [ ] Email notifications: all 6 event types (dual recipient: tenant + platform)
+- [ ] Hibernate Envers audit on tenant + key tables
+- [ ] Admin ID + timestamp on key generation events
+- [ ] Admin UI screens: tenant list, tenant detail, key management per env
+
+### Explicitly Deferred
+
+- [ ] Audit log viewer UI — data captured by Envers; UI is future milestone
+- [ ] Key permission scopes — not in spec; not needed in v5
+- [ ] Self-service tenant portal — admin-managed only in v5
+- [ ] DEV and SANDBOX key auto-generation on tenant create — spec generates only PROD key on create/reactivation; DEV/SANDBOX keys are admin-on-demand
+
+---
+
+## Complexity Assessment
+
+| Feature Area | Complexity | Reason |
+|---|---|---|
+| Tenant CRUD + status toggle | LOW | Standard JPA entity CRUD; no unusual logic |
+| Key prefix generation | LOW | String manipulation at creation; frozen in column |
+| One-time display + hash-only storage | MEDIUM | Flow requires careful coordination between service, response, and UI modal |
+| One ACTIVE key per env constraint | LOW | Partial unique index + service check |
+| Key rotation with ROTATED state | MEDIUM | State machine: ACTIVE → ROTATED (old) + new ACTIVE; one-time display |
+| Quartz ROTATED → REVOKED job | MEDIUM | Idempotent Quartz job; edge case: re-rotation during grace period |
+| Suspension atomic revoke | MEDIUM | Bulk update + transactional integrity required |
+| Reactivation with auto PROD key | MEDIUM | Status change + key gen + one-time display in single coordinated response |
+| WebhookSecret reveal | LOW-MEDIUM | Requires encrypted storage (not hashed) for revealability; decrypt on reveal |
+| Email notifications (6 events) | LOW | Existing email module + transactional event listeners; pattern established |
+| Hibernate Envers audit | LOW | @Audited annotation + verify schema migration generates revision tables |
+| Admin UI screens | MEDIUM-HIGH | Multiple screens: tenant list, detail, key management per env, modals |
+
+**Overall milestone complexity:** MEDIUM-HIGH. No single feature is technically novel, but the coordination
+between atomic state transitions, one-time display modals, dual-recipient email, and audit capture across
+all flows requires careful implementation discipline.
 
 ---
 
 ## Sources
 
-- Project requirements file: `/requirements/paymentApi_security_architecture.md` [VERIFIED]
-- Project requirements file: `/requirements/sendam-wrapper-requirements.md` [VERIFIED]
-- Project requirements file: `/requirements/mtn-api.md` [VERIFIED]
-- Project requirements file: `/requirements/orange-money-integration-guide.md` [VERIFIED]
-- Campay API knowledge as of August 2025 [MEDIUM confidence — verify against campay.net/en/documentation/]
-- Monetbil API knowledge as of August 2025 [MEDIUM confidence — verify against monetbil.com/developers]
-- Notchpay API knowledge as of August 2025 [MEDIUM confidence — verify against https://developer.notchpay.co]
-- Paystack / Flutterwave / Stripe patterns: well-documented, treated as HIGH confidence for general
-  payment API best practices (idempotency keys, webhook signing, error codes, sandbox patterns)
+- Stripe API key documentation: [https://docs.stripe.com/keys](https://docs.stripe.com/keys) [HIGH confidence — fetched 2026-04-02]
+- Zuplo API key lifecycle guide: [https://zuplo.com/learning-center/api-key-rotation-lifecycle-management](https://zuplo.com/learning-center/api-key-rotation-lifecycle-management) [HIGH confidence — fetched 2026-04-02]
+- OneUptime API key management best practices 2026: [https://oneuptime.com/blog/post/2026-02-20-api-key-management-best-practices/view](https://oneuptime.com/blog/post/2026-02-20-api-key-management-best-practices/view) [MEDIUM]
+- Octopus Deploy — hashing API keys: [https://octopus.com/blog/hashing-api-keys](https://octopus.com/blog/hashing-api-keys) [MEDIUM]
+- FreeCodeCamp — best practices for building secure API keys: [https://www.freecodecamp.org/news/best-practices-for-building-api-keys-97c26eabfea9/](https://www.freecodecamp.org/news/best-practices-for-building-api-keys-97c26eabfea9/) [MEDIUM]
+- Mastodon webhook UI bug (secret timing issue): [https://github.com/mastodon/mastodon/issues/30498](https://github.com/mastodon/mastodon/issues/30498) [MEDIUM — informs "acknowledge before close" modal pattern]
+- Project tenant-management.md: `/requirements/tenant-management.md` [HIGH — source of truth for spec]
+- Project PROJECT.md: `/.planning/PROJECT.md` [HIGH — source of truth for existing features]
+
+---
+
+*Feature research for: Payam v5 — Tenant & API Key Management milestone*
+*Researched: 2026-04-02*
