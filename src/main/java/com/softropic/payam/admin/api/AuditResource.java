@@ -78,6 +78,7 @@ public class AuditResource {
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to) {
 
+        //TODO this method will cause memory issues when there are many transactions
         List<String> transactionIds = eventLogRepository.findAllDistinctTransactionIds();
         List<String> violations = new ArrayList<>();
         int validCount = 0;
