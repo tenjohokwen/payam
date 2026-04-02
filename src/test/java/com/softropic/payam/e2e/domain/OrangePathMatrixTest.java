@@ -35,8 +35,12 @@ import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -87,6 +91,8 @@ public class OrangePathMatrixTest extends AbstractPayamE2ETest {
 
     @BeforeEach
     void setUp() {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+
         // Seed permissive fraud rules (BLOCK_THRESHOLD=70 allows normal payments)
         transactionTemplate.execute(status -> {
             seedFraudRule(1L, "IP_VELOCITY",      40, 200, 60,   true);
@@ -247,12 +253,13 @@ public class OrangePathMatrixTest extends AbstractPayamE2ETest {
         assertThat(init.transactionId()).isNotNull();
 
         // Backdate last_modified_date with REQUIRES_NEW
+        Instant backdated = Instant.now().minus(7, ChronoUnit.MINUTES);
         DefaultTransactionDefinition requiresNew = new DefaultTransactionDefinition();
         requiresNew.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         new TransactionTemplate(transactionManager, requiresNew).execute(status -> {
             jdbcTemplate.update(
-                "UPDATE main.transaction SET last_modified_date = NOW() - INTERVAL '3 minutes' " +
-                "WHERE transaction_id = ?", init.transactionId());
+                    "UPDATE main.transaction SET last_modified_date = ?" +
+                "WHERE transaction_id = ?", Timestamp.from(backdated), init.transactionId());
             return null;
         });
 

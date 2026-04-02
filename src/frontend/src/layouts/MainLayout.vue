@@ -120,6 +120,33 @@
             <q-item-label>Transactions</q-item-label>
           </q-item-section>
         </q-item>
+
+        <q-item clickable to="/admin/reconciliation">
+          <q-item-section avatar>
+            <q-icon name="account_balance" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Reconciliation</q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item clickable to="/admin/platform-config">
+          <q-item-section avatar>
+            <q-icon name="settings" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Platform Config</q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item clickable to="/admin/health-dashboard">
+          <q-item-section avatar>
+            <q-icon name="monitor_heart" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Health Dashboard</q-item-label>
+          </q-item-section>
+        </q-item>
       </q-list>
     </q-drawer>
 

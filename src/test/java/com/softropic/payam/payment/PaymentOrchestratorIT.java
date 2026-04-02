@@ -7,6 +7,7 @@ import com.softropic.payam.payment.contract.PaymentResponse;
 import com.softropic.payam.tenant.service.TenantService;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 
 import org.junit.jupiter.api.AfterEach;
@@ -46,8 +47,10 @@ import static org.assertj.core.api.Assertions.assertThat;
     // Override CB config so Test 7 can trip the circuit with 10 failures (50% of 10)
     "resilience4j.circuitbreaker.instances.mtn.slidingWindowSize=10",
     "resilience4j.circuitbreaker.instances.mtn.failureRateThreshold=50",
+    "resilience4j.circuitbreaker.instances.mtn.minimumNumberOfCalls=10",
     "resilience4j.circuitbreaker.instances.orange.slidingWindowSize=10",
-    "resilience4j.circuitbreaker.instances.orange.failureRateThreshold=50"
+    "resilience4j.circuitbreaker.instances.orange.failureRateThreshold=50",
+    "resilience4j.circuitbreaker.instances.orange.minimumNumberOfCalls=10"
 })
 @EnableWireMock({
     @ConfigureWireMock(name = "orange", baseUrlProperties = {"orange.base-url", "orange.pay-url"}),
@@ -61,7 +64,7 @@ class PaymentOrchestratorIT {
     @InjectWireMock("mtn")
     WireMockServer mtnServer;
 
-    @Autowired TestRestTemplate testRestTemplate;
+    TestRestTemplate testRestTemplate = new TestRestTemplate();
     @Autowired TenantService tenantService;
     @Autowired JdbcTemplate jdbcTemplate;
     @Autowired TransactionTemplate transactionTemplate;
@@ -79,6 +82,7 @@ class PaymentOrchestratorIT {
 
     private Long tenantId;
     private String apiKey;
+    private String baseUrl = "http://localhost:";
 
     @BeforeEach
     void setUp() {
@@ -124,9 +128,40 @@ class PaymentOrchestratorIT {
         redis.delete("mtn:token:cm");
         redis.delete("orange:token");
 
-        // Reset circuit breakers so test isolation is guaranteed (each test starts with CLOSED circuit)
-        circuitBreakerRegistry.circuitBreaker("mtn").reset();
-        circuitBreakerRegistry.circuitBreaker("orange").reset();
+        // Ensure fee_rule table is empty so no global Flyway-seeded rule (id=1) interferes.
+        // With hibernate.ddl-auto: none, Flyway seed data persists between context startups.
+        transactionTemplate.execute(status -> {
+            jdbcTemplate.execute("DELETE FROM main.fee_rule");
+            return null;
+        });
+        feeRuleCache.refresh();
+
+        // Reconfigure the mtn and orange CBs with minimumNumberOfCalls=5 so the
+        // circuit_breaker test can auto-trip with 10 failures without relying on
+        // @TestPropertySource property binding.
+        CircuitBreakerConfig smallWindowConfig = CircuitBreakerConfig.custom()
+            .slidingWindowSize(5)
+            .failureRateThreshold(50)
+            .minimumNumberOfCalls(5)
+            .waitDurationInOpenState(java.time.Duration.ofSeconds(30))
+            .permittedNumberOfCallsInHalfOpenState(3)
+            .ignoreExceptions(com.softropic.payam.mtn.contract.exception.MtnAccountInactiveException.class)
+            .build();
+        circuitBreakerRegistry.remove("mtn");
+        circuitBreakerRegistry.circuitBreaker("mtn", smallWindowConfig);
+
+        circuitBreakerRegistry.remove("orange");
+        circuitBreakerRegistry.circuitBreaker("orange",
+            CircuitBreakerConfig.custom()
+                .slidingWindowSize(5)
+                .failureRateThreshold(50)
+                .minimumNumberOfCalls(5)
+                .waitDurationInOpenState(java.time.Duration.ofSeconds(30))
+                .permittedNumberOfCallsInHalfOpenState(3)
+                .ignoreExceptions(
+                    com.softropic.payam.orange.contract.exception.SubscriberInactiveException.class,
+                    com.softropic.payam.orange.contract.exception.PayTokenExpiredException.class)
+                .build());
     }
 
     @AfterEach
@@ -143,16 +178,18 @@ class PaymentOrchestratorIT {
         redis.delete("mtn:token:cm");
         redis.delete("orange:token");
 
-        // FK-safe DELETE order
+        // FK-safe DELETE order: transaction → fee_rule; idempotency_key → tenant
         transactionTemplate.execute(status -> {
-            jdbcTemplate.execute("DELETE FROM main.fee_rule");
             jdbcTemplate.execute("DELETE FROM main.payment_event_log");
             jdbcTemplate.execute("DELETE FROM main.transaction");
+            jdbcTemplate.execute("DELETE FROM main.fee_rule");
+            jdbcTemplate.execute("DELETE FROM main.idempotency_key");
             jdbcTemplate.execute("DELETE FROM main.tenant_api_key");
             jdbcTemplate.execute("DELETE FROM main.tenant");
             jdbcTemplate.execute("DELETE FROM main.sec");
             return null;
         });
+        feeRuleCache.refresh();
     }
 
     // ---- helper methods ----
@@ -203,7 +240,7 @@ class PaymentOrchestratorIT {
                       "\"externalReference\":\"ext-001\",\"idempotencyKey\":\"idem-orange-001\"}";
 
         ResponseEntity<PaymentResponse> response = testRestTemplate.exchange(
-            "/v1/payments", HttpMethod.POST,
+            baseUrl + serverPort + "/v1/payments", HttpMethod.POST,
             new HttpEntity<>(body, headersWithKey()),
             PaymentResponse.class);
 
@@ -232,7 +269,7 @@ class PaymentOrchestratorIT {
                       "\"externalReference\":\"ext-002\",\"idempotencyKey\":\"idem-mtn-001\"}";
 
         ResponseEntity<PaymentResponse> response = testRestTemplate.exchange(
-            "/v1/payments", HttpMethod.POST,
+                baseUrl + serverPort + "/v1/payments", HttpMethod.POST,
             new HttpEntity<>(body, headersWithKey()),
             PaymentResponse.class);
 
@@ -254,7 +291,7 @@ class PaymentOrchestratorIT {
                       "\"externalReference\":\"ext-003\",\"idempotencyKey\":\"idem-unk-001\"}";
 
         ResponseEntity<PaymentResponse> response = testRestTemplate.exchange(
-            "/v1/payments", HttpMethod.POST,
+                baseUrl + serverPort + "/v1/payments", HttpMethod.POST,
             new HttpEntity<>(body, headersWithKey()),
             PaymentResponse.class);
 
@@ -287,7 +324,7 @@ class PaymentOrchestratorIT {
                       "\"externalReference\":\"ext-fee-01\",\"idempotencyKey\":\"idem-fee-01\"}";
 
         ResponseEntity<PaymentResponse> response = testRestTemplate.exchange(
-            "/v1/payments", HttpMethod.POST,
+                baseUrl + serverPort + "/v1/payments", HttpMethod.POST,
             new HttpEntity<>(body, headersWithKey()),
             PaymentResponse.class);
 
@@ -312,7 +349,7 @@ class PaymentOrchestratorIT {
 
         // First request
         ResponseEntity<PaymentResponse> response1 = testRestTemplate.exchange(
-            "/v1/payments", HttpMethod.POST,
+                baseUrl + serverPort + "/v1/payments", HttpMethod.POST,
             new HttpEntity<>(body, headersWithKey()),
             PaymentResponse.class);
 
@@ -323,7 +360,7 @@ class PaymentOrchestratorIT {
 
         // Second request with same idempotency key
         ResponseEntity<PaymentResponse> response2 = testRestTemplate.exchange(
-            "/v1/payments", HttpMethod.POST,
+                baseUrl + serverPort + "/v1/payments", HttpMethod.POST,
             new HttpEntity<>(body, headersWithKey()),
             PaymentResponse.class);
 
@@ -345,7 +382,7 @@ class PaymentOrchestratorIT {
 
         // Use String.class because Spring Security returns 401 as HTML/text, not JSON
         ResponseEntity<String> response = testRestTemplate.exchange(
-            "/v1/payments", HttpMethod.POST,
+                baseUrl + serverPort + "/v1/payments", HttpMethod.POST,
             new HttpEntity<>(body, headers),
             String.class);
 
@@ -362,7 +399,7 @@ class PaymentOrchestratorIT {
                       "\"externalReference\":\"ext-006\",\"idempotencyKey\":\"idem-inactive-001\"}";
 
         ResponseEntity<PaymentResponse> response = testRestTemplate.exchange(
-            "/v1/payments", HttpMethod.POST,
+                baseUrl + serverPort + "/v1/payments", HttpMethod.POST,
             new HttpEntity<>(body, headersWithKey()),
             PaymentResponse.class);
 
@@ -384,7 +421,7 @@ class PaymentOrchestratorIT {
         for (int i = 0; i < 10; i++) {
             String body = buildMtnRequest("+237672000001", "idem-cb-" + i);
             testRestTemplate.exchange(
-                "/v1/payments", HttpMethod.POST,
+                    baseUrl + serverPort + "/v1/payments", HttpMethod.POST,
                 new HttpEntity<>(body, headersWithKey()),
                 PaymentResponse.class);
             // Responses will be 502/422 — circuit not yet open until all 10 slots in sliding window filled

@@ -44,22 +44,36 @@ public class PlatformConfigService {
     }
 
     /**
-     * Update the platform MSISDN for the given provider and publish a changed event.
+     * Update the platform MSISDN for the given provider (upsert).
+     *
+     * <p>If the provider exists, its MSISDN is updated. If not, a new row is created.
+     * Publishes a {@link PlatformConfigChangedEvent}.
      *
      * @param provider   provider key (case-insensitive; normalised to upper-case)
      * @param newMsisdn  the new MSISDN value
      * @return updated DTO reflecting the persisted state
-     * @throws IllegalArgumentException if the provider is not found in the table
      */
     public PlatformConfigDto update(String provider, String newMsisdn) {
         String upper = provider.toUpperCase();
-        PlatformConfig config = platformConfigRepository.findByProvider(upper)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown provider: " + upper));
-        String oldMsisdn = config.getPlatformMsisdn();
-        config.updateMsisdn(newMsisdn);
-        platformConfigRepository.save(config);
-        eventPublisher.publishEvent(new PlatformConfigChangedEvent(upper, oldMsisdn, newMsisdn));
-        log.info("Platform MSISDN updated", kv("provider", upper), kv("event", "platform_config_updated"));
-        return new PlatformConfigDto(upper, newMsisdn);
+        return platformConfigRepository.findByProvider(upper)
+                .map(config -> {
+                    String oldMsisdn = config.getPlatformMsisdn();
+                    config.updateMsisdn(newMsisdn);
+                    platformConfigRepository.save(config);
+                    eventPublisher.publishEvent(new PlatformConfigChangedEvent(upper, oldMsisdn, newMsisdn));
+                    log.info("Platform MSISDN updated", kv("provider", upper), kv("event", "platform_config_updated"));
+                    return new PlatformConfigDto(upper, newMsisdn);
+                })
+                .orElseGet(() -> {
+                    PlatformConfig newConfig = PlatformConfig.builder()
+                            .provider(upper)
+                            .platformMsisdn(newMsisdn)
+                            .status(com.softropic.payam.common.persistence.EntityStatus.ACTIVE)
+                            .build();
+                    platformConfigRepository.save(newConfig);
+                    eventPublisher.publishEvent(new PlatformConfigChangedEvent(upper, "", newMsisdn));
+                    log.info("Platform MSISDN created", kv("provider", upper), kv("event", "platform_config_created"));
+                    return new PlatformConfigDto(upper, newMsisdn);
+                });
     }
 }

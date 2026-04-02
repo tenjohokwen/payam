@@ -23,8 +23,10 @@ public class CorsConfig {
         if (!CollectionUtils.isEmpty(config.getAllowedOrigins()) || !CollectionUtils.isEmpty(config.getAllowedOriginPatterns())) {
             source.registerCorsConfiguration("/api/**", config);
             source.registerCorsConfiguration("/authenticate", config);
-            source.registerCorsConfiguration("v1/api/**", config);
+            source.registerCorsConfiguration("/v1/api/**", config);
+            source.registerCorsConfiguration("/v1/admin/**", config);
             source.registerCorsConfiguration("/actuator/**", config);
+            source.registerCorsConfiguration("/manage/**", config);
         }
         return new CorsFilter(source);
     }

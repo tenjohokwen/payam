@@ -37,13 +37,14 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     /**
      * Find PROCESSING transactions for a given provider that have not been modified
-     * since {@code lastModifiedDate}. Used by OrangeStatusPollerJob to discover
-     * stuck transactions eligible for status polling.
+     * since {@code lastModifiedDate}. Used by the status poller jobs.
+     * Pageable is required to cap the result set and avoid unbounded memory usage.
      */
     List<Transaction> findByTxStatusAndProviderAndLastModifiedDateBefore(
         TransactionStatus txStatus,
         MobilePaymentProvider provider,
-        Instant lastModifiedDate);
+        Instant lastModifiedDate,
+        Pageable pageable);
 
     /**
      * Admin cross-tenant search. All parameters are optional (null = wildcard).

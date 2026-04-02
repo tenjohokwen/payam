@@ -24,7 +24,7 @@ public final class AppEndpoints {
         "/v1/account/register**", "/v1/account/regislink**", "/v1/account/activate/**",
         "/v1/account/reset_password/init", "/v1/account/reset_password/finish",
         "/api/v1/emails/**", "/authenticate",
-        "/v1/callbacks/mtn",     // MTN PUT callbacks — IP whitelist via MtnIpWhitelistInterceptor
+        "/v1/callbacks/mtn",     // MTN PUT callbacks — IP whitelist via MtnIpWhitelistInterceptor //This is the mtn facing webhook
         "/v1/callbacks/orange"   // Orange POST callbacks — IP whitelist via OrangeIpWhitelistInterceptor
     );
     public static final List<String> PUBLIC_MGMT_ENDPOINTS = List.of("/manage/prometheus", "/manage/health", "/manage/info");

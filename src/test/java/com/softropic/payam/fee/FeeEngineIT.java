@@ -3,6 +3,7 @@ package com.softropic.payam.fee;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.fee.service.FeeEvaluationService;
 import com.softropic.payam.fee.service.FeeRuleCache;
+import com.softropic.payam.tenant.service.TenantService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -79,6 +80,9 @@ class FeeEngineIT {
     @Autowired
     FeeRuleCache feeRuleCache;
 
+    @Autowired
+    TenantService tenantService;
+
     /** noRetryRestTemplate — avoids httpclient5 auto-retry masking 4xx/5xx. */
     private RestTemplate restTemplate;
 
@@ -152,9 +156,11 @@ class FeeEngineIT {
     @AfterEach
     void tearDown() {
         transactionTemplate.execute(status -> {
-            // Preserve seed row id=1 to avoid FK issues on transaction rows from other tests
+            // fee_rule (tenant-specific) must be deleted before tenant due to FK
             jdbc.execute("DELETE FROM main.fee_rule WHERE id > 1");
             jdbc.execute("DELETE FROM main.transaction");
+            jdbc.execute("DELETE FROM main.tenant_api_key");
+            jdbc.execute("DELETE FROM main.tenant");
             jdbc.execute("DELETE FROM main.user_authority");
             jdbc.execute("DELETE FROM main.\"user\"");
             jdbc.execute("DELETE FROM main.authority");
@@ -248,7 +254,8 @@ class FeeEngineIT {
     // -------------------------------------------------------------------------
     @Test
     void test_tenantFeeOverridesGlobal() {
-        long specificTenantId = 42L;
+        // Create a real tenant so the fee_rule FK constraint is satisfied
+        long specificTenantId = tenantService.createTenant("fee-override-tenant", "LIVE").tenant().getId();
 
         // Global rule: 0.00 (already seeded as id=1)
         // Tenant-specific rule: 200.00 for specificTenantId

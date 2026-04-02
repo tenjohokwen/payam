@@ -135,10 +135,11 @@ class FraudEngineIT {
         deleteVelocityKeys();
         deleteIdempotencyKeys();
 
-        // FK-safe DELETE order (follows PaymentOrchestratorIT pattern)
+        // FK-safe DELETE order: idempotency_key references tenant, so delete it first
         transactionTemplate.execute(status -> {
             jdbc.execute("DELETE FROM main.payment_event_log");
             jdbc.execute("DELETE FROM main.transaction");
+            jdbc.execute("DELETE FROM main.idempotency_key");
             jdbc.execute("DELETE FROM main.tenant_api_key");
             jdbc.execute("DELETE FROM main.tenant");
             jdbc.execute("DELETE FROM main.fraud_rule");

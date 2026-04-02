@@ -48,7 +48,7 @@ spring:
         enable_lazy_load_no_trans: false    #This is false by default. do not make it true. see  https://vladmihalcea.com/the-hibernate-enable_lazy_load_no_trans-anti-pattern/
         jdbc:
           batch_size: 15
-          time_zone: UTC
+          time_zone: UTC    #affects how Hibernate marshals Java Date/Instant objects
         connection.provider_disables_autocommit: true   # GOAL: delay the connection acquisition. It tells Hibernate that the underlying JDBC Connections have already disabled the auto-commit mode. Do not forget to also set hikari.auto-commit to false
         query.fail_on_pagination_over_collection_fetch: true
       org.hibernate.envers.store_data_at_delete: true
@@ -64,12 +64,13 @@ spring:
       maximum-pool-size: 25   #postgress puts a limit of 100 connections (so we can have up to 4 nodes, i.e. 25 for each)
       minimum-idle: 8
       auto-commit: false  #needed to be false in order to group statements in a single txn
+      connection-init-sql: "SET TIME ZONE 'UTC'"  # Ensure PostgreSQL session timezone is UTC for all connections.
       #connection-test-query: select 1   # For other dbs use select 1 from dual
       data-source-properties:
         reWriteBatchedInserts: true #optimize postgres batch
-        serverTimezone: UTC
-        useTimezone: true
-        useLegacyDatetimeCode: false
+        serverTimezone: UTC   #MYSQL ONLY
+        useTimezone: true     #MYSQL ONLY
+        useLegacyDatetimeCode: false   #MYSQL ONLY
         useServerPrepStmts: false  #Mysql optimization
         cachePrepStmts: true  #Mysql optimization
         prepStmtCacheSize: 500 #Mysql optimization
@@ -104,7 +105,12 @@ custom:
   flyway:
     check-schema: true
   cors: #Just for dev
-    allowed-origins: 'http://localhost:8080,https://localhost:9090,http://localhost:5175,http://localhost:9000'
+    allowed-origins:
+    - "http://localhost:8080"
+    - "http://localhost:9990"
+    - "http://127.0.0.1:9990"
+    - "http://localhost:5175"
+    - "http://localhost:9000"
     allowed-methods: '*'
     allowed-headers: '*'
     allow-credentials: true  #specifies if cookies and credentials are allowed.
@@ -144,11 +150,23 @@ datasource.container: true #use container connection config to connect to the co
 
 ##Actuator config
 management:
+  server:
+    port: 8367
   endpoints:
     web:
       exposure:
         include: health,info,env,metrics,prometheus
       base-path: /manage  #actuator root path
+      cors:
+        allowed-origins:
+          - "http://localhost:9990"
+          - "http://127.0.0.1:9990"
+          - "http://localhost:8080"
+          - "http://localhost:9000"
+        allowed-methods: "*"
+        allowed-headers: "*"
+        allow-credentials: true
+        max-age: 3600
   endpoint:
     health:
       show-details: when-authorized

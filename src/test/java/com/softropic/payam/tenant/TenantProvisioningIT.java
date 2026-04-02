@@ -21,6 +21,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -148,13 +149,12 @@ class TenantProvisioningIT {
         ApiKeyService.ApiKeyAndRawKey rotated = apiKeyService.rotate(oldKeyId);
         String newRawKey = rotated.rawKey();
 
-        // Simulate expiry by setting rotated_at to 25 hours ago
+        // Simulate expiry by setting rotated_at to 25 hours ago via JPA
+        // (avoids JDBC Timestamp timezone ambiguity; Hibernate sends Instant as UTC)
         transactionTemplate.execute(status -> {
-            jdbcTemplate.update(
-                "UPDATE main.tenant_api_key SET rotated_at = ? WHERE id = ?",
-                java.sql.Timestamp.from(Instant.now().minusSeconds(25 * 3600)),
-                oldKeyId
-            );
+            TenantApiKey expiredKey = tenantApiKeyRepository.findById(oldKeyId).orElseThrow();
+            expiredKey.setRotatedAt(Instant.now().minus(Duration.ofHours(25)));
+            tenantApiKeyRepository.save(expiredKey);
             return null;
         });
 

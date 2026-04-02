@@ -1,6 +1,7 @@
 package com.softropic.payam.mtn.service;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.mtn.config.MtnMoMoConfig;
 import com.softropic.payam.mtn.contract.exception.MtnApiException;
 import com.softropic.payam.transaction.contract.TransactionEventType;
 import com.softropic.payam.transaction.contract.TransactionStatus;
@@ -13,6 +14,8 @@ import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,23 +28,43 @@ import java.util.List;
 public class MtnStatusPollerJob extends QuartzJobBean {
 
     private static final Logger log = LoggerFactory.getLogger(MtnStatusPollerJob.class);
-    private static final int POLL_DELAY_MINUTES = 2;
+
+    /**
+     * Stable advisory lock key that uniquely identifies this poller in the cluster.
+     * Must differ from OrangeStatusPollerJob's key (4_002L).
+     * pg_try_advisory_xact_lock is transaction-level: auto-released on commit/rollback,
+     * non-blocking (returns false instead of waiting), so there is no deadlock risk.
+     */
+    private static final long MTN_POLLER_LOCK_KEY = 4_001L;
+
+    /**
+     * Maximum transactions processed per poller invocation.
+     * Prevents a backlog spike from overwhelming the JVM heap or exhausting the DB connection.
+     * Smaller batches (100) allow better distribution across a multi-node cluster.
+     */
+    private static final int POLL_BATCH_SIZE = 100;
 
     private final TransactionRepository transactionRepository;
     private final MtnMoMoPort mtnMoMoPort;
     private final EventLogService eventLogService;
+    private final MtnMoMoConfig config;
+    private final JdbcTemplate jdbcTemplate;
 
     public MtnStatusPollerJob(TransactionRepository transactionRepository,
                                MtnMoMoPort mtnMoMoPort,
-                               EventLogService eventLogService) {
+                               EventLogService eventLogService,
+                               MtnMoMoConfig config,
+                               JdbcTemplate jdbcTemplate) {
         this.transactionRepository = transactionRepository;
         this.mtnMoMoPort = mtnMoMoPort;
         this.eventLogService = eventLogService;
+        this.config = config;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     /**
      * Polls all PROCESSING MTN transactions that:
-     * - Have been PROCESSING for at least 2 minutes
+     * - Have been PROCESSING for at least N seconds
      * - Have not been polled more than 15 times (max ~75 minutes total at 5-min intervals)
      *
      * On SUCCESSFUL status: applyTransition(SUCCESS) + append event log
@@ -55,14 +78,31 @@ public class MtnStatusPollerJob extends QuartzJobBean {
     @Override
     @Transactional
     protected void executeInternal(JobExecutionContext context) {
-        Instant cutoff = Instant.now().minus(POLL_DELAY_MINUTES, ChronoUnit.MINUTES);
+        // Non-blocking transaction-level advisory lock — only one node polls at a time.
+        Boolean locked = jdbcTemplate.queryForObject(
+            "SELECT pg_try_advisory_xact_lock(?)", Boolean.class, MTN_POLLER_LOCK_KEY);
+        if (!Boolean.TRUE.equals(locked)) {
+            log.info("MTN poller skipped: lock held by another node",
+                kv("operation", "mtn_poller_scan"));
+            return;
+        }
+
+        int initialDelaySeconds = config.getPoller().getInitialDelaySeconds();
+        
+        // If delay is 0 (test-time), use a 1-hour FUTURE cutoff to pick up ALL transactions 
+        // including those created/modified in the current millisecond or shifted by auditing.
+        Instant cutoff = initialDelaySeconds == 0
+            ? Instant.now().plus(1, ChronoUnit.HOURS)
+            : Instant.now().minus(initialDelaySeconds, ChronoUnit.SECONDS);
 
         List<Transaction> stuck = transactionRepository
             .findByTxStatusAndProviderAndLastModifiedDateBefore(
-                TransactionStatus.PROCESSING, MobilePaymentProvider.MTN, cutoff);
+                TransactionStatus.PROCESSING, MobilePaymentProvider.MTN, cutoff,
+                PageRequest.of(0, POLL_BATCH_SIZE));
 
         log.info("Poller scan",
             kv("operation", "mtn_poller_scan"),
+            kv("initialDelaySeconds", initialDelaySeconds),
             kv("stuckCount", stuck.size()));
 
         for (Transaction tx : stuck) {
@@ -85,6 +125,12 @@ public class MtnStatusPollerJob extends QuartzJobBean {
         if (attempts >= 15) {
             Transaction locked = transactionRepository.findByTransactionIdForUpdate(tx.getTransactionId())
                 .orElseThrow();
+            
+            // Double-check status after locking to prevent race with webhook or another node
+            if (locked.getTxStatus() != TransactionStatus.PROCESSING) {
+                return;
+            }
+
             locked.applyTransition(TransactionStatus.FAILED);
             log.info("Transaction state changed",
                 kv("operation", "transaction_state_change"),
@@ -104,6 +150,12 @@ public class MtnStatusPollerJob extends QuartzJobBean {
             if (!result.pending()) {
                 Transaction locked = transactionRepository.findByTransactionIdForUpdate(tx.getTransactionId())
                     .orElseThrow();
+                
+                // Double-check status after locking
+                if (locked.getTxStatus() != TransactionStatus.PROCESSING) {
+                    return;
+                }
+
                 TransactionStatus next = MtnStatusMapper.toInternal(result.rawStatus());
                 locked.applyTransition(next);
                 log.info("Transaction state changed",
@@ -117,7 +169,6 @@ public class MtnStatusPollerJob extends QuartzJobBean {
                     : TransactionEventType.PROVIDER_FAILED;
                 // Wrap rawStatus in JSON double-quotes: metadata column is jsonb,
                 // a bare string like SUCCESSFUL is invalid JSON.
-                // WebhookTransitionService uses the same quoting pattern.
                 String metadata = "\"" + result.rawStatus() + "\"";
                 eventLogService.append(tx.getTransactionId(), tx.getTraceId(), tx.getExternalReference(),
                     eventType, TransactionStatus.PROCESSING, next,

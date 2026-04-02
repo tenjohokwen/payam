@@ -16,6 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,7 +34,7 @@ import static org.mockito.Mockito.when;
  * <p>{@code TestDataCleaner.wipeAll()} runs in {@code @AfterEach} (inherited from
  * {@link AbstractPayamE2ETest}) and deletes {@code reconciliation_discrepancy} before
  * {@code reconciliation_report}, satisfying the FK constraint. This allows all four
- * {@code @Test} methods to reuse {@code LocalDate.now().minusDays(1)} safely.
+ * {@code @Test} methods to reuse {@code LocalDate.now(ZoneOffset.UTC).minusDays(1)} safely.
  */
 public class DailyReconciliationE2ETest extends AbstractPayamE2ETest {
 
@@ -64,7 +65,7 @@ public class DailyReconciliationE2ETest extends AbstractPayamE2ETest {
 
     @Test
     void matchedTransaction() {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
+        LocalDate yesterday = LocalDate.now(ZoneOffset.UTC).minusDays(1);
         TenantBuilder.CreatedTenant tenant =
             new TenantBuilder().withName("Recon-Match").create(tenantService, tenantRepository);
 
@@ -90,7 +91,7 @@ public class DailyReconciliationE2ETest extends AbstractPayamE2ETest {
 
     @Test
     void missingTransaction() {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
+        LocalDate yesterday = LocalDate.now(ZoneOffset.UTC).minusDays(1);
         TenantBuilder.CreatedTenant tenant =
             new TenantBuilder().withName("Recon-Missing").create(tenantService, tenantRepository);
 
@@ -119,7 +120,7 @@ public class DailyReconciliationE2ETest extends AbstractPayamE2ETest {
 
     @Test
     void mismatchedTransaction() {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
+        LocalDate yesterday = LocalDate.now(ZoneOffset.UTC).minusDays(1);
         TenantBuilder.CreatedTenant tenant =
             new TenantBuilder().withName("Recon-Mismatch").create(tenantService, tenantRepository);
 
@@ -162,7 +163,7 @@ public class DailyReconciliationE2ETest extends AbstractPayamE2ETest {
      */
     @Test
     void watTimestampBoundary() {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
+        LocalDate yesterday = LocalDate.now(ZoneOffset.UTC).minusDays(1);
         TenantBuilder.CreatedTenant tenant =
             new TenantBuilder().withName("Recon-WAT").create(tenantService, tenantRepository);
 
@@ -196,7 +197,7 @@ public class DailyReconciliationE2ETest extends AbstractPayamE2ETest {
         assertThat(discrepancyCount).isZero();
 
         // Assert the transaction is NOT included in TODAY's run
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
         reconciliationService.runForDate(today);
 
         Integer todayTotal = jdbcTemplate.queryForObject(
@@ -222,7 +223,7 @@ public class DailyReconciliationE2ETest extends AbstractPayamE2ETest {
                 "INSERT INTO main.transaction " +
                 "(id, created_by, created_date, last_modified_by, last_modified_date, " +
                 "transaction_id, trace_id, tenant_id, tx_status, status, provider, amount, currency, provider_ref) " +
-                "VALUES (?, 'TEST', ?::TIMESTAMPTZ, 'TEST', ?::TIMESTAMPTZ, ?, ?, ?, ?, 'ACTIVE', ?, 500.00, 'XAF', ?)",
+                "VALUES (?, 'TEST', (?::TIMESTAMPTZ) AT TIME ZONE 'UTC', 'TEST', (?::TIMESTAMPTZ) AT TIME ZONE 'UTC', ?, ?, ?, ?, 'ACTIVE', ?, 500.00, 'XAF', ?)",
                 id, createdDate, createdDate,
                 transactionId, UUID.randomUUID().toString(), tenantId,
                 txStatus, provider, providerRef);

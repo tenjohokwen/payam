@@ -37,6 +37,10 @@ import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -45,10 +49,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
-import static com.github.tomakehurst.wiremock.client.WireMock.exactly;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -90,6 +92,8 @@ public class MtnPathMatrixTest extends AbstractPayamE2ETest {
 
     @BeforeEach
     void setUp() {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+
         // Seed permissive fraud rules so normal payments are allowed (BLOCK_THRESHOLD=70).
         // Fraud-blocked scenario overrides MSISDN_VELOCITY threshold locally.
         transactionTemplate.execute(status -> {
@@ -285,13 +289,15 @@ public class MtnPathMatrixTest extends AbstractPayamE2ETest {
             .withIdempotencyKey(UUID.randomUUID().toString()).build());
         assertThat(transactionId).isNotNull();
 
-        // Backdate last_modified_date with REQUIRES_NEW
+        // Backdate last_modified_date with REQUIRES_NEW.
+        // Pass the timestamp as a Java parameter to avoid depending on the PostgreSQL session timezone.
+        Instant backdated = Instant.now().minus(7, ChronoUnit.MINUTES);
         DefaultTransactionDefinition requiresNew = new DefaultTransactionDefinition();
         requiresNew.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         new TransactionTemplate(transactionManager, requiresNew).execute(status -> {
             jdbcTemplate.update(
-                "UPDATE main.transaction SET last_modified_date = NOW() - INTERVAL '3 minutes' " +
-                "WHERE transaction_id = ?", transactionId);
+                "UPDATE main.transaction SET last_modified_date = ? WHERE transaction_id = ?",
+                Timestamp.from(backdated), transactionId);
             return null;
         });
 

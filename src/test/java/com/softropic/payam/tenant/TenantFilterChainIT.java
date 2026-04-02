@@ -189,6 +189,13 @@ class TenantFilterChainIT {
             assertThat(e.getResponseBodyAsString())
                 .doesNotContain("Missing X-Api-Key header");
             assertThat(e.getStatusCode().value()).isIn(401, 403);
+        } catch (HttpServerErrorException e) {
+            // The actuator runs on a separate management port (management.server.port=8367).
+            // Hitting /manage/health on the main port reaches the app's global error handler
+            // (no route → 500). This proves the tenant filter chain did NOT intercept the
+            // request (which would return 401 with "Missing X-Api-Key header").
+            assertThat(e.getResponseBodyAsString())
+                .doesNotContain("Missing X-Api-Key header");
         }
     }
 

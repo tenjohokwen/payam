@@ -26,6 +26,11 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.RestTemplate;
 
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.TimeZone;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
@@ -81,6 +86,8 @@ public class OrangePayTokenExpiryE2ETest extends AbstractFailureFlowTest {
 
     @Override
     protected void setupPreconditions() {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+
         // Stub Orange initiation stubs — subscriber info, merchant info, and pay endpoint.
         // The /mp/paymentstatus endpoint is intentionally NOT stubbed here — the poller
         // must NOT reach it once payToken expiry is detected (expiry triggers an early return).
@@ -159,13 +166,15 @@ public class OrangePayTokenExpiryE2ETest extends AbstractFailureFlowTest {
         // Use REQUIRES_NEW so the update commits immediately in its own transaction, independent
         // of any JPA session. Without this, Hibernate's L1 cache flush on the outer transaction
         // commit silently overwrites the raw JDBC change with the original entity state.
+        final Instant now = Instant.now();
+        Instant backdated = now.minus(7, ChronoUnit.MINUTES);
         DefaultTransactionDefinition requiresNew = new DefaultTransactionDefinition();
         requiresNew.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         new TransactionTemplate(transactionManager, requiresNew).execute(status -> {
             jdbcTemplate.update(
-                "UPDATE main.transaction SET pay_token_issued_at = NOW() - INTERVAL '1 year', " +
-                "last_modified_date = NOW() - INTERVAL '3 minutes' " +
-                "WHERE transaction_id = ?", transactionId);
+                    "UPDATE main.transaction SET pay_token_issued_at = NOW() - INTERVAL '1 year', " +
+                "last_modified_date = ? WHERE transaction_id = ?",
+                    Timestamp.from(backdated), transactionId);
             return null;
         });
 

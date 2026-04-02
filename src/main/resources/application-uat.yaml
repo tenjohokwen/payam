@@ -35,7 +35,7 @@ spring:
   application.name: payam #custom field
   autoconfigure.exclude: org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration
   main.allow-circular-references: false
-  jmx.enabled: true
+  jmx.enabled: false
   jpa:
     generate-ddl: true
     hibernate.ddl-auto: none #none #update #create #create-drop #validate
@@ -64,7 +64,6 @@ spring:
       maximum-pool-size: 25   #postgress puts a limit of 100 connections (so we can have up to 4 nodes, i.e. 25 for each)
       minimum-idle: 8
       auto-commit: false  #needed to be false in order to group statements in a single txn
-      connection-init-sql: "SET TIME ZONE 'UTC'"  # Ensure PostgreSQL session timezone is UTC for all connections.
       #connection-test-query: select 1   # For other dbs use select 1 from dual
       data-source-properties:
         reWriteBatchedInserts: true #optimize postgres batch
@@ -93,7 +92,7 @@ spring:
     host: mail.gmx.net
     port: 587
     username: blue-bone@gmx.de
-    password: ${SPRING_MAIL_PASSWORD} #BEQMN6SITHUDQEGIDWKZ
+    password: ${SPRING_MAIL_PASSWORD:dev_mail_password} #BEQMN6SITHUDQEGIDWKZ
     properties:
       mail:
         smtp:
@@ -106,10 +105,11 @@ custom:
     check-schema: true
   cors: #Just for dev
     allowed-origins:
-      - "http://localhost:9990"
-      - "http://127.0.0.1:9990"
-      - "http://localhost:8080"
-      - "http://localhost:9000"
+    - "http://localhost:8080"
+    - "http://localhost:9990"
+    - "http://127.0.0.1:9990"
+    - "http://localhost:5175"
+    - "http://localhost:9000"
     allowed-methods: '*'
     allowed-headers: '*'
     allow-credentials: true  #specifies if cookies and credentials are allowed.
@@ -121,13 +121,13 @@ email:
       host: mail.gmx.net
       port: 587
       username: blue-bone@gmx.de
-      password: ${GMX_PASSWORD}
+      password: ${GMX_PASSWORD:dev_gmx_password}
     -
       name: gmail
       host: smtp.gmail.com
       port: 587
       username: enkap24@gmail.com
-      password: ${GMAIL_PASSWORD}
+      password: ${GMAIL_PASSWORD:dev_gmail_password}
 
 
 #log configuration
@@ -135,7 +135,7 @@ email:
 logging.config: classpath:config/logback-spring.xml
 ##logback.access.config: classpath:config/logback-access-spring.xml ##using custom LoggingFilter for access logging because it logs payload
 app:
-  environment: ${ENVIRONMENT:prod}
+  environment: ${ENVIRONMENT:dev}
   version: ${APP_VERSION:unknown}
 
 # hibernate logs
@@ -154,7 +154,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,env,metrics,prometheus
       base-path: /manage  #actuator root path
       cors:
         allowed-origins:
@@ -287,8 +287,8 @@ mtn:
   disbursement-token-url: https://sandbox.momodeveloper.mtn.com/disbursement/token/
   api-user-id: ${MTN_API_USER_ID:dev_mtn_user_id}
   api-key: ${MTN_API_KEY:dev_mtn_api_key}
-  collection-subscription-key: ${MTN_COLLECTION_SUB_KEY:dev_mtn_collection_key}
-  disbursement-subscription-key: ${MTN_DISBURSEMENT_SUB_KEY:dev_mtn_disbursement_key}
+  collection-subscription-key: 8f0ed12192bc4c5a81256bddf527c335
+  disbursement-subscription-key: 1c2ef9a100464c62a3c3cd74a7c33576
   target-environment: sandbox
   callback-ip-whitelist:
     - "196.0.0.0/8"
@@ -296,7 +296,6 @@ mtn:
     initial-delay-seconds: 120
     interval-seconds: 300
     max-attempts: 15
-
 payam:
   platform:
     notification-email: ${PLATFORM_NOTIFICATION_EMAIL:tenjoh_okwen@yahoo.com}

@@ -122,7 +122,7 @@ export default defineConfig((ctx) => {
           changeOrigin: true,
         },
         '/manage': {
-          target: 'http://localhost:9990',
+          target: 'http://localhost:8367',
           changeOrigin: true,
         },
       },

@@ -12,6 +12,9 @@
 * [ ] ensure email config is set correctly in application.yaml and mails are sent successfully.
 * [ ] LOG-OBS-01: Loki alerting rules for ERROR rate thresholds — configure in Grafana, not application code
 * [ ] LOG-OBS-02: Custom Grafana dashboards for payment business events — built once sufficient log volume exists in production
+* [ ] Ensure all Controllers have @Observable annotation
+* [ ] Ask AI to determine the grafana dashboards needed for this app. 
+* [ ] Ensure you have scripts that clean up the various tables (AI should write them and also write tests that clean up mid way and continue inserting data and verify that data well inserted and nothing is lost)
 * [ ] prepare the following env variables
 
     1 export SPRING_MAIL_PASSWORD="your_actual_spring_mail_password"
@@ -27,5 +30,43 @@ ISSUES
 * mask out sensitive data from logs (tips: https://www.baeldung.com/logback-mask-sensitive-data, )
 * clean up logging
 * create missing migration scripts
-* ensure constraints are creating in the entities as well as migration scripts (Also ask AI to make suggestions for constraints on a module by module basis)
+* ensure constraints are created in the entities as well as migration scripts (Also ask AI to make suggestions for constraints on a module by module basis)
 * Ask AI if with the current API you can do B2C and B2B transactions for both MTN and Orange
+* Ask AI to ensure that 
+    1. Data that is loaded from the DB should always have a limit. (pagination could be used where it makes sense)
+  2. Jobs should always take into account that they will run in a multi-node environment so locks like select for update need to be used (with skip)
+  3. The data loaded within a transaction should be limited. Pageable/pagination does not solve the problem because the data will remain in the transaction context
+* Add the following to the hikari section of all apps
+  connection-init-sql: "SET TIME ZONE 'UTC'"  # Ensure PostgreSQL session timezone is UTC for all connections.
+* Ask AI to go through backend code and ensure it will maintain ACID properties when run in a multi threaded and multi node environment and without dead locks
+
+
+
+
+**NB**
+┌──────────────────────────────┬───────────────────────────────────────────────────────────────────────────────────────────────┬───────────────────────────────────────────────┐                                                                                                                                     
+│            Layer             │                                         What it does                                          │     Effect on PostgreSQL session timezone     │                                                                                                                                     
+├──────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────┤                                                                                                                                     
+│ TimeZone=UTC in JDBC URL     │ Configures the driver's Calendar used when formatting java.sql.Timestamp → String on the wire │ None — no SET TIME ZONE is sent to the server │                                                                                                                                     
+├──────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────┤
+│ hibernate.jdbc.time_zone=UTC │ Uses a UTC Calendar when Hibernate calls setTimestamp(i, ts, cal)                             │ None — same driver-side only                  │                                                                                                                                     
+├──────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────┤                                                                                                                                     
+│ SET TIME ZONE 'UTC' (new)    │ Issues SET TIME ZONE 'UTC' to PostgreSQL at connection creation                               │ Sets the server-side session timezone to UTC  │                                                                                                                                     
+└──────────────────────────────┴───────────────────────────────────────────────────────────────────────────────────────────────┴───────────────────────────────────────────────┘
+
+Without the new line, PostgreSQL's NOW() and any explicit TIMESTAMP WITHOUT TIME ZONE casts used the server's OS timezone (your UTC+2). Hibernate parameters came in UTC. The SQL comparison last_modified_date (12:xx UTC+2) < cutoff (09:xx UTC) was always false by exactly 2 hours, regardless of how much you   
+backdated.
+
+With connection-init-sql, all three write paths now agree on UTC:
+- @LastModifiedDate (Hibernate) → UTC
+- jdbcTemplate raw SQL (NOW() - INTERVAL '3 minutes') → UTC (session is UTC)  //in practise this is flaky. There is no guarantee that UTC is taken. Simply avoid using postgres'/jdbc's "NOW"
+- JPQL cutoff parameter (Hibernate) → UTC                                   
+      
+
+## Requirements
+1. endpoint to abort a payment
+2. endpoint to find the state of a payment (Currently, there is no direct merchant-facing endpoint to query the status of a payment.)
+3. endpoint to submit merchant webhook
+4. An admin should be able to manage tenants from the UI (define what is allowed. Which fields can be edited -- /v1/admin/tenants TenantAdminResource)
+5. Ensure all resources (Controllers) are secured with the needed rights
+6. Ask AI to document a way to investigate txns given the auditing, tracing etc that exist on the platform. Also ask if something could be added to the already existing stuff
