@@ -5,7 +5,7 @@
 - ✅ **v1 Payment API** — Phases 1–13 (shipped 2026-03-26) — see [milestones/v1-ROADMAP.md](milestones/v1-ROADMAP.md)
 - ✅ **v2 Logging Standardization** — Phases 14–17 (shipped 2026-03-27) — see [milestones/v2-ROADMAP.md](milestones/v2-ROADMAP.md)
 - ✅ **v3 E2E Test Suite** — Phases 18–23 (shipped 2026-03-28) — see [milestones/v3-ROADMAP.md](milestones/v3-ROADMAP.md)
-- 🚧 **v4 Platform Config & Health** — Phases 24–26 (in progress)
+- ✅ **v4 Platform Config & Health** — Phases 24–26 (shipped 2026-04-02) — see [milestones/v4-ROADMAP.md](milestones/v4-ROADMAP.md)
 
 ## Phases
 
@@ -50,52 +50,14 @@
 
 </details>
 
-### 📋 v4 Platform Config & Health (Planned)
+<details>
+<summary>✅ v4 Platform Config &amp; Health (Phases 24–26) — SHIPPED 2026-04-02</summary>
 
-**Milestone Goal:** Admin can view and update platform MSISDNs for both providers; Spring Boot Actuator reflects live provider health and circuit breaker state; health dashboard is accessible in the admin UI to admin users only.
+- [x] Phase 24: Platform Configuration (3/3 plans) — completed 2026-03-30
+- [x] Phase 25: Provider Health Indicators (1/1 plans) — completed 2026-03-31
+- [x] Phase 26: Health Dashboard UI (1/1 plans) — completed 2026-04-02
 
-#### Phase 24: Platform Configuration ✅
-**Goal**: Admin can view and update platform MSISDNs for both providers, with email notification on change
-**Depends on**: Phase 23
-**Requirements**: PCONF-01, PCONF-02, PCONF-03, PCONF-04
-**Success Criteria** (what must be TRUE):
-  1. Admin can view the current Orange and MTN platform MSISDNs in the admin UI ✅
-  2. Admin can update the Orange platform MSISDN and see it persisted on reload ✅
-  3. Admin can update the MTN platform MSISDN and see it persisted on reload ✅
-  4. A notification email is sent to the configured address whenever either platform MSISDN is changed ✅
-**Plans**: 3/3 — completed 2026-03-30
-
-Plans:
-- [x] 24-01: Flyway V17 migration, PlatformConfig entity/repo, PlatformConfigService, PlatformConfigAdminResource (GET + PUT)
-- [x] 24-02: EmailTemplate enum entry, PlatformConfigEmailListener, platformConfigChanged.html Thymeleaf template
-- [x] 24-03: PlatformConfigPage.vue (Vue 3 Composition API), admin.api.js API functions, routes.js child route
-
-#### Phase 25: Provider Health Indicators
-**Goal**: Spring Boot Actuator `/manage/health` reflects live Orange and MTN MSISDN validation and circuit breaker state
-**Depends on**: Phase 24
-**Requirements**: HLTH-01, HLTH-02, HLTH-03, HLTH-04, HLTH-05
-**Success Criteria** (what must be TRUE):
-  1. `/manage/health` returns UP when both Orange and MTN platform MSISDNs pass their provider validations
-  2. `/manage/health` returns DOWN when either MSISDN fails provider validation
-  3. Health response includes circuit breaker status for the Orange Money provider adapter
-  4. Health response includes circuit breaker status for the MTN MoMo provider adapter
-**Plans**: 1/1 — completed 2026-03-31
-
-Plans:
-- [x] 25-01: OrangePlatformHealthIndicator + MtnPlatformHealthIndicator (HealthIndicator beans, validateSubscriber, CB state detail)
-
-#### Phase 26: Health Dashboard UI
-**Goal**: Admin UI health dashboard surfaces all health check results; access is restricted to admin users
-**Depends on**: Phase 25
-**Requirements**: HLTH-06, HLTH-07
-**Success Criteria** (what must be TRUE):
-  1. Admin users can view a health dashboard page showing all health check results
-  2. Non-admin (client/tenant) users see access-denied banner (no component details shown)
-  3. Dashboard displays live provider MSISDN validation status and circuit breaker state for both providers
-**Plans**: 1 planned
-
-Plans:
-- [ ] 26-01: HealthDashboardPage.vue, getHealth() in admin.api.js, health-dashboard route
+</details>
 
 ## Progress
 
@@ -126,4 +88,4 @@ Plans:
 | 23. Domain Invariants, Concurrency, SM, Mutation | v3 | 5/5 | Complete | 2026-03-28 |
 | 24. Platform Configuration | v4 | 3/3 | Complete | 2026-03-30 |
 | 25. Provider Health Indicators | v4 | 1/1 | Complete | 2026-03-31 |
-| 26. Health Dashboard UI | v4 | 0/TBD | Not started | - |
+| 26. Health Dashboard UI | v4 | 1/1 | Complete | 2026-04-02 |

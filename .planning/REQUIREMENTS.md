@@ -7,20 +7,20 @@
 
 ### PCONF: Platform Configuration
 
-- [ ] **PCONF-01**: Admin can view the configured platform MSISDN for each provider (Orange and MTN) in the admin UI
-- [ ] **PCONF-02**: Admin can update the Orange Money platform MSISDN in the admin UI
-- [ ] **PCONF-03**: Admin can update the MTN MoMo platform MSISDN in the admin UI
-- [ ] **PCONF-04**: System sends email notification to the address in `payam.platform.notification-email` whenever any platform MSISDN is modified
+- [x] **PCONF-01**: Admin can view the configured platform MSISDN for each provider (Orange and MTN) in the admin UI
+- [x] **PCONF-02**: Admin can update the Orange Money platform MSISDN in the admin UI
+- [x] **PCONF-03**: Admin can update the MTN MoMo platform MSISDN in the admin UI
+- [x] **PCONF-04**: System sends email notification to the address in `payam.platform.notification-email` whenever any platform MSISDN is modified
 
 ### HLTH: Platform Health
 
-- [ ] **HLTH-01**: `/actuator/health` verifies the Orange platform MSISDN is active by calling the Orange subscriber validation endpoint on every poll
-- [ ] **HLTH-02**: `/actuator/health` verifies the MTN platform MSISDN is active by calling the MTN account holder validation endpoint on every poll
-- [ ] **HLTH-03**: Health status is `UP` only when both Orange and MTN platform MSISDNs pass provider validation
-- [ ] **HLTH-04**: Health check includes the circuit breaker status for the Orange Money provider adapter
-- [ ] **HLTH-05**: Health check includes the circuit breaker status for the MTN MoMo provider adapter
-- [ ] **HLTH-06**: Admin can view a health dashboard in the admin UI showing all health check results
-- [ ] **HLTH-07**: Health dashboard is restricted to admin users — client/tenant users cannot access it
+- [x] **HLTH-01**: `/actuator/health` verifies the Orange platform MSISDN is active by calling the Orange subscriber validation endpoint on every poll
+- [x] **HLTH-02**: `/actuator/health` verifies the MTN platform MSISDN is active by calling the MTN account holder validation endpoint on every poll
+- [x] **HLTH-03**: Health status is `UP` only when both Orange and MTN platform MSISDNs pass provider validation
+- [x] **HLTH-04**: Health check includes the circuit breaker status for the Orange Money provider adapter
+- [x] **HLTH-05**: Health check includes the circuit breaker status for the MTN MoMo provider adapter
+- [x] **HLTH-06**: Admin can view a health dashboard in the admin UI showing all health check results
+- [x] **HLTH-07**: Health dashboard is restricted to admin users — client/tenant users cannot access it
 
 ## v2 Requirements
 
@@ -43,17 +43,17 @@ Which phases cover which requirements. Updated by create-roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PCONF-01 | Phase 24 | Pending |
-| PCONF-02 | Phase 24 | Pending |
-| PCONF-03 | Phase 24 | Pending |
-| PCONF-04 | Phase 24 | Pending |
-| HLTH-01 | Phase 25 | Pending |
-| HLTH-02 | Phase 25 | Pending |
-| HLTH-03 | Phase 25 | Pending |
-| HLTH-04 | Phase 25 | Pending |
-| HLTH-05 | Phase 25 | Pending |
-| HLTH-06 | Phase 26 | Pending |
-| HLTH-07 | Phase 26 | Pending |
+| PCONF-01 | Phase 24 | Complete |
+| PCONF-02 | Phase 24 | Complete |
+| PCONF-03 | Phase 24 | Complete |
+| PCONF-04 | Phase 24 | Complete |
+| HLTH-01 | Phase 25 | Complete |
+| HLTH-02 | Phase 25 | Complete |
+| HLTH-03 | Phase 25 | Complete |
+| HLTH-04 | Phase 25 | Complete |
+| HLTH-05 | Phase 25 | Complete |
+| HLTH-06 | Phase 26 | Complete |
+| HLTH-07 | Phase 26 | Complete |
 
 **Coverage:**
 - v1 requirements: 11 total
