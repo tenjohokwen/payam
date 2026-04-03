@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 27 — Schema and Enum Migration
+**Current focus:** Phase 28 — Service Layer
 
 ## Current Position
 
-Phase: 27 of 33 in v5 (Schema and Enum Migration)
-Plan: 2 of 2 complete
-Status: Complete — Phase 27 finished
-Last activity: 2026-04-03 — Phase 27 complete (2/2 plans); phase 28 service layer next
+Phase: 28 of 33 in v5 (Service Layer)
+Plan: 0 of 2 — ready to execute
+Status: Planned — Phase 28 ready for execution
+Last activity: 2026-04-03 — Phase 28 planned (2 plans, 2 waves); research + verification passed
 
-Progress: ██████████████████████████████ v1+v2 complete | █████████████████ v3 + gap closure 100% COMPLETE | █████████ v4 phases 24+25+26 COMPLETE | ██ v5 phase 27 COMPLETE (2/2 plans) | ░ v5 phases 28-33
+Progress: ██████████████████████████████ v1+v2 complete | █████████████████ v3 + gap closure 100% COMPLETE | █████████ v4 phases 24+25+26 COMPLETE | ██ v5 phase 27 COMPLETE | ░░ v5 phase 28 PLANNED (0/2 plans) | ░ v5 phases 29-33
 
 ## Performance Metrics
 
@@ -150,5 +150,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-04-03
-Stopped at: Phase 27 complete (27-02 — LIVE-to-PROD migration, 234 tests green); phase 28 Service Layer next
+Stopped at: Phase 28 planned (28-01 + 28-02, verification passed); ready to execute
 Resume file: None
