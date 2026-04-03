@@ -215,7 +215,11 @@ Plans:
   7. Admin can manually revoke a key (immediate, no grace period)
   8. Admin can regenerate WebhookSecret (new secret replaces old)
   9. Hibernate Envers captures all Tenant and TenantApiKey mutations; every key generation/rotation event logs acting admin ID and timestamp
-**Plans**: 0/? — not started
+**Plans**: 2 plans
+
+Plans:
+- [ ] 28-01-PLAN.md — Flyway V20 Envers audit tables + TenantService lifecycle + ApiKeyService guards
+- [ ] 28-02-PLAN.md — TenantServiceIT + TenantAuditIT integration tests + TenantProvisioningIT webhookSecret assertion
 
 ## Progress
 
@@ -248,7 +252,7 @@ Plans:
 | 25. Provider Health Indicators | v4 | 1/1 | Complete | 2026-03-31 |
 | 26. Health Dashboard UI | v4 | 1/1 | Complete | 2026-04-02 |
 | 27. Schema and Enum Migration | v5 | 2/2 | Complete | 2026-04-03 |
-| 28. Service Layer | v5 | 0/? | Not started | — |
+| 28. Service Layer | v5 | 0/2 | In progress | — |
 | 29. Quartz Rotation Cleanup Job | v5 | 0/? | Not started | — |
 | 30. Email Notifications | v5 | 0/? | Not started | — |
 | 31. REST API Expansion | v5 | 0/? | Not started | — |
