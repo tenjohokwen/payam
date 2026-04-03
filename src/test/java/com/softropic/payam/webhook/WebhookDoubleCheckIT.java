@@ -2,6 +2,7 @@ package com.softropic.payam.webhook;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.softropic.payam.config.TestConfig;
+import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
 import com.softropic.payam.transaction.contract.LedgerDirection;
 import com.softropic.payam.transaction.contract.TransactionStatus;
@@ -150,7 +151,7 @@ class WebhookDoubleCheckIT {
         redis.getConnectionFactory().getConnection().serverCommands().flushDb();
 
         // Create tenant
-        tenantId = tenantService.createTenant("wh-dc-test", "LIVE").tenant().getId();
+        tenantId = tenantService.createTenant("wh-dc-test", ApiKeyEnvironment.PROD).tenant().getId();
 
         // Reset circuit breakers for test isolation
         circuitBreakerRegistry.circuitBreaker("orange").reset();

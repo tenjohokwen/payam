@@ -4,6 +4,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.fraud.service.FraudRuleCache;
 import com.softropic.payam.payment.contract.PaymentResponse;
+import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
 
 import org.junit.jupiter.api.AfterEach;
@@ -110,7 +111,7 @@ class FraudEngineIT {
         fraudRuleCache.refreshRules();
 
         // Create tenant for this test
-        TenantService.TenantCreationResult provision = tenantService.createTenant("fraud-engine-it-" + UUID.randomUUID(), "LIVE");
+        TenantService.TenantCreationResult provision = tenantService.createTenant("fraud-engine-it-" + UUID.randomUUID(), ApiKeyEnvironment.PROD);
         tenantId = provision.tenant().getId();
         apiKey = provision.rawKey();
 

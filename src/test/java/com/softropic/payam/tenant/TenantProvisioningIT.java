@@ -7,6 +7,7 @@ import com.softropic.payam.tenant.repo.TenantApiKey;
 import com.softropic.payam.tenant.repo.TenantApiKeyRepository;
 import com.softropic.payam.tenant.repo.TenantRepository;
 import com.softropic.payam.tenant.service.ApiKeyService;
+import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
 
 import org.apache.commons.codec.digest.DigestUtils;
@@ -65,7 +66,7 @@ class TenantProvisioningIT {
 
     @Test
     void createTenant_persistsEntities() {
-        TenantService.TenantCreationResult result = tenantService.createTenant("Acme Corp", "LIVE");
+        TenantService.TenantCreationResult result = tenantService.createTenant("Acme Corp", ApiKeyEnvironment.PROD);
 
         // Tenant assertions
         assertThat(result.tenant()).isNotNull();
@@ -90,8 +91,8 @@ class TenantProvisioningIT {
         assertThat(key.getKeyHash()).isNotEqualTo(rawKey);
         assertThat(key.getKeyHash()).isEqualTo(DigestUtils.sha256Hex(rawKey));
 
-        // Prefix check
-        assertThat(rawKey).startsWith(key.getKeyPrefix());
+        // Prefix check — derived from tenant name (v5: keyPrefix is 3-char uppercase from name)
+        assertThat(key.getKeyPrefix()).isEqualTo("ACM");
 
         // Verify row exists in DB
         assertThat(tenantRepository.findByTenantRef(result.tenant().getTenantRef())).isPresent();
@@ -101,7 +102,7 @@ class TenantProvisioningIT {
 
     @Test
     void authenticate_validKey_succeeds() {
-        TenantService.TenantCreationResult result = tenantService.createTenant("Auth Test Corp", "LIVE");
+        TenantService.TenantCreationResult result = tenantService.createTenant("Auth Test Corp", ApiKeyEnvironment.PROD);
         String rawKey = result.rawKey();
 
         TenantApiKey authenticated = apiKeyService.authenticate(rawKey);
@@ -112,7 +113,7 @@ class TenantProvisioningIT {
 
     @Test
     void authenticate_revokedKey_throws() {
-        TenantService.TenantCreationResult result = tenantService.createTenant("Revoke Test Corp", "LIVE");
+        TenantService.TenantCreationResult result = tenantService.createTenant("Revoke Test Corp", ApiKeyEnvironment.PROD);
         String rawKey = result.rawKey();
         Long keyId = result.key().getId();
 
@@ -124,7 +125,7 @@ class TenantProvisioningIT {
 
     @Test
     void rotate_oldKeyValidDuringGrace() {
-        TenantService.TenantCreationResult result = tenantService.createTenant("Rotate Test Corp", "LIVE");
+        TenantService.TenantCreationResult result = tenantService.createTenant("Rotate Test Corp", ApiKeyEnvironment.PROD);
         String oldRawKey = result.rawKey();
         Long oldKeyId = result.key().getId();
 
@@ -142,7 +143,7 @@ class TenantProvisioningIT {
 
     @Test
     void authenticate_rotatedKeyExpired_throws() {
-        TenantService.TenantCreationResult result = tenantService.createTenant("Expired Rotation Corp", "LIVE");
+        TenantService.TenantCreationResult result = tenantService.createTenant("Expired Rotation Corp", ApiKeyEnvironment.PROD);
         String oldRawKey = result.rawKey();
         Long oldKeyId = result.key().getId();
 
@@ -169,8 +170,8 @@ class TenantProvisioningIT {
 
     @Test
     void tenantIsolation_cannotSeeOtherTenant() {
-        TenantService.TenantCreationResult tenant1 = tenantService.createTenant("Tenant One", "LIVE");
-        TenantService.TenantCreationResult tenant2 = tenantService.createTenant("Tenant Two", "LIVE");
+        TenantService.TenantCreationResult tenant1 = tenantService.createTenant("Tenant One", ApiKeyEnvironment.PROD);
+        TenantService.TenantCreationResult tenant2 = tenantService.createTenant("Tenant Two", ApiKeyEnvironment.PROD);
 
         List<TenantApiKey> tenant1Keys = tenantApiKeyRepository.findAllByTenantId(tenant1.tenant().getId());
         List<TenantApiKey> tenant2Keys = tenantApiKeyRepository.findAllByTenantId(tenant2.tenant().getId());

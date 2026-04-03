@@ -9,6 +9,7 @@ import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.orange.contract.exception.PayTokenExpiredException;
 import com.softropic.payam.orange.contract.exception.SubscriberInactiveException;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
+import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
 import com.softropic.payam.transaction.service.TransactionService;
 
@@ -68,7 +69,7 @@ class OrangeMoneyPortIT {
             return null;
         });
 
-        tenantId = tenantService.createTenant("orange-test-tenant", "LIVE").tenant().getId();
+        tenantId = tenantService.createTenant("orange-test-tenant", ApiKeyEnvironment.PROD).tenant().getId();
 
         // Seed orange access token WireMock stub
         orangeServer.stubFor(post(urlPathEqualTo("/token"))

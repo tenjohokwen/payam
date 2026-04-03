@@ -1,6 +1,7 @@
 package com.softropic.payam.tenant;
 
 import com.softropic.payam.config.TestConfig;
+import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
 
 import org.junit.jupiter.api.AfterEach;
@@ -94,7 +95,7 @@ class TenantFilterChainIT {
     @Test
     void apiKeyChain_validKey_returns201() {
         TenantService.TenantCreationResult result =
-            tenantService.createTenant("FilterChain Corp", "LIVE");
+            tenantService.createTenant("FilterChain Corp", ApiKeyEnvironment.PROD);
         String rawKey = result.rawKey();
 
         HttpHeaders headers = new HttpHeaders();
@@ -103,7 +104,7 @@ class TenantFilterChainIT {
 
         org.springframework.http.HttpEntity<Map<String, String>> entity =
             new org.springframework.http.HttpEntity<>(
-                Map.of("name", "Another Corp", "environment", "LIVE"),
+                Map.of("name", "Another Corp", "environment", "PROD"),
                 headers);
 
         // A valid API key should pass the filter chain — the route may return any non-401 status.
@@ -132,7 +133,7 @@ class TenantFilterChainIT {
 
         org.springframework.http.HttpEntity<Map<String, String>> entity =
             new org.springframework.http.HttpEntity<>(
-                Map.of("name", "NoKey Corp", "environment", "LIVE"),
+                Map.of("name", "NoKey Corp", "environment", "PROD"),
                 headers);
 
         assertThatThrownBy(() ->
@@ -153,7 +154,7 @@ class TenantFilterChainIT {
 
         org.springframework.http.HttpEntity<Map<String, String>> entity =
             new org.springframework.http.HttpEntity<>(
-                Map.of("name", "BadKey Corp", "environment", "LIVE"),
+                Map.of("name", "BadKey Corp", "environment", "PROD"),
                 headers);
 
         assertThatThrownBy(() ->
@@ -207,16 +208,16 @@ class TenantFilterChainIT {
     @Test
     void tenantContext_clearedAfterRequest_noLeakBetweenRequests() {
         TenantService.TenantCreationResult tenant1 =
-            tenantService.createTenant("Context Test Tenant 1", "LIVE");
+            tenantService.createTenant("Context Test Tenant 1", ApiKeyEnvironment.PROD);
         TenantService.TenantCreationResult tenant2 =
-            tenantService.createTenant("Context Test Tenant 2", "LIVE");
+            tenantService.createTenant("Context Test Tenant 2", ApiKeyEnvironment.PROD);
 
         // First request with tenant1's key → must succeed
         HttpHeaders headers1 = new HttpHeaders();
         headers1.setContentType(MediaType.APPLICATION_JSON);
         headers1.set("X-Api-Key", tenant1.rawKey());
         org.springframework.http.HttpEntity<Map<String, String>> req1 =
-            new org.springframework.http.HttpEntity<>(Map.of("name", "Sub1", "environment", "LIVE"), headers1);
+            new org.springframework.http.HttpEntity<>(Map.of("name", "Sub1", "environment", "PROD"), headers1);
 
         // A valid API key should pass the filter chain — any non-401 proves key acceptance
         try {
@@ -235,7 +236,7 @@ class TenantFilterChainIT {
         headers2.setContentType(MediaType.APPLICATION_JSON);
         headers2.set("X-Api-Key", tenant2.rawKey());
         org.springframework.http.HttpEntity<Map<String, String>> req2 =
-            new org.springframework.http.HttpEntity<>(Map.of("name", "Sub2", "environment", "LIVE"), headers2);
+            new org.springframework.http.HttpEntity<>(Map.of("name", "Sub2", "environment", "PROD"), headers2);
 
         try {
             ResponseEntity<Object> response2 = restTemplate.exchange(
@@ -262,8 +263,8 @@ class TenantFilterChainIT {
     // -------------------------------------------------------------------------
     @Test
     void idempotencyKey_duplicateRejectedPerTenant_crossTenantAllowed() {
-        TenantService.TenantCreationResult t1 = tenantService.createTenant("Idempotency T1", "LIVE");
-        TenantService.TenantCreationResult t2 = tenantService.createTenant("Idempotency T2", "LIVE");
+        TenantService.TenantCreationResult t1 = tenantService.createTenant("Idempotency T1", ApiKeyEnvironment.PROD);
+        TenantService.TenantCreationResult t2 = tenantService.createTenant("Idempotency T2", ApiKeyEnvironment.PROD);
 
         Long tenant1Id = t1.tenant().getId();
         Long tenant2Id = t2.tenant().getId();

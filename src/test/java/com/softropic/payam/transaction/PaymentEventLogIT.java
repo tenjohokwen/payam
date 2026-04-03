@@ -1,6 +1,7 @@
 package com.softropic.payam.transaction;
 
 import com.softropic.payam.config.TestConfig;
+import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
 import com.softropic.payam.transaction.contract.TransactionEventType;
 import com.softropic.payam.transaction.contract.TransactionStatus;
@@ -66,7 +67,7 @@ class PaymentEventLogIT {
         // TransactionService for realistic data; not required directly by PaymentEventLog
         // which only stores transactionId as a String, not a FK — but we seed it anyway
         // for consistency and to allow future tests that join through Transaction).
-        tenantService.createTenant("Event Log IT Corp", "LIVE");
+        tenantService.createTenant("Event Log IT Corp", ApiKeyEnvironment.PROD);
     }
 
     @AfterEach

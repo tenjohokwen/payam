@@ -4,6 +4,7 @@ import com.softropic.payam.common.AdminLogin;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.tenant.contract.ApiKeyDto;
 import com.softropic.payam.tenant.service.ApiKeyService;
+import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
 
 import org.junit.jupiter.api.AfterEach;
@@ -137,7 +138,7 @@ class TenantAdminResourceIT {
     @Test
     void rotateKey_returns200_withNewRawKey() {
         TenantService.TenantCreationResult result =
-            tenantService.createTenant("Rotate HTTP Corp", "LIVE");
+            tenantService.createTenant("Rotate HTTP Corp", ApiKeyEnvironment.PROD);
         Long tenantId = result.tenant().getId();
         Long keyId = result.key().getId();
         String originalRawKey = result.rawKey();
@@ -166,7 +167,7 @@ class TenantAdminResourceIT {
     @Test
     void revokeKey_returns204_andKeyIsUnusable() {
         TenantService.TenantCreationResult result =
-            tenantService.createTenant("Revoke HTTP Corp", "LIVE");
+            tenantService.createTenant("Revoke HTTP Corp", ApiKeyEnvironment.PROD);
         Long tenantId = result.tenant().getId();
         Long keyId = result.key().getId();
         String rawKey = result.rawKey();
@@ -191,7 +192,7 @@ class TenantAdminResourceIT {
     @Test
     void rotateKey_unknownKeyId_returns404() {
         TenantService.TenantCreationResult result =
-            tenantService.createTenant("Unknown Key Corp", "LIVE");
+            tenantService.createTenant("Unknown Key Corp", ApiKeyEnvironment.PROD);
         Long tenantId = result.tenant().getId();
         String rawKey = result.rawKey();
 

@@ -1,5 +1,6 @@
 package com.softropic.payam.fraud;
 
+import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.common.payment.PaymentCommand;
 import com.softropic.payam.config.TestConfig;
@@ -85,7 +86,7 @@ class FraudScoringServiceIT {
 
         // Create a tenant to obtain a valid tenantId
         TenantService.TenantCreationResult provision =
-                tenantService.createTenant("fraud-scoring-test-" + UUID.randomUUID(), "dev");
+                tenantService.createTenant("fraud-scoring-test-" + UUID.randomUUID(), ApiKeyEnvironment.PROD);
         tenantId = provision.tenant().getId();
 
         // Load newly seeded rules into cache

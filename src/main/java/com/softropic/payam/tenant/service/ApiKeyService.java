@@ -61,7 +61,7 @@ public class ApiKeyService {
             .orElseThrow(() -> new EntityNotFoundException("Key not found: " + keyId));
         old.setKeyStatus(ApiKeyStatus.ROTATED);
         old.setRotatedAt(Instant.now());
-        keyRepository.save(old);
+        keyRepository.saveAndFlush(old);
         return generateAndStore(old.getTenant(), old.getEnvironment());
     }
 

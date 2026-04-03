@@ -4,6 +4,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.softropic.payam.common.AdminLogin;
 import com.softropic.payam.config.TestConfig;
+import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
 import com.softropic.payam.tenant.repo.TenantRepository;
 import com.softropic.payam.transaction.contract.TransactionStatus;
@@ -170,7 +171,7 @@ class WebhookDeliveryIT {
         redis.getConnectionFactory().getConnection().serverCommands().flushDb();
 
         // Provision tenant
-        var provision = tenantService.createTenant("wh-delivery-test", "LIVE");
+        var provision = tenantService.createTenant("wh-delivery-test", ApiKeyEnvironment.PROD);
         tenantId = provision.tenant().getId();
         apiKey = provision.rawKey();
 

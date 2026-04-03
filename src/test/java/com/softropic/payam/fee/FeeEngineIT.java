@@ -3,6 +3,7 @@ package com.softropic.payam.fee;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.fee.service.FeeEvaluationService;
 import com.softropic.payam.fee.service.FeeRuleCache;
+import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
 
 import org.junit.jupiter.api.AfterEach;
@@ -255,7 +256,7 @@ class FeeEngineIT {
     @Test
     void test_tenantFeeOverridesGlobal() {
         // Create a real tenant so the fee_rule FK constraint is satisfied
-        long specificTenantId = tenantService.createTenant("fee-override-tenant", "LIVE").tenant().getId();
+        long specificTenantId = tenantService.createTenant("fee-override-tenant", ApiKeyEnvironment.PROD).tenant().getId();
 
         // Global rule: 0.00 (already seeded as id=1)
         // Tenant-specific rule: 200.00 for specificTenantId

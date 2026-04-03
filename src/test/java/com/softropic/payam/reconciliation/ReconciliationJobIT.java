@@ -1,5 +1,6 @@
 package com.softropic.payam.reconciliation;
 
+import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.config.TestConfig;
@@ -101,7 +102,7 @@ class ReconciliationJobIT {
 
         // Create a tenant for seeding transactions
         TenantService.TenantCreationResult provision =
-            tenantService.createTenant("reconciliation-test-" + UUID.randomUUID(), "dev");
+            tenantService.createTenant("reconciliation-test-" + UUID.randomUUID(), ApiKeyEnvironment.PROD);
         tenantId = provision.tenant().getId();
 
         // Seed one SUCCESS MTN transaction for yesterday
