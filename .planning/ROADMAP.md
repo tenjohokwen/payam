@@ -4,9 +4,8 @@
 
 - ✅ **v1 Payment API** — Phases 1–13 (shipped 2026-03-26) — see [milestones/v1-ROADMAP.md](milestones/v1-ROADMAP.md)
 - ✅ **v2 Logging Standardization** — Phases 14–17 (shipped 2026-03-27) — see [milestones/v2-ROADMAP.md](milestones/v2-ROADMAP.md)
-- ✅ **v3 E2E Test Suite** — Phases 18–23 (shipped 2026-03-28) — see [milestones/v3-ROADMAP.md](milestones/v3-ROADMAP.md)
-- ✅ **v4 Platform Config & Health** — Phases 24–26 (shipped 2026-04-02) — see [milestones/v4-ROADMAP.md](milestones/v4-ROADMAP.md)
-- 🔄 **v5 Tenant & API Key Management** — Phases 27–33 (active)
+- 🚧 **v3 E2E Test Suite** — Phases 18–23 (in progress)
+- 📋 **v4 Platform Config & Health** — Phases 24–26 (planned)
 
 ## Phases
 
@@ -39,43 +38,154 @@
 
 </details>
 
-<details>
-<summary>✅ v3 E2E Test Suite (Phases 18–23) — SHIPPED 2026-03-28</summary>
+### 🚧 v3 E2E Test Suite (In Progress)
 
-- [x] Phase 18: Test Infrastructure (2/2 plans) — completed 2026-03-27
-- [x] Phase 19: Verifiers + Test Data Builders (2/2 plans) — completed 2026-03-27
-- [x] Phase 20: Payment Flow Tests (2/2 plans) — completed 2026-03-27
-- [x] Phase 21: Webhook Flow Tests (2/2 plans) — completed 2026-03-27
-- [x] Phase 22: Fraud, Reconciliation, Admin Flow Tests (2/2 plans) — completed 2026-03-27
-- [x] Phase 23: Domain Invariants, Concurrency, SM, Mutation (5/5 plans) — completed 2026-03-28
+**Milestone Goal:** Provably correct, fraud-resistant, tamper-evident payment processing verified end-to-end — every critical invariant machine-checked, every race condition covered, mutation testing at ≥90%.
 
-</details>
+#### Phase 18: Test Infrastructure
+**Goal**: Spring Boot test context boots with Testcontainers, WireMock, and all support plumbing
+**Depends on**: Phase 17
+**Requirements**: INFRA-01, INFRA-02, INFRA-03, INFRA-04, INFRA-05, INFRA-06, INFRA-07, INFRA-08, INFRA-09
+**Success Criteria** (what must be TRUE):
+  1. Tests start with real PostgreSQL + Redis containers and Flyway schema applied
+  2. WireMock stubs for both MTN and Orange endpoints are available
+  3. Test data is wiped clean before each test (no state bleed between tests)
+  4. Test API keys are injectable without real key-generation overhead
+  5. Fixed WAT clock available for deterministic Orange timestamp tests
+**Plans**: 2/2 — completed 2026-03-27
 
-<details>
-<summary>✅ v4 Platform Config &amp; Health (Phases 24–26) — SHIPPED 2026-04-02</summary>
+Plans:
+- [x] 18-01: AbstractPayamE2ETest, AbstractPaymentFlowTest, AbstractWebhookFlowTest, AbstractFailureFlowTest base classes
+- [x] 18-02: PostgresContainerConfig, RedisContainerConfig, WireMockConfig, TestClockConfig, E2ESecurityConfig, TestDataCleaner
 
-- [x] Phase 24: Platform Configuration (3/3 plans) — completed 2026-03-30
-- [x] Phase 25: Provider Health Indicators (1/1 plans) — completed 2026-03-31
-- [x] Phase 26: Health Dashboard UI (1/1 plans) — completed 2026-04-02
+#### Phase 19: Verifiers + Test Data Builders
+**Goal**: All verifier components and data builders exist and are composable for any test scenario
+**Depends on**: Phase 18
+**Requirements**: VERIF-01, VERIF-02, VERIF-03, VERIF-04, VERIF-05, VERIF-06, VERIF-07, VERIF-08, VERIF-09, VERIF-10, BUILD-01, BUILD-02, BUILD-03, BUILD-04, BUILD-05, BUILD-06, BUILD-07, BUILD-08
+**Success Criteria** (what must be TRUE):
+  1. Every domain invariant can be asserted with a single-line verifier call
+  2. Hash chain integrity can be verified for any event sequence
+  3. Test data for any payment scenario is constructable with deterministic builders
+  4. N+1 query regressions are detectable via QueryCountVerifier
+**Plans**: TBD
 
-</details>
+Plans:
+- [x] 19-01: DatabaseVerifier, HashChainVerifier, InvariantVerifier, EventVerifier, LedgerVerifier, ProviderCallVerifier, WebhookDeliveryVerifier, TenantIsolationVerifier, CacheVerifier, QueryCountVerifier
+- [x] 19-02: TenantBuilder, ApiKeyBuilder, PaymentRequestBuilder, MtnWebhookPayloadBuilder, OrangeWebhookPayloadBuilder, FraudSignalBuilder, ReconciliationReportBuilder + deterministic UUID seeding
 
-<details open>
-<summary>🔄 v5 Tenant &amp; API Key Management (Phases 27–33) — ACTIVE</summary>
+#### Phase 20: Payment Flow Tests
+**Goal**: MTN and Orange happy/unhappy paths verified end-to-end through all verifiers
+**Depends on**: Phase 19
+**Requirements**: FLOWS-PAY-01, FLOWS-PAY-02, FLOWS-PAY-03, FLOWS-PAY-04, FLOWS-PAY-05, FLOWS-PAY-06, FLOWS-PAY-07
+**Success Criteria** (what must be TRUE):
+  1. MTN full lifecycle (INITIATED→PROCESSING→SUCCESS via webhook) passes all verifiers
+  2. Orange full lifecycle with WAT timestamp handling passes all verifiers
+  3. Polling fallback drives payment to SUCCESS when no webhook arrives
+  4. Fraud-blocked path produces zero provider calls and zero ledger entries
+  5. Idempotency: duplicate request returns same response; cross-tenant creates separate transaction
+**Plans**: TBD
 
-- [ ] **Phase 27: Schema and Enum Migration** — Fix v1 entity defects; add DB constraints for key prefix, environment enum, and one-ACTIVE-per-env uniqueness
-- [ ] **Phase 28: Service Layer** — TenantService + ApiKeyService with correct business logic; suspension cascade; rotation; reactivation; webhook secret; Envers audit
-- [ ] **Phase 29: Quartz Rotation Cleanup Job** — Automated ROTATED→REVOKED after 24-hour grace period
-- [ ] **Phase 30: Email Notifications** — 6 tenant/key lifecycle event types via TenantEventEmailListener
-- [ ] **Phase 31: REST API Expansion** — 8 new endpoints on TenantAdminResource; auth filter tenant-status check
-- [ ] **Phase 32: Admin UI** — TenantListPage + TenantDetailPage + one-time key modal with copy-confirm gate + webhook secret reveal
-- [ ] **Phase 33: E2E Tests** — Cross-layer validation of all critical tenant and key lifecycle flows
+Plans:
+- [x] 20-01: MtnPaymentInitiationE2ETest, OrangePaymentInitiationE2ETest, polling fallback, Orange payToken expiry
+- [x] 20-02: PaymentIdempotencyE2ETest, fraud-blocked path, provider timeout + circuit breaker
 
-</details>
+#### Phase 21: Webhook Flow Tests
+**Goal**: Inbound and outbound webhook pipelines verified end-to-end
+**Depends on**: Phase 20
+**Requirements**: FLOWS-HOOK-01, FLOWS-HOOK-02, FLOWS-HOOK-03, FLOWS-HOOK-04, FLOWS-HOOK-05, FLOWS-HOOK-06
+**Success Criteria** (what must be TRUE):
+  1. MTN PUT and Orange POST webhooks trigger correct state transitions via double-check
+  2. Duplicate webhook delivery is rejected; transaction state unchanged; no duplicate outbox event
+  3. Outbound delivery to tenant callback URL includes HMAC-SHA256 signature
+  4. 5xx from tenant triggers retry with exponential backoff (≥3 attempts)
+**Plans**: 2/2 — completed 2026-03-27
 
-## Phase Details
+Plans:
+- [x] 21-01: MtnWebhookDoubleCheckE2ETest, OrangeWebhookDoubleCheckE2ETest, replay protection, MTN PUT acceptance
+- [x] 21-02: OutboundWebhookDeliveryE2ETest, retry + exponential backoff
 
-### Phase 27: Schema and Enum Migration
+#### Phase 22: Fraud, Reconciliation, and Admin Flow Tests
+**Goal**: Fraud engine, daily reconciliation, and admin transaction investigation verified end-to-end
+**Depends on**: Phase 21
+**Requirements**: FLOWS-FRAUD-01, FLOWS-FRAUD-02, FLOWS-FRAUD-03, FLOWS-RECON-01, FLOWS-RECON-02, FLOWS-RECON-03, FLOWS-RECON-04, FLOWS-ADMIN-01
+**Success Criteria** (what must be TRUE):
+  1. Velocity-blocked payments stop before any provider call is made
+  2. Fraud evaluation timestamp is recorded before provider HTTP call timestamp on every flow
+  3. Reconciliation detects missing, mismatched, and WAT-offset entries correctly
+  4. Admin transaction search returns results scoped to caller's tenant only
+**Plans**: 2/2 — completed 2026-03-27
+
+Plans:
+- [x] 22-01: FraudVelocityBlockE2ETest, allowed path, invariantVerifier.assertFraudEvaluatedBeforeProviderCall
+- [x] 22-02: DailyReconciliationE2ETest (matched, missing, mismatched, WAT timestamp), TransactionInvestigationE2ETest
+
+#### Phase 23: Domain Invariants, Concurrency, State Machine, and Mutation Tests
+**Goal**: All critical domain invariants provably hold under concurrency; mutation testing ≥90%
+**Depends on**: Phase 22
+**Requirements**: INV-01-TEST, INV-02-TEST, INV-03-TEST, INV-04-TEST, INV-05-TEST, INV-06-TEST, INV-07-TEST, INV-08-TEST, INV-09-TEST, INV-10-TEST, CONC-01, CONC-02, CONC-03, CONC-04, SM-01, SM-02, SM-03, SM-04, TXN-01, TXN-02, TXN-03, TXN-04, MUT-01, MUT-02
+**Success Criteria** (what must be TRUE):
+  1. Hash chain, ledger double-entry, idempotency, and tenant isolation invariants all pass
+  2. Concurrent idempotency race (20 threads) produces exactly 1 payment row and 1 provider call
+  3. Webhook/polling race produces exactly 1 SUCCESS row and 1 outbound delivery
+  4. All illegal state transitions throw without DB mutation
+  5. PITest kills all 6 critical mutations with mutationThreshold=90
+**Plans**: 5/5 — completed 2026-03-28
+
+Plans:
+- [x] 23-01: HashChainIntegrityTest, LedgerDoubleEntryTest, IdempotencyNoDoubleChargeTest, TenantIsolationTest, StateMachineLegalTransitionsTest, WebhookDoubleCheckTest, FraudBeforeProviderCallTest, CallbackUrlSsrfGuardTest, InitBeforeProviderCallTest, OrangeTimestampWatTest
+- [x] 23-02: ConcurrentIdempotencyRaceTest, WebhookPollingRaceTest, VelocityCounterFloodTest, ApiKeyRotationGracePeriodTest
+- [x] 23-03: SM parameterized tests (MTN + Orange path matrices), TXN boundary tests (TXN-01–04), PITest configuration + 6 critical mutation kills
+- [x] 23-04: CONC-02 gap closure — WebhookPollingRaceTest outbound provider call count assertion
+- [x] 23-05: MUT-02 gap closure — PITest targetClasses expanded to all 6 MUT-02 classes; domain unit tests rewritten to call real production classes
+
+### 📋 v4 Platform Config & Health (Planned)
+
+**Milestone Goal:** Admin can view and update platform MSISDNs for both providers; Spring Boot Actuator reflects live provider health and circuit breaker state; health dashboard is accessible in the admin UI to admin users only.
+
+#### Phase 24: Platform Configuration ✅
+**Goal**: Admin can view and update platform MSISDNs for both providers, with email notification on change
+**Depends on**: Phase 23
+**Requirements**: PCONF-01, PCONF-02, PCONF-03, PCONF-04
+**Success Criteria** (what must be TRUE):
+  1. Admin can view the current Orange and MTN platform MSISDNs in the admin UI ✅
+  2. Admin can update the Orange platform MSISDN and see it persisted on reload ✅
+  3. Admin can update the MTN platform MSISDN and see it persisted on reload ✅
+  4. A notification email is sent to the configured address whenever either platform MSISDN is changed ✅
+**Plans**: 3/3 — completed 2026-03-30
+
+Plans:
+- [x] 24-01: Flyway V17 migration, PlatformConfig entity/repo, PlatformConfigService, PlatformConfigAdminResource (GET + PUT)
+- [x] 24-02: EmailTemplate enum entry, PlatformConfigEmailListener, platformConfigChanged.html Thymeleaf template
+- [x] 24-03: PlatformConfigPage.vue (Vue 3 Composition API), admin.api.js API functions, routes.js child route
+
+#### Phase 25: Provider Health Indicators
+**Goal**: Spring Boot Actuator `/manage/health` reflects live Orange and MTN MSISDN validation and circuit breaker state
+**Depends on**: Phase 24
+**Requirements**: HLTH-01, HLTH-02, HLTH-03, HLTH-04, HLTH-05
+**Success Criteria** (what must be TRUE):
+  1. `/manage/health` returns UP when both Orange and MTN platform MSISDNs pass their provider validations
+  2. `/manage/health` returns DOWN when either MSISDN fails provider validation
+  3. Health response includes circuit breaker status for the Orange Money provider adapter
+  4. Health response includes circuit breaker status for the MTN MoMo provider adapter
+**Plans**: 1/1 — completed 2026-03-31
+
+Plans:
+- [x] 25-01: OrangePlatformHealthIndicator + MtnPlatformHealthIndicator (HealthIndicator beans, validateSubscriber, CB state detail)
+
+#### Phase 26: Health Dashboard UI
+**Goal**: Admin UI health dashboard surfaces all health check results; access is restricted to admin users
+**Depends on**: Phase 25
+**Requirements**: HLTH-06, HLTH-07
+**Success Criteria** (what must be TRUE):
+  1. Admin users can view a health dashboard page showing all health check results
+  2. Non-admin (client/tenant) users see access-denied banner (no component details shown)
+  3. Dashboard displays live provider MSISDN validation status and circuit breaker state for both providers
+**Plans**: 1/1 — completed 2026-04-02
+
+Plans:
+- [x] 26-01: HealthDashboardPage.vue, getHealth() in admin.api.js, health-dashboard route
+
+#### Phase 27: Schema and Enum Migration
 **Goal**: The entity model and database constraints correctly represent the v5 tenant/key specification — v1 defects corrected, environment enum migrated, partial unique index in place
 **Depends on**: Phase 26
 **Requirements**: AKEY-01, AKEY-03
@@ -85,82 +195,11 @@
   3. A partial unique index `(tenant_id, environment) WHERE key_status = 'ACTIVE'` exists in the database and is enforced by Flyway migration
   4. A UNIQUE constraint on `key_hash` exists on the `tenant_api_key` table
   5. Flyway runs cleanly from a fresh schema with no `UPDATE before CHECK` ordering errors
-**Plans**: 2 plans
+**Plans**: 2/2 — completed 2026-04-03
+
 Plans:
 - [x] 27-01-PLAN.md — Flyway migrations V18/V19 + ApiKeyEnvironment enum + entity model + service updates
-- [ ] 27-02-PLAN.md — LIVE-to-PROD call site migration across all test files
-
-### Phase 28: Service Layer
-**Goal**: TenantService and ApiKeyService implement the full v5 business logic — tenant CRUD, suspension cascade, reactivation with raw-key return, rotation grace period, webhook secret management, and Hibernate Envers audit on all state changes
-**Depends on**: Phase 27
-**Requirements**: TENT-01, TENT-02, TENT-03, TENT-04, TENT-07, TENT-08, AKEY-02, AKEY-04, AKEY-06, AKEY-08, WSEC-01, WSEC-03, AUDIT-01, AUDIT-02, AUDIT-03
-**Success Criteria** (what must be TRUE):
-  1. `TenantService.createTenant()` generates a UUID TenantRef, derives the immutable 3-char key prefix from the tenant name, auto-generates an initial PROD key, and returns both the tenant and raw key in a single result record
-  2. `TenantService.suspend()` atomically revokes all ACTIVE and ROTATED keys across all environments for the tenant in a single JPQL bulk update within the same transaction as the status change
-  3. `TenantService.reactivate()` generates a new PROD key and returns the raw key in the service return value — the raw key is accessible to callers without a second call
-  4. `ApiKeyService.rotate()` moves any still-ROTATED key for the same environment to REVOKED immediately before inserting the new ACTIVE key (no two overlapping grace periods per environment)
-  5. Hibernate Envers `@Audited` revision entries are created for every change to `Tenant` fields and `TenantApiKey` status transitions, with admin ID recorded as the revision author
-**Plans**: TBD
-
-### Phase 29: Quartz Rotation Cleanup Job
-**Goal**: ROTATED API keys are automatically moved to REVOKED status after their 24-hour grace period expires, without manual intervention and without partial-failure rollback risk
-**Depends on**: Phase 28
-**Requirements**: AKEY-05
-**Success Criteria** (what must be TRUE):
-  1. A Quartz job (`KeyRotationCleanupJob`) runs on an hourly cron and moves all `ROTATED` keys whose rotation timestamp is more than 24 hours old to `REVOKED` status via a single bulk `@Modifying` JPQL update
-  2. The job class is annotated `@DisallowConcurrentExecution` — concurrent runs do not produce duplicate revocations
-  3. Quartz thread pool `threadCount` is increased to 5 in `application.yaml` to prevent job starvation
-  4. A `SYSTEM:grace-period-job` principal is set in the security context before the bulk update and cleared in a `finally` block, so Envers records a non-null audit actor for automated revocations
-**Plans**: TBD
-
-### Phase 30: Email Notifications
-**Goal**: All 6 tenant and API key lifecycle events trigger email notifications to the platform notification address and to the tenant email address when present
-**Depends on**: Phase 28
-**Requirements**: NOTIF-01, NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05, NOTIF-06
-**Success Criteria** (what must be TRUE):
-  1. API key generation and rotation events each trigger an email to the platform notification address (and tenant email if set), delivered via the existing `MailManager` AFTER_COMMIT pattern
-  2. API key revocation and tenant reactivation events each trigger an email to both recipient addresses
-  3. WebhookSecret generation and regeneration events each trigger an email to both recipient addresses
-  4. Tenant status change (ACTIVE to SUSPENDED or vice versa) triggers an email to both recipient addresses
-  5. Tenant webhookUrl change and tenant email address change each trigger an email to both recipient addresses
-  6. All 6 event handlers live in a single `TenantEventEmailListener` bean, mirroring the `PlatformConfigEmailListener` pattern — `@EventListener` (not `@TransactionalEventListener`) on the listener method
-**Plans**: TBD
-
-### Phase 31: REST API Expansion
-**Goal**: Admin can manage tenants and API keys through a complete set of REST endpoints, and the authentication filter correctly rejects all requests from suspended tenants regardless of individual key status
-**Depends on**: Phases 28, 29, 30
-**Requirements**: TENT-05, TENT-06, TENT-09
-**Success Criteria** (what must be TRUE):
-  1. Admin can retrieve a paginated, searchable list of tenants via `GET /admin/tenants` — results include tenant status and are filterable by name, email, ref, and status
-  2. Admin can retrieve a tenant's full detail (name, email, TenantRef, status, webhookUrl, keys per environment) via `GET /admin/tenants/{id}`
-  3. An API request using a valid, ACTIVE key belonging to a SUSPENDED tenant receives a 401 response — `ApiKeyAuthenticationFilter` checks both key status and tenant status as defense-in-depth
-  4. All 8 new REST endpoints on `TenantAdminResource` are secured to `ROLE_ADMIN` and return appropriate HTTP status codes for all documented error conditions
-**Plans**: TBD
-**UI hint**: yes
-
-### Phase 32: Admin UI
-**Goal**: Admin can manage the full tenant and API key lifecycle through the Quasar SPA — create tenants, view/edit details, toggle status, manage keys per environment, and reveal the webhook secret
-**Depends on**: Phase 31
-**Requirements**: WSEC-02, AKEY-07
-**Success Criteria** (what must be TRUE):
-  1. The one-time key display modal shows the raw key once and has its close/dismiss button disabled until the admin either clicks a "Copy to clipboard" action or checks an explicit "I have saved this key" confirmation — the modal cannot be dismissed without acknowledgment
-  2. Admin can reveal the current WebhookSecret via an eye icon toggle on the tenant detail page — the secret is fetched from the reveal endpoint and displayed inline, never stored in frontend state on page load
-  3. `TenantListPage.vue` shows all tenants in a searchable, paginated `q-table` with status chips and action buttons for suspend/reactivate
-  4. `TenantDetailPage.vue` shows all tenant fields, per-environment key cards (with ROTATED keys showing expiry countdown), and key action buttons (generate, rotate, revoke)
-**Plans**: TBD
-**UI hint**: yes
-
-### Phase 33: E2E Tests
-**Goal**: Cross-layer correctness of all critical tenant and API key lifecycle flows is machine-verified — suspension cascade, rotation grace period, reactivation raw-key return, concurrent rotation, and all notification events are covered by automated tests
-**Depends on**: Phases 27–32
-**Requirements**: (cross-layer validation — all 29 v5 requirements are exercised; no new requirements originate here)
-**Success Criteria** (what must be TRUE):
-  1. Suspension cascade E2E: after suspending a tenant, API requests using both formerly-ACTIVE and formerly-ROTATED keys receive 401 responses; the Envers audit log records the suspension with admin ID and timestamp
-  2. Rotation grace period E2E: a ROTATED key is accepted within 24 hours; after the cleanup job runs, the same ROTATED key is rejected; exactly 1 ACTIVE key exists per environment at all times
-  3. Reactivation E2E: the reactivation REST response body contains a non-null `rawKey` field; a second call to retrieve the key is impossible (404); the new PROD key authenticates successfully
-  4. Re-rotation during grace period E2E: rotating a key while a prior ROTATED key is still in grace period immediately moves the prior ROTATED key to REVOKED — only 1 ROTATED key ever exists per environment
-  5. All 6 email notification events fire and reach the `MailManager` queue during their respective lifecycle E2E flows
-**Plans**: TBD
+- [x] 27-02-PLAN.md — LIVE-to-PROD call site migration across all test files
 
 ## Progress
 
@@ -184,15 +223,15 @@ Plans:
 | 16. Business Event Logging | v2 | 5/5 | Complete | 2026-03-27 |
 | 17. Code Standards Enforcement | v2 | 4/4 | Complete | 2026-03-27 |
 | 18. Test Infrastructure | v3 | 2/2 | Complete | 2026-03-27 |
-| 19. Verifiers + Test Data Builders | v3 | 2/2 | Complete | 2026-03-27 |
-| 20. Payment Flow Tests | v3 | 2/2 | Complete | 2026-03-27 |
+| 19. Verifiers + Test Data Builders | v3 | 0/2 | Not started | - |
+| 20. Payment Flow Tests | v3 | 0/2 | Not started | - |
 | 21. Webhook Flow Tests | v3 | 2/2 | Complete | 2026-03-27 |
 | 22. Fraud, Reconciliation, Admin Flow Tests | v3 | 2/2 | Complete | 2026-03-27 |
 | 23. Domain Invariants, Concurrency, SM, Mutation | v3 | 5/5 | Complete | 2026-03-28 |
 | 24. Platform Configuration | v4 | 3/3 | Complete | 2026-03-30 |
 | 25. Provider Health Indicators | v4 | 1/1 | Complete | 2026-03-31 |
 | 26. Health Dashboard UI | v4 | 1/1 | Complete | 2026-04-02 |
-| 27. Schema and Enum Migration | v5 | 1/2 | In Progress|  |
+| 27. Schema and Enum Migration | v5 | 2/2 | Complete | 2026-04-03 |
 | 28. Service Layer | v5 | 0/? | Not started | — |
 | 29. Quartz Rotation Cleanup Job | v5 | 0/? | Not started | — |
 | 30. Email Notifications | v5 | 0/? | Not started | — |
