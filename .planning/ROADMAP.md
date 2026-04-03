@@ -201,6 +201,22 @@ Plans:
 - [x] 27-01-PLAN.md — Flyway migrations V18/V19 + ApiKeyEnvironment enum + entity model + service updates
 - [x] 27-02-PLAN.md — LIVE-to-PROD call site migration across all test files
 
+#### Phase 28: Service Layer
+**Goal**: Complete tenant and API key service layer — tenant lifecycle (create/update/suspend/reactivate), per-environment key generation and rotation, WebhookSecret management, and Hibernate Envers audit trail
+**Depends on**: Phase 27
+**Requirements**: TENT-01, TENT-02, TENT-03, TENT-04, TENT-07, TENT-08, AKEY-02, AKEY-04, AKEY-06, AKEY-08, WSEC-01, WSEC-03, AUDIT-01, AUDIT-02, AUDIT-03
+**Success Criteria** (what must be TRUE):
+  1. Admin can create a tenant with auto-generated TenantRef (UUID), initial PROD API key (raw key returned once), and WebhookSecret
+  2. Admin can update a tenant's name, email, and webhookUrl
+  3. Admin can suspend a tenant — all API keys across all environments are immediately revoked
+  4. Admin can reactivate a suspended tenant — a new PROD key is auto-generated and returned once
+  5. Admin can generate a per-environment key (PROD/DEV/SANDBOX) and receive raw key exactly once
+  6. Admin can rotate a key — old key enters ROTATED (24h grace), new ACTIVE key raw value returned once; if another ROTATED key exists for same environment it is immediately REVOKED
+  7. Admin can manually revoke a key (immediate, no grace period)
+  8. Admin can regenerate WebhookSecret (new secret replaces old)
+  9. Hibernate Envers captures all Tenant and TenantApiKey mutations; every key generation/rotation event logs acting admin ID and timestamp
+**Plans**: 0/? — not started
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
