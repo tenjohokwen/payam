@@ -52,6 +52,7 @@ spring:
         connection.provider_disables_autocommit: true   # GOAL: delay the connection acquisition. It tells Hibernate that the underlying JDBC Connections have already disabled the auto-commit mode. Do not forget to also set hikari.auto-commit to false
         query.fail_on_pagination_over_collection_fetch: true
       org.hibernate.envers.store_data_at_delete: true
+      org.hibernate.envers.default_schema: main
   datasource:
     url: jdbc:postgresql://localhost/payam?TimeZone=UTC
     username: postgres
