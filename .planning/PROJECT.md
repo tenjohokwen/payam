@@ -70,7 +70,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ### Active
 
-<!-- v6 REST API surface, notifications, Admin UI -->
+<!-- v6 REST API surface, notifications, Admin UI — in progress -->
 
 - REST endpoints for tenant lifecycle operations: update name/email/webhookUrl, suspend/reactivate, regenerate WebhookSecret (service layer done in v5; HTTP surface deferred)
 - TENT-09: Tenant SUSPENDED status blocks API auth (key status + tenant status both checked)
@@ -130,6 +130,19 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 | Entity-level load+save (not bulk JPQL) for `revokeExpiredRotatedKeys()` | Envers captures each revocation as a separate audit revision; bulk JPQL bypasses Envers | ✓ Good — use entity-level ops when audit trail is required per row |
 | Flyway V21 migrates `rotated_at` to `TIMESTAMPTZ` | Quartz job's `Instant` parameters compared against TIMESTAMP(no tz) caused timezone mismatch in Testcontainers (Postgres defaulted to Europe/Berlin) | ✓ Good — always use TIMESTAMPTZ for timestamp columns that are compared with JVM Instant values |
 
+## Current Milestone: v6 REST API Surface, Notifications & Admin UI
+
+**Goal:** Expose the v5 service layer over HTTP, wire email notifications for all key tenant/key lifecycle events, and build Admin UI screens for tenant management.
+
+**Target features:**
+- REST endpoints for 6 TenantService operations: update name/email/webhookUrl, suspend, reactivate, regenerate WebhookSecret
+- TENT-09: SUSPENDED tenant status blocks API key authentication
+- TENT-05/06: Admin list and detail views for tenants
+- AKEY-07: One-time key display modal — admin confirms copy before dismissal
+- WSEC-02: WebhookSecret reveal via eye icon UI
+- NOTIF-01..06: Email notifications for key generation/rotation, revocation/reactivation, secret generation, tenant status change, webhookUrl change, tenant email change
+- Admin UI: tenant management screens (create, edit, status toggle, key management per env)
+
 ## Current State
 
 **Shipped:** v5 (2026-04-06) — 30 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5), 70 plans
@@ -161,4 +174,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-06 after v5 milestone*
+*Last updated: 2026-04-07 — Milestone v6 started*
