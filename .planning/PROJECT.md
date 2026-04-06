@@ -61,6 +61,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ Tenant lifecycle service layer: `TenantService` with updateName/Email/WebhookUrl, suspend, reactivate, regenerateWebhookSecret; `ApiKeyService` with AKEY-02 duplicate-active guard and AKEY-08 pre-rotate revoke — v5 (Phase 28)
 - ✓ Hibernate Envers audit trail: Flyway V20 DDL for `main.revinfo`, `main.tenant_aud`, `main.tenant_api_key_aud`; `default_schema: main` in all profiles; admin identity captured per revision — v5 (Phase 28)
 - ✓ 18 integration tests: TenantServiceIT (9), TenantAuditIT (3), TenantProvisioningIT (6); all TENT/AKEY/WSEC/AUDIT requirement IDs verified against real DB — v5 (Phase 28)
+- ✓ AKEY-01 API key format: generateSecureKey() returns PREFIX_UUID, ApiKeyBuilder derives prefix from tenant table, filter parses prefix via underscore delimiter — Validated in Phase 28.1: api-key-format-fix
 
 - ✓ Platform MSISDN management: admin can view/update Orange + MTN platform MSISDNs; email notification on every change — v4
 - ✓ Spring Boot Actuator `/manage/health` reflects live provider MSISDN validation + circuit breaker state for both providers — v4
@@ -168,4 +169,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 — v5 milestone started*
+*Last updated: 2026-04-06 — Phase 28.1 complete (AKEY-01 API key format fix)*
