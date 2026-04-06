@@ -11,7 +11,7 @@
 
 ### Auth Enforcement
 
-- [ ] **TENT-09**: Admin API key filter blocks requests from SUSPENDED tenants with HTTP 403 before SecurityContext is populated
+- [x] **TENT-09**: Admin API key filter blocks requests from SUSPENDED tenants with HTTP 403 before SecurityContext is populated
 
 ### Tenant REST API (TENT)
 
@@ -73,7 +73,7 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| TENT-09 | Phase 30 | Pending |
+| TENT-09 | Phase 30 | Complete |
 | TENT-05 | Phase 31 | Pending |
 | TENT-06 | Phase 31 | Pending |
 | TENT-10 | Phase 31 | Pending |
