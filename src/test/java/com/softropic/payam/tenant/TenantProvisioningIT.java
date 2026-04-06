@@ -78,6 +78,12 @@ class TenantProvisioningIT {
         assertThat(result.tenant().getName()).isEqualTo("Acme Corp");
         assertThat(result.tenant().getTenantStatus()).isEqualTo(TenantStatus.ACTIVE);
 
+        // WebhookSecret assertion (WSEC-01)
+        assertThat(result.tenant().getWebhookSecret()).isNotNull();
+        assertThat(result.tenant().getWebhookSecret()).matches(
+            "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        );
+
         // Key assertions
         TenantApiKey key = result.key();
         assertThat(key).isNotNull();
