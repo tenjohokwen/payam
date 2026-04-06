@@ -1,3 +1,19 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: executing
+stopped_at: Completed 28-01-PLAN.md — TenantService lifecycle, ApiKeyService guards, Flyway V20 Envers DDL
+last_updated: "2026-04-06T17:00:56.678Z"
+last_activity: 2026-04-06
+progress:
+  total_phases: 11
+  completed_phases: 10
+  total_plans: 24
+  completed_plans: 23
+  percent: 100
+---
+
 # Project State
 
 ## Project Reference
@@ -5,20 +21,21 @@
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 28 — Service Layer
+**Current focus:** Phase 28 — service-layer
 
 ## Current Position
 
-Phase: 28 of 33 in v5 (Service Layer)
-Plan: 0 of 2 — ready to execute
-Status: Planned — Phase 28 ready for execution
-Last activity: 2026-04-03 — Phase 28 planned (2 plans, 2 waves); research + verification passed
+Phase: 28 (service-layer) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-04-06
 
 Progress: ██████████████████████████████ v1+v2 complete | █████████████████ v3 + gap closure 100% COMPLETE | █████████ v4 phases 24+25+26 COMPLETE | ██ v5 phase 27 COMPLETE | ░░ v5 phase 28 PLANNED (0/2 plans) | ░ v5 phases 29-33
 
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 30 (29 v1 + 1 v2)
 - Average duration: —
 - Total execution time: —
@@ -35,6 +52,7 @@ Progress: ███████████████████████�
 | 21 (plan 02) | 1 | 15 min | 15 min |
 | 22 (plan 01) | 1 | 8 min | 8 min |
 | 22 (plan 02) | 1 | 25 min | 25 min |
+| Phase 28-service-layer P01 | 10 | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -138,6 +156,10 @@ Recent decisions affecting current work:
 - **[24-02] Envelope correlation ID is UUID.randomUUID().toString():** Admin config-change notifications have no user-facing helpCode concept; UUID provides uniqueness for mail logging without ShortCode overhead.
 - **[27-02] ApiKeyService.rotate() uses saveAndFlush:** Flush the ROTATED status UPDATE to PostgreSQL before inserting the new ACTIVE key to avoid `uidx_tenant_api_key_active_env` partial unique index constraint violation from Hibernate batching.
 - **[27-02] TenantProvisioningIT prefix check uses name-derived value:** v5 keyPrefix is derived from tenant name (first 3 chars uppercased), not from rawKey.substring(0,8). Test assertion updated to equality check against "ACM" for "Acme Corp".
+- [Phase 28-01]: V20 Flyway DDL creates Envers tables explicitly — ddl-auto=none means Envers cannot auto-create them
+- [Phase 28-01]: org.hibernate.envers.default_schema=main configured in all 3 profiles so Envers finds tables in main schema
+- [Phase 28-01]: revokeAllActiveAndRotatedByTenantId uses @Modifying bulk JPQL — single query atomically revokes all keys on suspend
+- [Phase 28-01]: rotate() saveAndFlush prior ROTATED key before new ACTIVE key inserted — prevents overlapping grace periods (AKEY-08)
 
 ### Pending Todos
 
@@ -149,6 +171,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-03
-Stopped at: Phase 28 planned (28-01 + 28-02, verification passed); ready to execute
+Last session: 2026-04-06T17:00:56.670Z
+Stopped at: Completed 28-01-PLAN.md — TenantService lifecycle, ApiKeyService guards, Flyway V20 Envers DDL
 Resume file: None
