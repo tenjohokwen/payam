@@ -111,6 +111,17 @@ Plans:
 Plans:
 - [x] 28.1-01-PLAN.md — Fix generateSecureKey PREFIX_UUID format, ApiKeyBuilder prefix lookup, ApiKeyAuthenticationFilter log
 
+#### Phase 29: Quartz Rotation Cleanup Job
+**Goal**: Expired ROTATED API keys are automatically revoked after their 24-hour grace period ends — a Quartz scheduled job running every 5 minutes queries for ROTATED keys past their `rotatedAt + 24h` threshold and moves them to REVOKED
+**Depends on**: Phase 28, Phase 28.1
+**Requirements**: AKEY-05
+**Success Criteria** (what must be TRUE):
+  1. A Quartz job bean (`RotatedKeyCleanupJob`) is wired in the application context and scheduled to run every 5 minutes
+  2. The job queries `TenantApiKey` for records with `status = ROTATED` and `rotatedAt < now() - 24h`
+  3. Each qualifying key is moved to `REVOKED` status with `revokedAt` set to the current timestamp
+  4. The job is idempotent: re-running it within the same window causes no additional state changes
+  5. An integration test (`RotatedKeyCleanupJobIT`) verifies the job revokes an over-24h ROTATED key and leaves an under-24h ROTATED key untouched
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
