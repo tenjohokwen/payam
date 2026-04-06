@@ -32,6 +32,12 @@ public class ApiKeyService {
     }
 
     public ApiKeyAndRawKey generateAndStore(Tenant tenant, ApiKeyEnvironment environment) {
+        // AKEY-02: Reject if an ACTIVE key already exists for this tenant+environment
+        keyRepository.findActiveKeyByTenantIdAndEnvironment(tenant.getId(), environment)
+            .ifPresent(existing -> {
+                throw new IllegalStateException(
+                    "Active key already exists for environment: " + environment);
+            });
         String rawKey = generateSecureKey();
         String hash   = DigestUtils.sha256Hex(rawKey);
         String prefix = tenant.getKeyPrefix();
@@ -59,6 +65,14 @@ public class ApiKeyService {
     public ApiKeyAndRawKey rotate(Long keyId) {
         TenantApiKey old = keyRepository.findById(keyId)
             .orElseThrow(() -> new EntityNotFoundException("Key not found: " + keyId));
+        // AKEY-08: Revoke any existing ROTATED key for the same (tenant, environment)
+        // to prevent overlapping grace periods
+        keyRepository.findRotatedKeyByTenantIdAndEnvironment(
+                old.getTenant().getId(), old.getEnvironment())
+            .ifPresent(previousRotated -> {
+                previousRotated.setKeyStatus(ApiKeyStatus.REVOKED);
+                keyRepository.saveAndFlush(previousRotated);
+            });
         old.setKeyStatus(ApiKeyStatus.ROTATED);
         old.setRotatedAt(Instant.now());
         keyRepository.saveAndFlush(old);
