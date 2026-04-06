@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-04-06T21:41:34.802Z",
+  "phase": "29",
+  "phase_name": "quartz-rotation-cleanup-job",
+  "phase_dir": ".planning/phases/29-quartz-rotation-cleanup-job",
+  "plan": 1,
+  "task": 1,
+  "total_tasks": 1,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "Add repository query, service method, job class, and scheduler config", "status": "done", "commit": "c6c7946"}
+  ],
+  "remaining_tasks": [],
+  "blockers": [],
+  "human_actions_pending": [],
+  "decisions": [
+    {"decision": "V21 Flyway migration: rotated_at TIMESTAMP → TIMESTAMPTZ", "rationale": "Testcontainers Postgres session TZ was Berlin, causing Hibernate UTC Instant params to miscompare against Berlin-local stored timestamps", "phase": "29"},
+    {"decision": "Test backdating uses SQL NOW()-INTERVAL instead of Java Timestamp", "rationale": "Avoids JVM TZ → DB TIMESTAMP inconsistency", "phase": "29"},
+    {"decision": "Entity-level save (not bulk JPQL) in revokeExpiredRotatedKeys()", "rationale": "Per D-02: Envers must capture each auto-revocation as a separate audit revision", "phase": "29"}
+  ],
+  "uncommitted_files": [".planning/STATE.md", ".planning/config.json"],
+  "next_action": "Run /gsd:execute-phase 29 — it detects SUMMARY.md exists and proceeds to verification",
+  "context_notes": "Plan 29-01 fully implemented and all 4 ITs green. Only verification + roadmap update remain."
+}
