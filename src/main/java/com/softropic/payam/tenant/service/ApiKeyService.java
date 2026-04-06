@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -76,6 +77,16 @@ public class ApiKeyService {
         old.setRotatedAt(Instant.now());
         keyRepository.saveAndFlush(old);
         return generateAndStore(old.getTenant(), old.getEnvironment());
+    }
+
+    public int revokeExpiredRotatedKeys() {
+        Instant cutoff = Instant.now().minus(GRACE_PERIOD);
+        List<TenantApiKey> expired = keyRepository.findExpiredRotatedKeys(cutoff);
+        for (TenantApiKey key : expired) {
+            key.setKeyStatus(ApiKeyStatus.REVOKED);
+            keyRepository.save(key);
+        }
+        return expired.size();
     }
 
     public void revoke(Long keyId) {

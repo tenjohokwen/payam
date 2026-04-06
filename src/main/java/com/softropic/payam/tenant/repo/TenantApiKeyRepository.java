@@ -63,4 +63,11 @@ public interface TenantApiKeyRepository extends JpaRepository<TenantApiKey, Long
         @Param("tenantId") Long tenantId,
         @Param("environment") ApiKeyEnvironment environment
     );
+
+    @Query("""
+        SELECT k FROM TenantApiKey k
+        WHERE k.keyStatus = com.softropic.payam.tenant.contract.ApiKeyStatus.ROTATED
+          AND k.rotatedAt < :cutoff
+        """)
+    List<TenantApiKey> findExpiredRotatedKeys(@Param("cutoff") Instant cutoff);
 }

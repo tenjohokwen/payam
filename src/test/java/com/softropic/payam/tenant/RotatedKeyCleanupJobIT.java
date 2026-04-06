@@ -18,8 +18,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,10 +64,10 @@ class RotatedKeyCleanupJobIT {
         Long rotatedKeyId = rotatedKey.getId();
 
         // Backdate rotated_at to 25 hours ago (past the 24h grace period)
+        // Use SQL interval to avoid JVM timezone vs Postgres TIMESTAMP comparison issues
         transactionTemplate.execute(status -> {
             jdbcTemplate.update(
-                "UPDATE main.tenant_api_key SET rotated_at = ? WHERE id = ?",
-                Timestamp.from(Instant.now().minusSeconds(90000L)),
+                "UPDATE main.tenant_api_key SET rotated_at = NOW() - INTERVAL '25 hours' WHERE id = ?",
                 rotatedKeyId);
             return null;
         });
@@ -88,10 +86,10 @@ class RotatedKeyCleanupJobIT {
         Long rotatedKeyId = rotatedKey.getId();
 
         // Set rotated_at to 1 hour ago (well within 24h grace period)
+        // Use SQL interval to avoid JVM timezone vs Postgres TIMESTAMP comparison issues
         transactionTemplate.execute(status -> {
             jdbcTemplate.update(
-                "UPDATE main.tenant_api_key SET rotated_at = ? WHERE id = ?",
-                Timestamp.from(Instant.now().minusSeconds(3600L)),
+                "UPDATE main.tenant_api_key SET rotated_at = NOW() - INTERVAL '1 hour' WHERE id = ?",
                 rotatedKeyId);
             return null;
         });
@@ -127,10 +125,10 @@ class RotatedKeyCleanupJobIT {
         Long rotatedKeyId = rotatedKey.getId();
 
         // Backdate rotated_at to 25 hours ago
+        // Use SQL interval to avoid JVM timezone vs Postgres TIMESTAMP comparison issues
         transactionTemplate.execute(status -> {
             jdbcTemplate.update(
-                "UPDATE main.tenant_api_key SET rotated_at = ? WHERE id = ?",
-                Timestamp.from(Instant.now().minusSeconds(90000L)),
+                "UPDATE main.tenant_api_key SET rotated_at = NOW() - INTERVAL '25 hours' WHERE id = ?",
                 rotatedKeyId);
             return null;
         });
