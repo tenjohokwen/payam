@@ -20,7 +20,7 @@
 
 ### AKEY: API Key Specification & Lifecycle
 
-- [ ] **AKEY-01**: API keys follow format `PREFIX_UUID` where prefix is derived from the first 3 characters of the tenant name at tenant creation time (uppercase, 0-padded to 3 chars with "0"), immutable even if tenant name later changes *(gap closure: Phase 28.1)*
+- [x] **AKEY-01**: API keys follow format `PREFIX_UUID` where prefix is derived from the first 3 characters of the tenant name at tenant creation time (uppercase, 0-padded to 3 chars with "0"), immutable even if tenant name later changes *(gap closure: Phase 28.1)*
 - [x] **AKEY-02**: Admin can generate a key for a specific environment (PROD, DEV, or SANDBOX) for a tenant; raw key shown exactly once, never retrievable again
 - [x] **AKEY-03**: A tenant can have at most one ACTIVE key per environment at any time (enforced by database-level partial unique index)
 - [x] **AKEY-04**: Admin can rotate a key; the old key enters ROTATED status (remains valid for 24 hours), the new key is ACTIVE immediately; raw new key shown exactly once
@@ -90,7 +90,7 @@
 | TENT-07 | Phase 31 | Pending |
 | TENT-08 | Phase 31 | Pending |
 | TENT-09 | Phase 31 | Pending |
-| AKEY-01 | Phase 28.1 | Pending |
+| AKEY-01 | Phase 28.1 | Complete |
 | AKEY-02 | Phase 28 | Complete |
 | AKEY-03 | Phase 27 | Complete |
 | AKEY-04 | Phase 28 | Complete |

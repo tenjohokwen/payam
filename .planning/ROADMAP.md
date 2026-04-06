@@ -70,7 +70,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 28.1-01-PLAN.md — Fix generateSecureKey PREFIX_UUID format, ApiKeyBuilder prefix lookup, ApiKeyAuthenticationFilter log
+- [x] 28.1-01-PLAN.md — Fix generateSecureKey PREFIX_UUID format, ApiKeyBuilder prefix lookup, ApiKeyAuthenticationFilter log
 
 Plans:
 - [x] 19-01: DatabaseVerifier, HashChainVerifier, InvariantVerifier, EventVerifier, LedgerVerifier, ProviderCallVerifier, WebhookDeliveryVerifier, TenantIsolationVerifier, CacheVerifier, QueryCountVerifier
@@ -274,7 +274,7 @@ Plans:
 | 26. Health Dashboard UI | v4 | 1/1 | Complete | 2026-04-02 |
 | 27. Schema and Enum Migration | v5 | 2/2 | Complete | 2026-04-03 |
 | 28. Service Layer | v5 | 2/2 | Complete    | 2026-04-06 |
-| 28.1. API Key Format Fix (AKEY-01) | v5 | 0/? | Not started | — |
+| 28.1. API Key Format Fix (AKEY-01) | v5 | 1/1 | Complete   | 2026-04-06 |
 | 29. Quartz Rotation Cleanup Job | v5 | 0/? | Not started | — |
 | 30. Email Notifications | v5 | 0/? | Not started | — |
 | 31. REST API Expansion (+ HTTP surface for tenant lifecycle) | v5 | 0/? | Not started | — |

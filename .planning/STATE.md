@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 28-02-PLAN.md (Phase 28 all plans done)
-last_updated: "2026-04-06T17:14:46.623Z"
+stopped_at: Completed 28.1-api-key-format-fix/28.1-01-PLAN.md
+last_updated: "2026-04-06T18:42:31.324Z"
 last_activity: 2026-04-06
 progress:
-  total_phases: 11
-  completed_phases: 11
-  total_plans: 24
-  completed_plans: 24
+  total_phases: 12
+  completed_phases: 12
+  total_plans: 25
+  completed_plans: 25
   percent: 100
 ---
 
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 28 — service-layer
+**Current focus:** Phase 28.1 — api-key-format-fix
 
 ## Current Position
 
-Phase: 28
-Plan: Not started
+Phase: 28.1 (api-key-format-fix) — EXECUTING
+Plan: 1 of 1
 Status: Phase complete — ready for verification
 Last activity: 2026-04-06
 
@@ -54,6 +54,7 @@ Progress: ███████████████████████�
 | 22 (plan 02) | 1 | 25 min | 25 min |
 | Phase 28-service-layer P01 | 10 | 3 tasks | 6 files |
 | Phase 28-service-layer P02 | 8 | 2 tasks | 3 files |
+| Phase 28.1-api-key-format-fix P01 | 6 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -162,6 +163,9 @@ Recent decisions affecting current work:
 - [Phase 28-01]: revokeAllActiveAndRotatedByTenantId uses @Modifying bulk JPQL — single query atomically revokes all keys on suspend
 - [Phase 28-01]: rotate() saveAndFlush prior ROTATED key before new ACTIVE key inserted — prevents overlapping grace periods (AKEY-08)
 - [Phase 28-service-layer]: TenantServiceIT tearDown deletes audit tables before main tables to avoid FK constraints; TenantAuditIT sets SpringSecurityContext in @BeforeEach so AuditingEntityListener sees admin@test.com as createdBy
+- [Phase 28.1-01]: generateSecureKey(String keyPrefix) returns PREFIX_UUID format using UUID not SecureRandom/Base64
+- [Phase 28.1-01]: ApiKeyBuilder queries main.tenant.key_prefix via JDBC before INSERT to derive PREFIX_UUID raw key
+- [Phase 28.1-01]: ApiKeyAuthenticationFilter extracts prefix via rawKey.indexOf('_') for any-length prefix support
 
 ### Pending Todos
 
@@ -173,6 +177,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-06T17:11:05.297Z
-Stopped at: Completed 28-02-PLAN.md (Phase 28 all plans done)
+Last session: 2026-04-06T18:42:31.315Z
+Stopped at: Completed 28.1-api-key-format-fix/28.1-01-PLAN.md
 Resume file: None
