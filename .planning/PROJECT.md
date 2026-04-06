@@ -63,6 +63,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ 18 integration tests: TenantServiceIT (9), TenantAuditIT (3), TenantProvisioningIT (6); all TENT/AKEY/WSEC/AUDIT requirement IDs verified against real DB — v5 (Phase 28)
 - ✓ AKEY-01 API key format: generateSecureKey() returns PREFIX_UUID, ApiKeyBuilder derives prefix from tenant table, filter parses prefix via underscore delimiter — v5 (Phase 28.1)
 - ✓ AKEY-05 Quartz rotation cleanup job: `RotatedKeyCleanupJob` runs every 5 minutes, revokes ROTATED keys past 24h grace period; Flyway V21 TIMESTAMPTZ migration for correct timezone handling — v5 (Phase 29)
+- ✓ TENT-09: SUSPENDED tenants blocked at `ApiKeyAuthenticationFilter` with HTTP 403 before `SecurityContext` or `TenantContext` population — zero-query check on JOIN-FETCHed tenant entity — v6 (Phase 30)
 
 - ✓ Platform MSISDN management: admin can view/update Orange + MTN platform MSISDNs; email notification on every change — v4
 - ✓ Spring Boot Actuator `/manage/health` reflects live provider MSISDN validation + circuit breaker state for both providers — v4
@@ -73,7 +74,6 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 <!-- v6 REST API surface, notifications, Admin UI — in progress -->
 
 - REST endpoints for tenant lifecycle operations: update name/email/webhookUrl, suspend/reactivate, regenerate WebhookSecret (service layer done in v5; HTTP surface deferred)
-- TENT-09: Tenant SUSPENDED status blocks API auth (key status + tenant status both checked)
 - TENT-05/06: Admin list and detail views for tenants
 - AKEY-07: One-time key display modal — admin confirms copy before dismissal
 - WSEC-02: Admin WebhookSecret reveal via eye icon UI
