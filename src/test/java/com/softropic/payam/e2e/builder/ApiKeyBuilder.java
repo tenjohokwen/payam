@@ -47,9 +47,11 @@ public class ApiKeyBuilder {
     /**
      * Inserts a new API key row for the configured tenant and returns the raw (unhashed) key.
      *
-     * <p>The raw key is a random UUID string — opaque credentials are intentionally non-deterministic.
-     * The hash stored in the database uses {@code DigestUtils.sha256Hex} matching the production filter.
-     * The row ID is generated via {@link DbUtil#generateDbRandom()} (TSID) matching JPA entity generation.
+     * <p>The raw key follows PREFIX_UUID format (e.g. ACM_550e8400-...) matching production
+     * {@code ApiKeyService.generateSecureKey()}. The prefix is derived from the tenant's
+     * {@code key_prefix} column. The hash stored in the database uses {@code DigestUtils.sha256Hex}
+     * matching the production filter. The row ID is generated via {@link DbUtil#generateDbRandom()}
+     * (TSID) matching JPA entity generation.
      *
      * @param jdbc JdbcTemplate connected to the test database
      * @return raw API key string for use in {@code Authorization: ApiKey <rawKey>} headers
@@ -58,9 +60,11 @@ public class ApiKeyBuilder {
         if (tenantId == null) {
             throw new IllegalStateException("tenantId is required — call forTenant(Long) before create()");
         }
-        String rawKey = UUID.randomUUID().toString();
+        String keyPrefix = jdbc.queryForObject(
+            "SELECT key_prefix FROM main.tenant WHERE id = ?",
+            String.class, tenantId);
+        String rawKey = keyPrefix + "_" + UUID.randomUUID().toString();
         String keyHash = DigestUtils.sha256Hex(rawKey);
-        String keyPrefix = rawKey.substring(0, 8);
         Long id = DbUtil.generateDbRandom();
 
         jdbc.update(

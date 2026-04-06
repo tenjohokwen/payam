@@ -97,6 +97,10 @@ class TenantProvisioningIT {
         assertThat(key.getKeyHash()).isNotEqualTo(rawKey);
         assertThat(key.getKeyHash()).isEqualTo(DigestUtils.sha256Hex(rawKey));
 
+        // AKEY-01: raw key follows PREFIX_UUID format
+        assertThat(rawKey).matches("^[A-Z0-9]{2,3}_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$");
+        assertThat(rawKey).startsWith("ACM_");
+
         // Prefix check — derived from tenant name (v5: keyPrefix is 3-char uppercase from name)
         assertThat(key.getKeyPrefix()).isEqualTo("ACM");
 
