@@ -1,452 +1,290 @@
-# Architecture Patterns: Tenant & API Key Management (v5)
+# Architecture Research — v6
 
-**Domain:** Multi-tenant mobile money payment gateway — Tenant lifecycle + API key management
-**Researched:** 2026-04-02
-**Confidence:** HIGH (based on direct codebase analysis of all affected files)
-
----
-
-## Context: What Already Exists
-
-The v1 foundation established the following in `com.softropic.payam.tenant`:
-
-| File | Current State | Gap for v5 |
-|------|--------------|------------|
-| `Tenant` entity | `tenantRef`, `name`, `tenantStatus`, `webhookUrl`, `webhookSecret`, `@OneToMany apiKeys` | Missing: `keyPrefix` (immutable, derived from name at creation), `email` field |
-| `TenantApiKey` entity | `keyHash`, `keyPrefix`, `keyStatus (ACTIVE/ROTATED/REVOKED)`, `environment` (VARCHAR "LIVE"), `rotatedAt` | `environment` column is VARCHAR "LIVE" — must become typed enum `PROD/DEV/SANDBOX` |
-| `TenantStatus` enum | `ACTIVE`, `SUSPENDED` | Complete — no change needed |
-| `ApiKeyStatus` enum | `ACTIVE`, `ROTATED`, `REVOKED` | Complete — no change needed |
-| `ApiKeyService` | `generateAndStore()`, `authenticate()`, `rotate()`, `revoke()` | Missing: per-environment uniqueness enforcement, suspension bulk-revoke, prefix format (currently uses random 8 chars, not tenant-name-derived) |
-| `TenantService` | `createTenant()` | Missing: `suspend()`, `reactivate()`, `updateTenantEmail()`, `updateWebhookUrl()`, `regenerateWebhookSecret()` |
-| `TenantAdminResource` | POST `/v1/admin/tenants`, POST rotate, DELETE revoke | Missing: GET list/detail, PATCH status, PATCH email/webhookUrl, POST regenerate-webhook-secret |
-| `TenantApiKeyRepository` | `findValidKeyByHash()`, `findAllByTenantId()` | Missing: `findActiveByTenantAndEnvironment()`, `findRotatedExpiredBefore()`, bulk revoke by tenantId |
-| `ApiKeyAuthenticationFilter` | Validates key hash + ROTATED grace window | Must also reject keys whose tenant is SUSPENDED |
-
-**Key schema facts from V1__tenant_schema.sql + V8__tenant_webhook_url.sql:**
-- `tenant_api_key.environment` is `VARCHAR(10) NOT NULL DEFAULT 'LIVE'` — needs migration to `PROD/DEV/SANDBOX`
-- `tenant.key_prefix` column does not exist — currently only on `TenantApiKey` — must be moved to `Tenant` per requirements (immutable per tenant, not per key)
-- `tenant.email` column does not exist — new addition
+**Researched:** 2026-04-07
+**Confidence:** HIGH — all findings drawn directly from codebase inspection
 
 ---
 
-## Modified Entities
+## REST Controller Integration
 
-### Tenant (modified)
+### Where New Endpoints Live
 
-Add two columns via Flyway migration `V18__tenant_v5_fields.sql`:
+The controller shell already exists: `TenantAdminResource` at `com.softropic.payam.tenant.api` with base path `/v1/admin/tenants`. It currently has three endpoints — `POST /` (create), `POST /{tenantId}/keys/{keyId}/rotate`, and `DELETE /{tenantId}/keys/{keyId}`. All six `TenantService` operations not yet exposed as HTTP simply extend this same class and module location.
 
-```sql
-ALTER TABLE main.tenant
-    ADD COLUMN IF NOT EXISTS email      VARCHAR(255),
-    ADD COLUMN IF NOT EXISTS key_prefix VARCHAR(4) NOT NULL DEFAULT 'UNK';
+**Module:** `tenant/api/TenantAdminResource.java` — the only file that needs HTTP additions.
 
-COMMENT ON COLUMN main.tenant.email      IS 'Tenant notification email — nullable; used for 6 event notifications';
-COMMENT ON COLUMN main.tenant.key_prefix IS 'Immutable 3-char prefix (uppercase, 0-padded) derived from name at creation';
-```
+The existing controller is already:
+- Annotated `@RestController @RequestMapping("/v1/admin/tenants")`
+- `@PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)` per method (ROLE_ADMIN or ROLE_LTD_ADMIN)
+- Inside the `/v1/admin/**` exclusion in `TenantSecurityConfig`, so it rides the JWT chain — not the API-key chain
+- `AdminTransactionResource` and `AdminMetricsResource` in `admin/api/` follow the identical pattern, confirming this is the right location for admin-facing endpoints
 
-Java entity additions:
-- `@Column(name = "email") private String email;` — nullable, editable
-- `@Column(name = "key_prefix", nullable = false, updatable = false, length = 4) private String keyPrefix;` — set at creation, never changed
+**What to add to `TenantAdminResource`:**
 
-**Prefix derivation rule** (pure function, testable in isolation):
-```
-name = null or blank → "UNK"
-name.length >= 3     → name.substring(0, 3).toUpperCase()
-name.length == 2     → name.toUpperCase() + "0"
-name.length == 1     → name.toUpperCase() + "00"
-```
+| Method | Path | Service call | Notes |
+|--------|------|--------------|-------|
+| PATCH | `/{tenantRef}/name` | `TenantService.updateName()` | `204 No Content` |
+| PATCH | `/{tenantRef}/email` | `TenantService.updateEmail()` | `204 No Content` |
+| PATCH | `/{tenantRef}/webhook-url` | `TenantService.updateWebhookUrl()` | `204 No Content` |
+| POST | `/{tenantRef}/suspend` | `TenantService.suspend()` | `204 No Content` |
+| POST | `/{tenantRef}/reactivate` | `TenantService.reactivate()` | Returns `ApiKeyDto` with rawKey (one-time) |
+| POST | `/{tenantRef}/webhook-secret/regenerate` | `TenantService.regenerateWebhookSecret()` | Returns raw secret in response body |
+| GET | `/` | new `TenantQueryService.findAll()` | TENT-05: paginated list |
+| GET | `/{tenantRef}` | new `TenantQueryService.findByRef()` | TENT-06: detail view |
 
-### TenantApiKey (modified)
+For TENT-05/06 list and detail: `TenantService` has no read operations yet. Two options: (a) add `findAll()` / `findByTenantRef()` directly to `TenantService`, or (b) add a thin `TenantQueryService` in `tenant/service/`. Given the codebase pattern (`AdminTransactionQueryService` exists separately for read operations), option (b) is preferable — separates reads from write transactions.
 
-Migrate `environment` column from freeform VARCHAR to constrained enum values via `V19__tenant_api_key_environment_enum.sql`:
+**New contract DTOs needed** (in `tenant/contract/`):
+- `TenantDetailDto` — extends `TenantDto` fields plus email, webhookUrl, keyPrefix, list of `ApiKeyDto` (without rawKey)
+- `UpdateNameRequest`, `UpdateEmailRequest`, `UpdateWebhookUrlRequest` — simple `@NotBlank`-annotated records
+- `WebhookSecretDto` — wraps the returned raw secret for the regenerate endpoint
 
-```sql
--- Rename existing LIVE values to PROD (v1 only used LIVE)
-UPDATE main.tenant_api_key SET environment = 'PROD' WHERE environment = 'LIVE';
+**No new module, no new package for controllers.** Everything lands in the existing `tenant` module.
 
--- Add check constraint
-ALTER TABLE main.tenant_api_key
-    ADD CONSTRAINT chk_api_key_environment CHECK (environment IN ('PROD', 'DEV', 'SANDBOX'));
+---
 
--- Add unique constraint: one ACTIVE key per tenant + environment
-CREATE UNIQUE INDEX IF NOT EXISTS uidx_tenant_api_key_active_env
-    ON main.tenant_api_key (tenant_id, environment)
-    WHERE key_status = 'ACTIVE';
-```
+## TENT-09 Auth Enforcement
 
-Java entity change:
-- `environment` field type: `String` → `ApiKeyEnvironment` enum (`PROD`, `DEV`, `SANDBOX`)
-- `@Enumerated(EnumType.STRING)` annotation added to `environment`
+### Current Filter Behavior
 
-Add new `ApiKeyEnvironment` enum in `tenant/contract/`:
+`ApiKeyAuthenticationFilter.doFilterInternal()` calls `ApiKeyService.authenticate(rawKey)` which runs:
+
 ```java
-public enum ApiKeyEnvironment { PROD, DEV, SANDBOX }
+keyRepository.findValidKeyByHash(hash, graceDeadline)
 ```
 
-**`key_prefix` on TenantApiKey** should be retained as a denormalized copy for fast auth-path lookup (key validation does not need to join to Tenant). The `Tenant.keyPrefix` is the source of truth; `TenantApiKey.keyPrefix` is populated from it at generation time.
+The JPQL query checks `k.keyStatus = 'ACTIVE' OR (k.keyStatus = 'ROTATED' AND k.rotatedAt > graceDeadline)` but does NOT check `k.tenant.tenantStatus`. The tenant entity is loaded via `JOIN FETCH k.tenant` — meaning `tenantApiKey.getTenant()` is already populated before the `@Transactional` authenticate() transaction closes.
 
----
+### Exact Change Required
 
-## New Components
+**File:** `ApiKeyAuthenticationFilter.doFilterInternal()` — the check goes after the `authenticate()` call succeeds, before `TenantContext.set()`.
 
-### `KeyRotationCleanupJob` (new Quartz job)
-
-**Location:** `tenant/service/KeyRotationCleanupJob.java`  
-**Config:** `tenant/config/KeyRotationSchedulerConfig.java`
-
-Pattern mirrors `ReconciliationJob` exactly — extends `QuartzJobBean`, `@Transactional` on `executeInternal`, catch-all prevents trigger unscheduling.
-
-```
-Schedule: every hour ("0 0 * * * ?")
-Query: SELECT k FROM TenantApiKey k WHERE k.keyStatus = 'ROTATED' AND k.rotatedAt < :cutoff
-Action: bulk UPDATE key_status = 'REVOKED' for expired ROTATED keys
-Cutoff: Instant.now().minus(Duration.ofHours(24))
-```
-
-Required new repository method:
 ```java
-@Query("SELECT k FROM TenantApiKey k WHERE k.keyStatus = 'ROTATED' AND k.rotatedAt < :cutoff")
-List<TenantApiKey> findExpiredRotatedKeys(@Param("cutoff") Instant cutoff);
+// After: tenantApiKey = apiKeyService.authenticate(rawKey);
+// Add:
+if (tenantApiKey.getTenant().getTenantStatus() != TenantStatus.ACTIVE) {
+    log.warn("API key rejected — tenant suspended",
+        kv("operation", "api_key_auth"),
+        kv("keyPrefix", rawKey.contains("_") ? rawKey.substring(0, rawKey.indexOf("_")) : "[unknown]"),
+        kv("status", "TENANT_SUSPENDED"));
+    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Tenant account suspended");
+    return;
+}
 ```
 
-Job runs hourly (not daily) because ROTATED keys can expire at any time relative to when rotation was triggered. Daily at 02:00 UTC would allow up to ~47 hours of grace instead of the specified 24.
+This approach:
+- Does not change the `ApiKeyService.authenticate()` transaction or the JPQL query — the tenant is already JOIN FETCHed so no extra DB round-trip
+- Does not break the existing `authenticate()` contract (it still returns a valid key or throws)
+- Keeps the filter as the single enforcement point for both key status and tenant status
+- Logs consistently with the existing `kv("operation", "api_key_auth")` pattern
 
-**No Quartz data map parameters needed** — the job has no parameterised inputs; it queries the DB directly.
+**Alternative rejected:** Adding the tenant status check inside the JPQL query. That would make `authenticate()` ambiguous — the caller cannot distinguish "bad key" from "suspended tenant" without inspecting the result. Keeping the check in the filter preserves the service method's single responsibility.
 
-### `TenantEventEmailListener` (new)
-
-**Location:** `email/infrastructure/listener/TenantEventEmailListener.java`
-
-Follows the `PlatformConfigEmailListener` pattern exactly:
-- `@Component`, `@EventListener` (not `@TransactionalEventListener` — MailManager handles AFTER_COMMIT)
-- `@Transactional` on handler method
-- Injects `ApplicationEventPublisher` and `${payam.platform.notification-email}`
-- Publishes `Envelope` to MailManager for each of the 6 event types
-
-**6 new domain events** in `tenant/contract/event/` (plain POJOs, no Spring base class needed):
-
-| Event class | Fired by | Recipients |
-|-------------|----------|------------|
-| `ApiKeyGeneratedEvent` | `ApiKeyService.generateAndStore()` | platform email + tenant email (if present) |
-| `ApiKeyRotatedEvent` | `ApiKeyService.rotate()` | platform email + tenant email |
-| `ApiKeyRevokedEvent` | `ApiKeyService.revoke()` + bulk suspend | platform email + tenant email |
-| `TenantStatusChangedEvent` | `TenantService.suspend()` / `reactivate()` | platform email + tenant email |
-| `WebhookSecretRegeneratedEvent` | `TenantService.regenerateWebhookSecret()` | platform email + tenant email |
-| `TenantContactChangedEvent` | `TenantService.updateEmail()` / `updateWebhookUrl()` | platform email + tenant email |
-
-**6 new EmailTemplate enum values** in `email/contract/EmailTemplate.java`:
-```
-TENANT_API_KEY_GENERATED("email.tenant.api_key_generated.title")
-TENANT_API_KEY_ROTATED("email.tenant.api_key_rotated.title")
-TENANT_API_KEY_REVOKED("email.tenant.api_key_revoked.title")
-TENANT_STATUS_CHANGED("email.tenant.status_changed.title")
-TENANT_WEBHOOK_SECRET_REGENERATED("email.tenant.webhook_secret_regenerated.title")
-TENANT_CONTACT_CHANGED("email.tenant.contact_changed.title")
-```
-
-### New REST endpoints on `TenantAdminResource`
-
-Add to existing `TenantAdminResource` or split into a second controller if the file grows unwieldy:
-
-| Method | Path | Action |
-|--------|------|--------|
-| GET | `/v1/admin/tenants` | List all tenants (paginated) |
-| GET | `/v1/admin/tenants/{tenantId}` | Get single tenant with key list |
-| PATCH | `/v1/admin/tenants/{tenantId}` | Update name, email, webhookUrl |
-| POST | `/v1/admin/tenants/{tenantId}/suspend` | Suspend + bulk revoke all keys |
-| POST | `/v1/admin/tenants/{tenantId}/reactivate` | Reactivate + auto-generate PROD key |
-| POST | `/v1/admin/tenants/{tenantId}/webhook-secret` | Regenerate webhookSecret |
-| GET | `/v1/admin/tenants/{tenantId}/webhook-secret` | Reveal webhookSecret (one-time display equivalent — returns current plaintext) |
-| POST | `/v1/admin/tenants/{tenantId}/keys` | Generate new key for specified environment |
-| POST | `/v1/admin/tenants/{tenantId}/keys/{keyId}/rotate` | Existing — no change |
-| DELETE | `/v1/admin/tenants/{tenantId}/keys/{keyId}` | Existing — no change |
-
-Note on `webhookSecret` reveal: unlike API keys (which are hashed and can never be retrieved), the webhookSecret is stored in plaintext in the `tenant.webhook_secret` column and is revealed on demand via the eye-icon UI. The GET reveal endpoint returns the current value directly.
-
-### DTO additions
-
-- `TenantDto` — add `email`, `keyPrefix`, `webhookUrl` fields
-- `ApiKeyDto` — add `keyStatus`, `environment (ApiKeyEnvironment)`, `rotatedAt` fields; `rawKey` remains nullable (non-null only on generation/rotation)
-- New `TenantDetailDto` record — wraps `TenantDto` + `List<ApiKeyDto>` for the GET single-tenant endpoint
+**Import needed:** `TenantStatus` from `com.softropic.payam.tenant.contract.TenantStatus`.
 
 ---
 
-## Data Flow
+## Email Event Architecture
 
-### Tenant Creation (enhanced)
+### Existing Pattern (confirmed from codebase)
 
+There are two established patterns in the codebase:
+
+**Pattern A — `PlatformConfigService` (service publishes, listener transforms):**
+1. `@Transactional` service method calls `eventPublisher.publishEvent(new PlatformConfigChangedEvent(...))`
+2. `PlatformConfigEmailListener` listens with `@EventListener @Transactional` (plain, not `@TransactionalEventListener`)
+3. The listener builds an `Envelope` and calls `publisher.publishEvent(envelope)`
+4. `MailManager.sendEmailFromTemplate()` is annotated `@TransactionalEventListener(AFTER_COMMIT)` — it fires after the outer DB transaction commits
+
+**Pattern B — `AccountChangeEmailListener`:** Same two-stage pattern. Domain event fires in transaction → Listener transforms → Envelope event → MailManager fires AFTER_COMMIT.
+
+**Key decision from PROJECT.md:** Use `@EventListener` on the domain listener (not `@TransactionalEventListener`) because `MailManager` handles AFTER_COMMIT on the Envelope event. Double-wrapping would break delivery.
+
+### How to Wire NOTIF-01..06
+
+Six new domain events go in `tenant/contract/event/` (matching the platform pattern: `PlatformConfigChangedEvent` lives in `platform/contract/event/`):
+
+| Event record | Published by | NOTIF |
+|---|---|---|
+| `ApiKeyGeneratedEvent(tenantRef, tenantName, tenantEmail, environment, keyPrefix)` | `TenantService.createTenant()` and `TenantService.reactivate()` | NOTIF-01 |
+| `ApiKeyRotatedEvent(tenantRef, tenantName, tenantEmail, environment, keyPrefix)` | `ApiKeyService.rotate()` | NOTIF-02 |
+| `ApiKeyRevokedEvent(tenantRef, tenantName, tenantEmail, environment, keyPrefix)` | `ApiKeyService.revoke()` | NOTIF-03 |
+| `TenantStatusChangedEvent(tenantRef, tenantName, tenantEmail, newStatus)` | `TenantService.suspend()` and `TenantService.reactivate()` | NOTIF-04 |
+| `WebhookUrlChangedEvent(tenantRef, tenantName, tenantEmail, newWebhookUrl)` | `TenantService.updateWebhookUrl()` | NOTIF-05 |
+| `TenantEmailChangedEvent(tenantRef, tenantName, oldEmail, newEmail)` | `TenantService.updateEmail()` | NOTIF-06 |
+
+`ApiKeyService.revoke()` (NOTIF-03) currently has no `ApplicationEventPublisher` dependency — it will need one injected. Both `TenantService` and `ApiKeyService` are `@Transactional` so events published inside their methods will be deferred correctly by `MailManager`'s AFTER_COMMIT listener.
+
+One new listener class handles all six: `TenantLifecycleEmailListener` in `email/infrastructure/listener/`. It takes `@EventListener` methods for each event type, builds an `Envelope` for the appropriate template, and calls `publisher.publishEvent(envelope)`.
+
+**New `EmailTemplate` entries needed** (in `email/contract/EmailTemplate.java`):
 ```
-POST /v1/admin/tenants
-  → TenantAdminResource.createTenant(name, email, environment)
-  → TenantService.createTenant(name, email, environment)
-      → derive keyPrefix from name (pure function)
-      → Tenant.builder().keyPrefix(keyPrefix).email(email)...save()
-      → ApiKeyService.generateAndStore(tenant, PROD)
-          → rawKey = prefix_UUID (prefix = tenant.keyPrefix)
-          → hash = SHA-256(rawKey)
-          → TenantApiKey.builder().keyStatus(ACTIVE).environment(PROD)...save()
-          → publish ApiKeyGeneratedEvent
-      → return TenantCreationResult(tenant, key, rawKey)
-  → TenantAdminResource maps to TenantCreationResponse (rawKey shown once)
-  → TenantEventEmailListener handles ApiKeyGeneratedEvent → sends email
+TENANT_API_KEY_GENERATED("email.tenant.key_generated.title"),
+TENANT_API_KEY_ROTATED("email.tenant.key_rotated.title"),
+TENANT_API_KEY_REVOKED("email.tenant.key_revoked.title"),
+TENANT_STATUS_CHANGED("email.tenant.status_changed.title"),
+TENANT_WEBHOOK_URL_CHANGED("email.tenant.webhook_url_changed.title"),
+TENANT_EMAIL_CHANGED("email.tenant.email_changed.title"),
 ```
 
-**Key format change:** Currently `ApiKeyService.generateAndStore()` uses a random 32-byte Base64 string and takes the first 8 chars as prefix. This must change to `tenant.keyPrefix + "_" + UUID.randomUUID()`. The `key_prefix` stored on `TenantApiKey` becomes a denormalized copy from the parent `Tenant.keyPrefix`.
+**Thymeleaf templates** go in `src/main/resources/templates/` following the existing naming convention.
 
-### Suspension Flow (synchronous cascade)
+**Recipient construction:** The tenant `email` field (added in V18 migration, `Tenant.getEmail()`) is the notification address. If `email` is null, the listener must skip sending rather than throw. Guard: `if (event.tenantEmail() == null || event.tenantEmail().isBlank()) return;`
 
-```
-POST /v1/admin/tenants/{tenantId}/suspend
-  → TenantService.suspend(tenantId, adminId)
-      → load Tenant (verify status = ACTIVE)
-      → tenant.setTenantStatus(SUSPENDED)
-      → tenantRepository.save(tenant)
-      → keyRepository.bulkRevokeAllForTenant(tenantId)  ← single UPDATE query
-      → publish TenantStatusChangedEvent(OLD=ACTIVE, NEW=SUSPENDED)
-      → publish ApiKeyRevokedEvent(count=N, reason=TENANT_SUSPENDED)
-      → return updated TenantDto
-```
+**Note on `TenantService.reactivate()`:** This method both changes tenant status (NOTIF-04) and generates a new key (NOTIF-01). Both events should be published from `reactivate()` so the tenant receives both notifications.
 
-**Synchronous vs event-driven for cascade revocation:** Revocation MUST be synchronous within the same transaction. The suspension and all key revocations must commit atomically. If revocation were event-driven (AFTER_COMMIT), there is a window between the tenant being SUSPENDED and the keys being revoked where a merchant could still authenticate. Given that the `ApiKeyAuthenticationFilter` checks key status but does NOT check tenant status (current codebase), synchronous within-transaction revocation is the only safe approach.
+### Summary of Modified vs New Files for Email
+- `TenantService.java` — MODIFIED: inject `ApplicationEventPublisher`, add publish calls in `createTenant()`, `updateEmail()`, `updateWebhookUrl()`, `suspend()`, `reactivate()`
+- `ApiKeyService.java` — MODIFIED: inject `ApplicationEventPublisher`, add publish in `rotate()` and `revoke()`
+- `EmailTemplate.java` — MODIFIED: add 6 new enum constants
+- NEW: `tenant/contract/event/` package with 6 event records
+- NEW: `email/infrastructure/listener/TenantLifecycleEmailListener.java`
+- NEW: 6 Thymeleaf `.html` templates
 
-The `ApiKeyAuthenticationFilter` should also be extended to reject keys where `tenant.tenantStatus == SUSPENDED` as a defense-in-depth guard (handles any edge case where keys were not fully revoked, e.g. a partial failure).
+---
 
-Bulk revoke via a single JPQL UPDATE (not N individual saves):
+## One-Time Key Display (AKEY-07) — Data Flow
+
+### Where the Raw Key Lives
+
+The raw key is **never stored**. In `ApiKeyService.generateAndStore()`:
+
 ```java
-@Modifying
-@Query("UPDATE TenantApiKey k SET k.keyStatus = 'REVOKED' WHERE k.tenant.id = :tenantId AND k.keyStatus <> 'REVOKED'")
-int bulkRevokeAllForTenant(@Param("tenantId") Long tenantId);
+String rawKey = generateSecureKey(prefix);  // PREFIX_UUID, in-memory only
+String hash   = DigestUtils.sha256Hex(rawKey);
+// Only hash persisted in TenantApiKey.keyHash
+keyRepository.save(entity);
+return new ApiKeyAndRawKey(saved, rawKey);  // rawKey returned to caller in-memory only
 ```
 
-### Reactivation Flow
+`TenantAdminResource` already returns it:
+- `createTenant()` returns `TenantCreationResponse(tenantDto, ApiKeyDto(id, prefix, env, rawKey))`
+- `rotateKey()` returns `ApiKeyDto(id, prefix, env, rawKey)`
 
-```
-POST /v1/admin/tenants/{tenantId}/reactivate
-  → TenantService.reactivate(tenantId, adminId)
-      → load Tenant (verify status = SUSPENDED)
-      → tenant.setTenantStatus(ACTIVE)
-      → tenantRepository.save(tenant)
-      → ApiKeyService.generateAndStore(tenant, PROD)
-          → rawKey = tenant.keyPrefix + "_" + UUID
-          → publish ApiKeyGeneratedEvent
-      → publish TenantStatusChangedEvent(OLD=SUSPENDED, NEW=ACTIVE)
-      → return TenantReactivationResult(tenant, newKey, rawKey)
-```
+`ApiKeyDto.rawKey` is documented `// NON-NULL only on creation/rotation — never stored, shown once`
 
-The admin UI must display the `rawKey` from `TenantReactivationResult` in a one-time reveal dialog — same pattern as tenant creation.
+### Backend: Already Correct
 
-### Key Rotation (current flow — minor change)
+The backend one-time display is **already implemented correctly**. No backend changes needed for AKEY-07. The raw key is returned in the HTTP response exactly once and is only held in memory within the request/response cycle. The hash in DB cannot be reversed.
 
-Current `rotate()` generates a new key using `old.getTenant()` which loads the tenant proxy. With the new prefix format, the `keyPrefix` stored on the tenant drives the new key's prefix — no behavioral change needed, but `generateAndStore()` must read from `tenant.keyPrefix` rather than computing it from the raw key.
+### Frontend: AKEY-07 is a UI Concern Only
 
-### Authentication Filter (extended)
+1. Admin calls `POST /v1/admin/tenants` or `POST /v1/admin/tenants/{id}/keys/{keyId}/rotate`
+2. Response contains `rawKey` in `ApiKeyDto`
+3. Vue component opens a `QDialog` with the raw key displayed
+4. Dialog shows a "I have copied this key" checkbox or confirmation button — dismissal blocked until confirmed
+5. On dismissal, `rawKey` is discarded from component state — never cached in Pinia store
 
-`ApiKeyAuthenticationFilter.doFilterInternal()` currently only validates key status. Add tenant status check:
+**Component location:** `src/frontend/src/components/tenant/ApiKeyRevealDialog.vue` — reusable by both creation and rotation flows.
 
-```
-After successful key lookup:
-  if (tenantApiKey.getTenant().getTenantStatus() == SUSPENDED) {
-      → 401 Unauthorized
-  }
-```
-
-This requires `JOIN FETCH k.tenant` to already be in `findValidKeyByHash()` — it is, so no query change needed.
+**Store rule:** The Pinia tenant store must NOT persist `rawKey`. Store the returned `ApiKeyDto` with `rawKey` set to `null` after the dialog closes.
 
 ---
 
-## Event Flow Summary
+## WebhookSecret Reveal (WSEC-02) — Data Flow
+
+### Current Storage: Plaintext
+
+Confirmed from V8 migration and `Tenant.java`:
+- Column: `main.tenant.webhook_secret VARCHAR(255)` — no hash suffix, no salt column
+- `TenantService.regenerateWebhookSecret()` stores `UUID.randomUUID().toString()` directly via `tenant.setWebhookSecret(newSecret)`
+
+**The `webhookSecret` is stored plaintext in the DB.** This is intentional: the outbound webhook delivery system needs the raw secret to compute `HMAC-SHA256(payload, secret)` for the `X-Signature` header. Hashing would prevent signing.
+
+### WSEC-02 Reveal Flow
+
+Because the secret is plaintext in DB, reveal requires no decryption:
+
+**Backend — add reveal endpoint to `TenantAdminResource`:**
 
 ```
-TenantService / ApiKeyService
-        │
-        │  publish domain event (ApplicationEventPublisher)
-        ▼
-TenantEventEmailListener (@EventListener, @Transactional)
-        │
-        │  publish Envelope (ApplicationEventPublisher)
-        ▼
-MailManager (@TransactionalEventListener AFTER_COMMIT, @Async)
-        │
-        ├─ sends to: platform-notification-email (always)
-        └─ sends to: tenant.email (when not null)
+GET /v1/admin/tenants/{tenantRef}/webhook-secret
+@PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
+Returns: WebhookSecretDto { String webhookSecret }
 ```
 
-Events fire within the same thread/transaction as the service operation. `@EventListener` (not `@TransactionalEventListener`) on `TenantEventEmailListener` means the Envelope publication happens before commit. MailManager's `@TransactionalEventListener(AFTER_COMMIT)` then fires after the outer transaction commits — this is the established pattern from `PlatformConfigEmailListener`.
+The service (or query service) reads `tenant.getWebhookSecret()` and returns it. The `TenantDetailDto` returned by `GET /{tenantRef}` must NOT include `webhookSecret` — only the dedicated reveal endpoint exposes it, following least-disclosure.
 
-Hibernate Envers captures all entity mutations automatically via `@Audited` on `Tenant` and `TenantApiKey` — no additional code needed for the audit trail. The `created_by` / `last_modified_by` fields from `AbstractAuditingEntity` capture the admin JWT principal at each mutation.
+**Frontend:**
+1. `TenantDetailPage.vue` shows a masked field `•••••••••` with an eye icon
+2. On eye icon click, call `GET /v1/admin/tenants/{tenantRef}/webhook-secret`
+3. Display the returned secret in the field temporarily
+4. Do NOT cache the secret in the Pinia store — read on demand each time
+
+**Security note:** Existing `@PreAuthorize(HAS_ADMIN_ROLE)` guard is sufficient for v6. No additional rate-limiting or token-gating needed beyond what the JWT chain already provides.
+
+**Future consideration (out of v6 scope):** If webhook secret moves to a hashed+separate signing key model, both the reveal endpoint and `regenerateWebhookSecret()` would need updates. Current plaintext design is appropriate for single-server deployment.
 
 ---
 
-## Admin UI Integration
+## Suggested Build Order
 
-### Route additions to `src/frontend/src/router/routes.js`
+Dependencies drive the order. Auth enforcement (TENT-09) must land before testing any new endpoints. Email event infrastructure must exist (publish calls + listener) before the email flow can be tested end-to-end. UI depends on all REST endpoints being stable.
 
-Under the existing `path: 'admin'` children array:
+### Phase 1 — TENT-09 Auth Enforcement
+**Modified:** `ApiKeyAuthenticationFilter.java` only  
+**Why first:** Zero new classes. Immediate security correctness. Every subsequent test of tenant suspension relies on this being in place.
 
-```javascript
-{
-  path: 'tenants',
-  component: () => import('pages/admin/TenantListPage.vue'),
-  meta: { requiresAuth: true },
-},
-{
-  path: 'tenants/:tenantId',
-  component: () => import('pages/admin/TenantDetailPage.vue'),
-  meta: { requiresAuth: true },
-},
+### Phase 2 — REST Controller Expansion (all 8 new endpoints)
+**Modified:** `TenantAdminResource.java`  
+**New:** `TenantQueryService.java`, `TenantDetailDto.java`, `WebhookSecretDto.java`, 3 update request records  
+**Includes:** TENT-05 list, TENT-06 detail, all 6 write operations, WSEC-02 reveal endpoint  
+**Why second:** Provides the HTTP surface that both email integration tests and the UI depend on.
+
+### Phase 3 — Email Event Infrastructure
+**Modified:** `TenantService.java`, `ApiKeyService.java`, `EmailTemplate.java`  
+**New:** `tenant/contract/event/` (6 records), `TenantLifecycleEmailListener.java`, 6 Thymeleaf templates  
+**Why third:** Service publish calls can only be added once the event types exist. The listener can be added independently of UI. Tests for NOTIF-01..06 can run without UI.
+
+### Phase 4 — Admin UI
+**New:** `TenantListPage.vue`, `TenantDetailPage.vue`, `ApiKeyRevealDialog.vue`, `tenant.api.js`, `tenant.store.js`  
+**Modified:** `router/routes.js` (add `admin/tenants` and `admin/tenants/:tenantRef`)  
+**Why fourth:** Depends on all REST endpoints being stable. AKEY-07 modal is part of TenantDetailPage. WSEC-02 eye-icon is in TenantDetailPage.
+
+### Dependency Graph
+
+```
+Phase 1: TENT-09 (filter change — 1 file)
+    |
+Phase 2: REST endpoints (TenantAdminResource + TenantQueryService + DTOs)
+    |                    |
+Phase 3: Email events    Phase 4: Admin UI
+(can proceed in         (can proceed in
+ parallel after Phase 2)  parallel after Phase 2)
 ```
 
-### New API methods in `src/frontend/src/api/admin.api.js`
+### Flyway V22
 
-Add to the existing `adminApi` object:
-
-```javascript
-// Tenant management
-listTenants(params = {})          → GET /v1/admin/tenants
-getTenant(tenantId)               → GET /v1/admin/tenants/:id
-createTenant(payload)             → POST /v1/admin/tenants
-updateTenant(tenantId, payload)   → PATCH /v1/admin/tenants/:id
-suspendTenant(tenantId)           → POST /v1/admin/tenants/:id/suspend
-reactivateTenant(tenantId)        → POST /v1/admin/tenants/:id/reactivate
-regenerateWebhookSecret(tenantId) → POST /v1/admin/tenants/:id/webhook-secret
-revealWebhookSecret(tenantId)     → GET /v1/admin/tenants/:id/webhook-secret
-generateKey(tenantId, env)        → POST /v1/admin/tenants/:id/keys
-rotateKey(tenantId, keyId)        → POST /v1/admin/tenants/:id/keys/:keyId/rotate  (existing)
-revokeKey(tenantId, keyId)        → DELETE /v1/admin/tenants/:id/keys/:keyId        (existing)
-```
-
-### New pages
-
-| Page | Responsibilities |
-|------|-----------------|
-| `TenantListPage.vue` | Paginated table of tenants, status badge (ACTIVE/SUSPENDED), link to detail, Create Tenant button |
-| `TenantDetailPage.vue` | Edit name/email/webhookUrl, status toggle (Suspend/Reactivate), key management per environment, webhook secret reveal/regenerate |
-
-**One-time key reveal pattern** (used in TenantDetailPage for reactivation, and in TenantListPage for creation): Use a Quasar `QDialog` that shows the raw key and a copy-to-clipboard button. Once the dialog is dismissed the raw key is gone from state. This matches the pattern used in v1 for initial key display.
-
-**Webhook secret reveal**: eye-icon button toggles visibility of the currently stored value (fetched once per reveal click, not persisted in frontend state between views).
-
-### Navigation
-
-Add a "Tenants" entry to the sidebar navigation in `MainLayout.vue`, guarded to `ROLE_ADMIN` — same pattern as existing admin nav items.
+Based on current schema inspection, no new columns are required for v6. The existing schema already has: `tenant_status`, `webhook_secret`, `email`, `key_prefix`, `webhook_url`. V22 is not needed unless a gap is discovered during implementation.
 
 ---
 
-## Component Boundaries
+## New vs Modified — Complete Map
 
-| Component | Responsibility | Dependencies |
-|-----------|---------------|-------------|
-| `Tenant` entity | State holder — status, contact info, keyPrefix | `AbstractAuditingEntity`, Envers |
-| `TenantApiKey` entity | Key lifecycle — hash, status, environment, rotation timestamp | `Tenant` (FK) |
-| `ApiKeyService` | Key CRUD: generate, rotate, revoke, bulk-revoke, authenticate | `TenantApiKeyRepository` |
-| `TenantService` | Tenant CRUD + lifecycle transitions | `TenantRepository`, `ApiKeyService`, `ApplicationEventPublisher` |
-| `TenantAdminResource` | REST surface for admin operations | `TenantService`, `ApiKeyService` |
-| `ApiKeyAuthenticationFilter` | Request auth — validates key hash + status + tenant status | `ApiKeyService` |
-| `KeyRotationCleanupJob` | Scheduled ROTATED→REVOKED sweep | `TenantApiKeyRepository` |
-| `TenantEventEmailListener` | Translates domain events → Envelope publications | `ApplicationEventPublisher`, `@Value notification-email` |
-| `MailManager` | Async email delivery with circuit breaker + retry | (unchanged) |
-| Frontend `TenantListPage` | List + create tenants | `adminApi` |
-| Frontend `TenantDetailPage` | Edit + key management + webhook secret | `adminApi` |
-
----
-
-## Build Order
-
-Dependencies drive this order. Each item must be complete before the next begins.
-
-### Phase 1 — Schema + Enum Migration
-- `V18__tenant_v5_fields.sql` — add `tenant.email`, `tenant.key_prefix`
-- `V19__tenant_api_key_environment_enum.sql` — migrate `environment` to `PROD/DEV/SANDBOX`, add partial unique index
-- New `ApiKeyEnvironment` enum in `tenant/contract/`
-- Update `TenantApiKey.environment` field type to `ApiKeyEnvironment`
-- Update `Tenant` entity — add `email`, `keyPrefix` fields
-
-*Rationale: All subsequent work depends on the schema being correct. Run tests here to confirm migrations apply cleanly against Testcontainers.*
-
-### Phase 2 — Service Layer Changes
-- `ApiKeyService.generateAndStore()` — adopt new prefix format (`tenant.keyPrefix + "_" + UUID`), enforce per-environment ACTIVE uniqueness, publish `ApiKeyGeneratedEvent`
-- `ApiKeyService.rotate()` — publish `ApiKeyRotatedEvent`
-- `ApiKeyService.revoke()` — publish `ApiKeyRevokedEvent`
-- `TenantApiKeyRepository` — add `bulkRevokeAllForTenant()`, `findExpiredRotatedKeys()`, `findActiveByTenantAndEnvironment()`
-- `TenantService.createTenant()` — accept `email`, derive and store `keyPrefix`
-- `TenantService.suspend()`, `reactivate()`, `updateEmail()`, `updateWebhookUrl()`, `regenerateWebhookSecret()`
-- `TenantService` publishes `TenantStatusChangedEvent`, `TenantContactChangedEvent`, `WebhookSecretRegeneratedEvent`
-
-*Rationale: Repository must exist before service can call it; events must be defined before listeners can consume them.*
-
-### Phase 3 — Quartz Rotation Cleanup Job
-- `KeyRotationCleanupJob extends QuartzJobBean`
-- `KeyRotationSchedulerConfig` — hourly cron trigger
-- Unit test: expired ROTATED keys → REVOKED; non-expired → untouched
-
-*Rationale: Independent of email and UI; can be built and tested in isolation.*
-
-### Phase 4 — Email Notifications
-- 6 new `EmailTemplate` values
-- 6 domain event classes in `tenant/contract/event/`
-- `TenantEventEmailListener`
-- 6 Thymeleaf email templates
-- Integration test: each event type → correct Envelope published → MailManager invoked
-
-*Rationale: Depends on Phase 2 events being defined. Independent of UI.*
-
-### Phase 5 — REST API Expansion
-- New endpoints on `TenantAdminResource` (or split to `TenantAdminDetailResource`)
-- Updated `TenantDto`, `ApiKeyDto`, new `TenantDetailDto`
-- `CreateTenantRequest` — add `email` field, change `environment` validation to `PROD|DEV|SANDBOX`
-- Authentication filter — add tenant SUSPENDED check
-
-*Rationale: Depends on Phases 2-4 being complete so responses carry correct data and events fire.*
-
-### Phase 6 — Admin UI
-- `admin.api.js` additions
-- `TenantListPage.vue`
-- `TenantDetailPage.vue`
-- Route additions
-- Nav item in `MainLayout.vue`
-
-*Rationale: Backend API must be complete before UI can be built and tested against it.*
-
-### Phase 7 — E2E Tests
-- Test: tenant SUSPENDED → all keys rejected by auth filter
-- Test: reactivation → new PROD key shown, auth succeeds
-- Test: ROTATED key within 24h → auth succeeds; after cleanup job → auth fails
-- Test: two ACTIVE keys in same env → constraint violation
-- Test: email events fired for all 6 event types
-
----
-
-## Critical Integration Points
-
-### `ApiKeyAuthenticationFilter` — tenant status check
-The filter currently only checks `key_status` via the query (ACTIVE or ROTATED within grace window). It does NOT check `tenant_status`. A suspended tenant's keys will pass the hash check if the keys were not revoked (e.g., concurrent failure). Add explicit tenant status rejection after line 120 (`tenantApiKey = apiKeyService.authenticate(rawKey);`).
-
-### `key_prefix` format change
-`ApiKeyService.generateAndStore()` currently assigns `rawKey.substring(0, 8)` as `keyPrefix` — a random Base64 substring, not the tenant-name-derived prefix. This is wrong relative to the requirements. The `keyPrefix` on both `Tenant` and `TenantApiKey` must be derived from the tenant name. The raw key value must be `tenantKeyPrefix + "_" + UUID.randomUUID()` where the prefix is 3 chars.
-
-### Per-environment uniqueness constraint
-The partial unique index (`WHERE key_status = 'ACTIVE'`) must be added via Flyway migration, not only enforced in application code. Application-level checks can race under concurrent rotation requests.
-
-### `CreateTenantRequest.environment` validation
-Currently validates `LIVE|SANDBOX`. Must change to `PROD|DEV|SANDBOX`. Any existing integration tests using `LIVE` must be updated.
-
-### Envers audit with admin ID
-`AbstractAuditingEntity.created_by` / `last_modified_by` are populated by Spring Data's `AuditorAware` implementation from the SecurityContextHolder. All tenant/key mutations via `TenantAdminResource` happen in a JWT-authenticated admin request — the admin's username is already in the security context and will be captured automatically. No additional audit instrumentation is needed beyond what `@Audited` already provides.
-
----
-
-## Confidence Assessment
-
-| Area | Confidence | Notes |
-|------|------------|-------|
-| Modified entity schema | HIGH | V1/V8 migrations read directly; gaps identified precisely |
-| Service layer changes | HIGH | All service/repo files read; gaps catalogued |
-| Quartz job pattern | HIGH | ReconciliationJob + ReconciliationSchedulerConfig read directly |
-| Email event pattern | HIGH | PlatformConfigEmailListener + MailManager read directly |
-| Authentication filter change | HIGH | ApiKeyAuthenticationFilter read line-by-line |
-| Frontend integration | HIGH | All route/api/page files read; pattern is clear |
-| Build order | HIGH | Dependency chain verified from code |
-
----
-
-*Last updated: 2026-04-02*
+| File | Status | Phase |
+|------|--------|-------|
+| `tenant/config/ApiKeyAuthenticationFilter.java` | MODIFIED — add tenant status check after authenticate() | 1 |
+| `tenant/api/TenantAdminResource.java` | MODIFIED — add 8 new endpoint methods | 2 |
+| `tenant/service/TenantQueryService.java` | NEW — findAll(), findByRef() read operations | 2 |
+| `tenant/contract/TenantDetailDto.java` | NEW | 2 |
+| `tenant/contract/WebhookSecretDto.java` | NEW | 2 |
+| `tenant/contract/UpdateNameRequest.java` | NEW | 2 |
+| `tenant/contract/UpdateEmailRequest.java` | NEW | 2 |
+| `tenant/contract/UpdateWebhookUrlRequest.java` | NEW | 2 |
+| `tenant/contract/event/ApiKeyGeneratedEvent.java` | NEW | 3 |
+| `tenant/contract/event/ApiKeyRotatedEvent.java` | NEW | 3 |
+| `tenant/contract/event/ApiKeyRevokedEvent.java` | NEW | 3 |
+| `tenant/contract/event/TenantStatusChangedEvent.java` | NEW | 3 |
+| `tenant/contract/event/WebhookUrlChangedEvent.java` | NEW | 3 |
+| `tenant/contract/event/TenantEmailChangedEvent.java` | NEW | 3 |
+| `tenant/service/TenantService.java` | MODIFIED — inject publisher, add 5 publish calls | 3 |
+| `tenant/service/ApiKeyService.java` | MODIFIED — inject publisher, add 2 publish calls | 3 |
+| `email/contract/EmailTemplate.java` | MODIFIED — add 6 enum constants | 3 |
+| `email/infrastructure/listener/TenantLifecycleEmailListener.java` | NEW | 3 |
+| `resources/templates/tenant-key-generated.html` (and 5 siblings) | NEW (6 files) | 3 |
+| `frontend/src/api/tenant.api.js` | NEW | 4 |
+| `frontend/src/pages/admin/TenantListPage.vue` | NEW | 4 |
+| `frontend/src/pages/admin/TenantDetailPage.vue` | NEW | 4 |
+| `frontend/src/components/tenant/ApiKeyRevealDialog.vue` | NEW | 4 |
+| `frontend/src/stores/tenant.store.js` | NEW | 4 |
+| `frontend/src/router/routes.js` | MODIFIED — add 2 admin tenant routes | 4 |
