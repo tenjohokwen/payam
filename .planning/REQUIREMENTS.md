@@ -9,20 +9,20 @@
 ### TENT: Tenant Identity & Lifecycle
 
 - [x] **TENT-01**: Admin can create a tenant by providing a name; system auto-generates a TenantRef (UUID, non-editable) and an initial PROD API key (shown once) and WebhookSecret
-- [x] **TENT-02**: Admin can update a tenant's name
-- [x] **TENT-03**: Admin can update a tenant's email address (optional field used for notifications)
-- [x] **TENT-04**: Admin can update a tenant's webhookUrl
+- [ ] **TENT-02**: Admin can update a tenant's name
+- [ ] **TENT-03**: Admin can update a tenant's email address (optional field used for notifications)
+- [ ] **TENT-04**: Admin can update a tenant's webhookUrl
 - [ ] **TENT-05**: Admin can view a paginated, searchable list of all tenants with their status
 - [ ] **TENT-06**: Admin can view a tenant's detail page (name, email, TenantRef, status, webhookUrl)
-- [x] **TENT-07**: Admin can suspend an active tenant; all API keys across all environments are immediately revoked
-- [x] **TENT-08**: Admin can reactivate a suspended tenant; system automatically generates a new PROD key shown to admin exactly once
+- [ ] **TENT-07**: Admin can suspend an active tenant; all API keys across all environments are immediately revoked
+- [ ] **TENT-08**: Admin can reactivate a suspended tenant; system automatically generates a new PROD key shown to admin exactly once
 - [ ] **TENT-09**: Tenant with SUSPENDED status cannot process API requests (auth rejects all keys regardless of key status)
 
 ### AKEY: API Key Specification & Lifecycle
 
-- [ ] **AKEY-01**: API keys follow format `PREFIX_UUID` where prefix is derived from the first 3 characters of the tenant name at tenant creation time (uppercase, 0-padded to 3 chars with "0"), immutable even if tenant name later changes
+- [ ] **AKEY-01**: API keys follow format `PREFIX_UUID` where prefix is derived from the first 3 characters of the tenant name at tenant creation time (uppercase, 0-padded to 3 chars with "0"), immutable even if tenant name later changes *(gap closure: Phase 28.1)*
 - [x] **AKEY-02**: Admin can generate a key for a specific environment (PROD, DEV, or SANDBOX) for a tenant; raw key shown exactly once, never retrievable again
-- [ ] **AKEY-03**: A tenant can have at most one ACTIVE key per environment at any time (enforced by database-level partial unique index)
+- [x] **AKEY-03**: A tenant can have at most one ACTIVE key per environment at any time (enforced by database-level partial unique index)
 - [x] **AKEY-04**: Admin can rotate a key; the old key enters ROTATED status (remains valid for 24 hours), the new key is ACTIVE immediately; raw new key shown exactly once
 - [ ] **AKEY-05**: System automatically moves ROTATED keys to REVOKED status after 24 hours via an automated job
 - [x] **AKEY-06**: Admin can manually revoke a key (immediate, no grace period; status moves to REVOKED)
@@ -33,7 +33,7 @@
 
 - [x] **WSEC-01**: A unique WebhookSecret (UUID) is auto-generated when a tenant is created
 - [ ] **WSEC-02**: Admin can reveal the current WebhookSecret via a dedicated "reveal" action (eye icon in UI)
-- [x] **WSEC-03**: Admin can trigger regeneration of the WebhookSecret; new secret replaces the old one
+- [ ] **WSEC-03**: Admin can trigger regeneration of the WebhookSecret; new secret replaces the old one
 
 ### NOTIF: Notifications
 
@@ -82,17 +82,17 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | TENT-01 | Phase 28 | Complete |
-| TENT-02 | Phase 28 | Complete |
-| TENT-03 | Phase 28 | Complete |
-| TENT-04 | Phase 28 | Complete |
+| TENT-02 | Phase 31 | Pending |
+| TENT-03 | Phase 31 | Pending |
+| TENT-04 | Phase 31 | Pending |
 | TENT-05 | Phase 31 | Pending |
 | TENT-06 | Phase 31 | Pending |
-| TENT-07 | Phase 28 | Complete |
-| TENT-08 | Phase 28 | Complete |
+| TENT-07 | Phase 31 | Pending |
+| TENT-08 | Phase 31 | Pending |
 | TENT-09 | Phase 31 | Pending |
-| AKEY-01 | Phase 27 | Pending |
+| AKEY-01 | Phase 28.1 | Pending |
 | AKEY-02 | Phase 28 | Complete |
-| AKEY-03 | Phase 27 | Pending |
+| AKEY-03 | Phase 27 | Complete |
 | AKEY-04 | Phase 28 | Complete |
 | AKEY-05 | Phase 29 | Pending |
 | AKEY-06 | Phase 28 | Complete |
@@ -100,7 +100,7 @@
 | AKEY-08 | Phase 28 | Complete |
 | WSEC-01 | Phase 28 | Complete |
 | WSEC-02 | Phase 32 | Pending |
-| WSEC-03 | Phase 28 | Complete |
+| WSEC-03 | Phase 31 | Pending |
 | NOTIF-01 | Phase 30 | Pending |
 | NOTIF-02 | Phase 30 | Pending |
 | NOTIF-03 | Phase 30 | Pending |

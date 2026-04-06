@@ -204,7 +204,7 @@ Plans:
 #### Phase 28: Service Layer
 **Goal**: Complete tenant and API key service layer — tenant lifecycle (create/update/suspend/reactivate), per-environment key generation and rotation, WebhookSecret management, and Hibernate Envers audit trail
 **Depends on**: Phase 27
-**Requirements**: TENT-01, TENT-02, TENT-03, TENT-04, TENT-07, TENT-08, AKEY-02, AKEY-04, AKEY-06, AKEY-08, WSEC-01, WSEC-03, AUDIT-01, AUDIT-02, AUDIT-03
+**Requirements**: TENT-01, AKEY-02, AKEY-04, AKEY-06, AKEY-08, WSEC-01, AUDIT-01, AUDIT-02, AUDIT-03
 **Success Criteria** (what must be TRUE):
   1. Admin can create a tenant with auto-generated TenantRef (UUID), initial PROD API key (raw key returned once), and WebhookSecret
   2. Admin can update a tenant's name, email, and webhookUrl
@@ -220,6 +220,18 @@ Plans:
 Plans:
 - [x] 28-01-PLAN.md — Flyway V20 Envers audit tables + TenantService lifecycle + ApiKeyService guards
 - [x] 28-02-PLAN.md — TenantServiceIT + TenantAuditIT integration tests + TenantProvisioningIT webhookSecret assertion
+
+#### Phase 28.1: API Key Format Fix (AKEY-01)
+**Goal**: Raw API keys returned to callers follow the `PREFIX_UUID` format — human-readable, tenant-namespaced key strings at create, rotate, and reactivate events
+**Depends on**: Phase 28
+**Requirements**: AKEY-01
+**Gap Closure:** Closes AKEY-01 gap from v1.0 audit — `generateSecureKey()` currently returns opaque Base64; secondary fix to `ApiKeyBuilder` test builder and `ApiKeyAuthenticationFilter` debug log
+**Success Criteria** (what must be TRUE):
+  1. `ApiKeyService.generateSecureKey(tenant)` returns `tenant.getKeyPrefix() + "_" + UUID.randomUUID()` (e.g. `ACM_550e8400-e29b-41d4-a716-446655440000`)
+  2. `ApiKeyBuilder` test builder derives `keyPrefix` from the tenant name prefix, not `rawKey.substring(0,8)`
+  3. Existing integration tests pass with the new key format
+  4. `ApiKeyAuthenticationFilter` debug log no longer uses raw key substring
+**Plans**: TBD
 
 ## Progress
 
@@ -253,8 +265,9 @@ Plans:
 | 26. Health Dashboard UI | v4 | 1/1 | Complete | 2026-04-02 |
 | 27. Schema and Enum Migration | v5 | 2/2 | Complete | 2026-04-03 |
 | 28. Service Layer | v5 | 2/2 | Complete    | 2026-04-06 |
+| 28.1. API Key Format Fix (AKEY-01) | v5 | 0/? | Not started | — |
 | 29. Quartz Rotation Cleanup Job | v5 | 0/? | Not started | — |
 | 30. Email Notifications | v5 | 0/? | Not started | — |
-| 31. REST API Expansion | v5 | 0/? | Not started | — |
+| 31. REST API Expansion (+ HTTP surface for tenant lifecycle) | v5 | 0/? | Not started | — |
 | 32. Admin UI | v5 | 0/? | Not started | — |
 | 33. E2E Tests | v5 | 0/? | Not started | — |
