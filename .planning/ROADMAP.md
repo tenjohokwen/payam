@@ -67,10 +67,7 @@ Plans:
   2. Hash chain integrity can be verified for any event sequence
   3. Test data for any payment scenario is constructable with deterministic builders
   4. N+1 query regressions are detectable via QueryCountVerifier
-**Plans**: 1 plan
-
-Plans:
-- [x] 28.1-01-PLAN.md — Fix generateSecureKey PREFIX_UUID format, ApiKeyBuilder prefix lookup, ApiKeyAuthenticationFilter log
+**Plans**: 2/2 — completed 2026-03-27
 
 Plans:
 - [x] 19-01: DatabaseVerifier, HashChainVerifier, InvariantVerifier, EventVerifier, LedgerVerifier, ProviderCallVerifier, WebhookDeliveryVerifier, TenantIsolationVerifier, CacheVerifier, QueryCountVerifier
@@ -86,10 +83,7 @@ Plans:
   3. Polling fallback drives payment to SUCCESS when no webhook arrives
   4. Fraud-blocked path produces zero provider calls and zero ledger entries
   5. Idempotency: duplicate request returns same response; cross-tenant creates separate transaction
-**Plans**: 1 plan
-
-Plans:
-- [ ] 28.1-01-PLAN.md — Fix generateSecureKey PREFIX_UUID format, ApiKeyBuilder prefix lookup, ApiKeyAuthenticationFilter log
+**Plans**: 2/2 — completed 2026-03-27
 
 Plans:
 - [x] 20-01: MtnPaymentInitiationE2ETest, OrangePaymentInitiationE2ETest, polling fallback, Orange payToken expiry
@@ -237,10 +231,10 @@ Plans:
   2. `ApiKeyBuilder` test builder derives `keyPrefix` from the tenant name prefix, not `rawKey.substring(0,8)`
   3. Existing integration tests pass with the new key format
   4. `ApiKeyAuthenticationFilter` debug log no longer uses raw key substring
-**Plans**: 1 plan
+**Plans**: 1/1 — completed 2026-04-06
 
 Plans:
-- [ ] 28.1-01-PLAN.md — Fix generateSecureKey PREFIX_UUID format, ApiKeyBuilder prefix lookup, ApiKeyAuthenticationFilter log
+- [x] 28.1-01-PLAN.md — Fix generateSecureKey PREFIX_UUID format, ApiKeyBuilder prefix lookup, ApiKeyAuthenticationFilter log
 
 ## Progress
 
