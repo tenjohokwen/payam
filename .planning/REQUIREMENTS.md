@@ -48,7 +48,7 @@
 
 - [x] **AUDIT-01**: All changes to tenant fields (name, email, status, webhookUrl, webhookSecret) are captured by Hibernate Envers
 - [x] **AUDIT-02**: All changes to API key states (generation, rotation, revocation) are captured by Hibernate Envers
-- [ ] **AUDIT-03**: Every key generation and rotation event is logged with the acting admin's ID and a timestamp
+- [x] **AUDIT-03**: Every key generation and rotation event is logged with the acting admin's ID and a timestamp
 
 ## v2 Requirements (deferred to future milestone)
 
@@ -109,4 +109,4 @@
 | NOTIF-06 | Phase 30 | Pending |
 | AUDIT-01 | Phase 28 | Complete |
 | AUDIT-02 | Phase 28 | Complete |
-| AUDIT-03 | Phase 28 | Pending |
+| AUDIT-03 | Phase 28 | Complete |

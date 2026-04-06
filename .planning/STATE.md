@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 28-01-PLAN.md — TenantService lifecycle, ApiKeyService guards, Flyway V20 Envers DDL
-last_updated: "2026-04-06T17:00:56.678Z"
+status: verifying
+stopped_at: Completed 28-02-PLAN.md (Phase 28 all plans done)
+last_updated: "2026-04-06T17:11:05.312Z"
 last_activity: 2026-04-06
 progress:
   total_phases: 11
-  completed_phases: 10
+  completed_phases: 11
   total_plans: 24
-  completed_plans: 23
+  completed_plans: 24
   percent: 100
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 Phase: 28 (service-layer) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-06
 
 Progress: ██████████████████████████████ v1+v2 complete | █████████████████ v3 + gap closure 100% COMPLETE | █████████ v4 phases 24+25+26 COMPLETE | ██ v5 phase 27 COMPLETE | ░░ v5 phase 28 PLANNED (0/2 plans) | ░ v5 phases 29-33
@@ -53,6 +53,7 @@ Progress: ███████████████████████�
 | 22 (plan 01) | 1 | 8 min | 8 min |
 | 22 (plan 02) | 1 | 25 min | 25 min |
 | Phase 28-service-layer P01 | 10 | 3 tasks | 6 files |
+| Phase 28-service-layer P02 | 8 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -160,6 +161,7 @@ Recent decisions affecting current work:
 - [Phase 28-01]: org.hibernate.envers.default_schema=main configured in all 3 profiles so Envers finds tables in main schema
 - [Phase 28-01]: revokeAllActiveAndRotatedByTenantId uses @Modifying bulk JPQL — single query atomically revokes all keys on suspend
 - [Phase 28-01]: rotate() saveAndFlush prior ROTATED key before new ACTIVE key inserted — prevents overlapping grace periods (AKEY-08)
+- [Phase 28-service-layer]: TenantServiceIT tearDown deletes audit tables before main tables to avoid FK constraints; TenantAuditIT sets SpringSecurityContext in @BeforeEach so AuditingEntityListener sees admin@test.com as createdBy
 
 ### Pending Todos
 
@@ -171,6 +173,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-06T17:00:56.670Z
-Stopped at: Completed 28-01-PLAN.md — TenantService lifecycle, ApiKeyService guards, Flyway V20 Envers DDL
+Last session: 2026-04-06T17:11:05.297Z
+Stopped at: Completed 28-02-PLAN.md (Phase 28 all plans done)
 Resume file: None

@@ -219,7 +219,7 @@ Plans:
 
 Plans:
 - [x] 28-01-PLAN.md — Flyway V20 Envers audit tables + TenantService lifecycle + ApiKeyService guards
-- [ ] 28-02-PLAN.md — TenantServiceIT + TenantAuditIT integration tests + TenantProvisioningIT webhookSecret assertion
+- [x] 28-02-PLAN.md — TenantServiceIT + TenantAuditIT integration tests + TenantProvisioningIT webhookSecret assertion
 
 ## Progress
 
@@ -252,7 +252,7 @@ Plans:
 | 25. Provider Health Indicators | v4 | 1/1 | Complete | 2026-03-31 |
 | 26. Health Dashboard UI | v4 | 1/1 | Complete | 2026-04-02 |
 | 27. Schema and Enum Migration | v5 | 2/2 | Complete | 2026-04-03 |
-| 28. Service Layer | v5 | 1/2 | In Progress|  |
+| 28. Service Layer | v5 | 2/2 | Complete   | 2026-04-06 |
 | 29. Quartz Rotation Cleanup Job | v5 | 0/? | Not started | — |
 | 30. Email Notifications | v5 | 0/? | Not started | — |
 | 31. REST API Expansion | v5 | 0/? | Not started | — |
