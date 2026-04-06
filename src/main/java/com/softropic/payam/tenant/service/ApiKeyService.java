@@ -11,10 +11,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Base64;
+import java.util.UUID;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -38,9 +37,9 @@ public class ApiKeyService {
                 throw new IllegalStateException(
                     "Active key already exists for environment: " + environment);
             });
-        String rawKey = generateSecureKey();
-        String hash   = DigestUtils.sha256Hex(rawKey);
         String prefix = tenant.getKeyPrefix();
+        String rawKey = generateSecureKey(prefix);
+        String hash   = DigestUtils.sha256Hex(rawKey);
 
         TenantApiKey entity = TenantApiKey.builder()
             .tenant(tenant)
@@ -86,10 +85,8 @@ public class ApiKeyService {
         keyRepository.save(key);
     }
 
-    private String generateSecureKey() {
-        byte[] bytes = new byte[32];
-        new SecureRandom().nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    private String generateSecureKey(String keyPrefix) {
+        return keyPrefix + "_" + UUID.randomUUID().toString();
     }
 
     public record ApiKeyAndRawKey(TenantApiKey entity, String rawKey) {}

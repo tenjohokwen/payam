@@ -51,8 +51,9 @@ import jakarta.servlet.http.HttpServletResponse;
  *       reuse threads so leaking context between requests is a real risk.
  * </ol>
  *
- * <p>The raw key value is NEVER logged. Only the first 8 characters (the {@code key_prefix}
- * column value) are used in log output to aid debugging without exposing secrets.
+ * <p>The raw key value is NEVER logged. Only the key prefix (extracted from the
+ * underscore-delimited raw key format) is used in log output to aid debugging without
+ * exposing secrets.
  *
  * <p>The {@link TenantApiKey#getTenant()} call is safe here because
  * {@code TenantApiKeyRepository.findValidKeyByHash} uses {@code JOIN FETCH k.tenant},
@@ -111,7 +112,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             log.warn("API key authentication failed",
                     kv("operation", "api_key_auth"),
-                    kv("keyPrefix", rawKey.length() >= 8 ? rawKey.substring(0, 8) : "[short]"),
+                    kv("keyPrefix", rawKey.contains("_") ? rawKey.substring(0, rawKey.indexOf("_")) : "[unknown]"),
                     kv("status", "UNAUTHORIZED"));
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired API key");
             return;
