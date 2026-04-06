@@ -308,6 +308,69 @@ class TenantFilterChainIT {
     }
 
     // -------------------------------------------------------------------------
+    // Test 7: SUSPENDED tenant with valid API key → 403 (TENT-09)
+    // -------------------------------------------------------------------------
+    @Test
+    void suspendedTenant_validKey_returns403() {
+        TenantService.TenantCreationResult result =
+            tenantService.createTenant("Suspended Corp", "LIVE");
+        String rawKey = result.rawKey();
+
+        // Suspend the tenant directly via JDBC (no TenantService.suspend() exists yet)
+        transactionTemplate.execute(status -> {
+            jdbcTemplate.update(
+                "UPDATE main.tenant SET tenant_status = 'SUSPENDED' WHERE tenant_ref = ?",
+                result.tenant().getTenantRef());
+            return null;
+        });
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("X-Api-Key", rawKey);
+
+        org.springframework.http.HttpEntity<Void> entity =
+            new org.springframework.http.HttpEntity<>(headers);
+
+        assertThatThrownBy(() ->
+            restTemplate.exchange(url("/v1/payments"), HttpMethod.GET, entity, Object.class))
+            .isInstanceOf(HttpClientErrorException.Forbidden.class)
+            .satisfies(e -> assertThat(((HttpClientErrorException) e).getStatusCode())
+                .isEqualTo(HttpStatus.FORBIDDEN));
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 8: SUSPENDED tenant response body contains "Tenant is suspended"
+    // -------------------------------------------------------------------------
+    @Test
+    void suspendedTenant_validKey_responseContainsSuspendedMessage() {
+        TenantService.TenantCreationResult result =
+            tenantService.createTenant("Suspended Message Corp", "LIVE");
+        String rawKey = result.rawKey();
+
+        // Suspend the tenant directly via JDBC
+        transactionTemplate.execute(status -> {
+            jdbcTemplate.update(
+                "UPDATE main.tenant SET tenant_status = 'SUSPENDED' WHERE tenant_ref = ?",
+                result.tenant().getTenantRef());
+            return null;
+        });
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("X-Api-Key", rawKey);
+
+        org.springframework.http.HttpEntity<Void> entity =
+            new org.springframework.http.HttpEntity<>(headers);
+
+        try {
+            restTemplate.exchange(url("/v1/payments"), HttpMethod.GET, entity, Object.class);
+        } catch (HttpClientErrorException e) {
+            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(e.getResponseBodyAsString()).contains("Tenant is suspended");
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Test 7: public paths do NOT require X-Api-Key (permitAll in JWT chain)
     // -------------------------------------------------------------------------
     @Test

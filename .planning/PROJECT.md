@@ -49,12 +49,36 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ Structured request lifecycle events (request_start, request_end, request_error) with durationMs — v2
 - ✓ 7 business event types queryable in Loki: initiate_payment, transaction_state_change, webhook_received, webhook_delivery, fraud_evaluation, provider HTTP latency, reconciliation_run — v2
 - ✓ Full codebase LOG-CODE-01/02/03 compliance: zero {} interpolation, zero code-flow logs, BodySanitizer covers all payment fields — v2
+- ✓ E2E test infrastructure: Testcontainers (real PostgreSQL + Redis), WireMock (MTN + Orange), TestDataCleaner, E2ESecurityConfig — v3
+- ✓ 10 domain invariant verifiers + 8 test data builders — every invariant assertable in one call — v3
+- ✓ MTN/Orange full payment lifecycle E2E: happy path, polling fallback, payToken expiry, fraud-blocked, idempotency race (20 threads), circuit breaker — v3
+- ✓ Inbound webhook double-check + Redis replay protection (MTN + Orange); outbound delivery with HMAC-SHA256 signing, exponential backoff, retry verification — v3
+- ✓ Fraud velocity block, daily reconciliation (matched/missing/mismatched/WAT-offset), admin tenant-scoped transaction search — all E2E verified — v3
+- ✓ Domain invariants proven: hash chain, ledger double-entry, idempotency, tenant isolation, state machine legality, webhook double-check, fraud ordering, SSRF guard, init-before-provider, Orange WAT offset — v3
+- ✓ Concurrency races: concurrent idempotency (20 threads → exactly 1 payment row), webhook/polling race, velocity flood, API key rotation grace period — v3
+- ✓ SM path matrix (all 32 illegal transitions throw without DB mutation); TXN boundary tests; PITest mutationThreshold=90 on 6 critical domain classes — v3
+
+- ✓ Tenant lifecycle service layer: `TenantService` with updateName/Email/WebhookUrl, suspend, reactivate, regenerateWebhookSecret; `ApiKeyService` with AKEY-02 duplicate-active guard and AKEY-08 pre-rotate revoke — v5 (Phase 28)
+- ✓ Hibernate Envers audit trail: Flyway V20 DDL for `main.revinfo`, `main.tenant_aud`, `main.tenant_api_key_aud`; `default_schema: main` in all profiles; admin identity captured per revision — v5 (Phase 28)
+- ✓ 18 integration tests: TenantServiceIT (9), TenantAuditIT (3), TenantProvisioningIT (6); all TENT/AKEY/WSEC/AUDIT requirement IDs verified against real DB — v5 (Phase 28)
+- ✓ AKEY-01 API key format: generateSecureKey() returns PREFIX_UUID, ApiKeyBuilder derives prefix from tenant table, filter parses prefix via underscore delimiter — v5 (Phase 28.1)
+- ✓ AKEY-05 Quartz rotation cleanup job: `RotatedKeyCleanupJob` runs every 5 minutes, revokes ROTATED keys past 24h grace period; Flyway V21 TIMESTAMPTZ migration for correct timezone handling — v5 (Phase 29)
+
+- ✓ Platform MSISDN management: admin can view/update Orange + MTN platform MSISDNs; email notification on every change — v4
+- ✓ Spring Boot Actuator `/manage/health` reflects live provider MSISDN validation + circuit breaker state for both providers — v4
+- ✓ Admin health dashboard: all Actuator component results visible to ROLE_ADMIN; access-denied banner for non-admins — v4
 
 ### Active
 
-<!-- Next milestone scope — TBD -->
+<!-- v6 REST API surface, notifications, Admin UI — in progress -->
 
-(None defined — run `/gsd:define-requirements` to scope next milestone)
+- REST endpoints for tenant lifecycle operations: update name/email/webhookUrl, suspend/reactivate, regenerate WebhookSecret (service layer done in v5; HTTP surface deferred)
+- TENT-09: Tenant SUSPENDED status blocks API auth (key status + tenant status both checked)
+- TENT-05/06: Admin list and detail views for tenants
+- AKEY-07: One-time key display modal — admin confirms copy before dismissal
+- WSEC-02: Admin WebhookSecret reveal via eye icon UI
+- Email notifications for 6 events: key generation/rotation, revocation/reactivation, secret generation, tenant status change, webhookUrl change, tenant email change (NOTIF-01..06)
+- Admin UI: tenant management screens (create, edit, status toggle, key management per env)
 
 ### Out of Scope
 
@@ -96,13 +120,58 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 | No `@Transactional` on `PaymentOrchestrator.initiate()` | Holding DB connection during provider HTTP exhausts connection pool | ✓ Good — `TransactionTemplate` for discrete DB operations |
 | `FilterRegistrationBean(setEnabled=false)` for `ApiKeyAuthenticationFilter` | Prevents double-registration as servlet container filter | ✓ Good — established pattern for any `OncePerRequestFilter` defined as `@Bean` |
 | Ledger caller deferred to audit gap closure | Infrastructure existed in Phase 2 but production caller added only in Phase 13 | ⚠ Revisit — wire ledger caller in same phase as infrastructure next time |
+| Testcontainers over mocks for E2E tests | JSONB quoting bug found during Phase 20 test authoring — mocks would have missed it | ✓ Good — real database catches production-class bugs that mock tests miss |
+| PITest targetClasses narrowed then expanded | Started with 3 pure domain classes (MUT-01); gap closure (23-05) expanded to all 6 MUT-02 targets | ⚠ Revisit — define PITest scope upfront; plan correction round adds friction |
+| QueryCountVerifier + 4 builders built but not wired | Created in Phase 19 for future use; no Phase 20-23 tests consume them | — Pending — available for future regression detection; revisit in next test expansion |
+| `getHealth()` hardcodes management port 8367 | Simple approach for single-server deployment; JWT cookie auth on port 8367 confirmed working | — Pending — reconfigure if management port changes or moves behind reverse proxy |
+| `@EventListener` on PlatformConfigEmailListener (not `@TransactionalEventListener`) | MailManager handles AFTER_COMMIT on the Envelope event; double-wrapping would break | ✓ Good — consistent with AccountChangeEmailListener pattern |
+| `saveAndFlush` on prior ROTATED key in `ApiKeyService.rotate()` | Hibernate batches UPDATE+INSERT in wrong order without explicit flush, causing partial unique index violation | ✓ Good — required pattern for any constrained sibling INSERT in same transaction |
+| Bulk `@Modifying` JPQL for `TenantService.suspend()` key revocation | Atomicity: N individual saves risk partial failure if one key fails to save; single query is all-or-nothing | ✓ Good — use bulk JPQL for multi-row state transitions |
+| Entity-level load+save (not bulk JPQL) for `revokeExpiredRotatedKeys()` | Envers captures each revocation as a separate audit revision; bulk JPQL bypasses Envers | ✓ Good — use entity-level ops when audit trail is required per row |
+| Flyway V21 migrates `rotated_at` to `TIMESTAMPTZ` | Quartz job's `Instant` parameters compared against TIMESTAMP(no tz) caused timezone mismatch in Testcontainers (Postgres defaulted to Europe/Berlin) | ✓ Good — always use TIMESTAMPTZ for timestamp columns that are compared with JVM Instant values |
+
+## Current Milestone: v6 REST API Surface, Notifications & Admin UI
+
+**Goal:** Expose the v5 service layer over HTTP, wire email notifications for all key tenant/key lifecycle events, and build Admin UI screens for tenant management.
+
+**Target features:**
+- REST endpoints for 6 TenantService operations: update name/email/webhookUrl, suspend, reactivate, regenerate WebhookSecret
+- TENT-09: SUSPENDED tenant status blocks API key authentication
+- TENT-05/06: Admin list and detail views for tenants
+- AKEY-07: One-time key display modal — admin confirms copy before dismissal
+- WSEC-02: WebhookSecret reveal via eye icon UI
+- NOTIF-01..06: Email notifications for key generation/rotation, revocation/reactivation, secret generation, tenant status change, webhookUrl change, tenant email change
+- Admin UI: tenant management screens (create, edit, status toggle, key management per env)
 
 ## Current State
 
-**Shipped:** v2 (2026-03-27) — 17 phases total (13 v1 + 4 v2), 41 plans, ~25,400 LOC Java
-**Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar
-**Observability:** Full Loki-queryable structured logging — every log line is valid JSON with traceId, spanId, requestId, tenantId, transactionId as top-level fields
-**Known tech debt:** v1 items in `.planning/milestones/v1-MILESTONE-AUDIT.md` (11 non-critical); none from v2
+**Shipped:** v5 (2026-04-06) — 30 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5), 70 plans
+**Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar + Hibernate Envers
+**Observability:** Full Loki-queryable structured logging + Spring Boot Actuator health with live provider MSISDN validation + CB state
+**Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage + 22 tenant/key integration tests (TenantServiceIT, TenantAuditIT, TenantProvisioningIT, RotatedKeyCleanupJobIT)
+**Known tech debt:**
+- `TenantProvisioningIT.tearDown()` does not clean audit tables — rows accumulate across test runs (non-critical)
+- `ApiKeyBuilder` previously derived keyPrefix from `rawKey.substring(0,8)` — now fixed, but test builders that pre-date Phase 27 may have stale Javadoc
+- B2B-01/B2B-02 (OrangeClient channelUserMsisdn fix) deferred from v4
+
+**Deferred from v5 (now Active for v6):** REST HTTP surface for 6 TenantService operations, email notifications (NOTIF-01..06), Admin UI tenant management screens, one-time key display modal (AKEY-07), WebhookSecret reveal UI (WSEC-02), TENT-09 auth enforcement for SUSPENDED status
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
 
 ---
-*Last updated: 2026-03-27 after v2 milestone completion*
+*Last updated: 2026-04-07 — Milestone v6 started*
