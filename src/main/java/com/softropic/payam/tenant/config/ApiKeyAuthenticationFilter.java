@@ -4,6 +4,7 @@ import com.softropic.payam.security.common.util.TenantContext;
 import com.softropic.payam.security.config.AppEndpoints;
 import org.slf4j.MDC;
 import com.softropic.payam.tenant.contract.TenantPrincipal;
+import com.softropic.payam.tenant.contract.TenantStatus;
 import com.softropic.payam.tenant.repo.TenantApiKey;
 import com.softropic.payam.tenant.service.ApiKeyService;
 
@@ -114,6 +115,16 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                     kv("keyPrefix", rawKey.length() >= 8 ? rawKey.substring(0, 8) : "[short]"),
                     kv("status", "UNAUTHORIZED"));
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired API key");
+            return;
+        }
+
+        // TENT-09: Block SUSPENDED tenants before SecurityContext is populated
+        if (tenantApiKey.getTenant().getTenantStatus() == TenantStatus.SUSPENDED) {
+            log.warn("Tenant is suspended",
+                    kv("operation", "api_key_auth"),
+                    kv("tenantRef", tenantApiKey.getTenant().getTenantRef()),
+                    kv("status", "FORBIDDEN"));
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Tenant is suspended");
             return;
         }
 
