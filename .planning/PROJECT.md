@@ -61,7 +61,8 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ Tenant lifecycle service layer: `TenantService` with updateName/Email/WebhookUrl, suspend, reactivate, regenerateWebhookSecret; `ApiKeyService` with AKEY-02 duplicate-active guard and AKEY-08 pre-rotate revoke — v5 (Phase 28)
 - ✓ Hibernate Envers audit trail: Flyway V20 DDL for `main.revinfo`, `main.tenant_aud`, `main.tenant_api_key_aud`; `default_schema: main` in all profiles; admin identity captured per revision — v5 (Phase 28)
 - ✓ 18 integration tests: TenantServiceIT (9), TenantAuditIT (3), TenantProvisioningIT (6); all TENT/AKEY/WSEC/AUDIT requirement IDs verified against real DB — v5 (Phase 28)
-- ✓ AKEY-01 API key format: generateSecureKey() returns PREFIX_UUID, ApiKeyBuilder derives prefix from tenant table, filter parses prefix via underscore delimiter — Validated in Phase 28.1: api-key-format-fix
+- ✓ AKEY-01 API key format: generateSecureKey() returns PREFIX_UUID, ApiKeyBuilder derives prefix from tenant table, filter parses prefix via underscore delimiter — v5 (Phase 28.1)
+- ✓ AKEY-05 Quartz rotation cleanup job: `RotatedKeyCleanupJob` runs every 5 minutes, revokes ROTATED keys past 24h grace period; Flyway V21 TIMESTAMPTZ migration for correct timezone handling — v5 (Phase 29)
 
 - ✓ Platform MSISDN management: admin can view/update Orange + MTN platform MSISDNs; email notification on every change — v4
 - ✓ Spring Boot Actuator `/manage/health` reflects live provider MSISDN validation + circuit breaker state for both providers — v4
@@ -69,17 +70,14 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ### Active
 
-<!-- v5 Tenant & API Key Management -->
+<!-- v6 REST API surface, notifications, Admin UI -->
 
-- Tenant status lifecycle (ACTIVE / SUSPENDED) — suspension immediately revokes all keys across all environments
-- Per-environment API key scoping (PROD / DEV / SANDBOX) — one ACTIVE key per environment per tenant
-- API key prefix format: first 3 chars of tenant name (uppercase, 0-padded to 3) — immutable per tenant even if name changes
-- One-time raw key display on generation; backend stores only the bcrypt/SHA-256 hash — key never retrievable again
-- Key rotation with 24-hour ROTATED grace period — automated job moves ROTATED → REVOKED after 24h
-- Tenant reactivation auto-generates a new PROD key and shows it to admin
-- WebhookSecret: unique UUID per tenant, admin-regeneratable, revealable via eye icon in admin UI
-- Email notifications for 6 events: key generation/rotation, key revocation/reactivation, webhook secret generation, tenant status change, webhookUrl change, tenant email change
-- All tenant + key state changes audited via Hibernate Envers with admin ID + timestamp per event
+- REST endpoints for tenant lifecycle operations: update name/email/webhookUrl, suspend/reactivate, regenerate WebhookSecret (service layer done in v5; HTTP surface deferred)
+- TENT-09: Tenant SUSPENDED status blocks API auth (key status + tenant status both checked)
+- TENT-05/06: Admin list and detail views for tenants
+- AKEY-07: One-time key display modal — admin confirms copy before dismissal
+- WSEC-02: Admin WebhookSecret reveal via eye icon UI
+- Email notifications for 6 events: key generation/rotation, revocation/reactivation, secret generation, tenant status change, webhookUrl change, tenant email change (NOTIF-01..06)
 - Admin UI: tenant management screens (create, edit, status toggle, key management per env)
 
 ### Out of Scope
@@ -127,29 +125,23 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 | QueryCountVerifier + 4 builders built but not wired | Created in Phase 19 for future use; no Phase 20-23 tests consume them | — Pending — available for future regression detection; revisit in next test expansion |
 | `getHealth()` hardcodes management port 8367 | Simple approach for single-server deployment; JWT cookie auth on port 8367 confirmed working | — Pending — reconfigure if management port changes or moves behind reverse proxy |
 | `@EventListener` on PlatformConfigEmailListener (not `@TransactionalEventListener`) | MailManager handles AFTER_COMMIT on the Envelope event; double-wrapping would break | ✓ Good — consistent with AccountChangeEmailListener pattern |
-
-## Current Milestone: v5 Tenant & API Key Management
-
-**Goal:** Implement the complete tenant lifecycle and API key management specification — tenant status, per-environment key scoping, rotation grace period, suspension/reactivation flows, webhook secret management, email notifications, and admin UI.
-
-**Target features:**
-- Tenant status (ACTIVE/SUSPENDED) with suspension-triggered key revocation
-- Per-environment API key scoping (PROD/DEV/SANDBOX) with one-time display
-- API key prefix derived from tenant name (first 3 chars, 0-padded, immutable)
-- Key rotation with 24-hour ROTATED grace period → automated REVOKED job
-- Reactivation auto-generates new PROD key + shows it to admin
-- WebhookSecret management with admin reveal UI
-- Email notifications for 6 key/tenant state events
-- Audit trail: Hibernate Envers + per-event admin ID + timestamp
-- Admin UI: tenant management screens
+| `saveAndFlush` on prior ROTATED key in `ApiKeyService.rotate()` | Hibernate batches UPDATE+INSERT in wrong order without explicit flush, causing partial unique index violation | ✓ Good — required pattern for any constrained sibling INSERT in same transaction |
+| Bulk `@Modifying` JPQL for `TenantService.suspend()` key revocation | Atomicity: N individual saves risk partial failure if one key fails to save; single query is all-or-nothing | ✓ Good — use bulk JPQL for multi-row state transitions |
+| Entity-level load+save (not bulk JPQL) for `revokeExpiredRotatedKeys()` | Envers captures each revocation as a separate audit revision; bulk JPQL bypasses Envers | ✓ Good — use entity-level ops when audit trail is required per row |
+| Flyway V21 migrates `rotated_at` to `TIMESTAMPTZ` | Quartz job's `Instant` parameters compared against TIMESTAMP(no tz) caused timezone mismatch in Testcontainers (Postgres defaulted to Europe/Berlin) | ✓ Good — always use TIMESTAMPTZ for timestamp columns that are compared with JVM Instant values |
 
 ## Current State
 
-**Shipped:** v4 (2026-04-02) — 26 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4), 64 plans
-**Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar
+**Shipped:** v5 (2026-04-06) — 30 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5), 70 plans
+**Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar + Hibernate Envers
 **Observability:** Full Loki-queryable structured logging + Spring Boot Actuator health with live provider MSISDN validation + CB state
-**Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage
-**Known tech debt:** v1 items in `.planning/milestones/v1-MILESTONE-AUDIT.md` (11 non-critical); B2B-01/B2B-02 (OrangeClient channelUserMsisdn fix) deferred from v4
+**Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage + 22 tenant/key integration tests (TenantServiceIT, TenantAuditIT, TenantProvisioningIT, RotatedKeyCleanupJobIT)
+**Known tech debt:**
+- `TenantProvisioningIT.tearDown()` does not clean audit tables — rows accumulate across test runs (non-critical)
+- `ApiKeyBuilder` previously derived keyPrefix from `rawKey.substring(0,8)` — now fixed, but test builders that pre-date Phase 27 may have stale Javadoc
+- B2B-01/B2B-02 (OrangeClient channelUserMsisdn fix) deferred from v4
+
+**Deferred from v5 (now Active for v6):** REST HTTP surface for 6 TenantService operations, email notifications (NOTIF-01..06), Admin UI tenant management screens, one-time key display modal (AKEY-07), WebhookSecret reveal UI (WSEC-02), TENT-09 auth enforcement for SUSPENDED status
 
 ## Evolution
 
@@ -169,4 +161,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-06 — Phase 28.1 complete (AKEY-01 API key format fix)*
+*Last updated: 2026-04-06 after v5 milestone*

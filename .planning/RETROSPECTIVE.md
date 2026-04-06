@@ -75,6 +75,46 @@
 
 ---
 
+## Milestone: v5 — Tenant & API Key Management Service Layer
+
+**Shipped:** 2026-04-06
+**Phases:** 4 (27–29, including 28.1) | **Plans:** 6
+
+### What Was Built
+- Flyway V18/V19/V20/V21 migrations covering schema evolution from v1 to v5 specification
+- Full TenantService lifecycle (create/update/suspend/reactivate) and ApiKeyService (generate/rotate/revoke) with AKEY-02/08 guards
+- Hibernate Envers audit trail with Flyway V20 DDL and admin identity capture
+- AKEY-01 key format fix (PREFIX_UUID) — targeted Phase 28.1 inserted after audit finding
+- Quartz rotation cleanup job (AKEY-05) — every 5 minutes, idempotent, with Envers audit per revocation
+
+### What Worked
+- **Milestone audit driving gap closure:** The v1.0 audit caught that AKEY-01 was claimed satisfied but not actually implemented. Running an audit before declaring complete is worth doing — it found a real defect.
+- **Decimal phase for gap closure:** Phase 28.1 inserted after audit cleanly with zero numbering disruption. One-plan gap closure executed in ~6 minutes.
+- **TIMESTAMPTZ migration fixed Quartz test failures:** Root cause of Quartz cleanup job test failures was timezone mismatch (Postgres session in Europe/Berlin, JVM Instant in UTC). V21 migration to TIMESTAMPTZ eliminated the entire class of problem — a good architectural principle: always use TIMESTAMPTZ for columns compared with JVM Instants.
+- **Entity-level ops for Envers auditing:** Choosing entity-level load+save (vs bulk JPQL) in `revokeExpiredRotatedKeys()` correctly captures one audit revision per revocation — the right trade-off for auditability.
+- **`saveAndFlush` pattern for constrained sibling rows:** Discovered in Phase 27 (rotate() constraint violation), re-confirmed in Phase 28. Now a documented pattern in Key Decisions.
+
+### What Was Inefficient
+- **Milestone audit ran against phases 18-28, not 18-29:** AKEY-05 was listed as "Pending" in the audit because Phase 29 hadn't run yet. Re-running audit after all phases complete would give a cleaner final picture.
+- **Phase 29 marked as `wip` with a verification pause:** The git log shows `wip: 29-quartz-rotation-cleanup-job paused at verification`. The Quartz job implementation itself was clean — the pause was for TIMESTAMPTZ diagnosis. Timezone issues in Testcontainers are a recurring risk.
+- **Accomplishments extracted poorly by gsd-tools CLI:** The `milestone complete` CLI extracted "Task 1 — Test builder updates: / One-liner:" from wrong summary sections. Manual correction required.
+
+### Patterns Established
+- **Always TIMESTAMPTZ for Instant-compared timestamp columns.** TIMESTAMP without timezone causes timezone mismatch in Testcontainers environments where Postgres session timezone != JVM timezone. V21 migration pattern: `ALTER COLUMN rotated_at TYPE TIMESTAMPTZ USING rotated_at AT TIME ZONE 'UTC'`.
+- **`saveAndFlush` before constrained sibling INSERT in `@Transactional`.** Hibernate batches within the transaction; without explicit flush, constraint ordering is non-deterministic. Pattern: always `saveAndFlush(entity)` before inserting a row that must satisfy a constraint against the flushed entity.
+- **Entity-level ops (not bulk JPQL) when Envers audit trail is required.** Bulk JPQL bypasses Envers; if per-row audit is required, load+modify+save each entity individually.
+
+### Key Lessons
+1. **Run the milestone audit after all phases complete, not mid-milestone.** An audit run before the final phases execute will correctly show gaps that later phases close — but the audit status remains `gaps_found` and the archived audit document needs manual annotation.
+2. **Timezone mismatch is a Testcontainers trap.** If a Quartz/scheduled job test fails with unexpected threshold behavior, check Postgres session timezone (`SHOW timezone`) in the container. Use TIMESTAMPTZ and `NOW() - INTERVAL '...'` in test backdating SQL to sidestep JVM ↔ Postgres timezone conversions.
+3. **Document `saveAndFlush` at the site, not just in tests.** The constraint violation error from rotate() was non-obvious; a comment at the `saveAndFlush` call explaining the ordering requirement would save future-developer time.
+
+### Cost Observations
+- Sessions: ~4 (2026-04-03 → 2026-04-06)
+- Notable: 4 days for schema + full service layer + audit trail + key format fix + Quartz job — high velocity from clear requirement IDs (TENT-xx, AKEY-xx) enabling precise per-requirement tracking
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -85,6 +125,7 @@
 | v2 | 4 | 12 | Observability layer — zero-mock strategy; kv() structured logging |
 | v3 | 6 | 18 | Test suite — Testcontainers over mocks validated by catching JSONB bug |
 | v4 | 3 | 5 | Platform ops — Actuator health indicators + admin MSISDN + health dashboard |
+| v5 | 4 | 6 | Service layer — tenant/key lifecycle, Envers audit, Quartz cleanup; gap closure via decimal phase |
 
 ### Cumulative Quality
 
@@ -93,9 +134,12 @@
 | v1 | — | Domain + unit tests |
 | v2 | — | No new tests |
 | v3 | 32 E2E classes | Mutation ≥90%, concurrency races, SM path matrix |
+| v4 | — | No new test classes |
+| v5 | 4 integration test classes | TenantServiceIT (9), TenantAuditIT (3), TenantProvisioningIT (6 existing), RotatedKeyCleanupJobIT (4) |
 
 ### Top Lessons (Verified Across Milestones)
 
 1. **Real infrastructure over mocks.** v3 caught a production JSONB bug that mocks would have masked — confirms the no-mock approach as non-negotiable for this codebase.
 2. **Phase sequencing matters.** Building infrastructure → verifiers → flows → invariants progressively made each milestone cleanly deliverable.
-3. **Gap-closure decimal plans work.** 23-04 and 23-05 inserted cleanly without renumbering. Use freely for verification failures.
+3. **Gap-closure decimal plans work.** 23-04, 23-05, and Phase 28.1 all inserted cleanly without renumbering. Use freely for audit findings and verification failures.
+4. **Always TIMESTAMPTZ for Instant-compared columns.** Timestamp without timezone causes timezone mismatch in Testcontainers (v5 lesson). One migration to fix; zero risk if done upfront.
