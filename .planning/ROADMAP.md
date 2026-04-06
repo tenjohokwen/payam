@@ -7,6 +7,7 @@
 - ✅ **v3 E2E Test Suite** — Phases 18–23 (shipped 2026-03-28) — see [milestones/v3-ROADMAP.md](milestones/v3-ROADMAP.md)
 - ✅ **v4 Platform Config & Health** — Phases 24–26 (shipped 2026-04-02) — see [milestones/v4-ROADMAP.md](milestones/v4-ROADMAP.md)
 - ✅ **v5 Tenant & API Key Management Service Layer** — Phases 27–29 (shipped 2026-04-06) — see [milestones/v5-ROADMAP.md](milestones/v5-ROADMAP.md)
+- 🚧 **v6 REST API Surface, Notifications & Admin UI** — Phases 30–33 (active)
 
 ## Phases
 
@@ -70,6 +71,67 @@
 
 </details>
 
+<details open>
+<summary>🚧 v6 REST API Surface, Notifications & Admin UI (Phases 30–33) — ACTIVE</summary>
+
+- [ ] **Phase 30: TENT-09 Auth Enforcement** - One-line filter change; SUSPENDED tenants blocked with 403 before SecurityContext population
+- [ ] **Phase 31: Tenant REST API Surface** - 8 new endpoint methods on TenantAdminResource + TenantQueryService + DTOs; webhook secret reveal endpoint
+- [ ] **Phase 32: Email Notification Infrastructure** - Six lifecycle email events wired via domain event records + TenantLifecycleEmailListener + Thymeleaf templates
+- [ ] **Phase 33: Admin UI — Tenant Management** - Tenant list page, detail/edit page, one-time key modal, webhook secret reveal toggle
+
+</details>
+
+## Phase Details
+
+### Phase 30: TENT-09 Auth Enforcement
+**Goal**: SUSPENDED tenants are blocked at the API key filter before any request reaches the application layer
+**Depends on**: Nothing (standalone filter change; no service layer or controller dependency)
+**Requirements**: TENT-09
+**Success Criteria** (what must be TRUE):
+  1. A request carrying a valid API key for a SUSPENDED tenant receives HTTP 403 before SecurityContext is populated
+  2. A request carrying a valid API key for an ACTIVE tenant proceeds normally (no regression)
+  3. The 403 response body matches the existing error format (no new error schema introduced)
+**Plans**: TBD
+
+### Phase 31: Tenant REST API Surface
+**Goal**: Admins can perform all tenant and API key lifecycle operations via HTTP endpoints
+**Depends on**: Phase 30
+**Requirements**: TENT-02, TENT-03, TENT-04, TENT-05, TENT-06, TENT-07, TENT-08, TENT-10, WSEC-03
+**Success Criteria** (what must be TRUE):
+  1. Admin can retrieve a paginated, status-filtered list of tenants via `GET /v1/admin/tenants`
+  2. Admin can retrieve full tenant detail (name, email, webhookUrl, status, keys by env) via `GET /v1/admin/tenants/{tenantRef}`; `webhookSecret` is absent from the response
+  3. Admin can update tenant name, email address, and webhookUrl each via their respective `PATCH` endpoints
+  4. Admin can suspend a tenant via `POST /v1/admin/tenants/{tenantRef}/suspend`; all tenant API keys are atomically revoked
+  5. Admin can reactivate a tenant via `POST /v1/admin/tenants/{tenantRef}/reactivate`; response includes `rawKey` for the newly generated PROD key
+  6. Admin can regenerate a tenant's webhook secret and can retrieve the plaintext secret via `GET /v1/admin/tenants/{tenantRef}/webhook-secret`; the secret never appears in the standard tenant detail response
+**Plans**: TBD
+**UI hint**: no
+
+### Phase 32: Email Notification Infrastructure
+**Goal**: Admins and tenants receive transactional email notifications for all six key lifecycle and tenant status events
+**Depends on**: Phase 31
+**Requirements**: NOTIF-01, NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05, NOTIF-06
+**Success Criteria** (what must be TRUE):
+  1. Admin and tenant receive an email when a new API key is generated or rotated; the email body contains no raw key material
+  2. Admin and tenant receive an email when an API key is manually revoked or reactivated
+  3. Admin and tenant receive an email when the webhook secret is regenerated; no secret value appears in the email
+  4. Admin and tenant receive an email on tenant suspension, tenant reactivation, and tenant webhookUrl change
+  5. On tenant email address change, a notification is delivered to the old address only
+  6. All notification emails are delivered after the triggering transaction commits (no sends on rollback)
+**Plans**: TBD
+
+### Phase 33: Admin UI — Tenant Management
+**Goal**: Admins can manage the full tenant lifecycle and API key display through the Admin SPA
+**Depends on**: Phase 31
+**Requirements**: UI-01, UI-02, UI-03, UI-04
+**Success Criteria** (what must be TRUE):
+  1. Admin can navigate to a tenant list page showing a paginated q-table with status filter; clicking a row navigates to tenant detail
+  2. Admin can edit a tenant's name, email, and webhookUrl inline on the detail page with per-field save confirmation; admin can toggle tenant status (suspend or reactivate) behind a confirmation dialog
+  3. After key generation or rotation, admin sees a persistent one-time modal displaying the raw key; dismissal is gated on confirming the key has been copied; the raw key is cleared from component state immediately on dismissal
+  4. Admin can reveal a tenant's webhook secret via an eye icon on the detail page; the secret is fetched lazily from the dedicated endpoint, displayed in a masked input, and automatically re-masked after 30 seconds
+**Plans**: TBD
+**UI hint**: yes
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -104,3 +166,7 @@
 | 28. Service Layer | v5 | 2/2 | Complete | 2026-04-06 |
 | 28.1. API Key Format Fix (AKEY-01) | v5 | 1/1 | Complete | 2026-04-06 |
 | 29. Quartz Rotation Cleanup Job | v5 | 1/1 | Complete | 2026-04-06 |
+| 30. TENT-09 Auth Enforcement | v6 | 0/? | Not started | - |
+| 31. Tenant REST API Surface | v6 | 0/? | Not started | - |
+| 32. Email Notification Infrastructure | v6 | 0/? | Not started | - |
+| 33. Admin UI — Tenant Management | v6 | 0/? | Not started | - |

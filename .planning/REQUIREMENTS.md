@@ -73,26 +73,26 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| TENT-09 | — | Pending |
-| TENT-05 | — | Pending |
-| TENT-06 | — | Pending |
-| TENT-10 | — | Pending |
-| TENT-02 | — | Pending |
-| TENT-03 | — | Pending |
-| TENT-04 | — | Pending |
-| TENT-07 | — | Pending |
-| TENT-08 | — | Pending |
-| WSEC-03 | — | Pending |
-| NOTIF-01 | — | Pending |
-| NOTIF-02 | — | Pending |
-| NOTIF-03 | — | Pending |
-| NOTIF-04 | — | Pending |
-| NOTIF-05 | — | Pending |
-| NOTIF-06 | — | Pending |
-| UI-01 | — | Pending |
-| UI-02 | — | Pending |
-| UI-03 | — | Pending |
-| UI-04 | — | Pending |
+| TENT-09 | Phase 30 | Pending |
+| TENT-05 | Phase 31 | Pending |
+| TENT-06 | Phase 31 | Pending |
+| TENT-10 | Phase 31 | Pending |
+| TENT-02 | Phase 31 | Pending |
+| TENT-03 | Phase 31 | Pending |
+| TENT-04 | Phase 31 | Pending |
+| TENT-07 | Phase 31 | Pending |
+| TENT-08 | Phase 31 | Pending |
+| WSEC-03 | Phase 31 | Pending |
+| NOTIF-01 | Phase 32 | Pending |
+| NOTIF-02 | Phase 32 | Pending |
+| NOTIF-03 | Phase 32 | Pending |
+| NOTIF-04 | Phase 32 | Pending |
+| NOTIF-05 | Phase 32 | Pending |
+| NOTIF-06 | Phase 32 | Pending |
+| UI-01 | Phase 33 | Pending |
+| UI-02 | Phase 33 | Pending |
+| UI-03 | Phase 33 | Pending |
+| UI-04 | Phase 33 | Pending |
 
 ---
 
