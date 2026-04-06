@@ -121,6 +121,10 @@ Plans:
   3. Each qualifying key is moved to `REVOKED` status with `revokedAt` set to the current timestamp
   4. The job is idempotent: re-running it within the same window causes no additional state changes
   5. An integration test (`RotatedKeyCleanupJobIT`) verifies the job revokes an over-24h ROTATED key and leaves an under-24h ROTATED key untouched
+**Plans**: 1 plan
+
+Plans:
+- [ ] 29-01-PLAN.md — Repository query + service method + Quartz job + scheduler config + integration test
 
 ## Progress
 
@@ -155,7 +159,7 @@ Plans:
 | 27. Schema and Enum Migration | v5 | 2/2 | Complete | 2026-04-03 |
 | 28. Service Layer | v5 | 2/2 | Complete    | 2026-04-06 |
 | 28.1. API Key Format Fix (AKEY-01) | v5 | 1/1 | Complete    | 2026-04-06 |
-| 29. Quartz Rotation Cleanup Job | v5 | 0/? | Not started | — |
+| 29. Quartz Rotation Cleanup Job | v5 | 0/1 | Planned | — |
 | 30. Email Notifications | v5 | 0/? | Not started | — |
 | 31. REST API Expansion (+ HTTP surface for tenant lifecycle) | v5 | 0/? | Not started | — |
 | 32. Admin UI | v5 | 0/? | Not started | — |
