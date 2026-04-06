@@ -93,7 +93,7 @@
   3. The 403 response body matches the existing error format (no new error schema introduced)
 **Plans**: 1 plan
 Plans:
-- [ ] 30-01-PLAN.md — SUSPENDED tenant 403 enforcement in ApiKeyAuthenticationFilter + integration tests
+- [x] 30-01-PLAN.md — SUSPENDED tenant 403 enforcement in ApiKeyAuthenticationFilter + integration tests
 
 ### Phase 31: Tenant REST API Surface
 **Goal**: Admins can perform all tenant and API key lifecycle operations via HTTP endpoints
@@ -168,7 +168,7 @@ Plans:
 | 28. Service Layer | v5 | 2/2 | Complete | 2026-04-06 |
 | 28.1. API Key Format Fix (AKEY-01) | v5 | 1/1 | Complete | 2026-04-06 |
 | 29. Quartz Rotation Cleanup Job | v5 | 1/1 | Complete | 2026-04-06 |
-| 30. TENT-09 Auth Enforcement | v6 | 0/1 | Planned | - |
+| 30. TENT-09 Auth Enforcement | v6 | 1/1 | Complete   | 2026-04-06 |
 | 31. Tenant REST API Surface | v6 | 0/? | Not started | - |
 | 32. Email Notification Infrastructure | v6 | 0/? | Not started | - |
 | 33. Admin UI — Tenant Management | v6 | 0/? | Not started | - |

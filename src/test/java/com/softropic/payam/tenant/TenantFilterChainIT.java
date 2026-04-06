@@ -309,6 +309,75 @@ class TenantFilterChainIT {
     }
 
     // -------------------------------------------------------------------------
+    // Test 7: SUSPENDED tenant with valid API key → 403 (TENT-09)
+    // -------------------------------------------------------------------------
+    @Test
+    void suspendedTenant_validKey_returns403() {
+        TenantService.TenantCreationResult result =
+            tenantService.createTenant("Suspended Corp", "LIVE");
+        String rawKey = result.rawKey();
+
+        // Suspend the tenant directly via JDBC (no TenantService.suspend() exists yet)
+        transactionTemplate.execute(status -> {
+            jdbcTemplate.update(
+                "UPDATE main.tenant SET tenant_status = 'SUSPENDED' WHERE tenant_ref = ?",
+                result.tenant().getTenantRef());
+            return null;
+        });
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("X-Api-Key", rawKey);
+
+        org.springframework.http.HttpEntity<Void> entity =
+            new org.springframework.http.HttpEntity<>(headers);
+
+        assertThatThrownBy(() ->
+            restTemplate.exchange(url("/v1/payments"), HttpMethod.GET, entity, Object.class))
+            .isInstanceOf(HttpClientErrorException.Forbidden.class)
+            .satisfies(e -> assertThat(((HttpClientErrorException) e).getStatusCode())
+                .isEqualTo(HttpStatus.FORBIDDEN));
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 8: SUSPENDED tenant response is distinct from 401 (not UNAUTHORIZED)
+    //         Note: response.sendError(403, "Tenant is suspended") routes through
+    //         Tomcat's default HTML error page — the message text appears in the
+    //         HTTP reason phrase but not in the HTML body. We assert HTTP 403 only.
+    // -------------------------------------------------------------------------
+    @Test
+    void suspendedTenant_validKey_returns403NotUnauthorized() {
+        TenantService.TenantCreationResult result =
+            tenantService.createTenant("Suspended Message Corp", "LIVE");
+        String rawKey = result.rawKey();
+
+        // Suspend the tenant directly via JDBC
+        transactionTemplate.execute(status -> {
+            jdbcTemplate.update(
+                "UPDATE main.tenant SET tenant_status = 'SUSPENDED' WHERE tenant_ref = ?",
+                result.tenant().getTenantRef());
+            return null;
+        });
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("X-Api-Key", rawKey);
+
+        org.springframework.http.HttpEntity<Void> entity =
+            new org.springframework.http.HttpEntity<>(headers);
+
+        assertThatThrownBy(() ->
+            restTemplate.exchange(url("/v1/payments"), HttpMethod.GET, entity, Object.class))
+            .isInstanceOf(HttpClientErrorException.Forbidden.class)
+            .satisfies(e -> {
+                HttpClientErrorException ex = (HttpClientErrorException) e;
+                assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+                // Must NOT be UNAUTHORIZED — suspended tenants get 403, not 401
+                assertThat(ex.getStatusCode()).isNotEqualTo(HttpStatus.UNAUTHORIZED);
+            });
+    }
+
+    // -------------------------------------------------------------------------
     // Test 7: public paths do NOT require X-Api-Key (permitAll in JWT chain)
     // -------------------------------------------------------------------------
     @Test
