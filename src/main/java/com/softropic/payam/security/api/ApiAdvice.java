@@ -365,6 +365,13 @@ public class ApiAdvice {
         return logErrorAndReturnDTO(enfe, defaultMsg, "generic.notFound");
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorDto illegalStateExceptionHandler(final IllegalStateException ise) {
+        final String defaultMsg = "The requested operation conflicts with current state";
+        return logErrorAndReturnDTO(ise, defaultMsg, "generic.conflict");
+    }
+
 
 
     private List<FieldError> deduplicate(List<FieldError> fieldErrors) {

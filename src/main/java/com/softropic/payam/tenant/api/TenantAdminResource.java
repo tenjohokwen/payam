@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -112,10 +114,70 @@ public class TenantAdminResource {
         apiKeyService.revoke(keyId);
     }
 
+    // TENT-10: update tenant name
+    @PatchMapping("/{tenantRef}/name")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
+    public void updateName(@PathVariable String tenantRef,
+                           @Valid @RequestBody UpdateNameRequest request) {
+        tenantService.updateName(tenantRef, request.name());
+    }
+
+    // TENT-02: update tenant email
+    @PatchMapping("/{tenantRef}/email")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
+    public void updateEmail(@PathVariable String tenantRef,
+                            @Valid @RequestBody UpdateEmailRequest request) {
+        tenantService.updateEmail(tenantRef, request.email());
+    }
+
+    // TENT-03: update tenant webhook URL
+    @PatchMapping("/{tenantRef}/webhook-url")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
+    public void updateWebhookUrl(@PathVariable String tenantRef,
+                                 @Valid @RequestBody UpdateWebhookUrlRequest request) {
+        tenantService.updateWebhookUrl(tenantRef, request.webhookUrl());
+    }
+
+    // TENT-04: suspend tenant (atomically revokes all keys)
+    @PostMapping("/{tenantRef}/suspend")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
+    public void suspend(@PathVariable String tenantRef) {
+        tenantService.suspend(tenantRef);
+    }
+
+    // TENT-07: reactivate tenant (returns new PROD key)
+    @PostMapping("/{tenantRef}/reactivate")
+    @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
+    public ApiKeyDto reactivate(@PathVariable String tenantRef) {
+        ApiKeyService.ApiKeyAndRawKey result = tenantService.reactivate(tenantRef);
+        return new ApiKeyDto(
+            result.entity().getId(),
+            result.entity().getKeyPrefix(),
+            result.entity().getEnvironment(),
+            result.rawKey()
+        );
+    }
+
+    // TENT-08: regenerate webhook secret (returns 204; secret retrieved via GET)
+    @PostMapping("/{tenantRef}/webhook-secret")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
+    public void regenerateWebhookSecret(@PathVariable String tenantRef) {
+        tenantService.regenerateWebhookSecret(tenantRef);
+    }
+
     public record CreateTenantRequest(
         @NotBlank @Size(max = 255) String name,
         @NotBlank @Pattern(regexp = "PROD|DEV|SANDBOX", message = "environment must be PROD, DEV, or SANDBOX") String environment
     ) {}
 
     public record TenantCreationResponse(TenantDto tenant, ApiKeyDto apiKey) {}
+
+    public record UpdateNameRequest(@NotBlank @Size(max = 255) String name) {}
+    public record UpdateEmailRequest(@NotBlank @Email String email) {}
+    public record UpdateWebhookUrlRequest(@NotBlank @Size(max = 2048) String webhookUrl) {}
 }
