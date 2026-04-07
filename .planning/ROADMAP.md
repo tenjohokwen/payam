@@ -106,7 +106,10 @@ Plans:
   4. Admin can suspend a tenant via `POST /v1/admin/tenants/{tenantRef}/suspend`; all tenant API keys are atomically revoked
   5. Admin can reactivate a tenant via `POST /v1/admin/tenants/{tenantRef}/reactivate`; response includes `rawKey` for the newly generated PROD key
   6. Admin can regenerate a tenant's webhook secret and can retrieve the plaintext secret via `GET /v1/admin/tenants/{tenantRef}/webhook-secret`; the secret never appears in the standard tenant detail response
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 31-01-PLAN.md — DTOs, TenantQueryService, repository query, and 3 read endpoints (TENT-05, TENT-06, WSEC-03)
+- [ ] 31-02-PLAN.md — 6 mutation endpoints (PATCH name/email/webhook-url, POST suspend/reactivate/webhook-secret) + IllegalStateException handler + integration tests (TENT-02, TENT-03, TENT-04, TENT-07, TENT-08, TENT-10)
 **UI hint**: no
 
 ### Phase 32: Email Notification Infrastructure
@@ -169,6 +172,6 @@ Plans:
 | 28.1. API Key Format Fix (AKEY-01) | v5 | 1/1 | Complete | 2026-04-06 |
 | 29. Quartz Rotation Cleanup Job | v5 | 1/1 | Complete | 2026-04-06 |
 | 30. TENT-09 Auth Enforcement | v6 | 1/1 | Complete    | 2026-04-06 |
-| 31. Tenant REST API Surface | v6 | 0/? | Not started | - |
+| 31. Tenant REST API Surface | v6 | 0/2 | Not started | - |
 | 32. Email Notification Infrastructure | v6 | 0/? | Not started | - |
 | 33. Admin UI — Tenant Management | v6 | 0/? | Not started | - |
