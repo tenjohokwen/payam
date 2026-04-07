@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Completed 30-01-PLAN.md (TENT-09 auth enforcement)
-last_updated: "2026-04-06T23:07:41.120Z"
-last_activity: 2026-04-06
+status: executing
+stopped_at: Completed 31-01-PLAN.md
+last_updated: "2026-04-07T06:55:27.234Z"
+last_activity: 2026-04-07
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
+  total_plans: 3
+  completed_plans: 2
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-07 — Milestone v6 started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Milestone v6 — REST API Surface, Notifications & Admin UI
+**Current focus:** Phase 31 — tenant-rest-api-surface
 
 ## Current Position
 
-Phase: 31
-Plan: Not started
-Status: Ready to plan (roadmap created; no plans written yet)
-Last activity: 2026-04-06
+Phase: 31 (tenant-rest-api-surface) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-04-07
 
 ```
 Progress [░░░░░░░░░░░░░░░░░░░░] 0% — Phase 30 of 33
@@ -68,6 +68,9 @@ Key context from v6 research:
 - Phase 32 and Phase 33 are independent after Phase 31 (can parallelize if needed)
 - [Phase 30]: SUSPENDED check placed after authenticate() and before TenantContext.set(): ensures suspended tenants never populate SecurityContext
 - [Phase 30]: response.sendError(SC_FORBIDDEN) body is Tomcat HTML page — test assertions check HTTP 403 status only, not body text
+- [Phase 31-01]: TenantQueryService separate from TenantService — isolates readOnly transactions from mutation operations
+- [Phase 31-01]: TenantDetailDto excludes webhookSecret — secret reveal is dedicated WSEC-03 endpoint
+- [Phase 31-01]: status @RequestParam is String with manual TenantStatus.valueOf() — avoids Spring binding failure on absent optional enum param
 
 ### Pending Todos
 
@@ -79,6 +82,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-06T23:03:39.648Z
-Stopped at: Completed 30-01-PLAN.md (TENT-09 auth enforcement)
+Last session: 2026-04-07T06:55:27.227Z
+Stopped at: Completed 31-01-PLAN.md
 Resume file: None

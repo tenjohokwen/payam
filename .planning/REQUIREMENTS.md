@@ -15,8 +15,8 @@
 
 ### Tenant REST API (TENT)
 
-- [ ] **TENT-05**: Admin can retrieve a paginated, filterable (by status) list of tenants via `GET /v1/admin/tenants`
-- [ ] **TENT-06**: Admin can retrieve full tenant detail (name, email, webhookUrl, status, keys) via `GET /v1/admin/tenants/{tenantRef}`
+- [x] **TENT-05**: Admin can retrieve a paginated, filterable (by status) list of tenants via `GET /v1/admin/tenants`
+- [x] **TENT-06**: Admin can retrieve full tenant detail (name, email, webhookUrl, status, keys) via `GET /v1/admin/tenants/{tenantRef}`
 - [ ] **TENT-10**: Admin can update a tenant's display name via `PATCH /v1/admin/tenants/{tenantRef}/name`
 - [ ] **TENT-02**: Admin can update a tenant's email address via `PATCH /v1/admin/tenants/{tenantRef}/email`
 - [ ] **TENT-03**: Admin can update a tenant's webhookUrl via `PATCH /v1/admin/tenants/{tenantRef}/webhook-url`
@@ -26,7 +26,7 @@
 
 ### Webhook Secret REST API (WSEC)
 
-- [ ] **WSEC-03**: Admin can retrieve a tenant's plaintext webhook secret via `GET /v1/admin/tenants/{tenantRef}/webhook-secret` (excluded from standard tenant detail DTO; admin-only)
+- [x] **WSEC-03**: Admin can retrieve a tenant's plaintext webhook secret via `GET /v1/admin/tenants/{tenantRef}/webhook-secret` (excluded from standard tenant detail DTO; admin-only)
 
 ### Email Notifications (NOTIF)
 
@@ -74,15 +74,15 @@
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
 | TENT-09 | Phase 30 | Complete |
-| TENT-05 | Phase 31 | Pending |
-| TENT-06 | Phase 31 | Pending |
+| TENT-05 | Phase 31 | Complete |
+| TENT-06 | Phase 31 | Complete |
 | TENT-10 | Phase 31 | Pending |
 | TENT-02 | Phase 31 | Pending |
 | TENT-03 | Phase 31 | Pending |
 | TENT-04 | Phase 31 | Pending |
 | TENT-07 | Phase 31 | Pending |
 | TENT-08 | Phase 31 | Pending |
-| WSEC-03 | Phase 31 | Pending |
+| WSEC-03 | Phase 31 | Complete |
 | NOTIF-01 | Phase 32 | Pending |
 | NOTIF-02 | Phase 32 | Pending |
 | NOTIF-03 | Phase 32 | Pending |
