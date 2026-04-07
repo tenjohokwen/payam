@@ -64,6 +64,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ AKEY-01 API key format: generateSecureKey() returns PREFIX_UUID, ApiKeyBuilder derives prefix from tenant table, filter parses prefix via underscore delimiter — v5 (Phase 28.1)
 - ✓ AKEY-05 Quartz rotation cleanup job: `RotatedKeyCleanupJob` runs every 5 minutes, revokes ROTATED keys past 24h grace period; Flyway V21 TIMESTAMPTZ migration for correct timezone handling — v5 (Phase 29)
 - ✓ TENT-09: SUSPENDED tenants blocked at `ApiKeyAuthenticationFilter` with HTTP 403 before `SecurityContext` or `TenantContext` population — zero-query check on JOIN-FETCHed tenant entity — v6 (Phase 30)
+- ✓ Tenant REST API surface: 3 GET endpoints (paginated list, tenant detail, webhook secret reveal) + 6 mutation endpoints (PATCH name/email/webhookUrl, POST suspend/reactivate/webhook-secret) on `TenantAdminResource`; `IllegalStateException→409` in `ApiAdvice`; 14 integration tests — v6 (Phase 31) — Validated in Phase 31: TENT-02, TENT-03, TENT-04, TENT-05, TENT-06, TENT-07, TENT-08, TENT-10, WSEC-03
 
 - ✓ Platform MSISDN management: admin can view/update Orange + MTN platform MSISDNs; email notification on every change — v4
 - ✓ Spring Boot Actuator `/manage/health` reflects live provider MSISDN validation + circuit breaker state for both providers — v4
@@ -73,7 +74,6 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 <!-- v6 REST API surface, notifications, Admin UI — in progress -->
 
-- REST endpoints for tenant lifecycle operations: update name/email/webhookUrl, suspend/reactivate, regenerate WebhookSecret (service layer done in v5; HTTP surface deferred)
 - TENT-05/06: Admin list and detail views for tenants
 - AKEY-07: One-time key display modal — admin confirms copy before dismissal
 - WSEC-02: Admin WebhookSecret reveal via eye icon UI
@@ -146,6 +146,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 ## Current State
 
 **Shipped:** v5 (2026-04-06) — 30 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5), 70 plans
+**In progress:** v6 — Phase 31 complete (tenant REST API surface, 9 requirements verified)
 **Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar + Hibernate Envers
 **Observability:** Full Loki-queryable structured logging + Spring Boot Actuator health with live provider MSISDN validation + CB state
 **Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage + 22 tenant/key integration tests (TenantServiceIT, TenantAuditIT, TenantProvisioningIT, RotatedKeyCleanupJobIT)
@@ -154,7 +155,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - `ApiKeyBuilder` previously derived keyPrefix from `rawKey.substring(0,8)` — now fixed, but test builders that pre-date Phase 27 may have stale Javadoc
 - B2B-01/B2B-02 (OrangeClient channelUserMsisdn fix) deferred from v4
 
-**Deferred from v5 (now Active for v6):** REST HTTP surface for 6 TenantService operations, email notifications (NOTIF-01..06), Admin UI tenant management screens, one-time key display modal (AKEY-07), WebhookSecret reveal UI (WSEC-02), TENT-09 auth enforcement for SUSPENDED status
+**Deferred from v5 (now Active for v6):** email notifications (NOTIF-01..06), Admin UI tenant management screens, one-time key display modal (AKEY-07), WebhookSecret reveal UI (WSEC-02)
 
 ## Evolution
 
@@ -174,4 +175,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-07 — Milestone v6 started*
+*Last updated: 2026-04-07 — Phase 31 complete (tenant REST API surface)*
