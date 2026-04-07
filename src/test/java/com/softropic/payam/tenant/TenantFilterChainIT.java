@@ -314,7 +314,7 @@ class TenantFilterChainIT {
     @Test
     void suspendedTenant_validKey_returns403() {
         TenantService.TenantCreationResult result =
-            tenantService.createTenant("Suspended Corp", "LIVE");
+            tenantService.createTenant("Suspended Corp", ApiKeyEnvironment.PROD);
         String rawKey = result.rawKey();
 
         // Suspend the tenant directly via JDBC (no TenantService.suspend() exists yet)
@@ -348,7 +348,7 @@ class TenantFilterChainIT {
     @Test
     void suspendedTenant_validKey_returns403NotUnauthorized() {
         TenantService.TenantCreationResult result =
-            tenantService.createTenant("Suspended Message Corp", "LIVE");
+            tenantService.createTenant("Suspended Message Corp", ApiKeyEnvironment.PROD);
         String rawKey = result.rawKey();
 
         // Suspend the tenant directly via JDBC

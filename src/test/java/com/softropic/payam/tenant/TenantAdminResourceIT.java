@@ -6,6 +6,7 @@ import com.softropic.payam.tenant.contract.ApiKeyDto;
 import com.softropic.payam.tenant.service.ApiKeyService;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
+import com.softropic.payam.tenant.service.TenantQueryService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,9 @@ class TenantAdminResourceIT {
 
     @Autowired
     private ApiKeyService apiKeyService;
+
+    @Autowired
+    private TenantQueryService tenantQueryService;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -205,5 +209,97 @@ class TenantAdminResourceIT {
             .isInstanceOf(HttpClientErrorException.NotFound.class)
             .satisfies(e -> assertThat(((HttpClientErrorException) e).getStatusCode())
                 .isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 4 (TENT-05): GET /v1/admin/tenants returns paginated list
+    // -------------------------------------------------------------------------
+    @Test
+    void listTenants_returnsPage() {
+        tenantService.createTenant("List Corp Alpha", ApiKeyEnvironment.PROD);
+        tenantService.createTenant("List Corp Beta", ApiKeyEnvironment.PROD);
+
+        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+
+        ResponseEntity<String> response = noRetryRestTemplate.exchange(
+            url("/v1/admin/tenants"),
+            HttpMethod.GET, request, String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        String body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body).contains("List Corp Alpha");
+        assertThat(body).contains("List Corp Beta");
+        assertThat(body).contains("\"totalElements\":2");
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 5 (TENT-05): GET /v1/admin/tenants?status=ACTIVE filters by status
+    // -------------------------------------------------------------------------
+    @Test
+    void listTenants_filteredByStatus() {
+        TenantService.TenantCreationResult activeResult =
+            tenantService.createTenant("Active Corp", ApiKeyEnvironment.PROD);
+        TenantService.TenantCreationResult suspendedResult =
+            tenantService.createTenant("Suspended Corp", ApiKeyEnvironment.PROD);
+        tenantService.suspend(suspendedResult.tenant().getTenantRef());
+
+        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+
+        ResponseEntity<String> response = noRetryRestTemplate.exchange(
+            url("/v1/admin/tenants?status=ACTIVE"),
+            HttpMethod.GET, request, String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        String body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body).contains("Active Corp");
+        assertThat(body).doesNotContain("Suspended Corp");
+        assertThat(body).contains("\"totalElements\":1");
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 6 (TENT-06): GET /v1/admin/tenants/{tenantRef} returns detail without webhookSecret
+    // -------------------------------------------------------------------------
+    @Test
+    void getTenantDetail_returnsDetailWithoutSecret() {
+        TenantService.TenantCreationResult result =
+            tenantService.createTenant("Detail Corp", ApiKeyEnvironment.PROD);
+        String tenantRef = result.tenant().getTenantRef();
+
+        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+
+        ResponseEntity<String> response = noRetryRestTemplate.exchange(
+            url("/v1/admin/tenants/" + tenantRef),
+            HttpMethod.GET, request, String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        String body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body).contains(tenantRef);
+        assertThat(body).contains("Detail Corp");
+        assertThat(body).contains("keys");
+        assertThat(body).doesNotContain("webhookSecret");
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 7 (WSEC-03): GET /v1/admin/tenants/{tenantRef}/webhook-secret returns plaintext secret
+    // -------------------------------------------------------------------------
+    @Test
+    void getWebhookSecret_returnsPlaintextSecret() {
+        TenantService.TenantCreationResult result =
+            tenantService.createTenant("Secret Corp", ApiKeyEnvironment.PROD);
+        String tenantRef = result.tenant().getTenantRef();
+
+        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+
+        ResponseEntity<String> response = noRetryRestTemplate.exchange(
+            url("/v1/admin/tenants/" + tenantRef + "/webhook-secret"),
+            HttpMethod.GET, request, String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        String body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body).contains("webhookSecret");
     }
 }

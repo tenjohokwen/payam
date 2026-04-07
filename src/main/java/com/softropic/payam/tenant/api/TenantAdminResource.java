@@ -3,17 +3,26 @@ package com.softropic.payam.tenant.api;
 import com.softropic.payam.security.common.util.SecurityConstants;
 import com.softropic.payam.tenant.contract.ApiKeyDto;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
+import com.softropic.payam.tenant.contract.TenantDetailDto;
 import com.softropic.payam.tenant.contract.TenantDto;
+import com.softropic.payam.tenant.contract.TenantStatus;
+import com.softropic.payam.tenant.contract.TenantSummaryDto;
+import com.softropic.payam.tenant.contract.WebhookSecretDto;
 import com.softropic.payam.tenant.service.ApiKeyService;
+import com.softropic.payam.tenant.service.TenantQueryService;
 import com.softropic.payam.tenant.service.TenantService;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,10 +38,37 @@ public class TenantAdminResource {
 
     private final TenantService tenantService;
     private final ApiKeyService apiKeyService;
+    private final TenantQueryService tenantQueryService;
 
-    public TenantAdminResource(TenantService tenantService, ApiKeyService apiKeyService) {
+    public TenantAdminResource(TenantService tenantService, ApiKeyService apiKeyService, TenantQueryService tenantQueryService) {
         this.tenantService = tenantService;
         this.apiKeyService = apiKeyService;
+        this.tenantQueryService = tenantQueryService;
+    }
+
+    // TENT-05: paginated tenant list with optional status filter
+    @GetMapping
+    @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
+    public ResponseEntity<Page<TenantSummaryDto>> listTenants(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        TenantStatus statusEnum = status != null ? TenantStatus.valueOf(status) : null;
+        return ResponseEntity.ok(tenantQueryService.findAll(statusEnum, page, size));
+    }
+
+    // TENT-06: full tenant detail (no webhookSecret)
+    @GetMapping("/{tenantRef}")
+    @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
+    public ResponseEntity<TenantDetailDto> getTenantDetail(@PathVariable String tenantRef) {
+        return ResponseEntity.ok(tenantQueryService.findByTenantRef(tenantRef));
+    }
+
+    // WSEC-03: dedicated webhook secret endpoint
+    @GetMapping("/{tenantRef}/webhook-secret")
+    @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
+    public ResponseEntity<WebhookSecretDto> getWebhookSecret(@PathVariable String tenantRef) {
+        return ResponseEntity.ok(tenantQueryService.getWebhookSecret(tenantRef));
     }
 
     @PostMapping
