@@ -21,6 +21,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -57,6 +58,7 @@ class TenantAdminResourceIT {
     private TransactionTemplate transactionTemplate;
 
     private RestTemplate noRetryRestTemplate;
+    private RestTemplate patchRestTemplate;
 
     @LocalServerPort
     int port;
@@ -68,6 +70,11 @@ class TenantAdminResourceIT {
     void setUp() {
         noRetryRestTemplate = new RestTemplateBuilder()
                 .requestFactory(SimpleClientHttpRequestFactory.class)
+                .build();
+
+        patchRestTemplate = new RestTemplateBuilder()
+                .requestFactory(HttpComponentsClientHttpRequestFactory.class)
+                .rootUri("http://localhost:" + port)
                 .build();
 
         // Load the JWT secret required by SecurityAdviceFilter.addSecretToThread().
@@ -134,6 +141,12 @@ class TenantAdminResourceIT {
 
     private String url(String path) {
         return "http://localhost:" + port + path;
+    }
+
+    private HttpHeaders jsonHeaders() {
+        HttpHeaders headers = new HttpHeaders(adminCookies);
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        return headers;
     }
 
     // -------------------------------------------------------------------------
@@ -301,5 +314,194 @@ class TenantAdminResourceIT {
         String body = response.getBody();
         assertThat(body).isNotNull();
         assertThat(body).contains("webhookSecret");
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 8 (TENT-10): PATCH /{tenantRef}/name returns 204 and persists change
+    // -------------------------------------------------------------------------
+    @Test
+    void updateName_returns204() {
+        TenantService.TenantCreationResult result =
+            tenantService.createTenant("Original Corp", ApiKeyEnvironment.PROD);
+        String tenantRef = result.tenant().getTenantRef();
+
+        HttpEntity<String> request = new HttpEntity<>("{\"name\":\"Updated Corp\"}", jsonHeaders());
+
+        ResponseEntity<Void> response = patchRestTemplate.exchange(
+            "/v1/admin/tenants/" + tenantRef + "/name",
+            HttpMethod.PATCH, request, Void.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        // Verify name change persisted via GET
+        HttpEntity<Void> getRequest = new HttpEntity<>(adminCookies);
+        ResponseEntity<String> getResponse = noRetryRestTemplate.exchange(
+            url("/v1/admin/tenants/" + tenantRef),
+            HttpMethod.GET, getRequest, String.class);
+        assertThat(getResponse.getBody()).contains("Updated Corp");
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 9 (TENT-02): PATCH /{tenantRef}/email returns 204 and persists change
+    // -------------------------------------------------------------------------
+    @Test
+    void updateEmail_returns204() {
+        TenantService.TenantCreationResult result =
+            tenantService.createTenant("Email Corp", ApiKeyEnvironment.PROD);
+        String tenantRef = result.tenant().getTenantRef();
+
+        HttpEntity<String> request = new HttpEntity<>("{\"email\":\"newemail@example.com\"}", jsonHeaders());
+
+        ResponseEntity<Void> response = patchRestTemplate.exchange(
+            "/v1/admin/tenants/" + tenantRef + "/email",
+            HttpMethod.PATCH, request, Void.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        // Verify email change persisted via GET
+        HttpEntity<Void> getRequest = new HttpEntity<>(adminCookies);
+        ResponseEntity<String> getResponse = noRetryRestTemplate.exchange(
+            url("/v1/admin/tenants/" + tenantRef),
+            HttpMethod.GET, getRequest, String.class);
+        assertThat(getResponse.getBody()).contains("newemail@example.com");
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 10 (TENT-03): PATCH /{tenantRef}/webhook-url returns 204 and persists change
+    // -------------------------------------------------------------------------
+    @Test
+    void updateWebhookUrl_returns204() {
+        TenantService.TenantCreationResult result =
+            tenantService.createTenant("Webhook Corp", ApiKeyEnvironment.PROD);
+        String tenantRef = result.tenant().getTenantRef();
+
+        HttpEntity<String> request = new HttpEntity<>("{\"webhookUrl\":\"https://hooks.example.com/new\"}", jsonHeaders());
+
+        ResponseEntity<Void> response = patchRestTemplate.exchange(
+            "/v1/admin/tenants/" + tenantRef + "/webhook-url",
+            HttpMethod.PATCH, request, Void.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        // Verify webhookUrl change persisted via GET
+        HttpEntity<Void> getRequest = new HttpEntity<>(adminCookies);
+        ResponseEntity<String> getResponse = noRetryRestTemplate.exchange(
+            url("/v1/admin/tenants/" + tenantRef),
+            HttpMethod.GET, getRequest, String.class);
+        assertThat(getResponse.getBody()).contains("https://hooks.example.com/new");
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 11 (TENT-04): POST /{tenantRef}/suspend returns 204 and revokes all keys
+    // -------------------------------------------------------------------------
+    @Test
+    void suspend_revokesAllKeys() {
+        TenantService.TenantCreationResult result =
+            tenantService.createTenant("Suspend Corp", ApiKeyEnvironment.PROD);
+        String tenantRef = result.tenant().getTenantRef();
+        Long tenantId = result.tenant().getId();
+
+        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+
+        ResponseEntity<Void> response = noRetryRestTemplate.exchange(
+            url("/v1/admin/tenants/" + tenantRef + "/suspend"),
+            HttpMethod.POST, request, Void.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        // Verify tenant is SUSPENDED via GET
+        ResponseEntity<String> getResponse = noRetryRestTemplate.exchange(
+            url("/v1/admin/tenants/" + tenantRef),
+            HttpMethod.GET, request, String.class);
+        assertThat(getResponse.getBody()).contains("SUSPENDED");
+
+        // Verify all keys are REVOKED
+        Integer nonRevokedCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM main.tenant_api_key WHERE tenant_id = ? AND key_status != 'REVOKED'",
+            Integer.class, tenantId);
+        assertThat(nonRevokedCount).isEqualTo(0);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 12 (TENT-07): POST /{tenantRef}/reactivate returns 200 with rawKey
+    // -------------------------------------------------------------------------
+    @Test
+    void reactivate_returnsRawKey() {
+        TenantService.TenantCreationResult result =
+            tenantService.createTenant("Reactivate Corp", ApiKeyEnvironment.PROD);
+        String tenantRef = result.tenant().getTenantRef();
+
+        // Suspend first
+        tenantService.suspend(tenantRef);
+
+        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+
+        ResponseEntity<ApiKeyDto> response = noRetryRestTemplate.exchange(
+            url("/v1/admin/tenants/" + tenantRef + "/reactivate"),
+            HttpMethod.POST, request, ApiKeyDto.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        ApiKeyDto dto = response.getBody();
+        assertThat(dto).isNotNull();
+        assertThat(dto.rawKey()).isNotNull();
+        assertThat(dto.rawKey()).isNotBlank();
+
+        // Verify tenant is ACTIVE via GET
+        ResponseEntity<String> getResponse = noRetryRestTemplate.exchange(
+            url("/v1/admin/tenants/" + tenantRef),
+            HttpMethod.GET, request, String.class);
+        assertThat(getResponse.getBody()).contains("ACTIVE");
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 13 (TENT-08): POST /{tenantRef}/webhook-secret returns 204 and changes secret
+    // -------------------------------------------------------------------------
+    @Test
+    void regenerateWebhookSecret_returns204() {
+        TenantService.TenantCreationResult result =
+            tenantService.createTenant("Secret Regen Corp", ApiKeyEnvironment.PROD);
+        String tenantRef = result.tenant().getTenantRef();
+
+        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+
+        // Capture original secret
+        ResponseEntity<String> originalSecretResponse = noRetryRestTemplate.exchange(
+            url("/v1/admin/tenants/" + tenantRef + "/webhook-secret"),
+            HttpMethod.GET, request, String.class);
+        String originalBody = originalSecretResponse.getBody();
+
+        // Regenerate
+        ResponseEntity<Void> response = noRetryRestTemplate.exchange(
+            url("/v1/admin/tenants/" + tenantRef + "/webhook-secret"),
+            HttpMethod.POST, request, Void.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        // Verify new secret differs
+        ResponseEntity<String> newSecretResponse = noRetryRestTemplate.exchange(
+            url("/v1/admin/tenants/" + tenantRef + "/webhook-secret"),
+            HttpMethod.GET, request, String.class);
+        assertThat(newSecretResponse.getBody()).isNotEqualTo(originalBody);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 14: POST /{tenantRef}/reactivate on already-ACTIVE tenant returns 409
+    // -------------------------------------------------------------------------
+    @Test
+    void reactivate_alreadyActive_returns409() {
+        TenantService.TenantCreationResult result =
+            tenantService.createTenant("Already Active Corp", ApiKeyEnvironment.PROD);
+        String tenantRef = result.tenant().getTenantRef();
+
+        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+
+        // Tenant is ACTIVE with a PROD key — reactivate should throw 409
+        assertThatThrownBy(() ->
+            noRetryRestTemplate.exchange(
+                url("/v1/admin/tenants/" + tenantRef + "/reactivate"),
+                HttpMethod.POST, request, Object.class))
+            .isInstanceOf(HttpClientErrorException.class)
+            .satisfies(e -> assertThat(((HttpClientErrorException) e).getStatusCode())
+                .isEqualTo(HttpStatus.CONFLICT));
     }
 }
