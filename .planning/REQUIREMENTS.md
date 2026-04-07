@@ -17,12 +17,12 @@
 
 - [x] **TENT-05**: Admin can retrieve a paginated, filterable (by status) list of tenants via `GET /v1/admin/tenants`
 - [x] **TENT-06**: Admin can retrieve full tenant detail (name, email, webhookUrl, status, keys) via `GET /v1/admin/tenants/{tenantRef}`
-- [ ] **TENT-10**: Admin can update a tenant's display name via `PATCH /v1/admin/tenants/{tenantRef}/name`
-- [ ] **TENT-02**: Admin can update a tenant's email address via `PATCH /v1/admin/tenants/{tenantRef}/email`
-- [ ] **TENT-03**: Admin can update a tenant's webhookUrl via `PATCH /v1/admin/tenants/{tenantRef}/webhook-url`
-- [ ] **TENT-04**: Admin can suspend a tenant via `POST /v1/admin/tenants/{tenantRef}/suspend` (atomically revokes all keys)
-- [ ] **TENT-07**: Admin can reactivate a suspended tenant via `POST /v1/admin/tenants/{tenantRef}/reactivate` (response includes rawKey for new PROD key)
-- [ ] **TENT-08**: Admin can regenerate a tenant's webhook secret via `POST /v1/admin/tenants/{tenantRef}/webhook-secret`
+- [x] **TENT-10**: Admin can update a tenant's display name via `PATCH /v1/admin/tenants/{tenantRef}/name`
+- [x] **TENT-02**: Admin can update a tenant's email address via `PATCH /v1/admin/tenants/{tenantRef}/email`
+- [x] **TENT-03**: Admin can update a tenant's webhookUrl via `PATCH /v1/admin/tenants/{tenantRef}/webhook-url`
+- [x] **TENT-04**: Admin can suspend a tenant via `POST /v1/admin/tenants/{tenantRef}/suspend` (atomically revokes all keys)
+- [x] **TENT-07**: Admin can reactivate a suspended tenant via `POST /v1/admin/tenants/{tenantRef}/reactivate` (response includes rawKey for new PROD key)
+- [x] **TENT-08**: Admin can regenerate a tenant's webhook secret via `POST /v1/admin/tenants/{tenantRef}/webhook-secret`
 
 ### Webhook Secret REST API (WSEC)
 
@@ -76,12 +76,12 @@
 | TENT-09 | Phase 30 | Complete |
 | TENT-05 | Phase 31 | Complete |
 | TENT-06 | Phase 31 | Complete |
-| TENT-10 | Phase 31 | Pending |
-| TENT-02 | Phase 31 | Pending |
-| TENT-03 | Phase 31 | Pending |
-| TENT-04 | Phase 31 | Pending |
-| TENT-07 | Phase 31 | Pending |
-| TENT-08 | Phase 31 | Pending |
+| TENT-10 | Phase 31 | Complete |
+| TENT-02 | Phase 31 | Complete |
+| TENT-03 | Phase 31 | Complete |
+| TENT-04 | Phase 31 | Complete |
+| TENT-07 | Phase 31 | Complete |
+| TENT-08 | Phase 31 | Complete |
 | WSEC-03 | Phase 31 | Complete |
 | NOTIF-01 | Phase 32 | Pending |
 | NOTIF-02 | Phase 32 | Pending |

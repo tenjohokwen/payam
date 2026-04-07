@@ -109,7 +109,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 31-01-PLAN.md — DTOs, TenantQueryService, repository query, and 3 read endpoints (TENT-05, TENT-06, WSEC-03)
-- [ ] 31-02-PLAN.md — 6 mutation endpoints (PATCH name/email/webhook-url, POST suspend/reactivate/webhook-secret) + IllegalStateException handler + integration tests (TENT-02, TENT-03, TENT-04, TENT-07, TENT-08, TENT-10)
+- [x] 31-02-PLAN.md — 6 mutation endpoints (PATCH name/email/webhook-url, POST suspend/reactivate/webhook-secret) + IllegalStateException handler + integration tests (TENT-02, TENT-03, TENT-04, TENT-07, TENT-08, TENT-10)
 **UI hint**: no
 
 ### Phase 32: Email Notification Infrastructure
@@ -172,6 +172,6 @@ Plans:
 | 28.1. API Key Format Fix (AKEY-01) | v5 | 1/1 | Complete | 2026-04-06 |
 | 29. Quartz Rotation Cleanup Job | v5 | 1/1 | Complete | 2026-04-06 |
 | 30. TENT-09 Auth Enforcement | v6 | 1/1 | Complete    | 2026-04-06 |
-| 31. Tenant REST API Surface | v6 | 1/2 | In Progress|  |
+| 31. Tenant REST API Surface | v6 | 2/2 | Complete   | 2026-04-07 |
 | 32. Email Notification Infrastructure | v6 | 0/? | Not started | - |
 | 33. Admin UI — Tenant Management | v6 | 0/? | Not started | - |

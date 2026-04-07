@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 31-01-PLAN.md
-last_updated: "2026-04-07T06:55:27.234Z"
+status: verifying
+stopped_at: Phase 31 Plan 02 complete (31-02-SUMMARY.md created)
+last_updated: "2026-04-07T07:06:27.721Z"
 last_activity: 2026-04-07
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-07 — Milestone v6 started)
 
 Phase: 31 (tenant-rest-api-surface) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-07
 
 ```
@@ -71,6 +71,9 @@ Key context from v6 research:
 - [Phase 31-01]: TenantQueryService separate from TenantService — isolates readOnly transactions from mutation operations
 - [Phase 31-01]: TenantDetailDto excludes webhookSecret — secret reveal is dedicated WSEC-03 endpoint
 - [Phase 31-01]: status @RequestParam is String with manual TenantStatus.valueOf() — avoids Spring binding failure on absent optional enum param
+- [Phase 31]: POST /webhook-secret returns 204 not the secret string — consistent with WSEC-03 dedicated GET endpoint for secret reveal
+- [Phase 31]: IllegalStateException -> 409 Conflict in ApiAdvice prevents 500 on ApiKeyService double-reactivate scenario
+- [Phase 31]: HttpComponentsClientHttpRequestFactory required for PATCH in integration tests; SimpleClientHttpRequestFactory does not support PATCH
 
 ### Pending Todos
 
@@ -82,6 +85,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-07T06:55:27.227Z
-Stopped at: Completed 31-01-PLAN.md
+Last session: 2026-04-07T07:06:27.715Z
+Stopped at: Phase 31 Plan 02 complete (31-02-SUMMARY.md created)
 Resume file: None
