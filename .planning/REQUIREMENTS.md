@@ -30,12 +30,12 @@
 
 ### Email Notifications (NOTIF)
 
-- [ ] **NOTIF-01**: Admin and tenant receive an email when a new API key is generated for the tenant (no key material in email body)
-- [ ] **NOTIF-02**: Admin and tenant receive an email when an API key is rotated (key prefix and environment included; no raw key)
-- [ ] **NOTIF-03**: Admin and tenant receive an email when an API key is manually revoked
-- [ ] **NOTIF-04**: Admin and tenant receive an email when a revoked API key is reactivated
-- [ ] **NOTIF-05**: Admin and tenant receive an email when the webhook secret is regenerated
-- [ ] **NOTIF-06**: Admin and tenant receive an email on: tenant suspended, tenant reactivated, tenant email changed (notification to old address), tenant webhookUrl changed
+- [x] **NOTIF-01**: Admin and tenant receive an email when a new API key is generated for the tenant (no key material in email body)
+- [x] **NOTIF-02**: Admin and tenant receive an email when an API key is rotated (key prefix and environment included; no raw key)
+- [x] **NOTIF-03**: Admin and tenant receive an email when an API key is manually revoked
+- [x] **NOTIF-04**: Admin and tenant receive an email when a revoked API key is reactivated
+- [x] **NOTIF-05**: Admin and tenant receive an email when the webhook secret is regenerated
+- [x] **NOTIF-06**: Admin and tenant receive an email on: tenant suspended, tenant reactivated, tenant email changed (notification to old address), tenant webhookUrl changed
 
 ### Admin UI (UI)
 
@@ -83,12 +83,12 @@
 | TENT-07 | Phase 31 | Complete |
 | TENT-08 | Phase 31 | Complete |
 | WSEC-03 | Phase 31 | Complete |
-| NOTIF-01 | Phase 32 | Pending |
-| NOTIF-02 | Phase 32 | Pending |
-| NOTIF-03 | Phase 32 | Pending |
-| NOTIF-04 | Phase 32 | Pending |
-| NOTIF-05 | Phase 32 | Pending |
-| NOTIF-06 | Phase 32 | Pending |
+| NOTIF-01 | Phase 32 | Complete |
+| NOTIF-02 | Phase 32 | Complete |
+| NOTIF-03 | Phase 32 | Complete |
+| NOTIF-04 | Phase 32 | Complete |
+| NOTIF-05 | Phase 32 | Complete |
+| NOTIF-06 | Phase 32 | Complete |
 | UI-01 | Phase 33 | Pending |
 | UI-02 | Phase 33 | Pending |
 | UI-03 | Phase 33 | Pending |

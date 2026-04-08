@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 31 Plan 02 complete (31-02-SUMMARY.md created)
-last_updated: "2026-04-07T07:09:42.446Z"
-last_activity: 2026-04-07
+status: executing
+stopped_at: Completed 32-01-PLAN.md (2/2 tasks)
+last_updated: "2026-04-08T18:04:18.267Z"
+last_activity: 2026-04-08
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-07 — Milestone v6 started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 31 — tenant-rest-api-surface
+**Current focus:** Phase 32 — email-notification-infrastructure
 
 ## Current Position
 
-Phase: 32
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-07
+Phase: 32 (email-notification-infrastructure) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-04-08
 
 ```
 Progress [░░░░░░░░░░░░░░░░░░░░] 0% — Phase 30 of 33
@@ -74,6 +74,7 @@ Key context from v6 research:
 - [Phase 31]: POST /webhook-secret returns 204 not the secret string — consistent with WSEC-03 dedicated GET endpoint for secret reveal
 - [Phase 31]: IllegalStateException -> 409 Conflict in ApiAdvice prevents 500 on ApiKeyService double-reactivate scenario
 - [Phase 31]: HttpComponentsClientHttpRequestFactory required for PATCH in integration tests; SimpleClientHttpRequestFactory does not support PATCH
+- [Phase 32-01]: Plain-record domain events (no ApplicationEvent), security constraint at contract layer (no raw key/secret in events or templates), th:switch for conditional tenantStatusChanged rendering
 
 ### Pending Todos
 
@@ -85,6 +86,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-07T07:06:27.715Z
-Stopped at: Phase 31 Plan 02 complete (31-02-SUMMARY.md created)
+Last session: 2026-04-08T18:04:18.261Z
+Stopped at: Completed 32-01-PLAN.md (2/2 tasks)
 Resume file: None
