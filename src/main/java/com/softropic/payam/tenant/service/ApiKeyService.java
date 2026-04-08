@@ -122,6 +122,32 @@ public class ApiKeyService {
         ));
     }
 
+    // NOTIF-04: reactivate a revoked API key
+    public void reactivate(Long keyId) {
+        TenantApiKey key = keyRepository.findById(keyId)
+            .orElseThrow(() -> new EntityNotFoundException("Key not found: " + keyId));
+        if (key.getKeyStatus() != ApiKeyStatus.REVOKED) {
+            throw new IllegalStateException("Only revoked keys can be reactivated");
+        }
+        // AKEY-02 safety: reject if an ACTIVE key already exists for this tenant+environment
+        keyRepository.findActiveKeyByTenantIdAndEnvironment(key.getTenant().getId(), key.getEnvironment())
+            .ifPresent(existing -> {
+                throw new IllegalStateException(
+                    "Active key already exists for environment: " + key.getEnvironment());
+            });
+        key.setKeyStatus(ApiKeyStatus.ACTIVE);
+        keyRepository.save(key);
+
+        publisher.publishEvent(new TenantApiKeyEvent(
+            key.getTenant().getName(),
+            key.getTenant().getEmail(),
+            key.getKeyPrefix(),
+            key.getEnvironment().name(),
+            TenantApiKeyEvent.Action.REACTIVATED,
+            Instant.now(ClockProvider.getClock())
+        ));
+    }
+
     private String generateSecureKey(String keyPrefix) {
         return keyPrefix + "_" + UUID.randomUUID().toString();
     }
