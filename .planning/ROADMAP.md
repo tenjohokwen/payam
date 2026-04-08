@@ -140,9 +140,9 @@ Plans:
   4. Admin can reveal a tenant's webhook secret via an eye icon on the detail page; the secret is fetched lazily from the dedicated endpoint, displayed in a masked input, and automatically re-masked after 30 seconds
 **Plans**: 3 plans
 Plans:
-- [x] 32-01-PLAN.md — Domain event records, EmailTemplate enum, i18n keys, 6 Thymeleaf HTML templates
-- [x] 32-02-PLAN.md — TenantLifecycleEmailListener, event publishing in TenantService/ApiKeyService, unit tests
-- [ ] 32-03-PLAN.md — Gap closure: ApiKeyService.reactivate() + REST endpoint + tests (NOTIF-04)
+- [ ] 33-01-PLAN.md — API client methods, routing, nav item, and OneTimeKeyModal component
+- [ ] 33-02-PLAN.md — TenantListPage with server-side paginated q-table and status filter (UI-01)
+- [ ] 33-03-PLAN.md — TenantDetailPage with inline edit, status toggle, key table, webhook secret reveal (UI-02, UI-03, UI-04)
 **UI hint**: yes
 
 ## Progress
@@ -182,4 +182,4 @@ Plans:
 | 30. TENT-09 Auth Enforcement | v6 | 1/1 | Complete    | 2026-04-06 |
 | 31. Tenant REST API Surface | v6 | 2/2 | Complete    | 2026-04-07 |
 | 32. Email Notification Infrastructure | v6 | 3/3 | Complete   | 2026-04-08 |
-| 33. Admin UI — Tenant Management | v6 | 0/? | Not started | - |
+| 33. Admin UI — Tenant Management | v6 | 0/3 | Not started | - |
