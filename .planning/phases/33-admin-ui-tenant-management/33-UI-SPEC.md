@@ -80,7 +80,7 @@ Source: Existing admin pages; CONTEXT.md D-10, D-13.
 | Destructive | `#c10015` ($negative) | Suspend button, revoke action button |
 
 Accent (`$primary` / `color="primary"`) reserved for:
-- "Search" / "Save" / "Generate" / "Rotate" / "Reactivate" action buttons (non-destructive mutations)
+- "Search" / "Update Name" / "Update Email" / "Update Webhook" / "Generate" / "Rotate" / "Reactivate" action buttons (non-destructive mutations)
 - Active nav item highlight in `q-drawer`
 - `q-btn color="primary"` for the main page CTA
 
@@ -124,6 +124,8 @@ Source: CONTEXT.md D-16, D-17, D-18; "Component file placement" discretion note.
 
 ### TenantListPage (UI-01)
 
+Primary focal point: tenant data table.
+
 - Layout: `q-page padding` wrapper, `text-h5 q-mb-md` page heading "Tenants"
 - Filter card: `q-card q-mb-md` with `q-select` for status filter (options: ALL, ACTIVE, SUSPENDED) and a "Search" `q-btn color="primary"`
 - Table: `q-table` with server-side pagination (`:pagination` + `@request` handler); columns: Tenant Name, Ref, Email, Status (chip), Created; `row-key="tenantRef"`; `@row-click` navigates to `/admin/tenants/:tenantRef`
@@ -132,12 +134,17 @@ Source: CONTEXT.md D-16, D-17, D-18; "Component file placement" discretion note.
 
 ### TenantDetailPage (UI-02)
 
+Primary focal point: tenant detail fields.
+
 - Layout: `q-page padding`; page heading `text-h5` showing tenant name; status toggle button at top-right of heading row
 - Load state: `q-inner-loading :showing="isLoading"` overlay
-- Inline edit section: three `q-input outlined dense` fields (Name, Email, Webhook URL), each with its own `:loading="saving[field]"` Save `q-btn color="primary"` — identical to `PlatformConfigPage` card pattern
+- Inline edit section: three `q-input outlined dense` fields (Name, Email, Webhook URL), each with its own `:loading="saving[field]"` save `q-btn color="primary"` with field-specific labels:
+  - Name field save button: `label="Update Name"`
+  - Email field save button: `label="Update Email"`
+  - Webhook URL field save button: `label="Update Webhook"`
 - Status toggle: single `q-btn` in the header — `color="negative" label="Suspend"` when ACTIVE; `color="primary" label="Reactivate"` when SUSPENDED; triggers `$q.dialog()` confirm before API call
 - API Keys section: `q-card` with `text-h6` "API Keys", containing a `q-table` (columns: Env, Key Prefix, Status chip, Created Date, Actions); rows sorted PROD first; action buttons are context-sensitive per D-04
-- Webhook Secret section: `q-card` with `text-h6` "Webhook Secret"; `q-input type="password" outlined readonly` with eye-icon `q-btn` in `append` slot; countdown timer displayed as caption text when revealed
+- Webhook Secret section: `q-card` with `text-h6` "Webhook Secret"; `q-input type="password" outlined readonly` with eye-icon `q-btn` in `append` slot (see UI-04 for aria-label spec); countdown timer displayed as caption text when revealed
 
 ### OneTimeKeyModal (UI-03)
 
@@ -149,7 +156,9 @@ Source: CONTEXT.md D-16, D-17, D-18; "Component file placement" discretion note.
 
 ### Webhook Secret Reveal (UI-04)
 
-- Eye-icon `q-btn flat round dense icon="visibility"` / `icon="visibility_off"` in input append slot
+- Eye-icon `q-btn flat round dense` in input append slot:
+  - When secret is masked: `icon="visibility"` with `aria-label="Reveal webhook secret"`
+  - When secret is revealed: `icon="visibility_off"` with `aria-label="Hide webhook secret"`
 - On first click: `GET /webhook-secret` → set `secret` ref → `unmasked = true` → start 30s `setTimeout` → on timeout: `secret = null`, `unmasked = false`
 - On second click while unmasked: cancel timer, `secret = null`, `unmasked = false` immediately
 - Countdown: display remaining seconds as `text-caption text-grey` below the input while unmasked
@@ -165,7 +174,9 @@ Source: CONTEXT.md D-13, D-14, D-15.
 | Page heading — list | "Tenants" |
 | Page heading — detail | "{tenantName}" (dynamic) |
 | Primary CTA — list page | "Search" |
-| Primary CTA — save field | "Save" |
+| Primary CTA — save name field | "Update Name" |
+| Primary CTA — save email field | "Update Email" |
+| Primary CTA — save webhook field | "Update Webhook" |
 | Primary CTA — generate key | "Generate" |
 | Primary CTA — rotate key | "Rotate" |
 | Primary CTA — reactivate key | "Reactivate" |
@@ -189,6 +200,8 @@ Source: CONTEXT.md D-13, D-14, D-15.
 | Reactivate confirmation message | "A new PROD key will be generated. You will need to share it with the tenant." |
 | Reactivate confirmation OK | "Reactivate" |
 | Reactivate success (key modal opens automatically) | — (no toast; key modal is the confirmation) |
+| Eye-icon button — masked state | aria-label="Reveal webhook secret" |
+| Eye-icon button — revealed state | aria-label="Hide webhook secret" |
 
 Source: CONTEXT.md D-07, D-08, D-09, D-10, D-11; REQUIREMENTS.md UI-01–04; defaults applied for error/empty copy.
 
