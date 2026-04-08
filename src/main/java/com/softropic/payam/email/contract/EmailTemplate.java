@@ -9,7 +9,13 @@ public enum EmailTemplate {
     EMAIL_CHANGE("email.change.title"),
     POST_PURCHASE("email.post_purchase.title"),
     PROFILE_CHANGE("email.profile_change.title"),
-    PLATFORM_CONFIG_CHANGED("email.platform_config_changed.title");
+    PLATFORM_CONFIG_CHANGED("email.platform_config_changed.title"),
+    TENANT_API_KEY_GENERATED("email.tenant.api_key_generated.title"),
+    TENANT_API_KEY_ROTATED("email.tenant.api_key_rotated.title"),
+    TENANT_API_KEY_REVOKED("email.tenant.api_key_revoked.title"),
+    TENANT_API_KEY_REACTIVATED("email.tenant.api_key_reactivated.title"),
+    TENANT_WEBHOOK_SECRET_REGENERATED("email.tenant.webhook_secret_regenerated.title"),
+    TENANT_STATUS_CHANGED("email.tenant.status_changed.title");
 
     private final String subjectKey;
     EmailTemplate(final String subjectKey) {
