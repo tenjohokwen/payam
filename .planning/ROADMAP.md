@@ -123,7 +123,10 @@ Plans:
   4. Admin and tenant receive an email on tenant suspension, tenant reactivation, and tenant webhookUrl change
   5. On tenant email address change, a notification is delivered to the old address only
   6. All notification emails are delivered after the triggering transaction commits (no sends on rollback)
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 32-01-PLAN.md — Domain event records, EmailTemplate enum, i18n keys, 6 Thymeleaf HTML templates
+- [ ] 32-02-PLAN.md — TenantLifecycleEmailListener, event publishing in TenantService/ApiKeyService, unit tests
 
 ### Phase 33: Admin UI — Tenant Management
 **Goal**: Admins can manage the full tenant lifecycle and API key display through the Admin SPA
@@ -134,7 +137,10 @@ Plans:
   2. Admin can edit a tenant's name, email, and webhookUrl inline on the detail page with per-field save confirmation; admin can toggle tenant status (suspend or reactivate) behind a confirmation dialog
   3. After key generation or rotation, admin sees a persistent one-time modal displaying the raw key; dismissal is gated on confirming the key has been copied; the raw key is cleared from component state immediately on dismissal
   4. Admin can reveal a tenant's webhook secret via an eye icon on the detail page; the secret is fetched lazily from the dedicated endpoint, displayed in a masked input, and automatically re-masked after 30 seconds
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 32-01-PLAN.md — Domain event records, EmailTemplate enum, i18n keys, 6 Thymeleaf HTML templates
+- [ ] 32-02-PLAN.md — TenantLifecycleEmailListener, event publishing in TenantService/ApiKeyService, unit tests
 **UI hint**: yes
 
 ## Progress
