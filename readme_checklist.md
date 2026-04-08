@@ -14,6 +14,7 @@
 * [ ] LOG-OBS-02: Custom Grafana dashboards for payment business events — built once sufficient log volume exists in production
 * [ ] Ensure all Controllers have @Observable annotation
 * [ ] Ask AI to determine the grafana dashboards needed for this app. 
+* [ ] configure log time to be UTC
 * [ ] Ensure you have scripts that clean up the various tables (AI should write them and also write tests that clean up mid way and continue inserting data and verify that data well inserted and nothing is lost)
 * [ ] prepare the following env variables
 

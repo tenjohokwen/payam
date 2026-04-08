@@ -3,6 +3,7 @@ package com.softropic.payam.webhook;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.softropic.payam.common.AdminLogin;
+import com.softropic.payam.security.service.LoginAttemptsService;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
@@ -95,12 +96,18 @@ class WebhookDeliveryIT {
     @Autowired WebhookDeliveryLogRepository deliveryLogRepo;
     @Autowired CircuitBreakerRegistry circuitBreakerRegistry;
     @Autowired RestTemplateBuilder restTemplateBuilder;
+    @Autowired LoginAttemptsService loginAttemptsService;
 
     private RestTemplate noRetryRestTemplate;
     private HttpHeaders adminCookies;
 
     @LocalServerPort int serverPort;
 
+    private HttpHeaders withUserAgent(HttpHeaders headers) {
+        HttpHeaders h = new HttpHeaders(headers);
+        h.add("user-agent", AdminLogin.TEST_USER_AGENT);
+        return h;
+    }
     private Long tenantId;
     private String apiKey;
 
@@ -108,6 +115,7 @@ class WebhookDeliveryIT {
 
     @BeforeEach
     void setUp() {
+        loginAttemptsService.resetLoginRecording();
         noRetryRestTemplate = restTemplateBuilder
             .requestFactory(org.springframework.http.client.SimpleClientHttpRequestFactory.class)
             .build();
@@ -400,7 +408,7 @@ class WebhookDeliveryIT {
         ResponseEntity<List<WebhookDeliveryLog>> response = noRetryRestTemplate.exchange(
             "http://localhost:" + serverPort + "/v1/admin/webhooks/deliveries/" + txId,
             HttpMethod.GET,
-            new HttpEntity<>(adminCookies),
+            new HttpEntity<>(withUserAgent(adminCookies)),
             new ParameterizedTypeReference<List<WebhookDeliveryLog>>() {});
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);

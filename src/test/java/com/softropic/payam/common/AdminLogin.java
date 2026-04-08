@@ -15,6 +15,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class AdminLogin {
 
+    public static final String TEST_USER_AGENT = "Java/17.0.11";
+
     /** Admin fixture: login and password match userData.sql (queb@yahoo.com). */
     private static final String ADMIN_LOGIN    = "queb@yahoo.com";
     private static final String ADMIN_PASSWORD = "admin*123!";
@@ -29,6 +31,7 @@ public abstract class AdminLogin {
         HttpHeaders loginHeaders = new HttpHeaders();
         loginHeaders.setContentType(MediaType.APPLICATION_JSON);
         loginHeaders.add(HttpHeaders.COOKIE, "fcookie=fingerprintCookie");
+        loginHeaders.add("user-agent", TEST_USER_AGENT);
         //loginHeaders.set("X-Client-Id", TEST_CLIENT_ID);
 
         Map<String, String> credentials = Map.of("id", ADMIN_LOGIN, "password", ADMIN_PASSWORD);

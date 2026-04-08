@@ -2,6 +2,7 @@ package com.softropic.payam.tenant;
 
 import com.softropic.payam.common.AdminLogin;
 import com.softropic.payam.config.TestConfig;
+import com.softropic.payam.security.service.LoginAttemptsService;
 import com.softropic.payam.tenant.contract.ApiKeyDto;
 import com.softropic.payam.tenant.service.ApiKeyService;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
@@ -20,6 +21,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -57,6 +59,9 @@ class TenantAdminResourceIT {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
+    @Autowired
+    private LoginAttemptsService loginAttemptsService;
+
     private RestTemplate noRetryRestTemplate;
     private RestTemplate patchRestTemplate;
 
@@ -68,6 +73,12 @@ class TenantAdminResourceIT {
 
     @BeforeEach
     void setUp() {
+        cleanDb();
+        // Reset the in-memory login-attempt cache so stale failures from a prior test
+        // cannot cause LockedException during this test's authentication.
+        //loginAttemptsService.unlockUser("queb@yahoo.com");
+        loginAttemptsService.resetLoginRecording();
+
         noRetryRestTemplate = new RestTemplateBuilder()
                 .requestFactory(SimpleClientHttpRequestFactory.class)
                 .build();
@@ -130,10 +141,20 @@ class TenantAdminResourceIT {
 
     @AfterEach
     void tearDown() {
+        cleanDb();
+    }
+
+    private void cleanDb() {
         transactionTemplate.execute(status -> {
             jdbcTemplate.execute("delete from main.idempotency_key");
             jdbcTemplate.execute("delete from main.tenant_api_key");
             jdbcTemplate.execute("delete from main.tenant");
+            jdbcTemplate.execute("delete from main.persistent_token");
+            jdbcTemplate.execute("delete from main.user_addresses");
+            jdbcTemplate.execute("delete from main.user_authority");
+            jdbcTemplate.execute("delete from main.audit_log");
+            jdbcTemplate.execute("delete from main.user");
+            jdbcTemplate.execute("delete from main.authority");
             jdbcTemplate.execute("delete from main.sec");
             return null;
         });
@@ -145,6 +166,8 @@ class TenantAdminResourceIT {
 
     private HttpHeaders jsonHeaders() {
         HttpHeaders headers = new HttpHeaders(adminCookies);
+        headers.add("user-agent", AdminLogin.TEST_USER_AGENT); //user agent has to match the agent used to login or else authorizer sees it as token theft
+        headers.add(HttpHeaders.COOKIE, "fcookie=fingerprintCookie");
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
         return headers;
     }
@@ -160,7 +183,7 @@ class TenantAdminResourceIT {
         Long keyId = result.key().getId();
         String originalRawKey = result.rawKey();
 
-        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+        HttpEntity<Void> request = new HttpEntity<>(jsonHeaders());
 
         ResponseEntity<ApiKeyDto> response = noRetryRestTemplate.exchange(
             url("/v1/admin/tenants/" + tenantId + "/keys/" + keyId + "/rotate"),
@@ -189,7 +212,7 @@ class TenantAdminResourceIT {
         Long keyId = result.key().getId();
         String rawKey = result.rawKey();
 
-        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+        HttpEntity<Void> request = new HttpEntity<>(jsonHeaders());
 
         ResponseEntity<Void> response = noRetryRestTemplate.exchange(
             url("/v1/admin/tenants/" + tenantId + "/keys/" + keyId),
@@ -213,7 +236,7 @@ class TenantAdminResourceIT {
         Long tenantId = result.tenant().getId();
         String rawKey = result.rawKey();
 
-        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+        HttpEntity<Void> request = new HttpEntity<>(jsonHeaders());
 
         assertThatThrownBy(() ->
             noRetryRestTemplate.exchange(
@@ -232,7 +255,7 @@ class TenantAdminResourceIT {
         tenantService.createTenant("List Corp Alpha", ApiKeyEnvironment.PROD);
         tenantService.createTenant("List Corp Beta", ApiKeyEnvironment.PROD);
 
-        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+        HttpEntity<Void> request = new HttpEntity<>(jsonHeaders());
 
         ResponseEntity<String> response = noRetryRestTemplate.exchange(
             url("/v1/admin/tenants"),
@@ -257,7 +280,7 @@ class TenantAdminResourceIT {
             tenantService.createTenant("Suspended Corp", ApiKeyEnvironment.PROD);
         tenantService.suspend(suspendedResult.tenant().getTenantRef());
 
-        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+        HttpEntity<Void> request = new HttpEntity<>(jsonHeaders());
 
         ResponseEntity<String> response = noRetryRestTemplate.exchange(
             url("/v1/admin/tenants?status=ACTIVE"),
@@ -280,7 +303,7 @@ class TenantAdminResourceIT {
             tenantService.createTenant("Detail Corp", ApiKeyEnvironment.PROD);
         String tenantRef = result.tenant().getTenantRef();
 
-        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+        HttpEntity<Void> request = new HttpEntity<>(jsonHeaders());
 
         ResponseEntity<String> response = noRetryRestTemplate.exchange(
             url("/v1/admin/tenants/" + tenantRef),
@@ -304,7 +327,7 @@ class TenantAdminResourceIT {
             tenantService.createTenant("Secret Corp", ApiKeyEnvironment.PROD);
         String tenantRef = result.tenant().getTenantRef();
 
-        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+        HttpEntity<Void> request = new HttpEntity<>(jsonHeaders());
 
         ResponseEntity<String> response = noRetryRestTemplate.exchange(
             url("/v1/admin/tenants/" + tenantRef + "/webhook-secret"),
@@ -401,7 +424,7 @@ class TenantAdminResourceIT {
         String tenantRef = result.tenant().getTenantRef();
         Long tenantId = result.tenant().getId();
 
-        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+        HttpEntity<Void> request = new HttpEntity<>(jsonHeaders());
 
         ResponseEntity<Void> response = noRetryRestTemplate.exchange(
             url("/v1/admin/tenants/" + tenantRef + "/suspend"),
@@ -434,7 +457,7 @@ class TenantAdminResourceIT {
         // Suspend first
         tenantService.suspend(tenantRef);
 
-        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+        HttpEntity<Void> request = new HttpEntity<>(jsonHeaders());
 
         ResponseEntity<ApiKeyDto> response = noRetryRestTemplate.exchange(
             url("/v1/admin/tenants/" + tenantRef + "/reactivate"),
@@ -462,7 +485,7 @@ class TenantAdminResourceIT {
             tenantService.createTenant("Secret Regen Corp", ApiKeyEnvironment.PROD);
         String tenantRef = result.tenant().getTenantRef();
 
-        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+        HttpEntity<Void> request = new HttpEntity<>(jsonHeaders());
 
         // Capture original secret
         ResponseEntity<String> originalSecretResponse = noRetryRestTemplate.exchange(
@@ -493,7 +516,7 @@ class TenantAdminResourceIT {
             tenantService.createTenant("Already Active Corp", ApiKeyEnvironment.PROD);
         String tenantRef = result.tenant().getTenantRef();
 
-        HttpEntity<Void> request = new HttpEntity<>(adminCookies);
+        HttpEntity<Void> request = new HttpEntity<>(jsonHeaders());
 
         // Tenant is ACTIVE with a PROD key — reactivate should throw 409
         assertThatThrownBy(() ->

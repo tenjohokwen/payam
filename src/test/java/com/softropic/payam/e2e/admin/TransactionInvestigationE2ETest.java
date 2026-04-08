@@ -3,6 +3,7 @@ package com.softropic.payam.e2e.admin;
 import com.softropic.payam.common.AdminLogin;
 import com.softropic.payam.e2e.AbstractPayamE2ETest;
 import com.softropic.payam.e2e.builder.TenantBuilder;
+import com.softropic.payam.security.service.LoginAttemptsService;
 import com.softropic.payam.tenant.repo.TenantRepository;
 import com.softropic.payam.tenant.service.TenantService;
 
@@ -60,10 +61,20 @@ public class TransactionInvestigationE2ETest extends AbstractPayamE2ETest {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
+    @Autowired
+    private LoginAttemptsService loginAttemptsService;
+
+    private HttpHeaders withUserAgent(HttpHeaders headers) {
+        HttpHeaders h = new HttpHeaders(headers);
+        h.add("user-agent", AdminLogin.TEST_USER_AGENT);
+        return h;
+    }
     private RestTemplate noRetryRestTemplate;
 
     @BeforeEach
     void setUpAdmin() {
+        loginAttemptsService.resetLoginRecording();
+        testDataCleaner.wipeAll();
         noRetryRestTemplate = new RestTemplate(new SimpleClientHttpRequestFactory());
         noRetryRestTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
             @Override
@@ -82,6 +93,14 @@ public class TransactionInvestigationE2ETest extends AbstractPayamE2ETest {
         // TestDataCleaner.wipeAll() does NOT delete user/authority rows, so these inserts
         // are idempotent across tests in the same JVM run.
         transactionTemplate.execute(status -> {
+            jdbcTemplate.execute(
+                    "INSERT INTO main.sec (id, created_by, created_date, last_modified_by, last_modified_date, " +
+                            "request_id, session_id, status, bus_id, value, version) " +
+                            "VALUES ('659287191260154475','SYSTEM_ACCOUNT','2024-12-24 06:51:55.357352'," +
+                            "'SYSTEM_ACCOUNT','2024-12-24 06:51:55.357352'," +
+                            "'bed78f34-3e09-4fa8-81db-32326a528cca', null, 'ACTIVE', 'jot'," +
+                            "'loiI8oT2C1tWecrNXPDjN8fveYEU8rD6nb1k1NbVy92rwdd4/KO+aHhXh3A5zjsT5eSFL/xI+9Rqyj4RI6QCiFywn5nZLIwHGPNEY0F9lnDnGGmVjv/9rO5fgGt83+cxNDyGoCePaVEpBd7xHxyDdfpAoLxQs8mhKGqcEsh09Q+26qEiEm/a9bgDSbSQ0sX00VHBLd35OLmvN+ydjEluYxBTa6KzGb2CQ6Ttg4ZaELmbZOWpEjQ1Z7BbbYiXmWyaY+2HnkyhONoGbUpvVKl1c4e9IlQzeUYkekbUbADIm2LNK9Nhfv5/L5esvFrdVOUcUpLk/y8UT9f5xOMLFJ4Ct6s0eTKvNqYkSz2DFRI8Ip4p/ns6gA4V/1MUf9GeqPUWLiOa28Vw15+R8ycUMqb8NZHOP1oj9RunhSwA7EY84bZL3+yePc3n1b8ne8xzaYVEdK1WBu3J6s2AoBaOL/JLWfu8MuxXI+ub', 'v1') " +
+                            "ON CONFLICT DO NOTHING");
             jdbcTemplate.execute(
                 "INSERT INTO main.authority (id, name, status, created_by, created_date, last_modified_by, last_modified_date, request_id) " +
                 "VALUES (6747751741842104908, 'ROLE_ADMIN', 'ACTIVE', 'system', '2016-04-26 20:41:25', 'system', '2016-04-26 20:41:25', '') " +
@@ -134,7 +153,7 @@ public class TransactionInvestigationE2ETest extends AbstractPayamE2ETest {
         ResponseEntity<Map> response = noRetryRestTemplate.exchange(
             "http://localhost:" + serverPort + "/v1/admin/transactions?transactionId=" + transactionId,
             HttpMethod.GET,
-            new HttpEntity<>(adminHeaders),
+            new HttpEntity<>(withUserAgent(adminHeaders)),
             Map.class);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
@@ -169,7 +188,7 @@ public class TransactionInvestigationE2ETest extends AbstractPayamE2ETest {
         ResponseEntity<Map> response = noRetryRestTemplate.exchange(
             uri,
             HttpMethod.GET,
-            new HttpEntity<>(adminHeaders),
+            new HttpEntity<>(withUserAgent(adminHeaders)),
             Map.class);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
@@ -197,7 +216,7 @@ public class TransactionInvestigationE2ETest extends AbstractPayamE2ETest {
         ResponseEntity<Map> response = noRetryRestTemplate.exchange(
             "http://localhost:" + serverPort + "/v1/admin/transactions?traceId=" + traceId,
             HttpMethod.GET,
-            new HttpEntity<>(adminHeaders),
+            new HttpEntity<>(withUserAgent(adminHeaders)),
             Map.class);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
@@ -233,7 +252,7 @@ public class TransactionInvestigationE2ETest extends AbstractPayamE2ETest {
         ResponseEntity<Map> responseB = noRetryRestTemplate.exchange(
             "http://localhost:" + serverPort + "/v1/admin/transactions?tenantId=" + tenantB.tenantId(),
             HttpMethod.GET,
-            new HttpEntity<>(adminHeaders),
+            new HttpEntity<>(withUserAgent(adminHeaders)),
             Map.class);
 
         assertThat(responseB.getStatusCode().value()).isEqualTo(200);
@@ -244,7 +263,7 @@ public class TransactionInvestigationE2ETest extends AbstractPayamE2ETest {
         ResponseEntity<Map> responseA = noRetryRestTemplate.exchange(
             "http://localhost:" + serverPort + "/v1/admin/transactions?tenantId=" + tenantA.tenantId(),
             HttpMethod.GET,
-            new HttpEntity<>(adminHeaders),
+            new HttpEntity<>(withUserAgent(adminHeaders)),
             Map.class);
 
         assertThat(responseA.getStatusCode().value()).isEqualTo(200);

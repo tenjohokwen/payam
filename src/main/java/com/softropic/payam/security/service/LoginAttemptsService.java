@@ -136,6 +136,13 @@ public class LoginAttemptsService implements LoginDecisionManager<RequestMetadat
         }
     }
 
+    public void resetLoginRecording() {
+        attemptsByClientUserCache.invalidateAll();
+        attemptsByIpUserCache.invalidateAll();
+        attemptsByUserCache.invalidateAll();
+        blacklistedClients.invalidateAll();
+    }
+
     private boolean isClientIdAllowed() {
         final boolean clientIdAllowed = clientIdAccessDecisionVoter.isClientIdAllowed();
         if(!clientIdAllowed) {

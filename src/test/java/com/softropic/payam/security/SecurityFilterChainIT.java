@@ -6,9 +6,11 @@ import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.email.contract.Envelope;
 import com.softropic.payam.email.service.MailManager;
 import com.softropic.payam.security.common.util.SecurityConstants;
+import com.softropic.payam.security.service.LoginAttemptsService;
 import com.softropic.payam.utils.TestMailManager;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -56,8 +58,16 @@ public class SecurityFilterChainIT {
     @Autowired
     private MailManager mailManager;
 
+    @Autowired
+    private LoginAttemptsService loginAttemptsService;
+
     @LocalServerPort
     int randomServerPort;
+
+    @BeforeEach
+    void setUp() {
+        loginAttemptsService.resetLoginRecording();
+    }
 
     private static final String AUTHENTICATE_URL = "/authenticate";
     private static final String ACCOUNT_URL = "/v1/account/";
@@ -66,12 +76,13 @@ public class SecurityFilterChainIT {
     @AfterEach
     void tearDown() {
         transactionTemplate.execute(status -> {
-            jdbcTemplate.execute("delete from main.sec");
+            jdbcTemplate.execute("delete from main.persistent_token");
             jdbcTemplate.execute("delete from main.user_addresses");
             jdbcTemplate.execute("delete from main.user_authority");
-            jdbcTemplate.execute("delete from main.authority");
-            jdbcTemplate.execute("delete from main.user");
             jdbcTemplate.execute("delete from main.audit_log");
+            jdbcTemplate.execute("delete from main.user");
+            jdbcTemplate.execute("delete from main.authority");
+            jdbcTemplate.execute("delete from main.sec");
             return 0;
         });
     }
