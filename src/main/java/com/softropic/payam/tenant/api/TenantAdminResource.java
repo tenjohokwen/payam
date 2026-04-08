@@ -114,6 +114,14 @@ public class TenantAdminResource {
         apiKeyService.revoke(keyId);
     }
 
+    // NOTIF-04: reactivate a revoked API key
+    @PostMapping("/{tenantId}/keys/{keyId}/reactivate")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
+    public void reactivateKey(@PathVariable Long tenantId, @PathVariable Long keyId) {
+        apiKeyService.reactivate(keyId);
+    }
+
     // TENT-10: update tenant name
     @PatchMapping("/{tenantRef}/name")
     @ResponseStatus(HttpStatus.NO_CONTENT)
