@@ -1,12 +1,15 @@
 package com.softropic.payam.tenant.service;
 
+import com.softropic.payam.common.ClockProvider;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.contract.ApiKeyStatus;
+import com.softropic.payam.tenant.contract.event.TenantApiKeyEvent;
 import com.softropic.payam.tenant.repo.Tenant;
 import com.softropic.payam.tenant.repo.TenantApiKey;
 import com.softropic.payam.tenant.repo.TenantApiKeyRepository;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,9 +29,11 @@ public class ApiKeyService {
     private static final Duration GRACE_PERIOD = Duration.ofHours(24);
 
     private final TenantApiKeyRepository keyRepository;
+    private final ApplicationEventPublisher publisher;
 
-    public ApiKeyService(TenantApiKeyRepository keyRepository) {
+    public ApiKeyService(TenantApiKeyRepository keyRepository, ApplicationEventPublisher publisher) {
         this.keyRepository = keyRepository;
+        this.publisher = publisher;
     }
 
     public ApiKeyAndRawKey generateAndStore(Tenant tenant, ApiKeyEnvironment environment) {
@@ -76,7 +81,19 @@ public class ApiKeyService {
         old.setKeyStatus(ApiKeyStatus.ROTATED);
         old.setRotatedAt(Instant.now());
         keyRepository.saveAndFlush(old);
-        return generateAndStore(old.getTenant(), old.getEnvironment());
+
+        ApiKeyAndRawKey newKeyResult = generateAndStore(old.getTenant(), old.getEnvironment());
+
+        publisher.publishEvent(new TenantApiKeyEvent(
+            old.getTenant().getName(),
+            old.getTenant().getEmail(),
+            newKeyResult.entity().getKeyPrefix(),
+            old.getEnvironment().name(),
+            TenantApiKeyEvent.Action.ROTATED,
+            Instant.now(ClockProvider.getClock())
+        ));
+
+        return newKeyResult;
     }
 
     public int revokeExpiredRotatedKeys() {
@@ -94,6 +111,15 @@ public class ApiKeyService {
             .orElseThrow(() -> new EntityNotFoundException("Key not found: " + keyId));
         key.setKeyStatus(ApiKeyStatus.REVOKED);
         keyRepository.save(key);
+
+        publisher.publishEvent(new TenantApiKeyEvent(
+            key.getTenant().getName(),
+            key.getTenant().getEmail(),
+            key.getKeyPrefix(),
+            key.getEnvironment().name(),
+            TenantApiKeyEvent.Action.REVOKED,
+            Instant.now(ClockProvider.getClock())
+        ));
     }
 
     private String generateSecureKey(String keyPrefix) {

@@ -1,16 +1,22 @@
 package com.softropic.payam.tenant.service;
 
+import com.softropic.payam.common.ClockProvider;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.contract.TenantStatus;
+import com.softropic.payam.tenant.contract.event.TenantApiKeyEvent;
+import com.softropic.payam.tenant.contract.event.TenantStatusChangedEvent;
+import com.softropic.payam.tenant.contract.event.TenantWebhookSecretRegeneratedEvent;
 import com.softropic.payam.tenant.repo.Tenant;
 import com.softropic.payam.tenant.repo.TenantApiKey;
 import com.softropic.payam.tenant.repo.TenantApiKeyRepository;
 import com.softropic.payam.tenant.repo.TenantRepository;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.UUID;
 
 
@@ -21,12 +27,14 @@ public class TenantService {
     private final TenantRepository tenantRepository;
     private final ApiKeyService apiKeyService;
     private final TenantApiKeyRepository keyRepository;
+    private final ApplicationEventPublisher publisher;
 
     public TenantService(TenantRepository tenantRepository, ApiKeyService apiKeyService,
-                         TenantApiKeyRepository keyRepository) {
+                         TenantApiKeyRepository keyRepository, ApplicationEventPublisher publisher) {
         this.tenantRepository = tenantRepository;
         this.apiKeyService = apiKeyService;
         this.keyRepository = keyRepository;
+        this.publisher = publisher;
     }
 
     static String deriveKeyPrefix(String name) {
@@ -55,6 +63,15 @@ public class TenantService {
         ApiKeyService.ApiKeyAndRawKey keyResult =
             apiKeyService.generateAndStore(saved, environment);
 
+        publisher.publishEvent(new TenantApiKeyEvent(
+            saved.getName(),
+            saved.getEmail(),
+            keyResult.entity().getKeyPrefix(),
+            environment.name(),
+            TenantApiKeyEvent.Action.GENERATED,
+            Instant.now(ClockProvider.getClock())
+        ));
+
         // Pass the saved TenantApiKey entity directly — do NOT use saved.getApiKeys().get(0)
         return new TenantCreationResult(saved, keyResult.entity(), keyResult.rawKey());
     }
@@ -67,14 +84,34 @@ public class TenantService {
 
     public void updateEmail(String tenantRef, String email) {
         Tenant tenant = findTenantOrThrow(tenantRef);
+        String oldEmail = tenant.getEmail();
         tenant.setEmail(email);
         tenantRepository.save(tenant);
+
+        publisher.publishEvent(new TenantStatusChangedEvent(
+            tenant.getName(),
+            oldEmail,
+            TenantStatusChangedEvent.EventType.EMAIL_CHANGED,
+            Instant.now(ClockProvider.getClock()),
+            oldEmail,
+            null
+        ));
     }
 
     public void updateWebhookUrl(String tenantRef, String webhookUrl) {
         Tenant tenant = findTenantOrThrow(tenantRef);
+        String oldUrl = tenant.getWebhookUrl();
         tenant.setWebhookUrl(webhookUrl);
         tenantRepository.save(tenant);
+
+        publisher.publishEvent(new TenantStatusChangedEvent(
+            tenant.getName(),
+            tenant.getEmail(),
+            TenantStatusChangedEvent.EventType.WEBHOOK_URL_CHANGED,
+            Instant.now(ClockProvider.getClock()),
+            oldUrl,
+            webhookUrl
+        ));
     }
 
     public void suspend(String tenantRef) {
@@ -82,13 +119,33 @@ public class TenantService {
         tenant.setTenantStatus(TenantStatus.SUSPENDED);
         tenantRepository.save(tenant);
         keyRepository.revokeAllActiveAndRotatedByTenantId(tenant.getId());
+
+        publisher.publishEvent(new TenantStatusChangedEvent(
+            tenant.getName(),
+            tenant.getEmail(),
+            TenantStatusChangedEvent.EventType.SUSPENDED,
+            Instant.now(ClockProvider.getClock()),
+            null,
+            null
+        ));
     }
 
     public ApiKeyService.ApiKeyAndRawKey reactivate(String tenantRef) {
         Tenant tenant = findTenantOrThrow(tenantRef);
         tenant.setTenantStatus(TenantStatus.ACTIVE);
         tenantRepository.save(tenant);
-        return apiKeyService.generateAndStore(tenant, ApiKeyEnvironment.PROD);
+        ApiKeyService.ApiKeyAndRawKey keyResult = apiKeyService.generateAndStore(tenant, ApiKeyEnvironment.PROD);
+
+        publisher.publishEvent(new TenantStatusChangedEvent(
+            tenant.getName(),
+            tenant.getEmail(),
+            TenantStatusChangedEvent.EventType.REACTIVATED,
+            Instant.now(ClockProvider.getClock()),
+            null,
+            null
+        ));
+
+        return keyResult;
     }
 
     public String regenerateWebhookSecret(String tenantRef) {
@@ -96,6 +153,13 @@ public class TenantService {
         String newSecret = UUID.randomUUID().toString();
         tenant.setWebhookSecret(newSecret);
         tenantRepository.save(tenant);
+
+        publisher.publishEvent(new TenantWebhookSecretRegeneratedEvent(
+            tenant.getName(),
+            tenant.getEmail(),
+            Instant.now(ClockProvider.getClock())
+        ));
+
         return newSecret;
     }
 
