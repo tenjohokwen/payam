@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 32 plan 02 complete
-last_updated: "2026-04-08T18:10:13.261Z"
+stopped_at: Phase 32 plan 03 complete (NOTIF-04 gap closed)
+last_updated: "2026-04-08T18:35:43.060Z"
 last_activity: 2026-04-08
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 6
+  completed_plans: 6
 ---
 
 # Project State
@@ -77,6 +77,7 @@ Key context from v6 research:
 - [Phase 32-01]: Plain-record domain events (no ApplicationEvent), security constraint at contract layer (no raw key/secret in events or templates), th:switch for conditional tenantStatusChanged rendering
 - [Phase 32-02]: [32-02] No event publishing in generateAndStore() — callers publish semantically correct events at the business operation level to avoid double-event on rotation
 - [Phase 32-02]: [32-02] updateEmail captures oldEmail before setter — ensures EMAIL_CHANGED event carries pre-mutation address for correct D-03 routing to old address
+- [Phase 32]: reactivate() mirrors revoke() structure; AKEY-02 guard prevents dual active keys; 204 No Content response (no new raw key)
 
 ### Pending Todos
 
@@ -88,6 +89,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-08T18:10:13.256Z
-Stopped at: Phase 32 plan 02 complete
+Last session: 2026-04-08T18:35:43.054Z
+Stopped at: Phase 32 plan 03 complete (NOTIF-04 gap closed)
 Resume file: None

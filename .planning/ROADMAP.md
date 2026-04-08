@@ -127,7 +127,7 @@ Plans:
 Plans:
 - [x] 32-01-PLAN.md — Domain event records, EmailTemplate enum, i18n keys, 6 Thymeleaf HTML templates
 - [x] 32-02-PLAN.md — TenantLifecycleEmailListener, event publishing in TenantService/ApiKeyService, unit tests
-- [ ] 32-03-PLAN.md — Gap closure: ApiKeyService.reactivate() + REST endpoint + tests (NOTIF-04)
+- [x] 32-03-PLAN.md — Gap closure: ApiKeyService.reactivate() + REST endpoint + tests (NOTIF-04)
 
 ### Phase 33: Admin UI — Tenant Management
 **Goal**: Admins can manage the full tenant lifecycle and API key display through the Admin SPA
@@ -141,7 +141,7 @@ Plans:
 **Plans**: 3 plans
 Plans:
 - [x] 32-01-PLAN.md — Domain event records, EmailTemplate enum, i18n keys, 6 Thymeleaf HTML templates
-- [ ] 32-02-PLAN.md — TenantLifecycleEmailListener, event publishing in TenantService/ApiKeyService, unit tests
+- [x] 32-02-PLAN.md — TenantLifecycleEmailListener, event publishing in TenantService/ApiKeyService, unit tests
 - [ ] 32-03-PLAN.md — Gap closure: ApiKeyService.reactivate() + REST endpoint + tests (NOTIF-04)
 **UI hint**: yes
 
@@ -181,5 +181,5 @@ Plans:
 | 29. Quartz Rotation Cleanup Job | v5 | 1/1 | Complete | 2026-04-06 |
 | 30. TENT-09 Auth Enforcement | v6 | 1/1 | Complete    | 2026-04-06 |
 | 31. Tenant REST API Surface | v6 | 2/2 | Complete    | 2026-04-07 |
-| 32. Email Notification Infrastructure | v6 | 2/2 | Complete   | 2026-04-08 |
+| 32. Email Notification Infrastructure | v6 | 3/3 | Complete   | 2026-04-08 |
 | 33. Admin UI — Tenant Management | v6 | 0/? | Not started | - |
