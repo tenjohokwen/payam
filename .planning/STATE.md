@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 32-01-PLAN.md (2/2 tasks)
-last_updated: "2026-04-08T18:04:18.267Z"
+status: verifying
+stopped_at: Phase 32 plan 02 complete
+last_updated: "2026-04-08T18:10:13.261Z"
 last_activity: 2026-04-08
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-07 — Milestone v6 started)
 
 Phase: 32 (email-notification-infrastructure) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-08
 
 ```
@@ -75,6 +75,8 @@ Key context from v6 research:
 - [Phase 31]: IllegalStateException -> 409 Conflict in ApiAdvice prevents 500 on ApiKeyService double-reactivate scenario
 - [Phase 31]: HttpComponentsClientHttpRequestFactory required for PATCH in integration tests; SimpleClientHttpRequestFactory does not support PATCH
 - [Phase 32-01]: Plain-record domain events (no ApplicationEvent), security constraint at contract layer (no raw key/secret in events or templates), th:switch for conditional tenantStatusChanged rendering
+- [Phase 32-02]: [32-02] No event publishing in generateAndStore() — callers publish semantically correct events at the business operation level to avoid double-event on rotation
+- [Phase 32-02]: [32-02] updateEmail captures oldEmail before setter — ensures EMAIL_CHANGED event carries pre-mutation address for correct D-03 routing to old address
 
 ### Pending Todos
 
@@ -86,6 +88,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-08T18:04:18.261Z
-Stopped at: Completed 32-01-PLAN.md (2/2 tasks)
+Last session: 2026-04-08T18:10:13.256Z
+Stopped at: Phase 32 plan 02 complete
 Resume file: None
