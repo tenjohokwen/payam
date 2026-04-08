@@ -6,7 +6,12 @@
 <domain>
 ## Phase Boundary
 
-Build the Admin SPA tenant management screens on top of the Phase 31 REST API. Scope: tenant list page (UI-01), tenant detail/edit page (UI-02), one-time key display modal (UI-03), and webhook secret reveal (UI-04). No new backend work — all four requirements are frontend-only.
+Build the Admin SPA tenant management screens on top of the Phase 31 REST API. Scope: tenant list page (UI-01), tenant detail/edit page (UI-02), one-time key display modal (UI-03), and webhook secret reveal (UI-04).
+
+**Scope revision (2026-04-08):** Three small backend additions approved to correctly support the UI spec:
+1. `POST /v1/admin/tenants/{tenantRef}/keys/generate` — new endpoint to generate a fresh key for an env with no active key; wraps existing `ApiKeyService.generateAndStore()`; returns `ApiKeyDto` with `rawKey` (same shape as rotate). No grace period. Required for D-04 "Generate" button.
+2. `createdAt: Instant` added to `ApiKeySummaryDto` — required for D-03 "Created Date" column in key table.
+3. `email: String` and `createdAt: Instant` added to `TenantSummaryDto` — required for Email and Created columns on tenant list page (UI-01).
 
 </domain>
 
@@ -20,13 +25,13 @@ Build the Admin SPA tenant management screens on top of the Phase 31 REST API. S
 
 ### Key Management Section (UI-02 / UI-03)
 
-- **D-03:** Display keys in a `q-table` on the detail page, columns: Env, Key Prefix, Status (chip), Created Date, Actions. Rows are grouped/sorted by env (PROD first).
+- **D-03:** Display keys in a `q-table` on the detail page, columns: Env, Key Prefix, Status (chip), Created Date, Actions. Rows are grouped/sorted by env (PROD first). `createdAt` is available on `ApiKeySummaryDto` (added in scope revision).
 - **D-04:** Action buttons in each row are context-sensitive by key state:
-  - No active key for env → "Generate" button
+  - No active key for env → "Generate" button → calls `POST /v1/admin/tenants/{tenantRef}/keys/generate?env={env}` (new endpoint, returns `ApiKeyDto` with `rawKey`)
   - Active key → "Rotate" | "Revoke" buttons
-  - Revoked key → "Reactivate" button
+  - Revoked key → "Reactivate" button → calls key-level `POST /keys/{keyId}/reactivate` (returns 204, restores old key material, no modal)
   - Rotated key (grace period) → no actions (read-only row)
-- **D-05:** Generate, Rotate, and Reactivate all return a `rawKey` — all three trigger the UI-03 one-time key modal after the API call completes. The modal is a single reusable component.
+- **D-05:** Generate and Rotate return a `rawKey` — both trigger the UI-03 one-time key modal after the API call completes. Key-level Reactivate returns 204 (no rawKey, no modal — it restores the existing key). Tenant-level Reactivate (status toggle) also returns `rawKey` and triggers the modal (D-08). The modal is a single reusable component.
 
 ### Status Toggle Flow (UI-02)
 
@@ -75,9 +80,12 @@ Build the Admin SPA tenant management screens on top of the Phase 31 REST API. S
 
 ### REST API surface (Phase 31 — what we're calling)
 - `src/main/java/com/softropic/payam/tenant/api/TenantAdminResource.java` — All endpoint paths, request/response shapes; mandatory read before writing `adminApi` calls
-- `src/main/java/com/softropic/payam/tenant/contract/dto/TenantSummaryDto.java` — Fields for tenant list page
-- `src/main/java/com/softropic/payam/tenant/contract/dto/TenantDetailDto.java` — Fields for tenant detail page
-- `src/main/java/com/softropic/payam/tenant/contract/dto/ApiKeyDto.java` — Fields for key table rows
+- `src/main/java/com/softropic/payam/tenant/contract/TenantSummaryDto.java` — Fields for tenant list page (add `email`, `createdAt`)
+- `src/main/java/com/softropic/payam/tenant/contract/TenantDetailDto.java` — Fields for tenant detail page
+- `src/main/java/com/softropic/payam/tenant/contract/ApiKeySummaryDto.java` — Fields for key table rows (add `createdAt`)
+- `src/main/java/com/softropic/payam/tenant/contract/ApiKeyDto.java` — Shape returned by Generate/Rotate (includes `rawKey`)
+- `src/main/java/com/softropic/payam/tenant/api/TenantAdminResource.java` — Add `POST /{tenantRef}/keys/generate` endpoint here
+- `src/main/java/com/softropic/payam/tenant/service/ApiKeyService.java` — `generateAndStore()` already exists; expose via new endpoint
 
 ### Existing page patterns (follow exactly)
 - `src/frontend/src/pages/admin/TransactionSearchPage.vue` — Reference for list page: q-table + filter card + row-click navigation pattern
