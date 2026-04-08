@@ -138,11 +138,12 @@ Plans:
   2. Admin can edit a tenant's name, email, and webhookUrl inline on the detail page with per-field save confirmation; admin can toggle tenant status (suspend or reactivate) behind a confirmation dialog
   3. After key generation or rotation, admin sees a persistent one-time modal displaying the raw key; dismissal is gated on confirming the key has been copied; the raw key is cleared from component state immediately on dismissal
   4. Admin can reveal a tenant's webhook secret via an eye icon on the detail page; the secret is fetched lazily from the dedicated endpoint, displayed in a masked input, and automatically re-masked after 30 seconds
-**Plans**: 3 plans
+**Plans**: 4 plans
 Plans:
-- [ ] 33-01-PLAN.md — API client methods, routing, nav item, and OneTimeKeyModal component
-- [ ] 33-02-PLAN.md — TenantListPage with server-side paginated q-table and status filter (UI-01)
-- [ ] 33-03-PLAN.md — TenantDetailPage with inline edit, status toggle, key table, webhook secret reveal (UI-02, UI-03, UI-04)
+- [ ] 33-01-PLAN.md — Backend: DTO field additions (email, createdAt) + POST /keys/generate endpoint (UI-01, UI-02, UI-03)
+- [ ] 33-02-PLAN.md — Frontend foundation: API client methods, routing, nav item, OneTimeKeyModal (UI-03)
+- [ ] 33-03-PLAN.md — TenantListPage with server-side paginated q-table and status filter (UI-01)
+- [ ] 33-04-PLAN.md — TenantDetailPage with inline edit, status toggle, key table, webhook secret reveal (UI-02, UI-03, UI-04)
 **UI hint**: yes
 
 ## Progress
@@ -182,4 +183,4 @@ Plans:
 | 30. TENT-09 Auth Enforcement | v6 | 1/1 | Complete    | 2026-04-06 |
 | 31. Tenant REST API Surface | v6 | 2/2 | Complete    | 2026-04-07 |
 | 32. Email Notification Infrastructure | v6 | 3/3 | Complete   | 2026-04-08 |
-| 33. Admin UI — Tenant Management | v6 | 0/3 | Not started | - |
+| 33. Admin UI — Tenant Management | v6 | 0/4 | Not started | - |
