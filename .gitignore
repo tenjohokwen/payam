@@ -64,3 +64,5 @@ replay_pid*
 !**/src/frontend/node/
 !**/src/frontend/node_modules/
 src/frontend/node/
+
+.claude/worktrees/

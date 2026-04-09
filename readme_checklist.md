@@ -16,6 +16,7 @@
 * [ ] Ask AI to determine the grafana dashboards needed for this app. 
 * [ ] configure log time to be UTC
 * [ ] check for console errors as you navigate the pages in the UI
+* [ ] Ensure that sent email content is not logged
 * [ ] Ensure you have scripts that clean up the various tables (AI should write them and also write tests that clean up mid way and continue inserting data and verify that data well inserted and nothing is lost)
 * [ ] prepare the following env variables
 

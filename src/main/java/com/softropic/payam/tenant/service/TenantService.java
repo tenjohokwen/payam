@@ -83,6 +83,10 @@ public class TenantService {
         return new TenantCreationResult(saved, keyResult.entity(), keyResult.rawKey());
     }
 
+    public TenantCreationResult createTenant(String name, ApiKeyEnvironment environment) {
+        return createTenant(name, environment, null, null);
+    }
+
     public void updateName(String tenantRef, String name) {
         Tenant tenant = findTenantOrThrow(tenantRef);
         tenant.setName(name);
