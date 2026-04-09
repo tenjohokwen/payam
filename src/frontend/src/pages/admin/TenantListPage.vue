@@ -103,7 +103,7 @@ async function onRequest({ pagination: p }) {
     })
     rows.value = resp.data.content
     pagination.value = { ...p, rowsNumber: resp.data.totalElements }
-  } catch (err) {
+  } catch  {
     $q.notify({ type: 'negative', message: 'Failed to load tenants' })
   } finally {
     loading.value = false
