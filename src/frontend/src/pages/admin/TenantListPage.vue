@@ -1,6 +1,10 @@
 <template>
   <q-page padding>
-    <div class="text-h5 q-mb-md">Tenants</div>
+    <div class="row items-center q-mb-md">
+      <div class="text-h5">Tenants</div>
+      <q-space />
+      <q-btn color="primary" label="Create Tenant" icon="add" @click="showCreateDialog = true" />
+    </div>
 
     <q-card class="q-mb-md">
       <q-card-section>
@@ -56,19 +60,58 @@
         <div class="full-width column flex-center q-pa-lg">
           <div class="text-h6 q-mb-sm">No tenants found</div>
           <div class="text-body2 text-grey-6">
-            No tenants match your current filter. Try changing the status filter or add a tenant via the API.
+            No tenants match your current filter. Try changing the status filter or create a new tenant.
           </div>
         </div>
       </template>
     </q-table>
+
+    <!-- Create Tenant dialog -->
+    <q-dialog v-model="showCreateDialog" persistent>
+      <q-card style="min-width: 400px">
+        <q-card-section>
+          <div class="text-h6">Create Tenant</div>
+        </q-card-section>
+        <q-card-section class="q-gutter-md">
+          <q-input
+            v-model="createForm.name"
+            label="Tenant Name"
+            outlined
+            dense
+            autofocus
+            :error="!!createErrors.name"
+            :error-message="createErrors.name"
+          />
+          <q-select
+            v-model="createForm.environment"
+            :options="envOptions"
+            label="Initial Environment"
+            outlined
+            dense
+            emit-value
+            map-options
+            :error="!!createErrors.environment"
+            :error-message="createErrors.environment"
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" @click="cancelCreate" />
+          <q-btn color="primary" label="Create" :loading="creating" @click="doCreate" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- One-time key modal shown after tenant creation -->
+    <OneTimeKeyModal v-model="showKeyModal" :raw-key="rawKey || ''" @close="onKeyModalClose" />
   </q-page>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { adminApi } from 'src/api/admin.api.js'
+import OneTimeKeyModal from 'src/components/admin/OneTimeKeyModal.vue'
 
 const $q = useQuasar()
 const router = useRouter()
@@ -116,6 +159,63 @@ function onSearch() {
 
 function onRowClick(evt, row) {
   router.push('/admin/tenants/' + row.tenantRef)
+}
+
+// --- Create Tenant ---
+
+const showCreateDialog = ref(false)
+const creating = ref(false)
+const createForm = reactive({ name: '', environment: 'PROD' })
+const createErrors = reactive({ name: '', environment: '' })
+
+const envOptions = [
+  { label: 'PROD', value: 'PROD' },
+  { label: 'DEV', value: 'DEV' },
+  { label: 'SANDBOX', value: 'SANDBOX' },
+]
+
+// OneTimeKeyModal state (shown after successful creation)
+const showKeyModal = ref(false)
+const rawKey = ref(null)
+let newTenantRef = null
+
+function cancelCreate() {
+  showCreateDialog.value = false
+  createForm.name = ''
+  createForm.environment = 'PROD'
+  createErrors.name = ''
+  createErrors.environment = ''
+}
+
+async function doCreate() {
+  createErrors.name = createForm.name.trim() ? '' : 'Name is required'
+  if (createErrors.name) return
+
+  creating.value = true
+  try {
+    const resp = await adminApi.createTenant({
+      name: createForm.name.trim(),
+      environment: createForm.environment,
+    })
+    newTenantRef = resp.data.tenant.tenantRef
+    rawKey.value = resp.data.apiKey.rawKey
+    showCreateDialog.value = false
+    showKeyModal.value = true
+    onSearch() // reload list
+  } catch (err) {
+    const msg = err?.response?.data?.message || 'Failed to create tenant. Please try again.'
+    $q.notify({ type: 'negative', message: msg })
+  } finally {
+    creating.value = false
+  }
+}
+
+function onKeyModalClose() {
+  rawKey.value = null
+  if (newTenantRef) {
+    router.push('/admin/tenants/' + newTenantRef)
+    newTenantRef = null
+  }
 }
 
 onMounted(() => {

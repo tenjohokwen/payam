@@ -73,6 +73,10 @@ export const adminApi = {
 
   // --- Tenant Management (Phase 33) ---
 
+  createTenant(data) {
+    return api.post('/v1/admin/tenants', data)
+  },
+
   listTenants(params = {}) {
     return api.get('/v1/admin/tenants', { params })
   },
