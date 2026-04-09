@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 33-admin-ui-tenant-management plan 01 (33-01-PLAN.md)
-last_updated: "2026-04-09T04:59:44.500Z"
+stopped_at: Completed 33-02-PLAN.md
+last_updated: "2026-04-09T05:03:39.595Z"
 last_activity: 2026-04-09
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 10
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-04-07 — Milestone v6 started)
 ## Current Position
 
 Phase: 33 (admin-ui-tenant-management) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-04-09
 
@@ -79,6 +79,8 @@ Key context from v6 research:
 - [Phase 32-02]: [32-02] updateEmail captures oldEmail before setter — ensures EMAIL_CHANGED event carries pre-mutation address for correct D-03 routing to old address
 - [Phase 32]: reactivate() mirrors revoke() structure; AKEY-02 guard prevents dual active keys; 204 No Content response (no new raw key)
 - [Phase 33-01]: generateKey endpoint injects TenantRepository for entity resolution from tenantRef; 409 guard lives in ApiKeyService.generateAndStore (IllegalStateException) mapped by ApiAdvice
+- [Phase 33-02]: OneTimeKeyModal resets copied state via watch on modelValue to prevent stale checkbox state on reopen
+- [Phase 33-02]: generateKey passes env as query param via { params: { env } } not request body
 
 ### Pending Todos
 
@@ -90,6 +92,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-09T04:59:44.493Z
-Stopped at: Completed 33-admin-ui-tenant-management plan 01 (33-01-PLAN.md)
+Last session: 2026-04-09T05:03:39.588Z
+Stopped at: Completed 33-02-PLAN.md
 Resume file: None
