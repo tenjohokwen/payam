@@ -183,4 +183,4 @@ Plans:
 | 30. TENT-09 Auth Enforcement | v6 | 1/1 | Complete    | 2026-04-06 |
 | 31. Tenant REST API Surface | v6 | 2/2 | Complete    | 2026-04-07 |
 | 32. Email Notification Infrastructure | v6 | 3/3 | Complete   | 2026-04-08 |
-| 33. Admin UI — Tenant Management | v6 | 4/4 | Complete   | 2026-04-09 |
+| 33. Admin UI — Tenant Management | v6 | 4/4 | Complete    | 2026-04-09 |
