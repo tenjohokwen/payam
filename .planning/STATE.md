@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 33-03-PLAN.md
-last_updated: "2026-04-09T05:37:16.314Z"
+stopped_at: Completed 33-04-PLAN.md
+last_updated: "2026-04-09T07:10:10.229Z"
 last_activity: 2026-04-09
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 10
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-04-07 — Milestone v6 started)
 ## Current Position
 
 Phase: 33 (admin-ui-tenant-management) — EXECUTING
-Plan: 4 of 4
+Plan: 2 of 4
 Status: Ready to execute
 Last activity: 2026-04-09
 
@@ -83,6 +83,8 @@ Key context from v6 research:
 - [Phase 33-02]: generateKey passes env as query param via { params: { env } } not request body
 - [Phase 33]: onRequest passes p.page - 1 to API (Spring 0-indexed vs Quasar 1-indexed correction)
 - [Phase 33]: statusFilter 'ALL' maps to undefined API param to avoid sending literal 'ALL' string to backend
+- [Phase 33]: axios interceptor returns response.data directly — resp.data.X accesses corrected to resp.X in TenantDetailPage
+- [Phase 33]: clearTimers() in onUnmounted prevents countdown interval leak; rawKey.value = null on modal close (D-11)
 
 ### Pending Todos
 
@@ -94,6 +96,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-09T05:37:11.997Z
-Stopped at: Completed 33-03-PLAN.md
+Last session: 2026-04-09T07:10:10.223Z
+Stopped at: Completed 33-04-PLAN.md
 Resume file: None
