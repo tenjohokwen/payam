@@ -15,6 +15,7 @@
 * [ ] Ensure all Controllers have @Observable annotation
 * [ ] Ask AI to determine the grafana dashboards needed for this app. 
 * [ ] configure log time to be UTC
+* [ ] check for console errors as you navigate the pages in the UI
 * [ ] Ensure you have scripts that clean up the various tables (AI should write them and also write tests that clean up mid way and continue inserting data and verify that data well inserted and nothing is lost)
 * [ ] prepare the following env variables
 
@@ -40,6 +41,7 @@ ISSUES
 * Add the following to the hikari section of all apps
   connection-init-sql: "SET TIME ZONE 'UTC'"  # Ensure PostgreSQL session timezone is UTC for all connections.
 * Ask AI to go through backend code and ensure it will maintain ACID properties when run in a multi threaded and multi node environment and without dead locks
+* When creating a tenant, it should not be possible to have more than 1 tenant with the same name. The name should be unique and the error should be elegantly handled and displayed to the user attempting to create the tenant in the UI
 
 
 

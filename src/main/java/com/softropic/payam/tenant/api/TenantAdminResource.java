@@ -84,7 +84,8 @@ public class TenantAdminResource {
     @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
     public TenantCreationResponse createTenant(@Valid @RequestBody CreateTenantRequest request) {
         TenantService.TenantCreationResult result =
-            tenantService.createTenant(request.name(), ApiKeyEnvironment.valueOf(request.environment()));
+            tenantService.createTenant(request.name(), ApiKeyEnvironment.valueOf(request.environment()),
+                                       request.email(), request.webhookUrl());
 
         TenantDto tenantDto = new TenantDto(
             result.tenant().getId(),
@@ -202,7 +203,9 @@ public class TenantAdminResource {
 
     public record CreateTenantRequest(
         @NotBlank @Size(max = 255) String name,
-        @NotBlank @Pattern(regexp = "PROD|DEV|SANDBOX", message = "environment must be PROD, DEV, or SANDBOX") String environment
+        @NotBlank @Pattern(regexp = "PROD|DEV|SANDBOX", message = "environment must be PROD, DEV, or SANDBOX") String environment,
+        @Email @Size(max = 255) String email,
+        @Size(max = 2048) String webhookUrl
     ) {}
 
     public record TenantCreationResponse(TenantDto tenant, ApiKeyDto apiKey) {}

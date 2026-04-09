@@ -4,6 +4,7 @@ import com.softropic.payam.common.ClockProvider;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.contract.TenantStatus;
 import com.softropic.payam.tenant.contract.event.TenantApiKeyEvent;
+import com.softropic.payam.tenant.contract.event.TenantCreatedEvent;
 import com.softropic.payam.tenant.contract.event.TenantStatusChangedEvent;
 import com.softropic.payam.tenant.contract.event.TenantWebhookSecretRegeneratedEvent;
 import com.softropic.payam.tenant.repo.Tenant;
@@ -50,7 +51,12 @@ public class TenantService {
             .orElseThrow(() -> new EntityNotFoundException("Tenant not found: " + tenantRef));
     }
 
-    public TenantCreationResult createTenant(String name, ApiKeyEnvironment environment) {
+    public TenantCreationResult createTenant(String name, ApiKeyEnvironment environment,
+                                              String email, String webhookUrl) {
+        if (tenantRepository.existsByNameIgnoreCase(name)) {
+            throw new IllegalStateException("A tenant with the name '" + name + "' already exists");
+        }
+
         Tenant tenant = Tenant.builder()
             .tenantRef(UUID.randomUUID().toString())
             .name(name)
@@ -58,17 +64,18 @@ public class TenantService {
             .tenantStatus(TenantStatus.ACTIVE)
             .webhookSecret(UUID.randomUUID().toString())
             .build();
+        if (email != null && !email.isBlank()) tenant.setEmail(email);
+        if (webhookUrl != null && !webhookUrl.isBlank()) tenant.setWebhookUrl(webhookUrl);
+
         Tenant saved = tenantRepository.save(tenant);
 
         ApiKeyService.ApiKeyAndRawKey keyResult =
             apiKeyService.generateAndStore(saved, environment);
 
-        publisher.publishEvent(new TenantApiKeyEvent(
+        publisher.publishEvent(new TenantCreatedEvent(
             saved.getName(),
             saved.getEmail(),
-            keyResult.entity().getKeyPrefix(),
             environment.name(),
-            TenantApiKeyEvent.Action.GENERATED,
             Instant.now(ClockProvider.getClock())
         ));
 

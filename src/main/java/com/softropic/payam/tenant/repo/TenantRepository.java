@@ -13,6 +13,8 @@ public interface TenantRepository extends JpaRepository<Tenant, Long> {
 
     Optional<Tenant> findByTenantRef(String tenantRef);
 
+    boolean existsByNameIgnoreCase(String name);
+
     Optional<Tenant> findByTenantRefAndTenantStatus(String tenantRef, TenantStatus status);
 
     Page<Tenant> findByTenantStatus(TenantStatus tenantStatus, Pageable pageable);

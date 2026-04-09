@@ -90,8 +90,19 @@
             dense
             emit-value
             map-options
-            :error="!!createErrors.environment"
-            :error-message="createErrors.environment"
+          />
+          <q-input
+            v-model="createForm.email"
+            label="Email (optional)"
+            outlined
+            dense
+            type="email"
+          />
+          <q-input
+            v-model="createForm.webhookUrl"
+            label="Webhook URL (optional)"
+            outlined
+            dense
           />
         </q-card-section>
         <q-card-actions align="right">
@@ -165,8 +176,8 @@ function onRowClick(evt, row) {
 
 const showCreateDialog = ref(false)
 const creating = ref(false)
-const createForm = reactive({ name: '', environment: 'PROD' })
-const createErrors = reactive({ name: '', environment: '' })
+const createForm = reactive({ name: '', environment: 'PROD', email: '', webhookUrl: '' })
+const createErrors = reactive({ name: '' })
 
 const envOptions = [
   { label: 'PROD', value: 'PROD' },
@@ -183,8 +194,9 @@ function cancelCreate() {
   showCreateDialog.value = false
   createForm.name = ''
   createForm.environment = 'PROD'
+  createForm.email = ''
+  createForm.webhookUrl = ''
   createErrors.name = ''
-  createErrors.environment = ''
 }
 
 async function doCreate() {
@@ -196,6 +208,8 @@ async function doCreate() {
     const resp = await adminApi.createTenant({
       name: createForm.name.trim(),
       environment: createForm.environment,
+      email: createForm.email.trim() || null,
+      webhookUrl: createForm.webhookUrl.trim() || null,
     })
     newTenantRef = resp.tenant.tenantRef
     rawKey.value = resp.apiKey.rawKey
@@ -203,8 +217,11 @@ async function doCreate() {
     showKeyModal.value = true
     onSearch() // reload list
   } catch (err) {
-    const msg = err?.response?.data?.message || 'Failed to create tenant. Please try again.'
-    $q.notify({ type: 'negative', message: msg })
+    if (err?.response?.status === 409) {
+      createErrors.name = 'A tenant with this name already exists'
+    } else {
+      $q.notify({ type: 'negative', message: 'Failed to create tenant. Please try again.' })
+    }
   } finally {
     creating.value = false
   }

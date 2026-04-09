@@ -6,6 +6,7 @@ import com.softropic.payam.email.contract.Envelope;
 import com.softropic.payam.email.contract.Recipient;
 import com.softropic.payam.security.contract.util.ShortCode;
 import com.softropic.payam.tenant.contract.event.TenantApiKeyEvent;
+import com.softropic.payam.tenant.contract.event.TenantCreatedEvent;
 import com.softropic.payam.tenant.contract.event.TenantStatusChangedEvent;
 import com.softropic.payam.tenant.contract.event.TenantWebhookSecretRegeneratedEvent;
 
@@ -37,6 +38,39 @@ public class TenantLifecycleEmailListener {
                                         @Value("${payam.platform.notification-email}") String notificationEmail) {
         this.publisher = publisher;
         this.notificationEmail = notificationEmail;
+    }
+
+    @Transactional
+    @EventListener
+    public void onTenantCreated(TenantCreatedEvent event) {
+        final String helpCode = ShortCode.shortenInt(UUID.randomUUID().hashCode());
+
+        final Map<String, Object> data = new HashMap<>();
+        data.put("tenantName", event.tenantName());
+        data.put("environment", event.environment());
+        data.put("createdAt", event.occurredAt().toString());
+        data.put("helpCode", helpCode);
+
+        // Admin-only: sent only to notification-email, not to the tenant
+        final List<Recipient> recipients = new ArrayList<>();
+        final Recipient admin = new Recipient();
+        admin.setEmail(notificationEmail);
+        admin.setLangKey("en");
+        recipients.add(admin);
+
+        final Envelope envelope = new Envelope(
+            recipients,
+            EmailTemplate.TENANT_CREATED,
+            Instant.now(ClockProvider.getClock()).plus(Duration.ofDays(7)),
+            data,
+            helpCode
+        );
+
+        publisher.publishEvent(envelope);
+
+        log.info("Dispatching tenant created notification email",
+            kv("tenantName", event.tenantName()),
+            kv("event", "tenant_created_email_dispatched"));
     }
 
     @Transactional
