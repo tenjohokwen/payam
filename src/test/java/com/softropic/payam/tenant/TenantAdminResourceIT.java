@@ -508,7 +508,53 @@ class TenantAdminResourceIT {
     }
 
     // -------------------------------------------------------------------------
-    // Test 14: POST /{tenantRef}/reactivate on already-ACTIVE tenant returns 409
+    // Test 14 (UI-01): POST /{tenantRef}/keys/generate returns 200 with rawKey
+    // -------------------------------------------------------------------------
+    @Test
+    void generateKey_returns200_withNewRawKey() {
+        TenantService.TenantCreationResult result =
+            tenantService.createTenant("Generate Key Corp", ApiKeyEnvironment.PROD);
+        String tenantRef = result.tenant().getTenantRef();
+        // Revoke the initial PROD key so there is no active key for PROD
+        apiKeyService.revoke(result.key().getId());
+
+        HttpEntity<Void> request = new HttpEntity<>(jsonHeaders());
+
+        ResponseEntity<ApiKeyDto> response = noRetryRestTemplate.exchange(
+            url("/v1/admin/tenants/" + tenantRef + "/keys/generate?env=PROD"),
+            HttpMethod.POST, request, ApiKeyDto.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        ApiKeyDto dto = response.getBody();
+        assertThat(dto).isNotNull();
+        assertThat(dto.rawKey()).isNotNull();
+        assertThat(dto.rawKey()).isNotBlank();
+        assertThat(dto.environment()).isEqualTo(ApiKeyEnvironment.PROD);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 15 (UI-01): POST /{tenantRef}/keys/generate with existing active key returns 409
+    // -------------------------------------------------------------------------
+    @Test
+    void generateKey_duplicateActiveKey_returns409() {
+        TenantService.TenantCreationResult result =
+            tenantService.createTenant("Duplicate Key Corp", ApiKeyEnvironment.PROD);
+        String tenantRef = result.tenant().getTenantRef();
+        // PROD key is still ACTIVE — second generate should fail
+
+        HttpEntity<Void> request = new HttpEntity<>(jsonHeaders());
+
+        assertThatThrownBy(() ->
+            noRetryRestTemplate.exchange(
+                url("/v1/admin/tenants/" + tenantRef + "/keys/generate?env=PROD"),
+                HttpMethod.POST, request, Object.class))
+            .isInstanceOf(HttpClientErrorException.class)
+            .satisfies(e -> assertThat(((HttpClientErrorException) e).getStatusCode())
+                .isEqualTo(HttpStatus.CONFLICT));
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 16: POST /{tenantRef}/reactivate on already-ACTIVE tenant returns 409
     // -------------------------------------------------------------------------
     @Test
     void reactivate_alreadyActive_returns409() {

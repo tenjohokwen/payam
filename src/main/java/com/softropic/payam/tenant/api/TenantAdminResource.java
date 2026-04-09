@@ -8,9 +8,18 @@ import com.softropic.payam.tenant.contract.TenantDto;
 import com.softropic.payam.tenant.contract.TenantStatus;
 import com.softropic.payam.tenant.contract.TenantSummaryDto;
 import com.softropic.payam.tenant.contract.WebhookSecretDto;
+import com.softropic.payam.tenant.repo.Tenant;
+import com.softropic.payam.tenant.repo.TenantRepository;
 import com.softropic.payam.tenant.service.ApiKeyService;
 import com.softropic.payam.tenant.service.TenantQueryService;
 import com.softropic.payam.tenant.service.TenantService;
+
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -27,12 +36,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
-
 
 @RestController
 @RequestMapping("/v1/admin/tenants")
@@ -41,11 +44,14 @@ public class TenantAdminResource {
     private final TenantService tenantService;
     private final ApiKeyService apiKeyService;
     private final TenantQueryService tenantQueryService;
+    private final TenantRepository tenantRepository;
 
-    public TenantAdminResource(TenantService tenantService, ApiKeyService apiKeyService, TenantQueryService tenantQueryService) {
+    public TenantAdminResource(TenantService tenantService, ApiKeyService apiKeyService,
+                               TenantQueryService tenantQueryService, TenantRepository tenantRepository) {
         this.tenantService = tenantService;
         this.apiKeyService = apiKeyService;
         this.tenantQueryService = tenantQueryService;
+        this.tenantRepository = tenantRepository;
     }
 
     // TENT-05: paginated tenant list with optional status filter
@@ -120,6 +126,22 @@ public class TenantAdminResource {
     @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
     public void reactivateKey(@PathVariable Long tenantId, @PathVariable Long keyId) {
         apiKeyService.reactivate(keyId);
+    }
+
+    // UI-01: generate a new API key for a given environment (requires no active key)
+    @PostMapping("/{tenantRef}/keys/generate")
+    @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
+    public ApiKeyDto generateKey(@PathVariable String tenantRef,
+                                 @RequestParam ApiKeyEnvironment env) {
+        Tenant tenant = tenantRepository.findByTenantRef(tenantRef)
+            .orElseThrow(() -> new EntityNotFoundException("Tenant not found: " + tenantRef));
+        ApiKeyService.ApiKeyAndRawKey result = apiKeyService.generateAndStore(tenant, env);
+        return new ApiKeyDto(
+            result.entity().getId(),
+            result.entity().getKeyPrefix(),
+            result.entity().getEnvironment(),
+            result.rawKey()
+        );
     }
 
     // TENT-10: update tenant name
