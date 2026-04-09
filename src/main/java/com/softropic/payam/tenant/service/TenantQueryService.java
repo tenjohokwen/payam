@@ -37,7 +37,7 @@ public class TenantQueryService {
         Page<Tenant> tenants = (status != null)
             ? tenantRepository.findByTenantStatus(status, pageable)
             : tenantRepository.findAll(pageable);
-        return tenants.map(t -> new TenantSummaryDto(t.getId(), t.getTenantRef(), t.getName(), t.getTenantStatus()));
+        return tenants.map(t -> new TenantSummaryDto(t.getId(), t.getTenantRef(), t.getName(), t.getTenantStatus(), t.getEmail(), t.getCreatedDate()));
     }
 
     public TenantDetailDto findByTenantRef(String tenantRef) {
@@ -45,7 +45,7 @@ public class TenantQueryService {
             .orElseThrow(() -> new EntityNotFoundException("Tenant not found: " + tenantRef));
         List<TenantApiKey> keys = keyRepository.findAllByTenantId(tenant.getId());
         List<ApiKeySummaryDto> keyDtos = keys.stream()
-            .map(k -> new ApiKeySummaryDto(k.getId(), k.getKeyPrefix(), k.getEnvironment(), k.getKeyStatus()))
+            .map(k -> new ApiKeySummaryDto(k.getId(), k.getKeyPrefix(), k.getEnvironment(), k.getKeyStatus(), k.getCreatedDate()))
             .toList();
         return new TenantDetailDto(
             tenant.getId(), tenant.getTenantRef(), tenant.getName(),
