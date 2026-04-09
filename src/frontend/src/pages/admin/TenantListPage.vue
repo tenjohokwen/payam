@@ -144,8 +144,8 @@ async function onRequest({ pagination: p }) {
       page: p.page - 1,
       size: p.rowsPerPage,
     })
-    rows.value = resp.data.content
-    pagination.value = { ...p, rowsNumber: resp.data.totalElements }
+    rows.value = resp.content
+    pagination.value = { ...p, rowsNumber: resp.totalElements }
   } catch  {
     $q.notify({ type: 'negative', message: 'Failed to load tenants' })
   } finally {
@@ -197,8 +197,8 @@ async function doCreate() {
       name: createForm.name.trim(),
       environment: createForm.environment,
     })
-    newTenantRef = resp.data.tenant.tenantRef
-    rawKey.value = resp.data.apiKey.rawKey
+    newTenantRef = resp.tenant.tenantRef
+    rawKey.value = resp.apiKey.rawKey
     showCreateDialog.value = false
     showKeyModal.value = true
     onSearch() // reload list

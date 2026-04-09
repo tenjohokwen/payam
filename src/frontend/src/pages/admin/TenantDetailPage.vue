@@ -232,12 +232,12 @@ async function loadTenant() {
   isLoading.value = true
   try {
     const resp = await adminApi.getTenantDetail(tenantRef)
-    tenant.value = resp.data
-    form.name = resp.data.name
-    form.email = resp.data.email || ''
-    form.webhookUrl = resp.data.webhookUrl || ''
+    tenant.value = resp
+    form.name = resp.name
+    form.email = resp.email || ''
+    form.webhookUrl = resp.webhookUrl || ''
     // Sort keys: PROD first, then by environment name
-    keyRows.value = [...resp.data.keys].sort((a, b) => {
+    keyRows.value = [...resp.keys].sort((a, b) => {
       if (a.environment === 'PROD') return -1
       if (b.environment === 'PROD') return 1
       return a.environment.localeCompare(b.environment)
@@ -325,7 +325,7 @@ function confirmReactivate() {
     try {
       const resp = await adminApi.reactivateTenant(tenantRef)
       // D-08: open key modal with rawKey from response
-      rawKey.value = resp.data.rawKey
+      rawKey.value = resp.rawKey
       showKeyModal.value = true
       await loadTenant()  // reload status and keys
     } catch {
@@ -340,7 +340,7 @@ function confirmReactivate() {
 async function doGenerateKey(env) {
   try {
     const resp = await adminApi.generateKey(tenantRef, env)
-    rawKey.value = resp.data.rawKey
+    rawKey.value = resp.rawKey
     showKeyModal.value = true  // D-05: Generate triggers modal
     await loadTenant()
   } catch {
@@ -351,7 +351,7 @@ async function doGenerateKey(env) {
 async function doRotateKey(row) {
   try {
     const resp = await adminApi.rotateKey(tenant.value.id, row.id)
-    rawKey.value = resp.data.rawKey
+    rawKey.value = resp.rawKey
     showKeyModal.value = true  // D-05: Rotate triggers modal
     await loadTenant()
   } catch {
@@ -411,7 +411,7 @@ async function toggleSecret() {
   }
   try {
     const resp = await adminApi.getWebhookSecret(tenantRef)
-    secret.value = resp.data.webhookSecret
+    secret.value = resp.webhookSecret
     unmasked.value = true
     startAutoMask()  // D-14: start 30s auto-mask timer
   } catch {
