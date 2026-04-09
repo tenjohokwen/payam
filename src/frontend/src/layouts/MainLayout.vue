@@ -121,6 +121,15 @@
           </q-item-section>
         </q-item>
 
+        <q-item clickable to="/admin/tenants">
+          <q-item-section avatar>
+            <q-icon name="group" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Tenants</q-item-label>
+          </q-item-section>
+        </q-item>
+
         <q-item clickable to="/admin/reconciliation">
           <q-item-section avatar>
             <q-icon name="account_balance" />
