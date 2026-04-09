@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 33-02-PLAN.md
-last_updated: "2026-04-09T05:03:39.595Z"
+stopped_at: Completed 33-03-PLAN.md
+last_updated: "2026-04-09T05:37:16.314Z"
 last_activity: 2026-04-09
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 10
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-04-07 — Milestone v6 started)
 ## Current Position
 
 Phase: 33 (admin-ui-tenant-management) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-04-09
 
@@ -81,6 +81,8 @@ Key context from v6 research:
 - [Phase 33-01]: generateKey endpoint injects TenantRepository for entity resolution from tenantRef; 409 guard lives in ApiKeyService.generateAndStore (IllegalStateException) mapped by ApiAdvice
 - [Phase 33-02]: OneTimeKeyModal resets copied state via watch on modelValue to prevent stale checkbox state on reopen
 - [Phase 33-02]: generateKey passes env as query param via { params: { env } } not request body
+- [Phase 33]: onRequest passes p.page - 1 to API (Spring 0-indexed vs Quasar 1-indexed correction)
+- [Phase 33]: statusFilter 'ALL' maps to undefined API param to avoid sending literal 'ALL' string to backend
 
 ### Pending Todos
 
@@ -92,6 +94,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-09T05:03:39.588Z
-Stopped at: Completed 33-02-PLAN.md
+Last session: 2026-04-09T05:37:11.997Z
+Stopped at: Completed 33-03-PLAN.md
 Resume file: None
