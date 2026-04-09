@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 32 plan 03 complete (NOTIF-04 gap closed)
-last_updated: "2026-04-08T18:35:43.060Z"
-last_activity: 2026-04-08
+status: executing
+stopped_at: Completed 33-admin-ui-tenant-management plan 01 (33-01-PLAN.md)
+last_updated: "2026-04-09T04:59:44.500Z"
+last_activity: 2026-04-09
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 10
+  completed_plans: 7
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-07 — Milestone v6 started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 32 — email-notification-infrastructure
+**Current focus:** Phase 33 — admin-ui-tenant-management
 
 ## Current Position
 
-Phase: 32 (email-notification-infrastructure) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 32
-Last activity: 2026-04-08 -- Phase 32 execution started
+Phase: 33 (admin-ui-tenant-management) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-04-09
 
 ```
 Progress [░░░░░░░░░░░░░░░░░░░░] 0% — Phase 30 of 33
@@ -78,6 +78,7 @@ Key context from v6 research:
 - [Phase 32-02]: [32-02] No event publishing in generateAndStore() — callers publish semantically correct events at the business operation level to avoid double-event on rotation
 - [Phase 32-02]: [32-02] updateEmail captures oldEmail before setter — ensures EMAIL_CHANGED event carries pre-mutation address for correct D-03 routing to old address
 - [Phase 32]: reactivate() mirrors revoke() structure; AKEY-02 guard prevents dual active keys; 204 No Content response (no new raw key)
+- [Phase 33-01]: generateKey endpoint injects TenantRepository for entity resolution from tenantRef; 409 guard lives in ApiKeyService.generateAndStore (IllegalStateException) mapped by ApiAdvice
 
 ### Pending Todos
 
@@ -89,6 +90,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-08T18:35:43.054Z
-Stopped at: Phase 32 plan 03 complete (NOTIF-04 gap closed)
+Last session: 2026-04-09T04:59:44.493Z
+Stopped at: Completed 33-admin-ui-tenant-management plan 01 (33-01-PLAN.md)
 Resume file: None

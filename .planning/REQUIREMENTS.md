@@ -39,9 +39,9 @@
 
 ### Admin UI (UI)
 
-- [ ] **UI-01**: Admin can view a tenant list page with paginated q-table, status filter, and row-click navigation to tenant detail
-- [ ] **UI-02**: Admin can view and edit tenant detail (name, email, webhookUrl) with inline save; can toggle status (suspend/reactivate) with a confirmation step
-- [ ] **UI-03**: Admin sees a one-time API key display modal (persistent QDialog, copy-confirm gate, rawKey cleared from component state on dismissal) after key generation or rotation
+- [x] **UI-01**: Admin can view a tenant list page with paginated q-table, status filter, and row-click navigation to tenant detail
+- [x] **UI-02**: Admin can view and edit tenant detail (name, email, webhookUrl) with inline save; can toggle status (suspend/reactivate) with a confirmation step
+- [x] **UI-03**: Admin sees a one-time API key display modal (persistent QDialog, copy-confirm gate, rawKey cleared from component state on dismissal) after key generation or rotation
 - [ ] **UI-04**: Admin can reveal and re-mask a tenant's webhook secret via eye icon on tenant detail page (lazy-fetch; auto-re-masks after 30s)
 
 ---
@@ -89,9 +89,9 @@
 | NOTIF-04 | Phase 32 | Complete |
 | NOTIF-05 | Phase 32 | Complete |
 | NOTIF-06 | Phase 32 | Complete |
-| UI-01 | Phase 33 | Pending |
-| UI-02 | Phase 33 | Pending |
-| UI-03 | Phase 33 | Pending |
+| UI-01 | Phase 33 | Complete |
+| UI-02 | Phase 33 | Complete |
+| UI-03 | Phase 33 | Complete |
 | UI-04 | Phase 33 | Pending |
 
 ---
