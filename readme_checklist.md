@@ -17,6 +17,7 @@
 * [ ] configure log time to be UTC
 * [ ] check for console errors as you navigate the pages in the UI
 * [ ] Ensure that sent email content is not logged
+* [ ] Run manual tests to ensure that the ledger is registering payments correctly
 * [ ] Ensure you have scripts that clean up the various tables (AI should write them and also write tests that clean up mid way and continue inserting data and verify that data well inserted and nothing is lost)
 * [ ] prepare the following env variables
 
@@ -74,3 +75,8 @@ With connection-init-sql, all three write paths now agree on UTC:
 4. An admin should be able to manage tenants from the UI (define what is allowed. Which fields can be edited -- /v1/admin/tenants TenantAdminResource)
 5. Ensure all resources (Controllers) are secured with the needed rights
 6. Ask AI to document a way to investigate txns given the auditing, tracing etc that exist on the platform. Also ask if something could be added to the already existing stuff
+
+
+
+## Documentation
+* What are the benefits of EventLogService and how as well as for what reasons can it be queried?
