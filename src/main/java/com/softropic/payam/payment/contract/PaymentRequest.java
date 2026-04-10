@@ -41,5 +41,11 @@ public record PaymentRequest(
          * Client-side device fingerprint token (e.g. from FingerprintJS). Optional.
          * Stored on the transaction for future fraud pattern analysis.
          */
-        String deviceFingerprint
+        String deviceFingerprint,
+
+        /**
+         * Human-readable payment description. Optional — passed to Orange Money /mp/pay
+         * as the {@code description} field. Other adapters ignore this field.
+         */
+        String description
 ) {}

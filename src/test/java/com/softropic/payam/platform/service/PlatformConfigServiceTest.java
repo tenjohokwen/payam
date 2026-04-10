@@ -56,6 +56,36 @@ class PlatformConfigServiceTest {
     }
 
     @Test
+    void findByProvider_shouldReturnDtoWhenProviderExists() {
+        // Given
+        PlatformConfig config = PlatformConfig.builder()
+                .provider("ORANGE")
+                .platformMsisdn("652000001")
+                .status(EntityStatus.ACTIVE)
+                .build();
+        when(platformConfigRepository.findByProvider("ORANGE")).thenReturn(Optional.of(config));
+
+        // When
+        PlatformConfigDto result = platformConfigService.findByProvider("ORANGE");
+
+        // Then
+        assertThat(result.provider()).isEqualTo("ORANGE");
+        assertThat(result.platformMsisdn()).isEqualTo("652000001");
+    }
+
+    @Test
+    void findByProvider_shouldThrowIllegalStateWhenProviderNotFound() {
+        // Given
+        when(platformConfigRepository.findByProvider("ORANGE")).thenReturn(Optional.empty());
+
+        // When / Then
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+            () -> platformConfigService.findByProvider("ORANGE"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Platform MSISDN not configured for provider: ORANGE");
+    }
+
+    @Test
     void update_shouldCreateNewConfigIfNotFound() {
         // Given
         String provider = "MTN";

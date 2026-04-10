@@ -149,7 +149,8 @@ class FraudScoringServiceIT {
                 MobilePaymentProvider.MTN,
                 clientIp,
                 "Mozilla/5.0",
-                null
+                null,
+                null  // description
         );
     }
 

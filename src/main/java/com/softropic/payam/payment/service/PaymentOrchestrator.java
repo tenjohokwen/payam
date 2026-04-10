@@ -177,7 +177,8 @@ public class PaymentOrchestrator {
                 provider,
                 clientInfo.getIpAddress(),
                 clientInfo.getUserAgent(),
-                request.deviceFingerprint()
+                request.deviceFingerprint(),
+                request.description()     // passed to Orange /mp/pay; ignored by other adapters
         );
 
         // Step 4.5: Fraud check — evaluate before any provider call (see P7.1 / FRAUD-01)

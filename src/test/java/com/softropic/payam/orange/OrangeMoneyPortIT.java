@@ -132,7 +132,7 @@ class OrangeMoneyPortIT {
             tx.getTransactionId(), tx.getTraceId(), tenantId,
             "+237692954629", BigDecimal.valueOf(1000), "XAF",
             "EXT-001", "IDEM-001", MobilePaymentProvider.ORANGE,
-            null, null, null
+            null, null, null, null  // last null = description
         );
 
         ProviderResult result = orangeMoneyPort.initiateMerchantPayment(cmd);
@@ -153,7 +153,7 @@ class OrangeMoneyPortIT {
             tx.getTransactionId(), tx.getTraceId(), tenantId,
             "+237699000000", BigDecimal.valueOf(500), "XAF",
             "EXT-002", "IDEM-002", MobilePaymentProvider.ORANGE,
-            null, null, null
+            null, null, null, null  // last null = description
         );
 
         assertThatThrownBy(() -> orangeMoneyPort.initiateMerchantPayment(cmd))
@@ -194,7 +194,7 @@ class OrangeMoneyPortIT {
             tx.getTransactionId(), tx.getTraceId(), tenantId,
             "+237692954629", BigDecimal.valueOf(500), "XAF",
             "CASHOUT-001", "IDEM-003", MobilePaymentProvider.ORANGE,
-            null, null, null
+            null, null, null, null  // last null = description
         );
 
         assertThatThrownBy(() -> orangeMoneyPort.initiateCashout(cmd))
@@ -212,7 +212,7 @@ class OrangeMoneyPortIT {
             tx.getTransactionId(), tx.getTraceId(), tenantId,
             "+237692954629", BigDecimal.valueOf(200), "XAF",
             "C2C-001", "IDEM-004", MobilePaymentProvider.ORANGE,
-            null, null, null
+            null, null, null, null  // last null = description
         );
 
         assertThatThrownBy(() -> orangeMoneyPort.initiateC2C(cmd, "+237699000001"))

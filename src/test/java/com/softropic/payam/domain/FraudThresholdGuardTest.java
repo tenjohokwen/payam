@@ -59,7 +59,7 @@ class FraudThresholdGuardTest {
         PaymentCommand cmd = new PaymentCommand(
             "txn-001", null, 1L, "237600000001",
             new BigDecimal("1000.00"), "XAF", null, "key-001",
-            MobilePaymentProvider.MTN, "127.0.0.1", null, null);
+            MobilePaymentProvider.MTN, "127.0.0.1", null, null, null);
 
         FraudDecision decision = service.evaluate(cmd);
 
@@ -98,7 +98,7 @@ class FraudThresholdGuardTest {
         PaymentCommand cmd = new PaymentCommand(
             "txn-002", null, 1L, "237600000001",
             new BigDecimal("1000.00"), "XAF", null, "key-002",
-            MobilePaymentProvider.MTN, "10.0.0.1", null, null);
+            MobilePaymentProvider.MTN, "10.0.0.1", null, null, null);
 
         FraudDecision decision = service.evaluate(cmd);
 

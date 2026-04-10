@@ -45,6 +45,7 @@ public class PaymentRequestBuilder {
     private String idempotencyKey = UUID.randomUUID().toString();
     private String deviceFingerprint = "test-device-fp-001";
     private String externalReference = null;
+    private String description = null;
 
     public PaymentRequestBuilder withMsisdn(String msisdn) {
         this.msisdn = msisdn;
@@ -76,6 +77,11 @@ public class PaymentRequestBuilder {
         return this;
     }
 
+    public PaymentRequestBuilder withDescription(String description) {
+        this.description = description;
+        return this;
+    }
+
     /**
      * Switches the MSISDN to the Orange prefix (237653000001, national prefix "65") for Orange payment flows.
      */
@@ -97,6 +103,6 @@ public class PaymentRequestBuilder {
      * Builds and returns a {@link PaymentRequest} with all configured fields.
      */
     public PaymentRequest build() {
-        return new PaymentRequest(msisdn, amount, currency, externalReference, idempotencyKey, deviceFingerprint);
+        return new PaymentRequest(msisdn, amount, currency, externalReference, idempotencyKey, deviceFingerprint, description);
     }
 }

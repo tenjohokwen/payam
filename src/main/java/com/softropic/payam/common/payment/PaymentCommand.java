@@ -14,5 +14,6 @@ public record PaymentCommand(
     MobilePaymentProvider provider,
     String clientIp,          // client IP from RequestMetadata (nullable — null if unavailable)
     String userAgent,         // User-Agent header (nullable)
-    String deviceFingerprint  // X-Device-Fingerprint header value (nullable)
+    String deviceFingerprint,  // X-Device-Fingerprint header value (nullable)
+    String description         // human-readable description for Orange /mp/pay; nullable — ignored by other adapters
 ) {}

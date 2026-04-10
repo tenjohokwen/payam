@@ -44,6 +44,22 @@ public class PlatformConfigService {
     }
 
     /**
+     * Returns the platform config DTO for the given provider.
+     *
+     * @param provider provider key (case-insensitive; normalised to upper-case internally)
+     * @return the DTO for the requested provider
+     * @throws IllegalStateException if no config row exists for the given provider
+     */
+    @Transactional(readOnly = true)
+    public PlatformConfigDto findByProvider(String provider) {
+        String upper = provider.toUpperCase();
+        return platformConfigRepository.findByProvider(upper)
+                .map(c -> new PlatformConfigDto(c.getProvider(), c.getPlatformMsisdn()))
+                .orElseThrow(() -> new IllegalStateException(
+                    "Platform MSISDN not configured for provider: " + provider));
+    }
+
+    /**
      * Update the platform MSISDN for the given provider (upsert).
      *
      * <p>If the provider exists, its MSISDN is updated. If not, a new row is created.
