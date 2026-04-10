@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 34-01-PLAN.md
-last_updated: "2026-04-10T10:42:11.658Z"
+status: verifying
+stopped_at: Completed 34-02-PLAN.md
+last_updated: "2026-04-10T10:51:50.652Z"
 last_activity: 2026-04-10
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-07 — Milestone v6 started)
 
 Phase: 34 (orange-money-flow-improvements-align-orangemoneyclient-and-orangemoneyport-with-the-orange-money-spec-use-case-1) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-10
 
 ```
@@ -87,6 +87,8 @@ Key context from v6 research:
 - [Phase 33]: clearTimers() in onUnmounted prevents countdown interval leak; rawKey.value = null on modal close (D-11)
 - [Phase 34]: description field appended last in PaymentRequest/PaymentCommand records for backward-compatible evolution
 - [Phase 34]: PlatformConfigService.findByProvider uses IllegalStateException consistent with existing error contract
+- [Phase 34]: callbackHmacSecret removed from OrangeMoneyConfig — HMAC verification was speculative; Orange does not confirm this header in v1.0.2; callbackUrl added instead
+- [Phase 34]: OrangePathMatrixTest also updated (not in plan scope) — had /infos/merchant stub that would cause silent test failures after adapter rewrite
 
 ### Roadmap Evolution
 
@@ -102,6 +104,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-10T10:42:11.652Z
-Stopped at: Completed 34-01-PLAN.md
+Last session: 2026-04-10T10:51:44.944Z
+Stopped at: Completed 34-02-PLAN.md
 Resume file: None

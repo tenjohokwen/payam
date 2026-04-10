@@ -190,8 +190,8 @@ Plans:
 **Goal:** Fix 7 root-cause issues in the Orange Money adapter so it correctly implements Use Case 1 (Initiate a Payment & Receive Notification) per the Orange Money spec.
 **Requirements**: TBD
 **Depends on:** Phase 33
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 34-01-PLAN.md — Core domain changes: description field on PaymentCommand/PaymentRequest, PlatformConfigService.findByProvider(), orchestrator wiring, PaymentRequestBuilder, construction sites
-- [ ] 34-02-PLAN.md — Orange adapter rewrite: new PayRequest/InitTransactionResponse DTOs, fixed OrangeMoneyClient, OrangeMoneyPort, OrangeMoneyConfig, OrangeCallbackController, config and test updates
+- [x] 34-02-PLAN.md — Orange adapter rewrite: new PayRequest/InitTransactionResponse DTOs, fixed OrangeMoneyClient, OrangeMoneyPort, OrangeMoneyConfig, OrangeCallbackController, config and test updates
