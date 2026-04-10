@@ -184,3 +184,14 @@ Plans:
 | 31. Tenant REST API Surface | v6 | 2/2 | Complete    | 2026-04-07 |
 | 32. Email Notification Infrastructure | v6 | 3/3 | Complete   | 2026-04-08 |
 | 33. Admin UI — Tenant Management | v6 | 4/4 | Complete    | 2026-04-09 |
+
+### Phase 34: Orange Money flow improvements - align OrangeMoneyClient and OrangeMoneyPort with the Orange Money spec Use Case 1
+
+**Goal:** Fix 7 root-cause issues in the Orange Money adapter so it correctly implements Use Case 1 (Initiate a Payment & Receive Notification) per the Orange Money spec.
+**Requirements**: TBD
+**Depends on:** Phase 33
+**Plans:** 2 plans
+
+Plans:
+- [ ] 34-01-PLAN.md — Core domain changes: description field on PaymentCommand/PaymentRequest, PlatformConfigService.findByProvider(), orchestrator wiring, PaymentRequestBuilder, construction sites
+- [ ] 34-02-PLAN.md — Orange adapter rewrite: new PayRequest/InitTransactionResponse DTOs, fixed OrangeMoneyClient, OrangeMoneyPort, OrangeMoneyConfig, OrangeCallbackController, config and test updates
