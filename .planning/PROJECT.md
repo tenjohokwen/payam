@@ -66,6 +66,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ TENT-09: SUSPENDED tenants blocked at `ApiKeyAuthenticationFilter` with HTTP 403 before `SecurityContext` or `TenantContext` population — zero-query check on JOIN-FETCHed tenant entity — v6 (Phase 30)
 - ✓ Tenant REST API surface: 3 GET endpoints (paginated list, tenant detail, webhook secret reveal) + 6 mutation endpoints (PATCH name/email/webhookUrl, POST suspend/reactivate/webhook-secret) on `TenantAdminResource`; `IllegalStateException→409` in `ApiAdvice`; 14 integration tests — v6 (Phase 31) — Validated in Phase 31: TENT-02, TENT-03, TENT-04, TENT-05, TENT-06, TENT-07, TENT-08, TENT-10, WSEC-03
 - ✓ Admin UI tenant management: TenantListPage (paginated q-table, status filter, row-click nav), TenantDetailPage (inline field edit, status toggle, key lifecycle per env, OneTimeKeyModal, webhook secret reveal with 30s auto-mask), plus POST /keys/generate backend endpoint — v6 (Phase 33) — Validated in Phase 33: UI-01, UI-02, UI-03, UI-04
+- ✓ Orange Money adapter aligned with Use Case 1 spec: PayRequest has correct 7-field /mp/pay body, initTransaction() calls POST /mp/init (replacing getMerchantInfo/GET /infos/merchant), PlatformConfigService.findByProvider() resolves channelMsisdn, HMAC verification removed from OrangeCallbackController, description field propagated PaymentRequest→PaymentCommand→OrangeMoneyPort — Phase 34
 
 - ✓ Platform MSISDN management: admin can view/update Orange + MTN platform MSISDNs; email notification on every change — v4
 - ✓ Spring Boot Actuator `/manage/health` reflects live provider MSISDN validation + circuit breaker state for both providers — v4
@@ -172,4 +173,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-09 — Phase 33 complete (admin UI tenant management)*
+*Last updated: 2026-04-10 — Phase 34 complete (Orange Money adapter aligned with Use Case 1 spec)*
