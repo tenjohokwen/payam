@@ -1,7 +1,6 @@
 package com.softropic.payam.webhook;
 
 import com.softropic.payam.config.TestConfig;
-import com.softropic.payam.orange.config.OrangeMoneyConfig;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,8 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(TestConfig.class)
 @TestPropertySource(properties = {
     "spring.cloud.compatibility-verifier.enabled=false",
-    "orange.callback-ip-whitelist=",    // empty = sandbox mode (accept all IPs)
-    "orange.callback-hmac-secret="      // empty = skip HMAC check
+    "orange.callback-ip-whitelist="     // empty = sandbox mode (accept all IPs)
 })
 class OrangeCallbackControllerIT {
 
@@ -48,7 +46,6 @@ class OrangeCallbackControllerIT {
     @Autowired JdbcTemplate jdbcTemplate;
     @Autowired TransactionTemplate transactionTemplate;
     @Autowired StringRedisTemplate redis;
-    @Autowired OrangeMoneyConfig orangeMoneyConfig;
 
     @LocalServerPort int serverPort;
 
@@ -126,17 +123,4 @@ class OrangeCallbackControllerIT {
         assertThat(response.getStatusCode().value()).isEqualTo(200);
     }
 
-    @Test
-    void shouldReject401WhenHmacSecretConfiguredAndSignatureMissing() {
-        // Temporarily configure an HMAC secret on OrangeMoneyConfig
-        String previousSecret = orangeMoneyConfig.getCallbackHmacSecret();
-        orangeMoneyConfig.setCallbackHmacSecret("test-hmac-secret");
-        try {
-            // Post without X-Orange-Signature header
-            var response = postOrangeCallback("paytoken-005", "2026-03-24T10:00:00", "SUCCESS");
-            assertThat(response.getStatusCode().value()).isEqualTo(401);
-        } finally {
-            orangeMoneyConfig.setCallbackHmacSecret(previousSecret); // restore sandbox mode
-        }
-    }
 }

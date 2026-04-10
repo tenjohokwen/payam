@@ -274,7 +274,7 @@ orange:
     interval-seconds: 300
     max-attempts: 15
   callback-ip-whitelist: []   # production: add Orange IP ranges; empty = sandbox mode (accept all)
-  callback-hmac-secret: ""    # production: set when Orange confirms HMAC header; empty = skip check
+  callback-url: ${baseurl:/}/v1/callbacks/orange
 
 fraud:
   block-threshold: 70

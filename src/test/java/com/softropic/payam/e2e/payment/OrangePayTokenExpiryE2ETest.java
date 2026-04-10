@@ -93,8 +93,8 @@ public class OrangePayTokenExpiryE2ETest extends AbstractFailureFlowTest {
         // must NOT reach it once payToken expiry is detected (expiry triggers an early return).
         orangeServer.stubFor(get(urlPathEqualTo("/infos/subscriber"))
             .willReturn(okJson("{\"status\":\"ACTIF\",\"message\":\"OK\"}")));
-        orangeServer.stubFor(get(urlPathEqualTo("/infos/merchant"))
-            .willReturn(okJson("{\"payToken\":\"tok-expiry-test\",\"message\":\"OK\"}")));
+        orangeServer.stubFor(post(urlPathEqualTo("/mp/init"))
+            .willReturn(okJson("{\"data\":{\"payToken\":\"tok-expiry-test\"},\"message\":\"OK\"}")));
         orangeServer.stubFor(post(urlPathMatching("/mp/pay"))
             .willReturn(okJson("{\"status\":\"SUCCESS\",\"message\":\"OK\"}")));
 

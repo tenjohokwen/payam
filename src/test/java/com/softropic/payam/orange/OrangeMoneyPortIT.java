@@ -118,8 +118,8 @@ class OrangeMoneyPortIT {
     void merchant_payment_initiation_returns_pending_result_with_pay_token() {
         orangeServer.stubFor(get(urlPathEqualTo("/infos/subscriber"))
             .willReturn(okJson("{\"status\":\"ACTIF\"}")));
-        orangeServer.stubFor(get(urlPathEqualTo("/infos/merchant"))
-            .willReturn(okJson("{\"payToken\":\"tok-abc-123\",\"message\":\"OK\"}")));
+        orangeServer.stubFor(post(urlPathEqualTo("/mp/init"))
+            .willReturn(okJson("{\"data\":{\"payToken\":\"tok-abc-123\"},\"message\":\"OK\"}")));
         // Note: pay endpoint uses 1.0.1 path — in tests orange.pay-url=${orange.base-url}
         // so both base and pay URLs resolve to the same WireMock server.
         orangeServer.stubFor(post(urlPathMatching("/mp/pay"))

@@ -67,7 +67,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(properties = {
     "spring.cloud.compatibility-verifier.enabled=false",
     "orange.callback-ip-whitelist=",
-    "orange.callback-hmac-secret=",
     "mtn.callback-ip-whitelist="
 })
 @EnableWireMock({

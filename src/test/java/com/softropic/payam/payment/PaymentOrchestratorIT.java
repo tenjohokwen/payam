@@ -230,8 +230,8 @@ class PaymentOrchestratorIT {
             .willReturn(okJson("{\"status\":\"ACTIF\",\"message\":\"OK\"}")));
 
         // Stub Orange merchant info endpoint — returns payToken
-        orangeServer.stubFor(get(urlPathEqualTo("/infos/merchant"))
-            .willReturn(okJson("{\"payToken\":\"tok-orange-001\",\"message\":\"OK\"}")));
+        orangeServer.stubFor(post(urlPathEqualTo("/mp/init"))
+            .willReturn(okJson("{\"data\":{\"payToken\":\"tok-orange-001\"},\"message\":\"OK\"}")));
 
         // Stub Orange pay endpoint (pay-url is overridden to same WireMock server in tests)
         orangeServer.stubFor(post(urlPathMatching("/mp/pay"))

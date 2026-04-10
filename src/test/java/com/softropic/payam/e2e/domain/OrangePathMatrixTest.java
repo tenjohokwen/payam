@@ -113,8 +113,8 @@ public class OrangePathMatrixTest extends AbstractPayamE2ETest {
         // Common Orange subscriber/merchant stubs
         orangeServer.stubFor(get(urlPathEqualTo("/infos/subscriber"))
             .willReturn(okJson("{\"status\":\"ACTIF\",\"message\":\"OK\"}")));
-        orangeServer.stubFor(get(urlPathEqualTo("/infos/merchant"))
-            .willReturn(okJson("{\"payToken\":\"tok-matrix-001\",\"message\":\"OK\"}")));
+        orangeServer.stubFor(post(urlPathEqualTo("/mp/init"))
+            .willReturn(okJson("{\"data\":{\"payToken\":\"tok-matrix-001\"},\"message\":\"OK\"}")));
 
         noRetryRestTemplate = buildNoRetryRestTemplate();
     }

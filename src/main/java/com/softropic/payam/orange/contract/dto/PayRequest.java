@@ -5,40 +5,35 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PayRequest {
-    @JsonProperty("merchant_key") private String merchantKey;
-    @JsonProperty("currency") private String currency;
-    @JsonProperty("order_id") private String orderId;
-    @JsonProperty("amount") private String amount;
-    @JsonProperty("return_url") private String returnUrl;
-    @JsonProperty("cancel_url") private String cancelUrl;
-    @JsonProperty("notif_url") private String notifUrl;
-    @JsonProperty("lang") private String lang;       // "fr" default
-    @JsonProperty("reference") private String reference;
 
-    public static PayRequest of(String merchantKey, String currency, String orderId,
-                                String amount, String reference) {
+    @JsonProperty("payToken")          private String payToken;
+    @JsonProperty("subscriberMsisdn")  private String subscriberMsisdn;
+    @JsonProperty("channelUserMsisdn") private String channelUserMsisdn;
+    @JsonProperty("amount")            private String amount;
+    @JsonProperty("orderId")           private String orderId;
+    @JsonProperty("description")       private String description;
+    @JsonProperty("notifUrl")          private String notifUrl;
+
+    /** Factory method — preferred over direct constructor for readability. */
+    public static PayRequest of(String payToken, String subscriberMsisdn,
+                                String channelUserMsisdn, String amount,
+                                String orderId, String description, String notifUrl) {
         PayRequest req = new PayRequest();
-        req.merchantKey = merchantKey;
-        req.currency = currency;
-        req.orderId = orderId;
-        req.amount = amount;
-        req.reference = reference;
-        req.lang = "fr";
+        req.payToken          = payToken;
+        req.subscriberMsisdn  = subscriberMsisdn;
+        req.channelUserMsisdn = channelUserMsisdn;
+        req.amount            = amount;
+        req.orderId           = orderId;
+        req.description       = description;
+        req.notifUrl          = notifUrl;
         return req;
     }
 
-    public String getMerchantKey() { return merchantKey; }
-    public String getCurrency() { return currency; }
-    public String getOrderId() { return orderId; }
-    public String getAmount() { return amount; }
-    public String getReturnUrl() { return returnUrl; }
-    public String getCancelUrl() { return cancelUrl; }
-    public String getNotifUrl() { return notifUrl; }
-    public String getLang() { return lang; }
-    public String getReference() { return reference; }
-
-    public PayRequest withReturnUrl(String returnUrl) { this.returnUrl = returnUrl; return this; }
-    public PayRequest withCancelUrl(String cancelUrl) { this.cancelUrl = cancelUrl; return this; }
-    public PayRequest withNotifUrl(String notifUrl) { this.notifUrl = notifUrl; return this; }
-    public PayRequest withLang(String lang) { this.lang = lang; return this; }
+    public String getPayToken()          { return payToken; }
+    public String getSubscriberMsisdn()  { return subscriberMsisdn; }
+    public String getChannelUserMsisdn() { return channelUserMsisdn; }
+    public String getAmount()            { return amount; }
+    public String getOrderId()           { return orderId; }
+    public String getDescription()       { return description; }
+    public String getNotifUrl()          { return notifUrl; }
 }

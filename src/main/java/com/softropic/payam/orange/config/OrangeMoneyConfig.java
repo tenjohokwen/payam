@@ -15,7 +15,7 @@ public class OrangeMoneyConfig {
     private int payTokenExpiryThresholdMinutes = 8;
     private Poller poller = new Poller();
     private List<String> callbackIpWhitelist = new ArrayList<>();
-    private String callbackHmacSecret; // nullable — empty = skip HMAC check (sandbox mode)
+    private String callbackUrl;  // orange.callback-url
 
     public static class Poller {
         private int initialDelaySeconds = 120;
@@ -57,6 +57,7 @@ public class OrangeMoneyConfig {
 
     public List<String> getCallbackIpWhitelist() { return callbackIpWhitelist; }
     public void setCallbackIpWhitelist(List<String> callbackIpWhitelist) { this.callbackIpWhitelist = callbackIpWhitelist; }
-    public String getCallbackHmacSecret() { return callbackHmacSecret; }
-    public void setCallbackHmacSecret(String callbackHmacSecret) { this.callbackHmacSecret = callbackHmacSecret; }
+
+    public String getCallbackUrl() { return callbackUrl; }
+    public void setCallbackUrl(String callbackUrl) { this.callbackUrl = callbackUrl; }
 }

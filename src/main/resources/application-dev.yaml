@@ -269,6 +269,9 @@ fraud:
   rule-cache:
     refresh-interval-ms: 60000
 
+orange:
+  callback-url: ${baseurl}/v1/callbacks/orange
+
 payam:
   platform:
     notification-email: ${PLATFORM_NOTIFICATION_EMAIL:tenjoh_okwen@yahoo.com}

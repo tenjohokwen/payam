@@ -5,7 +5,7 @@ import com.softropic.payam.common.client.RestRequestInterceptor;
 import com.softropic.payam.orange.config.OrangeMoneyConfig;
 import com.softropic.payam.orange.contract.dto.CashoutRequest;
 import com.softropic.payam.orange.contract.dto.C2CRequest;
-import com.softropic.payam.orange.contract.dto.MerchantInfoResponse;
+import com.softropic.payam.orange.contract.dto.InitTransactionResponse;
 import com.softropic.payam.orange.contract.dto.OrangeTokenResponse;
 import com.softropic.payam.orange.contract.dto.PayRequest;
 import com.softropic.payam.orange.contract.dto.PayResponse;
@@ -36,7 +36,7 @@ public class OrangeMoneyClient extends AbstractClient {
     private final OrangeMoneyConfig config;
 
     public OrangeMoneyClient(OrangeMoneyConfig config) {
-        super(new RestRequestInterceptor(), config.getBaseUrl(), "/infos/merchant");
+        super(new RestRequestInterceptor(), config.getBaseUrl(), "/mp/init");
         this.config = config;
         // FormHttpMessageConverter is required for application/x-www-form-urlencoded (token fetch).
         // AbstractClient.messageConverters() only registers JSON; we add form support here.
@@ -98,22 +98,24 @@ public class OrangeMoneyClient extends AbstractClient {
         return response.getBody();
     }
 
-    /** GET /infos/merchant — returns payToken */
-    public MerchantInfoResponse getMerchantInfo(String bearerToken) {
-        String url = buildClientURL("/infos/merchant");
+    /**
+     * POST /mp/init — returns a payToken for a new merchant payment transaction.
+     * No request body. Response: {"data":{"payToken":"MP-XXXX"},"message":"OK"}
+     */
+    public InitTransactionResponse initTransaction(String bearerToken) {
+        String url = buildClientURL("/mp/init");
 
         long start = System.currentTimeMillis();
-        ResponseEntity<MerchantInfoResponse> response = makeHttpRequest(
-                url, HttpMethod.GET, null, MerchantInfoResponse.class, bearerHeaders(bearerToken));
-        // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
+        ResponseEntity<InitTransactionResponse> response = makeHttpRequest(
+                url, HttpMethod.POST, null, InitTransactionResponse.class, bearerHeaders(bearerToken));
         log.info("Provider HTTP call",
                 kv("externalService", "ORANGE_MONEY"),
-                kv("operation", "getMerchantInfo"),
+                kv("operation", "initTransaction"),
                 kv("externalLatencyMs", System.currentTimeMillis() - start),
                 kv("status", response.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            throw new OrangeApiException("getMerchantInfo failed — status: " + response.getStatusCode());
+            throw new OrangeApiException("initTransaction failed — status: " + response.getStatusCode());
         }
         return response.getBody();
     }

@@ -68,8 +68,8 @@ public class OrangePaymentInitiationE2ETest extends AbstractWebhookFlowTest {
         // Stub Orange provider endpoints (token already stubbed by stubTokenEndpoints() in base)
         orangeServer.stubFor(get(urlPathEqualTo("/infos/subscriber"))
             .willReturn(okJson("{\"status\":\"ACTIF\",\"message\":\"OK\"}")));
-        orangeServer.stubFor(get(urlPathEqualTo("/infos/merchant"))
-            .willReturn(okJson("{\"payToken\":\"tok-orange-test-001\",\"message\":\"OK\"}")));
+        orangeServer.stubFor(post(urlPathEqualTo("/mp/init"))
+            .willReturn(okJson("{\"data\":{\"payToken\":\"tok-orange-test-001\"},\"message\":\"OK\"}")));
         orangeServer.stubFor(post(urlPathMatching("/mp/pay"))
             .willReturn(okJson("{\"status\":\"SUCCESS\",\"message\":\"OK\"}")));
         // Double-check GET status — Orange spells SUCCESSFULL with double L

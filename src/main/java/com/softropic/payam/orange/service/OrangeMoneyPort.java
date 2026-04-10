@@ -6,7 +6,7 @@ import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.common.payment.SubscriberStatus;
 import com.softropic.payam.orange.config.OrangeMoneyConfig;
 import com.softropic.payam.orange.contract.OrangeWebhookPayload;
-import com.softropic.payam.orange.contract.dto.MerchantInfoResponse;
+import com.softropic.payam.orange.contract.dto.InitTransactionResponse;
 import com.softropic.payam.orange.contract.dto.PayRequest;
 import com.softropic.payam.orange.contract.dto.PayResponse;
 import com.softropic.payam.orange.contract.dto.SubscriberInfoResponse;
@@ -17,6 +17,7 @@ import com.softropic.payam.orange.infrastructure.OrangeMoneyClient;
 import com.softropic.payam.transaction.contract.TransactionEventType;
 import com.softropic.payam.transaction.contract.TransactionStatus;
 import com.softropic.payam.transaction.repo.TransactionRepository;
+import com.softropic.payam.platform.service.PlatformConfigService;
 import com.softropic.payam.transaction.service.EventLogService;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -49,6 +50,7 @@ public class OrangeMoneyPort implements MobileMoneyPort {
     private final OrangeMoneyConfig config;
     private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate transactionTemplate;
+    private final PlatformConfigService platformConfigService;
 
     public OrangeMoneyPort(OrangeMoneyClient orangeMoneyClient,
                            OrangeTokenService orangeTokenService,
@@ -56,7 +58,8 @@ public class OrangeMoneyPort implements MobileMoneyPort {
                            EventLogService eventLogService,
                            OrangeMoneyConfig config,
                            ApplicationEventPublisher eventPublisher,
-                           TransactionTemplate transactionTemplate) {
+                           TransactionTemplate transactionTemplate,
+                           PlatformConfigService platformConfigService) {
         this.orangeMoneyClient = orangeMoneyClient;
         this.orangeTokenService = orangeTokenService;
         this.transactionRepository = transactionRepository;
@@ -64,6 +67,7 @@ public class OrangeMoneyPort implements MobileMoneyPort {
         this.config = config;
         this.eventPublisher = eventPublisher;
         this.transactionTemplate = transactionTemplate;
+        this.platformConfigService = platformConfigService;
     }
 
     /**
@@ -88,9 +92,9 @@ public class OrangeMoneyPort implements MobileMoneyPort {
             throw new SubscriberInactiveException(cmd.msisdn());
         }
 
-        // Step 2: Get payToken
-        MerchantInfoResponse merchantInfo = orangeMoneyClient.getMerchantInfo(token);
-        String payToken = merchantInfo.getPayToken();
+        // Step 2: Get payToken via POST /mp/init
+        InitTransactionResponse initResponse = orangeMoneyClient.initTransaction(token);
+        String payToken = initResponse.getPayToken();
         Instant payTokenIssuedAt = Instant.now();
 
         // Step 3: Persist payToken and issuance time on the transaction (non-transactional update)
@@ -219,7 +223,7 @@ public class OrangeMoneyPort implements MobileMoneyPort {
      * Production caller: OrangeStatusPollerJob.pollTransaction() — guards before each poll attempt.
      *
      * Re-initiation responsibility: when PayTokenExpiredException is thrown, the caller should
-     * log and skip. Fetching a fresh payToken (getMerchantInfo() + pay()) requires the original
+     * log and skip. Fetching a fresh payToken (initTransaction() + pay()) requires the original
      * PaymentCommand context — this is Phase 5 PaymentOrchestrator responsibility (ROADMAP SC-4).
      */
     public void assertPayTokenFresh(String transactionId, Instant payTokenIssuedAt) {
@@ -264,14 +268,11 @@ public class OrangeMoneyPort implements MobileMoneyPort {
     }
 
     private PayRequest buildPayRequest(PaymentCommand cmd, String payToken, String nationalMsisdn) {
-        PayRequest req = PayRequest.of(
-            config.getConsumerKey(),
-            cmd.currency(),
-            cmd.transactionId(),
-            cmd.amount().toPlainString(),
-            cmd.externalReference() != null ? cmd.externalReference() : cmd.transactionId()
-        );
-        return req;
+        String channelMsisdn = platformConfigService.findByProvider("ORANGE").platformMsisdn();
+        String orderId = cmd.externalReference() != null ? cmd.externalReference() : cmd.transactionId();
+        String desc = cmd.description() != null ? cmd.description() : "Payment";
+        return PayRequest.of(payToken, nationalMsisdn, channelMsisdn,
+                cmd.amount().toPlainString(), orderId, desc, config.getCallbackUrl());
     }
 
     // No fallback methods — circuit-open throws CallNotPermittedException to caller.
