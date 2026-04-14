@@ -1,64 +1,46 @@
 package com.softropic.payam.reconciliation.service;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.reconciliation.contract.DiscrepancySeverity;
-import com.softropic.payam.reconciliation.contract.DiscrepancyType;
 import com.softropic.payam.reconciliation.port.ProviderReportPort;
-import com.softropic.payam.reconciliation.port.ProviderTransactionRecord;
-import com.softropic.payam.reconciliation.repo.ReconciliationDiscrepancy;
-import com.softropic.payam.reconciliation.repo.ReconciliationDiscrepancyRepository;
 import com.softropic.payam.reconciliation.repo.ReconciliationReport;
-import com.softropic.payam.reconciliation.repo.ReconciliationReportRepository;
-import com.softropic.payam.transaction.repo.Transaction;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.ArrayList;
+import java.time.ZoneOffset;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Core reconciliation engine.
+ * Core reconciliation orchestrator.
  *
- * Orchestrates one reconciliation run for a given date: for each known provider,
- * fetches the ledger snapshot, compares each transaction against the provider's record,
- * detects discrepancies, and persists the results.
+ * Delegates per-provider execution to {@link ReconciliationProviderRunner}, which runs each
+ * provider in its own REQUIRES_NEW transaction. This class is INTENTIONALLY NOT @Transactional —
+ * wrapping runForDate in a single transaction would defeat the isolation that enables:
+ *   1. RECON-01: bounded heap (page loop inside runner commits per page via the runner's transaction)
+ *   2. RECON-02: FAILED state transition via markFailed() in a fresh transaction after rollback
  *
- * Provider failures are isolated — if one provider's loop throws, the other still runs.
+ * Provider failures are isolated — if one provider's runForProvider throws, this class catches
+ * the exception, calls runner.markFailed(reportId) to persist FAILED status in a new transaction,
+ * and continues with the next provider.
  */
 @Service
 public class ReconciliationService {
 
     private static final Logger log = LoggerFactory.getLogger(ReconciliationService.class);
 
-    /** Provider statuses that are considered "terminal" for status-mismatch comparison. */
-    private static final java.util.Set<String> TERMINAL_STATUSES = java.util.Set.of(
-        "SUCCESS", "SUCCESSFULL", // Orange uses double-L
-        "FAILED", "FAILED_DELIVERY"
-    );
-
-    private final LedgerSnapshotService ledgerSnapshotService;
-    private final ReconciliationReportRepository reportRepository;
-    private final ReconciliationDiscrepancyRepository discrepancyRepository;
+    private final ReconciliationProviderRunner runner;
     private final Map<MobilePaymentProvider, ProviderReportPort> providerPorts;
 
-    public ReconciliationService(LedgerSnapshotService ledgerSnapshotService,
-                                 ReconciliationReportRepository reportRepository,
-                                 ReconciliationDiscrepancyRepository discrepancyRepository,
+    public ReconciliationService(ReconciliationProviderRunner runner,
                                  List<ProviderReportPort> ports) {
-        this.ledgerSnapshotService = ledgerSnapshotService;
-        this.reportRepository = reportRepository;
-        this.discrepancyRepository = discrepancyRepository;
-
-        // Build provider -> port map from the injected list
+        this.runner = runner;
         Map<MobilePaymentProvider, ProviderReportPort> map = new EnumMap<>(MobilePaymentProvider.class);
         for (ProviderReportPort port : ports) {
             map.put(port.provider(), port);
@@ -68,28 +50,55 @@ public class ReconciliationService {
 
     /**
      * Run reconciliation for all known providers for the given date.
-     * Each provider is processed independently — a failure in one does not abort the other.
+     * Each provider is processed in an independent transaction — a failure in one does not
+     * affect the other, and a failed provider leaves its report at status=FAILED (not IN_PROGRESS).
      *
-     * @param reportDate The date to reconcile (typically yesterday)
+     * NOT @Transactional — each runner call manages its own REQUIRES_NEW transaction.
      */
-    @Transactional
     public void runForDate(LocalDate reportDate) {
         long start = System.currentTimeMillis();
+        Instant from = reportDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant to = reportDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
 
         int totalChecked = 0;
         int totalDiscrepancies = 0;
 
         for (MobilePaymentProvider provider : new MobilePaymentProvider[]{MobilePaymentProvider.MTN, MobilePaymentProvider.ORANGE}) {
+            ProviderReportPort port = providerPorts.get(provider);
+            if (port == null) {
+                log.warn("No ProviderReportPort registered",
+                    kv("operation", "reconciliation_run"),
+                    kv("provider", provider),
+                    kv("status", "NO_ADAPTER"));
+                continue;
+            }
+
+            ReconciliationReport report = null;
             try {
-                int[] providerTotals = runForProviderAndDate(provider, reportDate);
-                totalChecked += providerTotals[0];
-                totalDiscrepancies += providerTotals[1];
+                report = runner.createOrReset(reportDate, provider);
+                runner.runForProvider(report, provider, reportDate, port, from, to);
+                // After success, totals are on the report object but may not be refreshed post-commit.
+                // Re-read not required — the runner saved counts inside runForProvider.
+                totalChecked += report.getTotalChecked();
+                totalDiscrepancies += report.getTotalDiscrepancies();
             } catch (Exception e) {
                 log.error("Reconciliation unexpected error",
                     kv("operation", "reconciliation_run"),
                     kv("provider", provider),
+                    kv("reportId", report != null ? report.getId() : null),
                     kv("status", "ERROR"),
                     e);
+                if (report != null) {
+                    try {
+                        runner.markFailed(report.getId());
+                    } catch (Exception inner) {
+                        log.error("Failed to mark report FAILED",
+                            kv("operation", "reconciliation_run"),
+                            kv("reportId", report.getId()),
+                            kv("status", "MARK_FAILED_ERROR"),
+                            inner);
+                    }
+                }
             }
         }
 
@@ -101,137 +110,5 @@ public class ReconciliationService {
             kv("discrepancyCount", totalDiscrepancies),
             kv("durationMs", System.currentTimeMillis() - start),
             kv("status", "SUCCESS"));
-    }
-
-    private int[] runForProviderAndDate(MobilePaymentProvider provider, LocalDate reportDate) {
-        ProviderReportPort port = providerPorts.get(provider);
-        if (port == null) {
-            log.warn("No ProviderReportPort registered",
-                kv("operation", "reconciliation_run"),
-                kv("provider", provider),
-                kv("status", "NO_ADAPTER"));
-            return new int[]{0, 0};
-        }
-
-        // Step 1: create or reset the report for this provider+date
-        ReconciliationReport report = reportRepository.findByReportDateAndProvider(reportDate, provider)
-            .orElseGet(() -> ReconciliationReport.builder()
-                .reportDate(reportDate)
-                .provider(provider)
-                .runAt(Instant.now())
-                .totalChecked(0)
-                .totalMatched(0)
-                .totalDiscrepancies(0)
-                .status("IN_PROGRESS")
-                .build());
-        report.setStatus("IN_PROGRESS");
-        report = reportRepository.save(report);
-
-        // Step 2: fetch eligible ledger transactions
-        List<Transaction> ledgerTxs = ledgerSnapshotService.findTransactionsForDateAndProvider(reportDate, provider);
-
-        // Step 3: compare each transaction against the provider record
-        List<ReconciliationDiscrepancy> discrepancies = new ArrayList<>();
-        int matched = 0;
-
-        for (Transaction tx : ledgerTxs) {
-            ProviderTransactionRecord record = port.fetchProviderRecord(tx.getProviderRef(), reportDate);
-            ReconciliationDiscrepancy discrepancy = compareTransaction(tx, record, report.getId(), reportDate, provider);
-            if (discrepancy != null) {
-                discrepancies.add(discrepancy);
-            } else {
-                matched++;
-            }
-        }
-
-        // Step 4: persist discrepancies and update report
-        discrepancyRepository.saveAll(discrepancies);
-
-        report.setTotalChecked(ledgerTxs.size());
-        report.setTotalMatched(matched);
-        report.setTotalDiscrepancies(discrepancies.size());
-        report.setStatus("COMPLETE");
-        reportRepository.save(report);
-
-        return new int[]{ledgerTxs.size(), discrepancies.size()};
-    }
-
-    /**
-     * Compare one Payam transaction against the provider record.
-     *
-     * @return A discrepancy if one is detected, or null if the transaction matched.
-     */
-    private ReconciliationDiscrepancy compareTransaction(Transaction tx,
-                                                          ProviderTransactionRecord record,
-                                                          Long reportId,
-                                                          LocalDate reportDate,
-                                                          MobilePaymentProvider provider) {
-        String payamStatus = tx.getTxStatus().name();
-
-        // Case 1: provider API was unreachable
-        if (record.unconfirmed()) {
-            return buildDiscrepancy(reportId, reportDate, provider, tx, record,
-                DiscrepancyType.UNCONFIRMED, DiscrepancySeverity.LOW);
-        }
-
-        // Case 2: provider returned null/not-found
-        if (record.providerStatus() == null) {
-            return buildDiscrepancy(reportId, reportDate, provider, tx, record,
-                DiscrepancyType.MISSING_IN_PROVIDER, DiscrepancySeverity.HIGH);
-        }
-
-        // Case 3: amount mismatch (only when both sides have amounts)
-        if (tx.getAmount() != null && record.providerAmount() != null
-            && tx.getAmount().compareTo(record.providerAmount()) != 0) {
-            return buildDiscrepancy(reportId, reportDate, provider, tx, record,
-                DiscrepancyType.AMOUNT_MISMATCH, DiscrepancySeverity.HIGH);
-        }
-
-        // Case 4: status mismatch between terminal statuses
-        String providerStatus = record.providerStatus();
-        boolean payamTerminal = isTerminal(payamStatus);
-        boolean providerTerminal = isTerminal(providerStatus);
-        if (payamTerminal && providerTerminal && !statusesMatch(payamStatus, providerStatus)) {
-            return buildDiscrepancy(reportId, reportDate, provider, tx, record,
-                DiscrepancyType.STATUS_MISMATCH, DiscrepancySeverity.MEDIUM);
-        }
-
-        // No discrepancy — transaction matched
-        return null;
-    }
-
-    private boolean isTerminal(String status) {
-        if (status == null) return false;
-        return TERMINAL_STATUSES.contains(status.toUpperCase());
-    }
-
-    private boolean statusesMatch(String payamStatus, String providerStatus) {
-        if (payamStatus == null || providerStatus == null) return false;
-        // Normalize: treat "SUCCESSFULL" (Orange) as equivalent to "SUCCESS"
-        String normalizedPayam = "SUCCESSFULL".equalsIgnoreCase(payamStatus) ? "SUCCESS" : payamStatus.toUpperCase();
-        String normalizedProvider = "SUCCESSFULL".equalsIgnoreCase(providerStatus) ? "SUCCESS" : providerStatus.toUpperCase();
-        return normalizedPayam.equals(normalizedProvider);
-    }
-
-    private ReconciliationDiscrepancy buildDiscrepancy(Long reportId,
-                                                        LocalDate reportDate,
-                                                        MobilePaymentProvider provider,
-                                                        Transaction tx,
-                                                        ProviderTransactionRecord record,
-                                                        DiscrepancyType type,
-                                                        DiscrepancySeverity severity) {
-        return ReconciliationDiscrepancy.builder()
-            .reportId(reportId)
-            .reportDate(reportDate)
-            .provider(provider)
-            .payamTxId(tx.getTransactionId())
-            .providerRef(tx.getProviderRef())
-            .payamStatus(tx.getTxStatus().name())
-            .providerStatus(record.providerStatus())
-            .payamAmount(tx.getAmount())
-            .providerAmount(record.providerAmount())
-            .discrepancyType(type)
-            .severity(severity)
-            .build();
     }
 }

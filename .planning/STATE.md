@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 35-02-PLAN.md
-last_updated: "2026-04-14T13:49:43.480Z"
+stopped_at: Completed 36-01-PLAN.md
+last_updated: "2026-04-14T16:57:15.466Z"
 last_activity: 2026-04-14
 progress:
   total_phases: 11
@@ -20,13 +20,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-14 — Milestone v7 started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 35 — idempotency-correctness
+**Current focus:** Phase 36 — reconciliation-hardening
 
 ## Current Position
 
 Phase: 36
-Plan: Not started
-Status: Phase complete — ready for verification
+Plan: 36-01 complete
+Status: Wave 1 complete — executing Wave 2
 Last activity: 2026-04-14
 
 ```
@@ -91,6 +91,8 @@ Key context from v6 research:
 - [Phase 34]: OrangePathMatrixTest also updated (not in plan scope) — had /infos/merchant stub that would cause silent test failures after adapter rewrite
 - [Phase 35]: Conflict target uses column-list form (tenant_id, idempotency_key) not ON CONFLICT ON CONSTRAINT — consistent with reserve() and avoids constraint-name coupling
 - [Phase 35]: Postgres-first write ordering in IdempotencyService.store(): repo.upsert() before redis.set(); Redis in isolated try/catch (IDEM-01)
+- [Phase 36]: Bean split for REQUIRES_NEW: extracted per-provider reconciliation to ReconciliationProviderRunner @Service bean; self-invocation via this.method() would bypass AOP proxy defeating REQUIRES_NEW semantics
+- [Phase 36]: ReconciliationService.runForDate() not @Transactional — wrapping in a transaction would defeat REQUIRES_NEW isolation in runner and prevent FAILED-state writes after rollback
 
 ### Roadmap Evolution
 
@@ -107,6 +109,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-14T13:46:39.361Z
-Stopped at: Completed 35-02-PLAN.md
+Last session: 2026-04-14T16:57:15.456Z
+Stopped at: Completed 36-01-PLAN.md
 Resume file: None

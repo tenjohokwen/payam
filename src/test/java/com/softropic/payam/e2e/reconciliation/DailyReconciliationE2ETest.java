@@ -148,7 +148,7 @@ public class DailyReconciliationE2ETest extends AbstractPayamE2ETest {
     // -------------------------------------------------------------------------
 
     /**
-     * Verifies that {@code LedgerSnapshotService} uses UTC boundaries for the reconciliation
+     * Verifies that {@code ReconciliationProviderRunner} uses UTC boundaries for the reconciliation
      * date window: {@code [YESTERDAY 00:00Z, TODAY 00:00Z)}.
      *
      * <p>A transaction at {@code YESTERDAY T23:30:00Z} corresponds to {@code TODAY T00:30:00 WAT}
