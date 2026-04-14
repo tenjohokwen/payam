@@ -222,4 +222,37 @@ class ReconciliationJobIT {
         assertThat(discrepancies).hasSize(1);
         assertThat(discrepancies.get(0).getDiscrepancyType()).isEqualTo(DiscrepancyType.UNCONFIRMED);
     }
+
+    @Test
+    void runForDate_processesLargeDataset_withPagedFetch() {
+        // Seed 1000 additional MTN transactions (plus the 1 already seeded in @BeforeEach = 1001 total MTN)
+        when(mtnMoMoPort.getTransactionStatus(anyString()))
+            .thenReturn(ProviderResult.success("ref", "SUCCESSFUL"));
+        when(orangeMoneyPort.getTransactionStatus(anyString()))
+            .thenReturn(ProviderResult.success("ref", "SUCCESSFULL"));
+
+        long baseId = (System.nanoTime() + 100L) & Long.MAX_VALUE;
+        String timestamp = YESTERDAY + "T13:00:00Z";
+        transactionTemplate.execute(status -> {
+            for (int i = 0; i < 1000; i++) {
+                jdbcTemplate.update(
+                    "INSERT INTO main.transaction (id, created_by, created_date, last_modified_by, last_modified_date, " +
+                    "transaction_id, trace_id, tenant_id, tx_status, status, provider, amount, currency, provider_ref) " +
+                    "VALUES (?, 'SYSTEM', ?::TIMESTAMPTZ, 'SYSTEM', ?::TIMESTAMPTZ, ?, ?, ?, 'SUCCESS', 'ACTIVE', 'MTN', 500.00, 'XAF', ?)",
+                    baseId + i, timestamp, timestamp,
+                    "tx-bulk-" + i + "-" + UUID.randomUUID(),
+                    UUID.randomUUID().toString(), tenantId,
+                    "bulk-ref-" + i);
+            }
+            return null;
+        });
+
+        reconciliationService.runForDate(YESTERDAY);
+
+        ReconciliationReport mtnReport = reportRepository.findAll().stream()
+            .filter(r -> r.getProvider() == MobilePaymentProvider.MTN)
+            .findFirst().orElseThrow();
+        assertThat(mtnReport.getStatus()).isEqualTo("COMPLETE");
+        assertThat(mtnReport.getTotalChecked()).isEqualTo(1001);
+    }
 }
