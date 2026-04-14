@@ -198,22 +198,25 @@ public class PaymentOrchestrator {
                     OrchestratorError.FRAUD_BLOCKED.getErrorCode(),
                     "Payment blocked: " + fraud.reason());
         }
-        // Capture fee values from the transactionTemplate block for use in PaymentResponse
-        BigDecimal[] capturedFee = {BigDecimal.ZERO};
-        Long[] capturedFeeRuleId = {null};
+        // TXN-01: compute fee BEFORE acquiring the DB row lock — pure in-memory cache operation
+        BigDecimal fee = feeEvaluationService.evaluateFee(tenantId, request.amount());
+        Long feeRuleIdVal = feeEvaluationService.findRuleForTenant(tenantId)
+                .map(r -> r.getId())
+                .orElse(null);
 
-        // Persist risk score, device fingerprint, and fee on the transaction (no connection held open)
+        // Capture fee values for use in PaymentResponse
+        BigDecimal[] capturedFee = {fee};
+        Long[] capturedFeeRuleId = {feeRuleIdVal};
+
+        // Persist risk score, device fingerprint, and pre-computed fee (lock covers writes only)
         transactionTemplate.execute(status -> {
             Transaction locked = transactionRepository.findByTransactionIdForUpdate(tx.getTransactionId()).orElseThrow();
             locked.setRiskScore(fraud.riskScore());
             locked.setDeviceFingerprint(cmd.deviceFingerprint());
-            // Fee evaluation — after idempotency check, before provider dispatch (Pitfall 2)
-            BigDecimal fee = feeEvaluationService.evaluateFee(tenantId, request.amount());
             locked.setFeeAmount(fee);
-            feeEvaluationService.findRuleForTenant(tenantId)
-                    .ifPresent(r -> locked.setFeeRuleId(r.getId()));
-            capturedFee[0] = fee;
-            capturedFeeRuleId[0] = locked.getFeeRuleId();
+            if (feeRuleIdVal != null) {
+                locked.setFeeRuleId(feeRuleIdVal);
+            }
             return null;
         });
 
