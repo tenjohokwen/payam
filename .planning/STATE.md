@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 36-01-PLAN.md
-last_updated: "2026-04-14T16:57:15.466Z"
-last_activity: 2026-04-14
+status: executing
+stopped_at: Completed 35-02-PLAN.md
+last_updated: "2026-04-14T16:39:08.998Z"
+last_activity: 2026-04-14 -- Phase 36 execution started
 progress:
   total_phases: 11
   completed_phases: 6
-  total_plans: 14
+  total_plans: 16
   completed_plans: 14
 ---
 
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-04-14 — Milestone v7 started)
 
 ## Current Position
 
-Phase: 36
-Plan: 36-01 complete
-Status: Wave 1 complete — executing Wave 2
-Last activity: 2026-04-14
+Phase: 36 (reconciliation-hardening) — EXECUTING
+Plan: 1 of 2
+Status: Executing Phase 36
+Last activity: 2026-04-14 -- Phase 36 execution started
 
 ```
 Progress [░░░░░░░░░░░░░░░░░░░░] 0% — 0 of 6 phases complete
@@ -91,8 +91,6 @@ Key context from v6 research:
 - [Phase 34]: OrangePathMatrixTest also updated (not in plan scope) — had /infos/merchant stub that would cause silent test failures after adapter rewrite
 - [Phase 35]: Conflict target uses column-list form (tenant_id, idempotency_key) not ON CONFLICT ON CONSTRAINT — consistent with reserve() and avoids constraint-name coupling
 - [Phase 35]: Postgres-first write ordering in IdempotencyService.store(): repo.upsert() before redis.set(); Redis in isolated try/catch (IDEM-01)
-- [Phase 36]: Bean split for REQUIRES_NEW: extracted per-provider reconciliation to ReconciliationProviderRunner @Service bean; self-invocation via this.method() would bypass AOP proxy defeating REQUIRES_NEW semantics
-- [Phase 36]: ReconciliationService.runForDate() not @Transactional — wrapping in a transaction would defeat REQUIRES_NEW isolation in runner and prevent FAILED-state writes after rollback
 
 ### Roadmap Evolution
 
@@ -109,6 +107,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-14T16:57:15.456Z
-Stopped at: Completed 36-01-PLAN.md
+Last session: 2026-04-14T13:46:39.361Z
+Stopped at: Completed 35-02-PLAN.md
 Resume file: None
