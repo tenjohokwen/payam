@@ -29,4 +29,33 @@ public interface IdempotencyKeyRepository extends JpaRepository<IdempotencyKey, 
         @Param("key") String key,
         @Param("expiresAt") Instant expiresAt,
         @Param("now") Instant now);
+
+    /**
+     * Atomically inserts or updates an idempotency key's cached response.
+     *
+     * On conflict on the unique constraint (tenant_id, idempotency_key), updates
+     * http_status, response_body, and expires_at. Used by IdempotencyService.store()
+     * to durably record the final response after successful processing — replaces
+     * the previous TOCTOU find+save pattern (IDEM-02).
+     *
+     * @return 1 if inserted or updated.
+     */
+    @Transactional
+    @Modifying
+    @Query(value = "INSERT INTO main.idempotency_key " +
+                   "(id, tenant_id, idempotency_key, http_status, response_body, expires_at, created_date) " +
+                   "VALUES (:id, :tenantId, :key, :httpStatus, :responseBody, :expiresAt, :now) " +
+                   "ON CONFLICT (tenant_id, idempotency_key) " +
+                   "DO UPDATE SET http_status = EXCLUDED.http_status, " +
+                   "              response_body = EXCLUDED.response_body, " +
+                   "              expires_at = EXCLUDED.expires_at",
+           nativeQuery = true)
+    int upsert(
+        @Param("id") Long id,
+        @Param("tenantId") Long tenantId,
+        @Param("key") String key,
+        @Param("httpStatus") int httpStatus,
+        @Param("responseBody") String responseBody,
+        @Param("expiresAt") Instant expiresAt,
+        @Param("now") Instant now);
 }
