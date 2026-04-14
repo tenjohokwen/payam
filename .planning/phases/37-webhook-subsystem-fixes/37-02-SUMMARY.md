@@ -100,3 +100,12 @@ None - no external service configuration required.
 ---
 *Phase: 37-webhook-subsystem-fixes*
 *Completed: 2026-04-14*
+
+## Self-Check: PASSED
+
+- FOUND: src/main/java/com/softropic/payam/webhook/contract/WebhookEnqueueRequestedEvent.java
+- FOUND: src/main/java/com/softropic/payam/webhook/service/WebhookDeliveryService.java
+- FOUND: src/main/java/com/softropic/payam/webhook/service/WebhookTransitionService.java
+- FOUND: src/test/java/com/softropic/payam/webhook/WebhookEnqueueListenerIT.java
+- FOUND: task-1 commit 7e85662
+- FOUND: task-2 commit 867166d
