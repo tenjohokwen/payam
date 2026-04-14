@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 36-02-PLAN.md
-last_updated: "2026-04-14T17:25:05.795Z"
+status: executing
+stopped_at: Completed 37-03-PLAN.md
+last_updated: "2026-04-14T18:38:08.651Z"
 last_activity: 2026-04-14
 progress:
   total_phases: 11
   completed_phases: 7
-  total_plans: 16
-  completed_plans: 16
+  total_plans: 20
+  completed_plans: 17
 ---
 
 # Project State
@@ -20,13 +20,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-14 — Milestone v7 started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 36 — reconciliation-hardening
+**Current focus:** Phase 37 — webhook-subsystem-fixes
 
 ## Current Position
 
-Phase: 37
-Plan: Not started
-Status: Phase 36 complete — ready for /gsd:verify-work
+Phase: 37 (webhook-subsystem-fixes) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
 Last activity: 2026-04-14
 
 ```
@@ -92,6 +92,8 @@ Key context from v6 research:
 - [Phase 35]: Conflict target uses column-list form (tenant_id, idempotency_key) not ON CONFLICT ON CONSTRAINT — consistent with reserve() and avoids constraint-name coupling
 - [Phase 35]: Postgres-first write ordering in IdempotencyService.store(): repo.upsert() before redis.set(); Redis in isolated try/catch (IDEM-01)
 - [Phase 36]: Surefire Docker-context errors in SecurityFilterChainIT and TenantAdminResourceIT are pre-existing, not Phase 36 regressions — same classes pass in failsafe runner; Maven exit 0 confirms build success
+- [Phase 37-webhook-subsystem-fixes]: CONNECT_TIMEOUT_MS=5000ms READ_TIMEOUT_MS=10000ms on SimpleClientHttpRequestFactory in WebhookConfig.noRetryRestTemplate (WEBHOOK-03)
+- [Phase 37-webhook-subsystem-fixes]: WebhookConfigTest uses reflection on private fields (no public getters on SimpleClientHttpRequestFactory) to pin timeout values
 
 ### Roadmap Evolution
 
@@ -108,6 +110,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-14T17:16:00.000Z
-Stopped at: Completed 36-02-PLAN.md
+Last session: 2026-04-14T18:38:08.624Z
+Stopped at: Completed 37-03-PLAN.md
 Resume file: None
