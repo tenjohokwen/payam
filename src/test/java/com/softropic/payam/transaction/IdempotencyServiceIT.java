@@ -11,6 +11,7 @@ import com.softropic.payam.transaction.service.IdempotencyService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -24,8 +25,18 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -171,5 +182,66 @@ class IdempotencyServiceIT {
         assertThat(result).isPresent();
         assertThat(result.get().httpStatus()).isEqualTo(200);
         assertThat(result.get().responseBody()).isEqualTo("{\"id\":\"xyz\"}");
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 4 (IDEM-01): store() does NOT write Redis when Postgres upsert fails
+    // -------------------------------------------------------------------------
+    @Test
+    void storeDoesNotWriteRedisWhenPostgresFails() {
+        // Build a repo spy whose upsert() throws
+        IdempotencyKeyRepository brokenRepo = Mockito.mock(IdempotencyKeyRepository.class);
+        Mockito.when(brokenRepo.upsert(anyLong(), anyLong(), anyString(), anyInt(), anyString(), any(), any()))
+            .thenThrow(new RuntimeException("simulated postgres failure"));
+
+        IdempotencyService serviceWithBrokenRepo = new IdempotencyService(stringRedisTemplate, brokenRepo);
+
+        String redisKey = "idempotency:" + tenantId + ":ordering-key";
+        // Pre-assert: key is absent
+        assertThat(stringRedisTemplate.opsForValue().get(redisKey)).isNull();
+
+        // Act + Assert: store() propagates the Postgres failure
+        assertThatThrownBy(() ->
+            serviceWithBrokenRepo.store(tenantId, "ordering-key", 202, "{\"id\":\"abc\"}"))
+            .isInstanceOf(RuntimeException.class)
+            .hasMessageContaining("simulated postgres failure");
+
+        // Assert: Redis was NEVER written (Postgres-first ordering proven)
+        assertThat(stringRedisTemplate.opsForValue().get(redisKey)).isNull();
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 5 (IDEM-02): concurrent store() calls produce exactly one DB row
+    // -------------------------------------------------------------------------
+    @Test
+    void concurrentStoreCalls_ProduceExactlyOneDbRow() throws Exception {
+        final int THREADS = 20;
+        final String raceKey = "race-key";
+        final CyclicBarrier barrier = new CyclicBarrier(THREADS);
+        final CopyOnWriteArrayList<Throwable> failures = new CopyOnWriteArrayList<>();
+        ExecutorService pool = Executors.newFixedThreadPool(THREADS);
+
+        for (int i = 0; i < THREADS; i++) {
+            pool.submit(() -> {
+                try {
+                    barrier.await();
+                    idempotencyService.store(tenantId, raceKey, 202, "{\"id\":\"x\"}");
+                } catch (Throwable t) {
+                    failures.add(t);
+                }
+            });
+        }
+        pool.shutdown();
+        boolean finished = pool.awaitTermination(30, TimeUnit.SECONDS);
+        assertThat(finished).as("all threads terminated within 30s").isTrue();
+
+        // No exception leaks (IDEM-02)
+        assertThat(failures).as("no store() call threw").isEmpty();
+
+        // Exactly one DB row (IDEM-02)
+        Integer count = jdbcTemplate.queryForObject(
+            "SELECT count(*) FROM main.idempotency_key WHERE tenant_id = ? AND idempotency_key = ?",
+            Integer.class, tenantId, raceKey);
+        assertThat(count).isEqualTo(1);
     }
 }
