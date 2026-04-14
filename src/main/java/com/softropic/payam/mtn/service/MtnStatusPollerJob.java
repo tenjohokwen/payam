@@ -11,6 +11,8 @@ import com.softropic.payam.transaction.service.EventLogService;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,17 +51,20 @@ public class MtnStatusPollerJob extends QuartzJobBean {
     private final EventLogService eventLogService;
     private final MtnMoMoConfig config;
     private final JdbcTemplate jdbcTemplate;
+    private final ObservationRegistry observationRegistry;
 
     public MtnStatusPollerJob(TransactionRepository transactionRepository,
                                MtnMoMoPort mtnMoMoPort,
                                EventLogService eventLogService,
                                MtnMoMoConfig config,
-                               JdbcTemplate jdbcTemplate) {
+                               JdbcTemplate jdbcTemplate,
+                               ObservationRegistry observationRegistry) {
         this.transactionRepository = transactionRepository;
         this.mtnMoMoPort = mtnMoMoPort;
         this.eventLogService = eventLogService;
         this.config = config;
         this.jdbcTemplate = jdbcTemplate;
+        this.observationRegistry = observationRegistry;
     }
 
     /**
@@ -75,9 +80,20 @@ public class MtnStatusPollerJob extends QuartzJobBean {
      * NOTE: MTN has NO payToken expiry concern — providerRef is a stable merchant-generated UUID.
      * Do NOT add assertPayTokenFresh() here (that is Orange-specific).
      */
+    /**
+     * Quartz entry point. @Observed cannot advise this protected method via Spring AOP
+     * (the parent class calls it via self-invocation, bypassing the proxy), so we use
+     * a programmatic Observation that produces the same span + timer as @Observed would.
+     */
     @Override
     @Transactional
     protected void executeInternal(JobExecutionContext context) {
+        Observation.createNotStarted("quartz.mtn-poller", observationRegistry)
+                .lowCardinalityKeyValue("job", "MtnStatusPollerJob")
+                .observe(this::runPoller);
+    }
+
+    private void runPoller() {
         // Non-blocking transaction-level advisory lock — only one node polls at a time.
         Boolean locked = jdbcTemplate.queryForObject(
             "SELECT pg_try_advisory_xact_lock(?)", Boolean.class, MTN_POLLER_LOCK_KEY);
@@ -88,8 +104,8 @@ public class MtnStatusPollerJob extends QuartzJobBean {
         }
 
         int initialDelaySeconds = config.getPoller().getInitialDelaySeconds();
-        
-        // If delay is 0 (test-time), use a 1-hour FUTURE cutoff to pick up ALL transactions 
+
+        // If delay is 0 (test-time), use a 1-hour FUTURE cutoff to pick up ALL transactions
         // including those created/modified in the current millisecond or shifted by auditing.
         Instant cutoff = initialDelaySeconds == 0
             ? Instant.now().plus(1, ChronoUnit.HOURS)

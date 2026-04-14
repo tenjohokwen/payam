@@ -4,6 +4,7 @@ import com.softropic.payam.admin.service.PaymentMetricsService;
 import com.softropic.payam.orange.contract.OrangeWebhookPayload;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
 
+import io.micrometer.observation.annotation.Observed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -29,6 +30,7 @@ import java.time.Duration;
  *
  * This endpoint is public (no JWT required) — see AppEndpoints.PUBLIC_ENDPOINTS.
  */
+@Observed(name = "http.orange-callback")
 @RestController
 public class OrangeCallbackController {
 

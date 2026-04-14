@@ -4,6 +4,7 @@ import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.payment.repo.MsisdnPrefixRoute;
 import com.softropic.payam.payment.repo.MsisdnPrefixRouteRepository;
 
+import io.micrometer.observation.annotation.Observed;
 import jakarta.annotation.PostConstruct;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,7 @@ public class MsisdnPrefixRouteCache {
      * Reload enabled MSISDN prefix routes from DB and replace the cache.
      * Called on startup via {@link PostConstruct} and on a scheduled interval.
      */
+    @Observed(name = "scheduler.cache-refresh", contextualName = "msisdn-prefix-cache")
     @Scheduled(fixedDelayString = "${msisdn.prefix-cache.refresh-interval-ms:60000}")
     public void refresh() {
         List<MsisdnPrefixRoute> routes = msisdnPrefixRouteRepository.findAllByEnabledTrue();

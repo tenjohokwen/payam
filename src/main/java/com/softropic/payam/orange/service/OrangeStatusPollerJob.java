@@ -12,6 +12,8 @@ import com.softropic.payam.transaction.service.EventLogService;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,17 +52,20 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
     private final EventLogService eventLogService;
     private final OrangeMoneyConfig config;
     private final JdbcTemplate jdbcTemplate;
+    private final ObservationRegistry observationRegistry;
 
     public OrangeStatusPollerJob(TransactionRepository transactionRepository,
                                  OrangeMoneyPort orangeMoneyPort,
                                  EventLogService eventLogService,
                                  OrangeMoneyConfig config,
-                                 JdbcTemplate jdbcTemplate) {
+                                 JdbcTemplate jdbcTemplate,
+                                 ObservationRegistry observationRegistry) {
         this.transactionRepository = transactionRepository;
         this.orangeMoneyPort = orangeMoneyPort;
         this.eventLogService = eventLogService;
         this.config = config;
         this.jdbcTemplate = jdbcTemplate;
+        this.observationRegistry = observationRegistry;
     }
 
     /**
@@ -73,9 +78,20 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
      * On pollAttempts >= 15: mark FAILED (timeout)
      * Uses @Lock(PESSIMISTIC_WRITE) via findByTransactionIdForUpdate to prevent race with webhook (P1.2)
      */
+    /**
+     * Quartz entry point. @Observed cannot advise this protected method via Spring AOP
+     * (the parent class calls it via self-invocation, bypassing the proxy), so we use
+     * a programmatic Observation that produces the same span + timer as @Observed would.
+     */
     @Override
     @Transactional
     protected void executeInternal(JobExecutionContext context) {
+        Observation.createNotStarted("quartz.orange-poller", observationRegistry)
+                .lowCardinalityKeyValue("job", "OrangeStatusPollerJob")
+                .observe(this::runPoller);
+    }
+
+    private void runPoller() {
         // Non-blocking transaction-level advisory lock — only one node polls at a time.
         // pg_try_advisory_xact_lock returns false immediately if another session holds it,
         // and the lock is auto-released when this transaction ends (commit or rollback).

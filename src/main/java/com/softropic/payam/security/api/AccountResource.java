@@ -1,27 +1,21 @@
 package com.softropic.payam.security.api;
 
 
-
-
-import com.softropic.payam.common.message.Failure;
 import com.softropic.payam.common.message.Response;
 import com.softropic.payam.common.message.Success;
 import com.softropic.payam.security.contract.ChangePasswordDto;
 import com.softropic.payam.security.contract.UserDto;
 import com.softropic.payam.security.contract.exception.AuthorizationException;
 import com.softropic.payam.security.contract.exception.SecurityError;
-import com.softropic.payam.security.service.UserService;
-import com.softropic.payam.security.service.UserRegistrationService;
 import com.softropic.payam.security.service.UserMapper;
+import com.softropic.payam.security.service.UserRegistrationService;
+import com.softropic.payam.security.service.UserService;
 
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -29,10 +23,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
-
 
 import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -40,6 +33,7 @@ import jakarta.validation.constraints.NotNull;
 /**
  * REST controller for managing the current user's account.
  */
+@Observed(name = "http.account")
 @RestController
 @RequestMapping("/v1/account")
 public class AccountResource {

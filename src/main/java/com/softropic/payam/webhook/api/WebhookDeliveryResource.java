@@ -4,6 +4,7 @@ import com.softropic.payam.security.common.util.SecurityConstants;
 import com.softropic.payam.webhook.repo.WebhookDeliveryLog;
 import com.softropic.payam.webhook.service.WebhookDeliveryService;
 
+import io.micrometer.observation.annotation.Observed;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +19,7 @@ import java.util.List;
  *
  * Requires JWT authentication (standard secured endpoint under /v1/**).
  */
+@Observed(name = "http.admin.webhooks")
 @RestController
 @RequestMapping("/v1/admin/webhooks")
 @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)

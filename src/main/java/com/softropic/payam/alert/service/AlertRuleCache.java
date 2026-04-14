@@ -3,6 +3,7 @@ package com.softropic.payam.alert.service;
 import com.softropic.payam.alert.repo.AlertRule;
 import com.softropic.payam.alert.repo.AlertRuleRepository;
 
+import io.micrometer.observation.annotation.Observed;
 import jakarta.annotation.PostConstruct;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,7 @@ public class AlertRuleCache {
      * Reload enabled alert rules from DB and atomically replace the cache.
      * Called on startup via {@link PostConstruct} and on a scheduled interval.
      */
+    @Observed(name = "scheduler.cache-refresh", contextualName = "alert-rule-cache")
     @Scheduled(fixedDelayString = "${alert.rule-cache.refresh-interval-ms:60000}")
     public void refresh() {
         List<AlertRule> rules = alertRuleRepository.findAllByEnabledTrue();

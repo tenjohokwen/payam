@@ -6,6 +6,7 @@ import com.softropic.payam.payment.contract.PaymentResponse;
 import com.softropic.payam.payment.service.PaymentOrchestrator;
 import com.softropic.payam.tenant.contract.TenantPrincipal;
 
+import io.micrometer.observation.annotation.Observed;
 import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
  *   <li>502 Bad Gateway — PROVIDER_ERROR (4xx/5xx from provider)</li>
  * </ul>
  */
+@Observed(name = "http.payment")
 @RestController
 public class PaymentResource {
 

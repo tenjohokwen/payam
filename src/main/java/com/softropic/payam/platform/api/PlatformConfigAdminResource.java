@@ -4,6 +4,7 @@ import com.softropic.payam.platform.contract.PlatformConfigDto;
 import com.softropic.payam.platform.service.PlatformConfigService;
 import com.softropic.payam.security.common.util.SecurityConstants;
 
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,6 +26,7 @@ import java.util.List;
  * <p>GET /v1/admin/platform-config         — list all provider configs (ORANGE + MTN)
  * PUT /v1/admin/platform-config/{provider} — update the MSISDN for a specific provider
  */
+@Observed(name = "http.admin.platform-config")
 @RestController
 @RequestMapping("/v1/admin/platform-config")
 @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)

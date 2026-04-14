@@ -9,6 +9,7 @@ import com.softropic.payam.reconciliation.repo.ReconciliationReportRepository;
 import com.softropic.payam.reconciliation.service.ReconciliationExportService;
 import com.softropic.payam.security.common.util.SecurityConstants;
 
+import io.micrometer.observation.annotation.Observed;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -37,6 +38,7 @@ import java.util.List;
  * GET /v1/admin/reconciliation/reports/{id}/discrepancies   — all discrepancy rows for a run
  * GET /v1/admin/reconciliation/reports/{id}/export          — CSV or JSON file download
  */
+@Observed(name = "http.admin.reconciliation")
 @RestController
 @RequestMapping("/v1/admin/reconciliation")
 @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)

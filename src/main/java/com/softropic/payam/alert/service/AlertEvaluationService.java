@@ -4,6 +4,7 @@ import com.softropic.payam.alert.contract.AlertFiredEvent;
 import com.softropic.payam.alert.repo.AlertRule;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.annotation.Observed;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +50,7 @@ public class AlertEvaluationService {
      * Evaluate all cached alert rules against current Micrometer counter values.
      * Runs on a fixed delay (default 30 s). Safe to call directly in tests.
      */
+    @Observed(name = "scheduler.alert-evaluation")
     @Scheduled(fixedDelayString = "${alert.evaluation-interval-ms:30000}")
     public void evaluate() {
         for (AlertRule rule : alertRuleCache.getCachedRules()) {

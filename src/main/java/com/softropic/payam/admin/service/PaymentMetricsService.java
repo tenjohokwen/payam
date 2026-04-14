@@ -8,6 +8,7 @@ import com.softropic.payam.transaction.repo.TransactionRepository;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.annotation.Observed;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -158,6 +159,7 @@ public class PaymentMetricsService {
      * Dead emitters (failed send) are collected and batch-removed after the push loop
      * to avoid ConcurrentModificationException on CopyOnWriteArrayList.
      */
+    @Observed(name = "scheduler.metrics-push")
     @Scheduled(fixedDelay = PUSH_INTERVAL_SECONDS * 1000)
     public void pushMetrics() {
         if (emitters.isEmpty()) return;

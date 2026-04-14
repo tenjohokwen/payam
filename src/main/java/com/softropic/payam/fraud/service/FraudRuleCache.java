@@ -3,6 +3,7 @@ package com.softropic.payam.fraud.service;
 import com.softropic.payam.fraud.repo.FraudRule;
 import com.softropic.payam.fraud.repo.FraudRuleRepository;
 
+import io.micrometer.observation.annotation.Observed;
 import jakarta.annotation.PostConstruct;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -42,6 +43,7 @@ public class FraudRuleCache {
      * Reload enabled fraud rules from DB and atomically replace the cache.
      * Called on startup via {@link PostConstruct} and on a scheduled interval.
      */
+    @Observed(name = "scheduler.cache-refresh", contextualName = "fraud-rule-cache")
     @Scheduled(fixedDelayString = "${fraud.rule-cache.refresh-interval-ms:60000}")
     public void refreshRules() {
         List<FraudRule> rules = fraudRuleRepository.findByEnabledTrue();

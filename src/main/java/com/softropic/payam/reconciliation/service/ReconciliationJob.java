@@ -1,5 +1,7 @@
 package com.softropic.payam.reconciliation.service;
 
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,9 +33,23 @@ public class ReconciliationJob extends QuartzJobBean {
     @Autowired
     private ReconciliationService reconciliationService;
 
+    @Autowired
+    private ObservationRegistry observationRegistry;
+
+    /**
+     * Quartz entry point. @Observed cannot advise this protected method via Spring AOP
+     * (the parent class calls it via self-invocation, bypassing the proxy), so we use
+     * a programmatic Observation that produces the same span + timer as @Observed would.
+     */
     @Override
     @Transactional
     protected void executeInternal(JobExecutionContext context) {
+        Observation.createNotStarted("quartz.reconciliation", observationRegistry)
+                .lowCardinalityKeyValue("job", "ReconciliationJob")
+                .observe(this::runReconciliation);
+    }
+
+    private void runReconciliation() {
         LocalDate yesterday = LocalDate.now(ZoneOffset.UTC).minusDays(1);
         try {
             reconciliationService.runForDate(yesterday);

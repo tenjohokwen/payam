@@ -14,6 +14,7 @@ import com.softropic.payam.tenant.service.ApiKeyService;
 import com.softropic.payam.tenant.service.TenantQueryService;
 import com.softropic.payam.tenant.service.TenantService;
 
+import io.micrometer.observation.annotation.Observed;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -37,6 +38,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 
+@Observed(name = "http.admin.tenants")
 @RestController
 @RequestMapping("/v1/admin/tenants")
 public class TenantAdminResource {

@@ -36,12 +36,14 @@ import java.util.Optional;
 import java.util.UUID;
 
 import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
 import jakarta.validation.Valid;
 
 /**
  * REST controller for managing the current user's profile.
  * Endpoints are mapped at /api/account/* as specified in the ROADMAP.
  */
+@Observed(name = "http.profile")
 @RestController
 @RequestMapping("/api/account")
 @PreAuthorize(SecurityConstants.HAS_ANY_ROLE)

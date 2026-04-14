@@ -3,6 +3,7 @@ package com.softropic.payam.admin.api;
 import com.softropic.payam.admin.service.PaymentMetricsService;
 import com.softropic.payam.security.common.util.SecurityConstants;
 
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,6 +23,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  * Excluded from the API-key filter chain by the existing NegatedRequestMatcher in
  * TenantSecurityConfig (covers all /v1/admin/** routes).
  */
+@Observed(name = "http.admin.metrics")
 @RestController
 @RequestMapping("/v1/admin/metrics")
 @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)

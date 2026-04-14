@@ -6,6 +6,7 @@ import com.softropic.payam.fee.repo.FeeRuleRepository;
 import com.softropic.payam.fee.service.FeeRuleCache;
 import com.softropic.payam.security.common.util.SecurityConstants;
 
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,6 +37,7 @@ import java.util.List;
  *   <li>PUT    /v1/admin/fees/{id}    — update an existing fee rule</li>
  * </ul>
  */
+@Observed(name = "http.admin.fees")
 @RestController
 @RequestMapping("/v1/admin/fees")
 @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)

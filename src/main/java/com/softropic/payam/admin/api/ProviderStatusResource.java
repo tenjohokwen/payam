@@ -5,6 +5,7 @@ import com.softropic.payam.security.common.util.SecurityConstants;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,6 +26,7 @@ import java.util.Map;
  * first use; a freshly-started instance would return an empty map if no payments have yet
  * been processed.
  */
+@Observed(name = "http.admin.provider-status")
 @RestController
 @RequestMapping("/v1/admin/providers")
 @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)

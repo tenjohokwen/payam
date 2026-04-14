@@ -7,6 +7,7 @@ import com.softropic.payam.email.repo.EnvelopeEntityRepository;
 import com.softropic.payam.email.service.EnvelopeMapper;
 import com.softropic.payam.email.service.MailManager;
 
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -64,6 +65,7 @@ public class EmailRetryScheduler {
      * </ol>
      * In both cases {@code retry} is set to {@code false} so the row is never fetched again.
      */
+    @Observed(name = "scheduler.email-retry")
     @Scheduled(fixedDelayString = "${email.retry.interval-ms:60000}")
     @Transactional
     public void retryFailedEmails() {

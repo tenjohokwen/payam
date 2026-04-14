@@ -3,6 +3,7 @@ package com.softropic.payam.security.api;
 import com.softropic.payam.security.common.util.SecurityConstants;
 import com.softropic.payam.security.service.LoginAttemptsService;
 
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
  * Admin endpoints for managing login-attempt locks.
  * All operations require ADMIN or LTD_ADMIN authority.
  */
+@Observed(name = "http.admin.login-lock")
 @Slf4j
 @RestController
 @RequestMapping("/v1/admin")

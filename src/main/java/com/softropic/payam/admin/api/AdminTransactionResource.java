@@ -5,6 +5,7 @@ import com.softropic.payam.admin.contract.TransactionSummaryDto;
 import com.softropic.payam.admin.service.AdminTransactionQueryService;
 import com.softropic.payam.security.common.util.SecurityConstants;
 
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>GET /v1/admin/transactions — paginated search across all tenants
  * GET /v1/admin/transactions/{transactionId}/events — full event timeline for one transaction
  */
+@Observed(name = "http.admin.transactions")
 @RestController
 @RequestMapping("/v1/admin/transactions")
 @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)

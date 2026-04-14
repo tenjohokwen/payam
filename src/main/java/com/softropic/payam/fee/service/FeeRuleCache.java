@@ -3,6 +3,7 @@ package com.softropic.payam.fee.service;
 import com.softropic.payam.fee.repo.FeeRule;
 import com.softropic.payam.fee.repo.FeeRuleRepository;
 
+import io.micrometer.observation.annotation.Observed;
 import jakarta.annotation.PostConstruct;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -44,6 +45,7 @@ public class FeeRuleCache {
      * Reload enabled fee rules from DB and replace the cache.
      * Called on startup via {@link PostConstruct} and on a scheduled interval.
      */
+    @Observed(name = "scheduler.cache-refresh", contextualName = "fee-rule-cache")
     @Scheduled(fixedDelayString = "${fee.rule-cache.refresh-interval-ms:60000}")
     public void refresh() {
         List<FeeRule> rules = feeRuleRepository.findAllByEnabledTrue();

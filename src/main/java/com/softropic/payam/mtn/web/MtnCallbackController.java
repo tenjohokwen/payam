@@ -4,6 +4,7 @@ import com.softropic.payam.admin.service.PaymentMetricsService;
 import com.softropic.payam.mtn.contract.MtnCallbackPayload;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 
+import io.micrometer.observation.annotation.Observed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,7 @@ import jakarta.servlet.http.HttpServletRequest;
  * IP whitelist is enforced upstream by MtnIpWhitelistInterceptor (preHandle).
  * This endpoint is public (no JWT required) — see AppEndpoints.PUBLIC_ENDPOINTS.
  */
+@Observed(name = "http.mtn-callback")
 @RestController
 public class MtnCallbackController {
 

@@ -5,6 +5,7 @@ import com.softropic.payam.alert.repo.AlertRuleRepository;
 import com.softropic.payam.alert.service.AlertRuleCache;
 import com.softropic.payam.security.common.util.SecurityConstants;
 
+import io.micrometer.observation.annotation.Observed;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,7 @@ import java.util.List;
  * GET  /v1/admin/alerts          — list all currently enabled alert rules (from cache)
  * PUT  /v1/admin/alerts/{id}     — update an existing alert rule (delete-then-save)
  */
+@Observed(name = "http.admin.alerts")
 @RestController
 @RequestMapping("/v1/admin/alerts")
 @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)

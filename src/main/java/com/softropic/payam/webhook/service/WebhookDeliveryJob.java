@@ -3,6 +3,9 @@ package com.softropic.payam.webhook.service;
 import com.softropic.payam.webhook.repo.WebhookDeliveryLog;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
+
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,9 +34,23 @@ public class WebhookDeliveryJob extends QuartzJobBean {
     @Autowired
     private WebhookDeliveryService deliveryService;
 
+    @Autowired
+    private ObservationRegistry observationRegistry;
+
+    /**
+     * Quartz entry point. @Observed cannot advise this protected method via Spring AOP
+     * (the parent class calls it via self-invocation, bypassing the proxy), so we use
+     * a programmatic Observation that produces the same span + timer as @Observed would.
+     */
     @Override
     @Transactional
     protected void executeInternal(JobExecutionContext context) {
+        Observation.createNotStarted("quartz.webhook-delivery", observationRegistry)
+                .lowCardinalityKeyValue("job", "WebhookDeliveryJob")
+                .observe(this::runDelivery);
+    }
+
+    private void runDelivery() {
         List<WebhookDeliveryLog> pending = deliveryService.findPendingDeliveries();
         log.info("Webhook delivery job scan",
             kv("operation", "webhook_delivery_scan"),

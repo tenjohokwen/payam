@@ -6,6 +6,7 @@ import com.softropic.payam.security.common.util.SecurityConstants;
 import com.softropic.payam.transaction.repo.PaymentEventLogRepository;
 import com.softropic.payam.transaction.service.EventLogService;
 
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,6 +32,7 @@ import java.util.List;
  *   <li>GET /v1/admin/audit/hash-chain — verify all transactions (may be slow on large logs)</li>
  * </ul>
  */
+@Observed(name = "http.admin.audit")
 @RestController
 @RequestMapping("/v1/admin/audit")
 @PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)

@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 
 import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
 
 /**
  * Service for user administration operations.
@@ -80,6 +81,7 @@ public class UserAdminService {
      * (e.g., using ShedLock) to ensure only one node executes this job.
      * </p>
      */
+    @Observed(name = "scheduler.user-cleanup")
     @Scheduled(cron = "0 0 1 * * ?")
     @Timed
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
