@@ -1,7 +1,6 @@
 package com.softropic.payam.transaction.service;
 
 import com.softropic.payam.transaction.contract.CachedResponse;
-import com.softropic.payam.transaction.repo.IdempotencyKey;
 import com.softropic.payam.transaction.repo.IdempotencyKeyRepository;
 
 import io.hypersistence.tsid.TSID;
@@ -73,12 +72,39 @@ public class IdempotencyService {
 
     /**
      * Stores the response for this idempotency key after successful processing.
-     * Replaces the RESERVED placeholder in Redis and upserts the PostgreSQL record.
+     *
+     * Ordering contract (IDEM-01): Postgres UPSERT executes FIRST. Only if the
+     * Postgres write succeeds is Redis updated. A Postgres failure propagates to
+     * the caller and Redis is never touched, so a retry falls through to the
+     * Postgres fallback path.
+     *
+     * Concurrency contract (IDEM-02): the Postgres write is a single atomic
+     * INSERT ... ON CONFLICT ... DO UPDATE — no TOCTOU find+save race. Concurrent
+     * store() calls for the same (tenantId, idempotencyKey) produce exactly one
+     * DB row.
+     *
+     * Redis failure is tolerated: Redis is a performance cache, not the source
+     * of truth. On Redis failure the next request falls through to
+     * fallbackToPostgres() and serves the durable record.
      */
     @Transactional
     public void store(Long tenantId, String idempotencyKey, int httpStatus, String responseBody) {
-        String redisKey = KEY_PREFIX + tenantId + ":" + idempotencyKey;
+        Instant now = Instant.now();
 
+        // Step 1: Postgres FIRST — durable, atomic, concurrency-safe.
+        // A failure here propagates; Redis is never touched.
+        repo.upsert(
+            TSID.fast().toLong(),
+            tenantId,
+            idempotencyKey,
+            httpStatus,
+            responseBody,
+            now.plus(TTL),
+            now
+        );
+
+        // Step 2: Redis SECOND — best-effort cache update. Only reached on Postgres success.
+        String redisKey = KEY_PREFIX + tenantId + ":" + idempotencyKey;
         try {
             redis.opsForValue().set(redisKey, CachedResponse.toJson(httpStatus, responseBody), TTL);
         } catch (Exception e) {
@@ -86,18 +112,8 @@ public class IdempotencyService {
                 kv("operation", "idempotency_store"),
                 kv("status", "REDIS_UNAVAILABLE"),
                 e);
+            // Tolerated — Postgres is authoritative; checkAndReserve() fallback will serve from DB.
         }
-
-        // Upsert PostgreSQL record
-        repo.findByTenantIdAndIdempotencyKey(tenantId, idempotencyKey)
-                .ifPresentOrElse(
-                        existing -> {
-                            // Update existing record by deleting and re-saving
-                            repo.delete(existing);
-                            repo.save(buildIdempotencyKey(tenantId, idempotencyKey, httpStatus, responseBody));
-                        },
-                        () -> repo.save(buildIdempotencyKey(tenantId, idempotencyKey, httpStatus, responseBody))
-                );
     }
 
     private Optional<CachedResponse> fallbackToPostgres(Long tenantId, String idempotencyKey) {
@@ -124,16 +140,4 @@ public class IdempotencyService {
                 });
     }
 
-    private IdempotencyKey buildIdempotencyKey(Long tenantId, String idempotencyKey,
-                                               int httpStatus, String responseBody) {
-        Instant now = Instant.now();
-        return IdempotencyKey.builder()
-                .tenantId(tenantId)
-                .idempotencyKey(idempotencyKey)
-                .httpStatus(httpStatus)
-                .responseBody(responseBody)
-                .createdDate(now)
-                .expiresAt(now.plus(TTL))
-                .build();
-    }
 }
