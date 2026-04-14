@@ -26,7 +26,12 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -123,6 +128,42 @@ public class WebhookDeliveryService {
         }
         attemptDeliveryInternal(delivery, tenant);
         repo.save(delivery);
+    }
+
+    /**
+     * Attempt delivery using a pre-loaded Tenant (WEBHOOK-01).
+     * Called by WebhookDeliveryJob after bulk-loading tenants via loadTenants(Set&lt;Long&gt;).
+     * Unlike attemptDelivery(WebhookDeliveryLog), this method does NOT issue a tenant SELECT —
+     * the caller is responsible for providing the Tenant (or null if not found in bulk load).
+     */
+    @Transactional
+    public void attemptDelivery(WebhookDeliveryLog delivery, Tenant tenant) {
+        if (tenant == null) {
+            log.warn("Tenant not found for webhook delivery",
+                kv("operation", "webhook_delivery"),
+                kv("tenantId", delivery.getTenantId()),
+                kv("status", "TENANT_NOT_FOUND"));
+            return;
+        }
+        attemptDeliveryInternal(delivery, tenant);
+        repo.save(delivery);
+    }
+
+    /**
+     * Bulk-load tenants for a set of tenantIds in a single SELECT.
+     * Used by WebhookDeliveryJob to pre-load all tenants for pending deliveries before
+     * the per-delivery loop — eliminates the N+1 tenant query (WEBHOOK-01).
+     *
+     * @param tenantIds the set of distinct tenant IDs to load
+     * @return map from Tenant.getId() to Tenant; empty map if tenantIds is empty
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, Tenant> loadTenants(Set<Long> tenantIds) {
+        if (tenantIds == null || tenantIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return tenantRepository.findAllById(tenantIds).stream()
+            .collect(Collectors.toMap(Tenant::getId, Function.identity()));
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.softropic.payam.webhook.service;
 
+import com.softropic.payam.tenant.repo.Tenant;
 import com.softropic.payam.webhook.repo.WebhookDeliveryLog;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
@@ -15,6 +16,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Quartz job that polls for pending outbound webhook deliveries and retries them.
@@ -55,9 +59,17 @@ public class WebhookDeliveryJob extends QuartzJobBean {
         log.info("Webhook delivery job scan",
             kv("operation", "webhook_delivery_scan"),
             kv("pendingCount", pending.size()));
+        if (pending.isEmpty()) {
+            return;
+        }
+        Set<Long> tenantIds = pending.stream()
+            .map(WebhookDeliveryLog::getTenantId)
+            .collect(Collectors.toSet());
+        // WEBHOOK-01: one tenant SELECT per tick regardless of pending-delivery count.
+        Map<Long, Tenant> tenantMap = deliveryService.loadTenants(tenantIds);
         for (WebhookDeliveryLog delivery : pending) {
             try {
-                deliveryService.attemptDelivery(delivery);
+                deliveryService.attemptDelivery(delivery, tenantMap.get(delivery.getTenantId()));
             } catch (Exception e) {
                 log.warn("Webhook delivery attempt failed",
                     kv("operation", "webhook_delivery"),
