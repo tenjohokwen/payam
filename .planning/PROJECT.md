@@ -128,32 +128,36 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 | Entity-level load+save (not bulk JPQL) for `revokeExpiredRotatedKeys()` | Envers captures each revocation as a separate audit revision; bulk JPQL bypasses Envers | ✓ Good — use entity-level ops when audit trail is required per row |
 | Flyway V21 migrates `rotated_at` to `TIMESTAMPTZ` | Quartz job's `Instant` parameters compared against TIMESTAMP(no tz) caused timezone mismatch in Testcontainers (Postgres defaulted to Europe/Berlin) | ✓ Good — always use TIMESTAMPTZ for timestamp columns that are compared with JVM Instant values |
 
-## Current Milestone: v6 REST API Surface, Notifications & Admin UI
+## Current Milestone: v7 Backend Hardening & Bug Fixes
 
-**Goal:** Expose the v5 service layer over HTTP, wire email notifications for all key tenant/key lifecycle events, and build Admin UI screens for tenant management.
+**Goal:** Fix 13 audit-identified bugs and risk areas — critical data-consistency issues, transaction boundary problems, and medium concurrency hazards — so the system is production-safe under concurrent load.
 
-**Target features:**
-- REST endpoints for 6 TenantService operations: update name/email/webhookUrl, suspend, reactivate, regenerate WebhookSecret
-- TENT-09: SUSPENDED tenant status blocks API key authentication
-- TENT-05/06: Admin list and detail views for tenants
-- AKEY-07: One-time key display modal — admin confirms copy before dismissal
-- WSEC-02: WebhookSecret reveal via eye icon UI
-- NOTIF-01..06: Email notifications for key generation/rotation, revocation/reactivation, secret generation, tenant status change, webhookUrl change, tenant email change
-- Admin UI: tenant management screens (create, edit, status toggle, key management per env)
+**Target fixes:**
+- [CRIT-5A] Idempotency write ordering: Postgres first, then Redis (currently Redis-first → permanent inconsistency on PG failure)
+- [CRIT-1A] Reconciliation unbounded fetch: paginate findTransactionsForDateAndProvider() in 1000-row batches
+- [HIGH-3A] PaymentOrchestrator: move fee evaluation before transaction boundary to reduce lock contention
+- [HIGH-2A] WebhookDeliveryService: eliminate N+1 tenant lookup per delivery (JOIN or bulk-load)
+- [HIGH-5C] WebhookTransitionService: move enqueue to @TransactionalEventListener(AFTER_COMMIT)
+- [HIGH-4AB] WebhookConfig: add connect/read timeouts to RestTemplate
+- [MED-2B] IdempotencyService: replace TOCTOU find+save with single DB UPSERT
+- [MED-5B] ApiKeyService: add @Version or unique constraint for concurrent rotation
+- [MED-3B] ReconciliationService: catch exceptions, transition report to FAILED state
+- [MED-5D] LedgerService: add DB constraint enforcing balanced debit+credit pairs per entry_group_id
+- [MED-6A] Poller advisory locks: add transaction timeout to bound lock hold duration
+- [MED-6B] FraudScoringService: reorder so fraud eval precedes idempotency cache write
+- [MED-6C] TenantContext filter: audit try-finally guarantees + integration test for exception path
 
 ## Current State
 
-**Shipped:** v5 (2026-04-06) — 30 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5), 70 plans
-**In progress:** v6 — Phase 33 complete (admin UI tenant management: list page, detail page, key lifecycle, webhook secret reveal; UI-01–UI-04 verified)
+**Shipped:** v6 (2026-04-14) — 34 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5 + 5 v6), 82 plans
+**Starting:** v7 — Backend Hardening & Bug Fixes (phases 35+)
 **Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar + Hibernate Envers
 **Observability:** Full Loki-queryable structured logging + Spring Boot Actuator health with live provider MSISDN validation + CB state
-**Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage + 22 tenant/key integration tests (TenantServiceIT, TenantAuditIT, TenantProvisioningIT, RotatedKeyCleanupJobIT)
+**Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage + 22 tenant/key integration tests
+**Constraint:** `mvn verify` (including integration tests) must pass before every commit
 **Known tech debt:**
 - `TenantProvisioningIT.tearDown()` does not clean audit tables — rows accumulate across test runs (non-critical)
-- `ApiKeyBuilder` previously derived keyPrefix from `rawKey.substring(0,8)` — now fixed, but test builders that pre-date Phase 27 may have stale Javadoc
 - B2B-01/B2B-02 (OrangeClient channelUserMsisdn fix) deferred from v4
-
-**Deferred from v5 (now Active for v6):** email notifications (NOTIF-01..06), Admin UI tenant management screens, one-time key display modal (AKEY-07), WebhookSecret reveal UI (WSEC-02)
 
 ## Evolution
 
@@ -173,4 +177,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-10 — Phase 34 complete (Orange Money adapter aligned with Use Case 1 spec)*
+*Last updated: 2026-04-14 — Milestone v7 started (Backend Hardening & Bug Fixes)*
