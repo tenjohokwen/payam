@@ -16,8 +16,8 @@
 
 ### Reconciliation (RECON)
 
-- [ ] **RECON-01**: Reconciliation processes transactions in bounded pages (≤1000 rows per batch) — no full-day set is loaded into heap; discrepancies are persisted incrementally
-- [ ] **RECON-02**: When discrepancy persistence fails, the ReconciliationReport transitions to FAILED state — no report is left stuck in IN_PROGRESS
+- [x] **RECON-01**: Reconciliation processes transactions in bounded pages (≤1000 rows per batch) — no full-day set is loaded into heap; discrepancies are persisted incrementally
+- [x] **RECON-02**: When discrepancy persistence fails, the ReconciliationReport transitions to FAILED state — no report is left stuck in IN_PROGRESS
 
 ### Transaction Boundaries (TXN)
 
@@ -72,8 +72,8 @@
 |--------|-------|--------|
 | IDEM-01 | Phase 35 | Complete |
 | IDEM-02 | Phase 35 | Complete |
-| RECON-01 | Phase 36 | Pending |
-| RECON-02 | Phase 36 | Pending |
+| RECON-01 | Phase 36 | Complete |
+| RECON-02 | Phase 36 | Complete |
 | TXN-01 | Phase 38 | Pending |
 | WEBHOOK-01 | Phase 37 | Pending |
 | WEBHOOK-02 | Phase 37 | Pending |
