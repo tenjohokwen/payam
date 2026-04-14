@@ -174,8 +174,8 @@ class OrangeMoneyPortIT {
 
     @Test
     void payToken_expired_throws_PayTokenExpiredException() {
-        // Set payTokenIssuedAt to 10 minutes ago — exceeds the 8-minute threshold (P1.3)
-        Instant staleIssuedAt = Instant.now().minus(10, ChronoUnit.MINUTES);
+        // Set payTokenIssuedAt to 70 minutes ago — exceeds the 60-minute threshold (P1.3)
+        Instant staleIssuedAt = Instant.now().minus(70, ChronoUnit.MINUTES);
 
         assertThatThrownBy(() ->
             orangeMoneyPort.assertPayTokenFresh("txn-stale-001", staleIssuedAt))

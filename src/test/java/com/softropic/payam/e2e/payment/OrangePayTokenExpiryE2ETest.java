@@ -32,6 +32,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.TimeZone;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -39,17 +40,27 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * FLOWS-PAY-04: Orange payToken expiry — poller detects expired payToken, increments
- * pollAttempts, leaves transaction in PROCESSING (re-initiation is Phase 5 responsibility).
+ * FLOWS-PAY-04: Orange payToken expiry — poller detects expired payToken and immediately
+ * transitions the transaction to FAILED without incrementing pollAttempts.
+ *
+ * <p>A fresh payToken from a second {@code initTransaction()} call cannot query the original
+ * payment's status on Orange's API, so re-initiation is the orchestrator's responsibility —
+ * the poller fails fast instead of silently burning poll attempts.
  *
  * <p>The payToken is deliberately backdated via {@code pay_token_issued_at} to a timestamp
  * 1 year in the past. The default expiry threshold is 8 minutes, so the poller's
  * {@code assertPayTokenFresh()} call throws {@code PayTokenExpiredException}, the poller
- * increments {@code pollAttempts} and returns early without transitioning to FAILED.
+ * acquires a pessimistic lock and transitions directly to FAILED.
  *
- * <p>This test asserts the ACTUAL production behavior on payToken expiry: the transaction
- * remains PROCESSING and no ledger entries are created. The idempotency key written for
- * the original 202 PROCESSING response IS still in cache.
+ * <p>Verified:
+ * <ul>
+ *   <li>Transaction is FAILED (not PROCESSING)</li>
+ *   <li>pollAttempts is null — expiry is not a poll outcome and must not burn the counter</li>
+ *   <li>A PROVIDER_FAILED event is appended with metadata {@code "pay_token_expired"}</li>
+ *   <li>The Orange status endpoint ({@code /mp/paymentstatus/}) is never called</li>
+ *   <li>No ledger entries — FAILED from poller expiry never posts to ledger</li>
+ *   <li>Idempotency key is still present — the original 202 PROCESSING response was committed</li>
+ * </ul>
  *
  * <p>Extends {@link AbstractFailureFlowTest} — phase order:
  * setupPreconditions → injectFault → executeFlow → verifyFailureHandled.
@@ -178,19 +189,13 @@ public class OrangePayTokenExpiryE2ETest extends AbstractFailureFlowTest {
             return null;
         });
 
-        // Capture poll_attempts before poller runs so we can assert the increment.
-        Integer attemptsBefore = jdbcTemplate.queryForObject(
-            "SELECT poll_attempts FROM main.transaction WHERE transaction_id = ?",
-            Integer.class, transactionId);
-        int before = attemptsBefore != null ? attemptsBefore : 0;
-
         // Trigger Orange poller directly (bypasses Quartz scheduler timing).
         //
         // OrangeStatusPollerJob.executeInternal is @Transactional. However, reflection on a
         // protected method from OrangeStatusPollerJob.class invoked on a CGLIB proxy object does
         // NOT go through CGLIB's method interception (the method reference bypasses the proxy
-        // dispatch mechanism). Without @Transactional, dirty-tracked entity changes from
-        // tx.incrementPollAttempts() are never flushed to the DB.
+        // dispatch mechanism). Without @Transactional, dirty-tracked entity changes are never
+        // flushed to the DB.
         //
         // Solution: wrap the reflection call in a TransactionTemplate so JPA's EntityManager
         // participates in a managed transaction and flushes on commit.
@@ -212,32 +217,46 @@ public class OrangePayTokenExpiryE2ETest extends AbstractFailureFlowTest {
             throw new RuntimeException("Failed to invoke OrangeStatusPollerJob.executeInternal", e);
         }
 
-        // Assert: payToken expiry causes poller to increment pollAttempts and return early.
-        // The transaction stays in PROCESSING — transitioning to FAILED requires pollAttempts >= 15
-        // and the expiry check must NOT trigger (a separate code path). Re-initiation is Phase 5 scope.
+        // Assert: expired payToken causes the poller to transition immediately to FAILED.
+        // Re-initiation is the orchestrator's responsibility — the poller does not retry.
         String status = jdbcTemplate.queryForObject(
             "SELECT tx_status FROM main.transaction WHERE transaction_id = ?",
             String.class, transactionId);
         assertThat(status)
-            .as("Transaction must remain PROCESSING when payToken expires " +
-                "(poller increments attempts and returns early — FAILED only on pollAttempts overflow)")
-            .isEqualTo("PROCESSING");
+            .as("Transaction must be FAILED immediately when payToken expires " +
+                "(poller must not leave it stuck in PROCESSING)")
+            .isEqualTo("FAILED");
 
-        // Assert: pollAttempts incremented by exactly 1 — proves expiry path executed.
+        // Assert: pollAttempts is still null — expiry is not a poll outcome and must not
+        // consume the counter. Burning attempts would delay legitimate timeout detection
+        // on any future re-initiation by the orchestrator.
         Integer attemptsAfter = jdbcTemplate.queryForObject(
             "SELECT poll_attempts FROM main.transaction WHERE transaction_id = ?",
             Integer.class, transactionId);
-        int after = attemptsAfter != null ? attemptsAfter : 0;
-        assertThat(after)
-            .as("pollAttempts must increment by 1 on payToken expiry (before=%d, after=%d)",
-                before, after)
-            .isEqualTo(before + 1);
+        assertThat(attemptsAfter)
+            .as("pollAttempts must remain null on payToken expiry — expiry is not a poll attempt")
+            .isNull();
 
-        // Assert: no ledger entries — PROCESSING path without SUCCESS never posts to ledger.
+        // Assert: a PROVIDER_FAILED event is appended with metadata "pay_token_expired".
+        // This distinguishes expiry-driven failures from max-attempts timeouts in the audit trail.
+        String metadata = jdbcTemplate.queryForObject(
+            "SELECT metadata::text FROM main.payment_event_log " +
+            "WHERE transaction_id = ? AND event_type = 'PROVIDER_FAILED'",
+            String.class, transactionId);
+        assertThat(metadata)
+            .as("PROVIDER_FAILED event metadata must be \"pay_token_expired\" for transactionId=%s",
+                transactionId)
+            .isEqualTo("\"pay_token_expired\"");
+
+        // Assert: the Orange status endpoint was never called.
+        // The expiry guard exits before reaching getTransactionStatus() — a call would mean
+        // the guard did not fire, which is a correctness bug.
+        orangeServer.verify(0, getRequestedFor(urlPathMatching("/mp/paymentstatus/.*")));
+
+        // Assert: no ledger entries — FAILED from poller expiry never posts to ledger.
         invariant.ledger().assertNoLedgerEntries(transactionId);
 
         // Assert: idempotency key IS present — the original 202 PROCESSING response was committed.
-        // "Not consumed" means the FAILED outcome was not cached; the key itself is still present.
         new CacheVerifier(redis).assertIdempotencyKeyPresent(tenant.tenantId(), idempotencyKey);
     }
 }

@@ -114,15 +114,28 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
             return;
         }
 
-        // Guard: skip poll if payToken is expired — re-initiation is Phase 5 orchestrator responsibility (P1.3)
+        // Guard: fail immediately if payToken is expired — status can no longer be queried,
+        // and re-initiation is the orchestrator's responsibility (P1.3).
+        // Do NOT increment pollAttempts; the token expiry is not a poll outcome.
         try {
             orangeMoneyPort.assertPayTokenFresh(tx.getTransactionId(), tx.getPayTokenIssuedAt());
         } catch (PayTokenExpiredException e) {
-            log.warn("Orange poller: payToken expired",
-                kv("operation", "orange_poller_scan"),
+            Transaction locked = transactionRepository.findByTransactionIdForUpdate(tx.getTransactionId())
+                .orElseThrow();
+            if (locked.getTxStatus() != TransactionStatus.PROCESSING) {
+                return;
+            }
+            locked.applyTransition(TransactionStatus.FAILED);
+            log.info("Transaction state changed",
+                kv("operation", "transaction_state_change"),
                 kv("transactionId", tx.getTransactionId()),
-                kv("status", "TOKEN_EXPIRED"));
-            tx.incrementPollAttempts();
+                kv("fromState", TransactionStatus.PROCESSING.name()),
+                kv("toState", TransactionStatus.FAILED.name()),
+                kv("actor", "ORANGE_POLLER"));
+            eventLogService.append(tx.getTransactionId(), tx.getTraceId(), tx.getExternalReference(),
+                TransactionEventType.PROVIDER_FAILED,
+                TransactionStatus.PROCESSING, TransactionStatus.FAILED,
+                "ORANGE_POLLER", "\"pay_token_expired\"");
             return;
         }
 
