@@ -21,7 +21,7 @@
 
 ### Transaction Boundaries (TXN)
 
-- [ ] **TXN-01**: Fee evaluation executes before the transaction boundary in PaymentOrchestrator — the locked section covers state writes only, not fee computation
+- [x] **TXN-01**: Fee evaluation executes before the transaction boundary in PaymentOrchestrator — the locked section covers state writes only, not fee computation
 
 ### Webhook Infrastructure (WEBHOOK)
 
@@ -74,7 +74,7 @@
 | IDEM-02 | Phase 35 | Complete |
 | RECON-01 | Phase 36 | Complete |
 | RECON-02 | Phase 36 | Complete |
-| TXN-01 | Phase 38 | Pending |
+| TXN-01 | Phase 38 | Complete |
 | WEBHOOK-01 | Phase 37 | Complete |
 | WEBHOOK-02 | Phase 37 | Complete |
 | WEBHOOK-03 | Phase 37 | Complete |

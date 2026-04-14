@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 37-04-PLAN.md
-last_updated: "2026-04-14T19:40:36.401Z"
+status: executing
+stopped_at: Completed 38-01-PLAN.md
+last_updated: "2026-04-14T21:29:04.421Z"
 last_activity: 2026-04-14
 progress:
   total_phases: 11
   completed_phases: 8
-  total_plans: 20
-  completed_plans: 20
+  total_plans: 23
+  completed_plans: 21
 ---
 
 # Project State
@@ -20,13 +20,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-14 — Milestone v7 started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 37 — webhook-subsystem-fixes
+**Current focus:** Phase 38 — transaction-boundary-fraud-ordering
 
 ## Current Position
 
-Phase: 38
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 38 (transaction-boundary-fraud-ordering) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
 Last activity: 2026-04-14
 
 ```
@@ -96,6 +96,7 @@ Key context from v6 research:
 - [Phase 37-webhook-subsystem-fixes]: WebhookConfigTest uses reflection on private fields (no public getters on SimpleClientHttpRequestFactory) to pin timeout values
 - [Phase 37-webhook-subsystem-fixes]: Retain single-arg attemptDelivery overload alongside new two-arg variant — enqueue() path still uses single-arg; no callers broken
 - [Phase 37-webhook-subsystem-fixes]: [37-02] WebhookDeliveryService hosts onEnqueueRequested listener — delivery logic co-located; webhookDeliveryService field kept in WebhookTransitionService to preserve collaborator documentation
+- [Phase 38-transaction-boundary-fraud-ordering]: feeRuleIdVal extracted via .map(r -> r.getId()) — FeeRule not imported into PaymentOrchestrator; pre-lock cache reads hoisted above transactionTemplate block
 
 ### Roadmap Evolution
 
@@ -112,6 +113,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-14T19:37:33.604Z
-Stopped at: Completed 37-04-PLAN.md
+Last session: 2026-04-14T21:29:04.412Z
+Stopped at: Completed 38-01-PLAN.md
 Resume file: None

@@ -230,7 +230,7 @@ Plans:
   3. mvn verify passes including payment orchestration and fraud E2E tests
 **Plans**: 3 plans
 Plans:
-- [ ] 38-01-PLAN.md — TXN-01: hoist fee evaluation above transactionTemplate lock in PaymentOrchestrator + InOrder regression test
+- [x] 38-01-PLAN.md — TXN-01: hoist fee evaluation above transactionTemplate lock in PaymentOrchestrator + InOrder regression test
 - [ ] 38-02-PLAN.md — OPS-02: VelocityCheckService.probeVelocity + FraudScoringService.probe/consumeTokens + PaymentOrchestrator rewire + FraudVelocityOrderingIT
 - [ ] 38-03-PLAN.md — Full mvn verify regression run + sign-off summary
 
@@ -298,6 +298,6 @@ Plans:
 | 35. Idempotency Correctness | v7 | 2/2 | Complete    | 2026-04-14 |
 | 36. Reconciliation Hardening | v7 | 2/2 | Complete    | 2026-04-14 |
 | 37. Webhook Subsystem Fixes | v7 | 4/4 | Complete    | 2026-04-14 |
-| 38. Transaction Boundary & Fraud Ordering | v7 | 0/? | Not started | — |
+| 38. Transaction Boundary & Fraud Ordering | v7 | 1/3 | In Progress|  |
 | 39. Concurrency Guards & DB Constraints | v7 | 0/? | Not started | — |
 | 40. Operational Resilience | v7 | 0/? | Not started | — |
