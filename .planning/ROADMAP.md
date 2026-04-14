@@ -216,7 +216,7 @@ Plans:
 **Plans**: 4 plans
 Plans:
 - [x] 37-01-PLAN.md — WEBHOOK-01: Bulk tenant load in WebhookDeliveryJob + WebhookDeliveryJobIT query-count regression test
-- [ ] 37-02-PLAN.md — WEBHOOK-02: WebhookEnqueueRequestedEvent + AFTER_COMMIT listener + WebhookEnqueueListenerIT rollback isolation
+- [x] 37-02-PLAN.md — WEBHOOK-02: WebhookEnqueueRequestedEvent + AFTER_COMMIT listener + WebhookEnqueueListenerIT rollback isolation
 - [x] 37-03-PLAN.md — WEBHOOK-03: SimpleClientHttpRequestFactory 5s connect / 10s read timeouts + WebhookConfigTest
 - [ ] 37-04-PLAN.md — Full mvn verify regression run + sign-off summary
 
@@ -293,7 +293,7 @@ Plans:
 | 34. Orange Money Adapter Alignment | v6 | 2/2 | Complete | 2026-04-14 |
 | 35. Idempotency Correctness | v7 | 2/2 | Complete    | 2026-04-14 |
 | 36. Reconciliation Hardening | v7 | 2/2 | Complete    | 2026-04-14 |
-| 37. Webhook Subsystem Fixes | v7 | 2/4 | In Progress|  |
+| 37. Webhook Subsystem Fixes | v7 | 3/4 | In Progress|  |
 | 38. Transaction Boundary & Fraud Ordering | v7 | 0/? | Not started | — |
 | 39. Concurrency Guards & DB Constraints | v7 | 0/? | Not started | — |
 | 40. Operational Resilience | v7 | 0/? | Not started | — |

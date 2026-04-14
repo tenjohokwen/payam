@@ -26,7 +26,7 @@
 ### Webhook Infrastructure (WEBHOOK)
 
 - [x] **WEBHOOK-01**: Tenant data is loaded in one query per job tick (not per delivery) in WebhookDeliveryService — N deliveries produce 1 query, not N+1
-- [ ] **WEBHOOK-02**: Webhook enqueue fires only after the status-transition transaction commits — uses @TransactionalEventListener(phase = AFTER_COMMIT); enqueue failure does not roll back the state transition
+- [x] **WEBHOOK-02**: Webhook enqueue fires only after the status-transition transaction commits — uses @TransactionalEventListener(phase = AFTER_COMMIT); enqueue failure does not roll back the state transition
 - [x] **WEBHOOK-03**: Webhook RestTemplate has an explicit connect timeout (≤5s) and read timeout (≤10s) — a hanging tenant endpoint cannot block a Quartz thread indefinitely
 
 ### API Key Concurrency (AKEY)
@@ -76,7 +76,7 @@
 | RECON-02 | Phase 36 | Complete |
 | TXN-01 | Phase 38 | Pending |
 | WEBHOOK-01 | Phase 37 | Complete |
-| WEBHOOK-02 | Phase 37 | Pending |
+| WEBHOOK-02 | Phase 37 | Complete |
 | WEBHOOK-03 | Phase 37 | Complete |
 | AKEY-09 | Phase 39 | Pending |
 | LEDGER-01 | Phase 39 | Pending |
