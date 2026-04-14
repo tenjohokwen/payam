@@ -228,7 +228,11 @@ Plans:
   1. Fee evaluation in PaymentOrchestrator completes before any transaction boundary is opened — the locked section covers only state writes
   2. Fraud velocity token consumption occurs only after the idempotency result is successfully cached — a cache write failure does not consume a rate-limit slot
   3. mvn verify passes including payment orchestration and fraud E2E tests
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 38-01-PLAN.md — TXN-01: hoist fee evaluation above transactionTemplate lock in PaymentOrchestrator + InOrder regression test
+- [ ] 38-02-PLAN.md — OPS-02: VelocityCheckService.probeVelocity + FraudScoringService.probe/consumeTokens + PaymentOrchestrator rewire + FraudVelocityOrderingIT
+- [ ] 38-03-PLAN.md — Full mvn verify regression run + sign-off summary
 
 ### Phase 39: Concurrency Guards & DB Constraints
 **Goal**: Concurrent API key rotations are serialized at the DB layer and unbalanced ledger entries are rejected by a DB constraint before they can be committed
