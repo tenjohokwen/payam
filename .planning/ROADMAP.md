@@ -184,7 +184,10 @@ Plans:
   2. When Postgres write fails, Redis is never updated — a subsequent retry is not incorrectly served a cached response
   3. A 20-thread concurrent flood with the same idempotency key produces exactly one DB row and all other threads receive the cached response (no duplicate inserts, no exception leaks)
   4. mvn verify passes with all existing concurrency and idempotency E2E tests green
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 35-01-PLAN.md — Repository upsert() + IdempotencyService.store() rewrite (Postgres-first) + new IDEM-01/IDEM-02 IT tests
+- [ ] 35-02-PLAN.md — Full mvn verify regression run + sign-off summary
 
 ### Phase 36: Reconciliation Hardening
 **Goal**: Reconciliation is safe to run against large datasets and leaves no report permanently stuck in IN_PROGRESS on failure
