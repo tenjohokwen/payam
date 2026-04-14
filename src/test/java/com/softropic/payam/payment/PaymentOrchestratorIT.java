@@ -35,8 +35,13 @@ import org.wiremock.spring.ConfigureWireMock;
 import org.wiremock.spring.EnableWireMock;
 import org.wiremock.spring.InjectWireMock;
 
+import org.mockito.InOrder;
+import org.mockito.Mockito;
+import org.springframework.boot.test.mock.mockito.SpyBean;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
 
 @ActiveProfiles("dev")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -72,6 +77,12 @@ class PaymentOrchestratorIT {
     @Autowired StringRedisTemplate redis;
     @Autowired CircuitBreakerRegistry circuitBreakerRegistry;
     @Autowired FeeRuleCache feeRuleCache;
+
+    @SpyBean
+    com.softropic.payam.fee.service.FeeEvaluationService feeSpy;
+
+    @SpyBean
+    com.softropic.payam.transaction.repo.TransactionRepository txRepoSpy;
 
     @LocalServerPort
     int serverPort;
@@ -461,5 +472,41 @@ class PaymentOrchestratorIT {
 
         // WireMock received NO validateAccountHolder calls — circuit intercepted before provider call
         mtnServer.verify(0, getRequestedFor(urlPathMatching(".*accountholder.*")));
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("TXN-01: fee evaluation completes before SELECT...FOR UPDATE row lock is acquired")
+    void feeEvaluationHappensBeforeLock() {
+        // Seed a fee rule so evaluateFee is observable (non-trivial call)
+        transactionTemplate.execute(status -> {
+            jdbcTemplate.update(
+                "INSERT INTO main.fee_rule (id, created_by, created_date, last_modified_by, last_modified_date, " +
+                "status, tenant_id, fee_type, fixed_amount, percentage_rate, enabled, rule_name) " +
+                "VALUES (?, 'TEST', NOW(), 'TEST', NOW(), 'ACTIVE', ?, 'FEE_FIXED', 25.00, NULL, true, 'TXN01-TEST')",
+                System.nanoTime() & Long.MAX_VALUE, tenantId);
+            return null;
+        });
+        feeRuleCache.refresh();
+
+        // Stub MTN endpoints for a successful payment
+        mtnServer.stubFor(get(urlPathMatching("/v1_0/accountholder/MSISDN/.*/basicuserinfo"))
+            .willReturn(okJson("{}")));
+        mtnServer.stubFor(post(urlPathEqualTo("/v1_0/requesttopay"))
+            .willReturn(aResponse().withStatus(202)));
+
+        String body = "{\"msisdn\":\"+237672000001\",\"amount\":1000,\"currency\":\"XAF\"," +
+                      "\"externalReference\":\"ext-txn01\",\"idempotencyKey\":\"idem-txn01-order\"}";
+
+        ResponseEntity<PaymentResponse> response = testRestTemplate.exchange(
+                baseUrl + serverPort + "/v1/payments", HttpMethod.POST,
+            new HttpEntity<>(body, headersWithKey()),
+            PaymentResponse.class);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(202);
+
+        // TXN-01: evaluateFee must have been called BEFORE findByTransactionIdForUpdate
+        InOrder inOrder = Mockito.inOrder(feeSpy, txRepoSpy);
+        inOrder.verify(feeSpy).evaluateFee(eq(tenantId), any(java.math.BigDecimal.class));
+        inOrder.verify(txRepoSpy).findByTransactionIdForUpdate(anyString());
     }
 }
