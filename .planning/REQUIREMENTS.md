@@ -68,23 +68,21 @@
 
 ## Traceability
 
-*Filled by roadmapper — maps REQ-IDs to phases*
-
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| IDEM-01 | — | Pending |
-| IDEM-02 | — | Pending |
-| RECON-01 | — | Pending |
-| RECON-02 | — | Pending |
-| TXN-01 | — | Pending |
-| WEBHOOK-01 | — | Pending |
-| WEBHOOK-02 | — | Pending |
-| WEBHOOK-03 | — | Pending |
-| AKEY-09 | — | Pending |
-| LEDGER-01 | — | Pending |
-| OPS-01 | — | Pending |
-| OPS-02 | — | Pending |
-| OPS-03 | — | Pending |
+| IDEM-01 | Phase 35 | Pending |
+| IDEM-02 | Phase 35 | Pending |
+| RECON-01 | Phase 36 | Pending |
+| RECON-02 | Phase 36 | Pending |
+| TXN-01 | Phase 38 | Pending |
+| WEBHOOK-01 | Phase 37 | Pending |
+| WEBHOOK-02 | Phase 37 | Pending |
+| WEBHOOK-03 | Phase 37 | Pending |
+| AKEY-09 | Phase 39 | Pending |
+| LEDGER-01 | Phase 39 | Pending |
+| OPS-01 | Phase 40 | Pending |
+| OPS-02 | Phase 38 | Pending |
+| OPS-03 | Phase 40 | Pending |
 
 ---
 

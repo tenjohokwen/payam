@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v7
 milestone_name: Backend Hardening & Bug Fixes
-status: defining_requirements
-stopped_at: —
+status: roadmap_ready
+stopped_at: Phase 35 (not started)
 last_updated: "2026-04-14T00:00:00.000Z"
 last_activity: 2026-04-14
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,24 +20,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-14 — Milestone v7 started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Milestone v7 — Backend Hardening & Bug Fixes (phases 35+)
+**Current focus:** Milestone v7 — Backend Hardening & Bug Fixes (phases 35–40)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 35 — Idempotency Correctness (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-14 — Milestone v7 started
+Status: Roadmap defined; ready to plan Phase 35
+Last activity: 2026-04-14 — v7 roadmap created (phases 35–40)
 
 ```
-Progress [░░░░░░░░░░░░░░░░░░░░] 0% — Phase 30 of 33
+Progress [░░░░░░░░░░░░░░░░░░░░] 0% — 0 of 6 phases complete
 ```
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 70 (across v1–v5)
+- Total plans completed: 82 (across v1–v6, including phase 34)
 - Average duration: —
 - Total execution time: —
 
@@ -47,7 +47,7 @@ Progress [░░░░░░░░░░░░░░░░░░░░] 0% — P
 
 Decisions are logged in PROJECT.md Key Decisions table.
 
-Key context carried forward from v5:
+Key context carried forward from v6:
 
 - Service layer is complete — v6 is purely HTTP surface, notification wiring, and frontend
 - All 6 TenantService operations are implemented and tested; no new domain logic required
@@ -93,6 +93,7 @@ Key context from v6 research:
 ### Roadmap Evolution
 
 - Phase 34 added: Orange Money flow improvements - align OrangeMoneyClient and OrangeMoneyPort with the Orange Money spec Use Case 1
+- Phases 35–40 added: v7 Backend Hardening & Bug Fixes roadmap (2026-04-14)
 
 ### Pending Todos
 
@@ -104,6 +105,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-10T10:51:44.944Z
-Stopped at: Completed 34-02-PLAN.md
+Last session: 2026-04-14T00:00:00.000Z
+Stopped at: v7 roadmap created — ready to plan Phase 35
 Resume file: None
