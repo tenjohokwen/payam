@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 34-02-PLAN.md
-last_updated: "2026-04-10T10:56:33.835Z"
+stopped_at: Completed 36-01-PLAN.md
+last_updated: "2026-04-14T16:57:15.466Z"
 last_activity: 2026-04-10
 progress:
   total_phases: 5
@@ -89,6 +89,8 @@ Key context from v6 research:
 - [Phase 34]: PlatformConfigService.findByProvider uses IllegalStateException consistent with existing error contract
 - [Phase 34]: callbackHmacSecret removed from OrangeMoneyConfig — HMAC verification was speculative; Orange does not confirm this header in v1.0.2; callbackUrl added instead
 - [Phase 34]: OrangePathMatrixTest also updated (not in plan scope) — had /infos/merchant stub that would cause silent test failures after adapter rewrite
+- [Phase 36]: Bean split for REQUIRES_NEW: extracted per-provider reconciliation to ReconciliationProviderRunner @Service bean; self-invocation via this.method() would bypass AOP proxy defeating REQUIRES_NEW semantics
+- [Phase 36]: ReconciliationService.runForDate() not @Transactional — wrapping in a transaction would defeat REQUIRES_NEW isolation in runner and prevent FAILED-state writes after rollback
 
 ### Roadmap Evolution
 
@@ -104,6 +106,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-10T10:51:44.944Z
-Stopped at: Completed 34-02-PLAN.md
+Last session: 2026-04-14T16:57:15.456Z
+Stopped at: Completed 36-01-PLAN.md
 Resume file: None
