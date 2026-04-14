@@ -86,4 +86,20 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
         @Param("provider") MobilePaymentProvider provider,
         @Param("from") Instant from,
         @Param("to") Instant to);
+
+    /**
+     * Paged variant of {@link #findForReconciliation} for RECON-01.
+     * MUST include ORDER BY t.id ASC — without a stable sort, offset pagination can skip or duplicate rows.
+     * Page size is chosen by caller (ReconciliationProviderRunner uses 1000).
+     */
+    @Query("SELECT t FROM Transaction t WHERE t.provider = :provider " +
+           "AND t.createdDate >= :from AND t.createdDate < :to " +
+           "AND t.txStatus IN ('SUCCESS','FAILED','PROCESSING') " +
+           "AND t.providerRef IS NOT NULL " +
+           "ORDER BY t.id ASC")
+    Page<Transaction> findForReconciliationPaged(
+        @Param("provider") MobilePaymentProvider provider,
+        @Param("from") Instant from,
+        @Param("to") Instant to,
+        Pageable pageable);
 }
