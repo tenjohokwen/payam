@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 35-02-PLAN.md
-last_updated: "2026-04-14T16:39:08.998Z"
-last_activity: 2026-04-14 -- Phase 36 execution started
+stopped_at: Completed 36-02-PLAN.md
+last_updated: "2026-04-14T17:16:00.000Z"
+last_activity: 2026-04-14 -- Phase 36 plan 02 verification complete
 progress:
   total_phases: 11
   completed_phases: 6
   total_plans: 16
-  completed_plans: 14
+  completed_plans: 16
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-04-14 — Milestone v7 started)
 
 ## Current Position
 
-Phase: 36 (reconciliation-hardening) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 36
-Last activity: 2026-04-14 -- Phase 36 execution started
+Phase: 36 (reconciliation-hardening) — COMPLETE
+Plan: 2 of 2 — Both plans complete
+Status: Phase 36 complete — ready for /gsd:verify-work
+Last activity: 2026-04-14 -- Phase 36 plan 02 complete (regression verification green)
 
 ```
 Progress [░░░░░░░░░░░░░░░░░░░░] 0% — 0 of 6 phases complete
@@ -91,6 +91,7 @@ Key context from v6 research:
 - [Phase 34]: OrangePathMatrixTest also updated (not in plan scope) — had /infos/merchant stub that would cause silent test failures after adapter rewrite
 - [Phase 35]: Conflict target uses column-list form (tenant_id, idempotency_key) not ON CONFLICT ON CONSTRAINT — consistent with reserve() and avoids constraint-name coupling
 - [Phase 35]: Postgres-first write ordering in IdempotencyService.store(): repo.upsert() before redis.set(); Redis in isolated try/catch (IDEM-01)
+- [Phase 36]: Surefire Docker-context errors in SecurityFilterChainIT and TenantAdminResourceIT are pre-existing, not Phase 36 regressions — same classes pass in failsafe runner; Maven exit 0 confirms build success
 
 ### Roadmap Evolution
 
@@ -107,6 +108,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-14T13:46:39.361Z
-Stopped at: Completed 35-02-PLAN.md
+Last session: 2026-04-14T17:16:00.000Z
+Stopped at: Completed 36-02-PLAN.md
 Resume file: None

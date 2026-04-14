@@ -87,7 +87,7 @@
 <summary>🚧 v7 Backend Hardening & Bug Fixes (Phases 35–40) — ACTIVE</summary>
 
 - [ ] **Phase 35: Idempotency Correctness** - Fix write ordering (Postgres-first) and replace TOCTOU find+save with UPSERT
-- [ ] **Phase 36: Reconciliation Hardening** - Paginate unbounded fetch in batches and transition reports to FAILED on exception
+- [x] **Phase 36: Reconciliation Hardening** - Paginate unbounded fetch in batches and transition reports to FAILED on exception
 - [ ] **Phase 37: Webhook Subsystem Fixes** - Eliminate N+1 tenant lookup, move enqueue to AFTER_COMMIT, add RestTemplate timeouts
 - [ ] **Phase 38: Transaction Boundary & Fraud Ordering** - Move fee eval before transaction lock; reorder fraud eval to precede idempotency cache write
 - [ ] **Phase 39: Concurrency Guards & DB Constraints** - Serialize concurrent API key rotation; enforce balanced ledger pairs at DB layer
@@ -200,8 +200,8 @@ Plans:
   4. mvn verify passes including reconciliation E2E tests
 **Plans**: 2 plans
 Plans:
-- [ ] 36-01-PLAN.md — Paged repository query + ReconciliationProviderRunner bean (REQUIRES_NEW) + ReconciliationService rewrite + unit/IT tests (RECON-01, RECON-02)
-- [ ] 36-02-PLAN.md — Full mvn verify regression run + sign-off summary
+- [x] 36-01-PLAN.md — Paged repository query + ReconciliationProviderRunner bean (REQUIRES_NEW) + ReconciliationService rewrite + unit/IT tests (RECON-01, RECON-02)
+- [x] 36-02-PLAN.md — Full mvn verify regression run + sign-off summary
 
 ### Phase 37: Webhook Subsystem Fixes
 **Goal**: The webhook subsystem does not produce N+1 queries per delivery tick, does not enqueue before its triggering transaction commits, and cannot be blocked indefinitely by a slow tenant endpoint
@@ -287,7 +287,7 @@ Plans:
 | 33. Admin UI — Tenant Management | v6 | 4/4 | Complete | 2026-04-09 |
 | 34. Orange Money Adapter Alignment | v6 | 2/2 | Complete | 2026-04-14 |
 | 35. Idempotency Correctness | v7 | 2/2 | Complete    | 2026-04-14 |
-| 36. Reconciliation Hardening | v7 | 0/2 | Planned     | — |
+| 36. Reconciliation Hardening | v7 | 2/2 | Complete    | 2026-04-14 |
 | 37. Webhook Subsystem Fixes | v7 | 0/? | Not started | — |
 | 38. Transaction Boundary & Fraud Ordering | v7 | 0/? | Not started | — |
 | 39. Concurrency Guards & DB Constraints | v7 | 0/? | Not started | — |
