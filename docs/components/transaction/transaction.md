@@ -28,6 +28,11 @@ Handles the accounting. When a payment is successful, it records a balanced doub
 
 ---
 
+> [!TIP]
+> For a detailed technical breakdown of how these services interact, their hash-chaining mechanism, and financial models, see the **[Services Deep Dive](./services.md)**.
+
+---
+
 ## Core Flows
 
 ### 1. Transaction Initiation Flow

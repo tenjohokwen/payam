@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payam — Architecture Documentation</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #22263a;
+  --border: #2e3350;
+  --accent: #6c8aff;
+  --accent2: #a78bfa;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --code-bg: #0d1117;
+  --inferred: #854d0e;
+  --inferred-bg: #451a03;
+  --pitfall: #7f1d1d;
+  --pitfall-bg: #450a0a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ── Sidebar ── */
+#sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  padding: 1.5rem 0;
+}
+#sidebar h1 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+  padding: 0 1.25rem 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+  letter-spacing: .02em;
+}
+.nav-level { font-size: .7rem; font-weight: 700; color: var(--muted); padding: .5rem 1.25rem .25rem; text-transform: uppercase; letter-spacing: .08em; }
+#sidebar a {
+  display: block;
+  padding: .35rem 1.25rem .35rem 1.5rem;
+  font-size: .82rem;
+  color: var(--muted);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: all .15s;
+}
+#sidebar a:hover { color: var(--text); border-left-color: var(--accent); background: var(--surface2); }
+#sidebar a.active { color: var(--accent); border-left-color: var(--accent); background: var(--surface2); }
+#sidebar a.l1 { padding-left: 1.25rem; font-weight: 600; color: var(--text); }
+#sidebar a.l2 { padding-left: 2rem; }
+#sidebar a.l3 { padding-left: 2.75rem; }
+#sidebar a.l4 { padding-left: 3.25rem; }
+.nav-divider { border-top: 1px solid var(--border); margin: .75rem 0; }
+
+/* ── Main ── */
+#main {
+  flex: 1;
+  max-width: 960px;
+  padding: 2.5rem 3rem;
+  overflow-x: hidden;
+}
+section { margin-bottom: 4rem; }
+h1.page-title {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: .5rem;
+  letter-spacing: -.01em;
+}
+.subtitle { color: var(--muted); font-size: .95rem; margin-bottom: 2.5rem; }
+
+h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 2rem 0 .75rem;
+  padding-bottom: .4rem;
+  border-bottom: 1px solid var(--border);
+}
+h3 { font-size: 1.05rem; font-weight: 600; color: var(--accent2); margin: 1.5rem 0 .5rem; }
+h4 { font-size: .9rem; font-weight: 600; color: var(--muted); margin: 1rem 0 .35rem; text-transform: uppercase; letter-spacing: .06em; }
+p { margin-bottom: .75rem; color: var(--text); font-size: .9rem; }
+ul, ol { padding-left: 1.5rem; margin-bottom: .75rem; font-size: .9rem; }
+li { margin-bottom: .25rem; }
+a { color: var(--accent); }
+code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Menlo', monospace;
+  font-size: .8rem;
+  background: var(--code-bg);
+  padding: .15em .4em;
+  border-radius: 3px;
+  color: #a5d6ff;
+  border: 1px solid var(--border);
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  margin-bottom: 1rem;
+  font-size: .78rem;
+  line-height: 1.7;
+}
+pre code { background: none; border: none; padding: 0; color: var(--text); }
+
+/* ── Badges ── */
+.inferred {
+  display: inline-block;
+  background: var(--inferred-bg);
+  color: #fbbf24;
+  border: 1px solid var(--inferred);
+  font-size: .68rem;
+  font-weight: 700;
+  padding: .1em .5em;
+  border-radius: 3px;
+  letter-spacing: .04em;
+  margin-left: .4em;
+  vertical-align: middle;
+  text-transform: uppercase;
+}
+.callout {
+  border-left: 3px solid var(--accent);
+  background: var(--surface2);
+  padding: .85rem 1rem;
+  border-radius: 0 6px 6px 0;
+  margin: 1rem 0;
+  font-size: .87rem;
+}
+.callout.warn {
+  border-left-color: var(--warn);
+}
+.callout.pitfall {
+  border-left-color: var(--danger);
+  background: #1a0a0a;
+}
+.callout.success {
+  border-left-color: var(--success);
+}
+.callout strong { display: block; margin-bottom: .3rem; font-size: .82rem; text-transform: uppercase; letter-spacing: .05em; }
+.callout.warn strong { color: var(--warn); }
+.callout.pitfall strong { color: var(--danger); }
+.callout.success strong { color: var(--success); }
+
+/* ── Level pills ── */
+.level-pill {
+  display: inline-block;
+  font-size: .65rem;
+  font-weight: 700;
+  padding: .2em .6em;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-right: .4em;
+}
+.l1-pill { background: #1e3a5f; color: #60a5fa; }
+.l2-pill { background: #2d1d5f; color: #a78bfa; }
+.l3-pill { background: #1f3d2a; color: #4ade80; }
+.l4-pill { background: #3d2106; color: #fb923c; }
+
+/* ── Nav breadcrumb ── */
+.breadcrumb {
+  font-size: .75rem;
+  color: var(--muted);
+  margin-bottom: 1.5rem;
+  display: flex;
+  gap: .4rem;
+  align-items: center;
+}
+.breadcrumb a { color: var(--accent); text-decoration: none; }
+.breadcrumb span { color: var(--border); }
+
+/* ── Table ── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .83rem;
+  margin-bottom: 1rem;
+}
+th {
+  background: var(--surface2);
+  color: var(--muted);
+  font-weight: 600;
+  text-align: left;
+  padding: .5rem .75rem;
+  border-bottom: 1px solid var(--border);
+  font-size: .75rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+td {
+  padding: .5rem .75rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:hover td { background: var(--surface2); }
+
+/* ── Diagram containers ── */
+.diagram-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0 1.5rem;
+  overflow-x: auto;
+}
+.diagram-wrap .mermaid {
+  display: flex;
+  justify-content: center;
+}
+.diagram-title {
+  font-size: .72rem;
+  color: var(--muted);
+  text-align: center;
+  margin-top: .75rem;
+  font-style: italic;
+}
+
+/* ── DSL code blocks ── */
+.dsl-block {
+  position: relative;
+}
+.dsl-label {
+  position: absolute;
+  top: .5rem;
+  right: .75rem;
+  font-size: .65rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+/* ── Section header ── */
+.section-header {
+  display: flex;
+  align-items: baseline;
+  gap: .75rem;
+  margin-bottom: .5rem;
+}
+.section-num {
+  font-size: .75rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* ── Back to top ── */
+.back-link {
+  font-size: .78rem;
+  color: var(--muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  margin-top: 1.5rem;
+  padding: .3rem .6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.back-link:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════ SIDEBAR ═══════════════════════ -->
+<nav id="sidebar">
+  <h1>Payam Architecture</h1>
+
+  <div class="nav-level">Level 1 — System Context</div>
+  <a href="#l1-overview" class="l1">System Overview</a>
+  <a href="#l1-actors" class="l2">Actors &amp; Systems</a>
+  <a href="#l1-c4" class="l2">C4 Context Diagram</a>
+  <a href="#l1-modules" class="l2">Module Map</a>
+  <a href="#l1-layers" class="l2">Layer Convention</a>
+
+  <div class="nav-divider"></div>
+  <div class="nav-level">Level 2 — Use Case Interactions</div>
+  <a href="#l2-payment" class="l1">Payment Initiation</a>
+  <a href="#l2-payment-seq" class="l2">Sequence Diagram</a>
+  <a href="#l2-payment-steps" class="l2">Step Breakdown</a>
+  <a href="#l2-webhook" class="l1">Webhook Callback</a>
+  <a href="#l2-webhook-seq" class="l2">Sequence Diagram</a>
+  <a href="#l2-webhook-double-check" class="l2">Double-Check Pattern</a>
+  <a href="#l2-tenant" class="l1">Tenant Onboarding</a>
+  <a href="#l2-admin" class="l1">Admin Investigation</a>
+
+  <div class="nav-divider"></div>
+  <div class="nav-level">Level 3 — Service Internals</div>
+  <a href="#l3-transaction" class="l1">Transaction Module</a>
+  <a href="#l3-tx-statemachine" class="l2">State Machine</a>
+  <a href="#l3-tx-idempotency" class="l2">Idempotency</a>
+  <a href="#l3-tx-ledger" class="l2">Ledger</a>
+  <a href="#l3-tx-eventlog" class="l2">Event Log (Hash Chain)</a>
+  <a href="#l3-orange" class="l1">Orange Money Adapter</a>
+  <a href="#l3-mtn" class="l1">MTN MoMo Adapter</a>
+  <a href="#l3-fraud" class="l1">Fraud Engine</a>
+  <a href="#l3-webhook-svc" class="l1">Webhook Services</a>
+  <a href="#l3-fee" class="l1">Fee Module</a>
+  <a href="#l3-reconciliation" class="l1">Reconciliation</a>
+
+  <div class="nav-divider"></div>
+  <div class="nav-level">Level 4 — Concurrency &amp; Transactions</div>
+  <a href="#l4-boundaries" class="l1">Transaction Boundaries</a>
+  <a href="#l4-orchestrator" class="l2">Orchestrator (No @Tx)</a>
+  <a href="#l4-requires-new" class="l2">REQUIRES_NEW Blocks</a>
+  <a href="#l4-locks" class="l2">Pessimistic Locks</a>
+  <a href="#l4-redis" class="l2">Redis Atomics</a>
+  <a href="#l4-events" class="l2">Event Publication</a>
+  <a href="#l4-quartz" class="l2">Quartz Scheduler</a>
+
+  <div class="nav-divider"></div>
+  <div class="nav-level">Pitfalls &amp; Traps</div>
+  <a href="#pitfalls" class="l1">10 Misunderstanding Traps</a>
+</nav>
+
+<!-- ═══════════════════════ MAIN ═══════════════════════ -->
+<main id="main">
+
+<!-- ═══════════════ LEVEL 1 ═══════════════ -->
+<section id="l1-overview">
+  <h1 class="page-title"><span class="level-pill l1-pill">L1</span> System Context</h1>
+  <p class="subtitle">What Payam is, who uses it, and what external systems it depends on.</p>
+
+  <p>
+    <strong>Payam</strong> is a <strong>multi-tenant mobile money payment gateway</strong> for Cameroon.
+    It wraps the MTN MoMo and Orange Money provider APIs behind a single, provider-agnostic REST interface.
+    Merchants integrate once via API key and can accept payments from either network without knowing which
+    provider is handling the transaction.
+  </p>
+  <p>
+    The system is built as a <strong>modular monolith</strong> on Spring Boot 3 / Java 21 with PostgreSQL
+    as the primary store, Redis for distributed coordination, and Quartz for background scheduling.
+    There is no external message broker — inter-module events travel through Spring's
+    <code>ApplicationEventPublisher</code> with a PostgreSQL-backed publication registry for durability.
+  </p>
+</section>
+
+<section id="l1-actors">
+  <h2>Actors &amp; External Systems</h2>
+  <table>
+    <thead><tr><th>Actor / System</th><th>Role</th><th>Integration</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Merchant (Tenant)</strong></td><td>Initiates payments for their customers; receives outcome webhooks</td><td>REST API + X-Api-Key header; inbound webhook delivery</td></tr>
+      <tr><td><strong>End User (Customer)</strong></td><td>Authorises payment on their mobile money app</td><td>No direct Payam integration — interacts via MTN/Orange UX</td></tr>
+      <tr><td><strong>Admin User</strong></td><td>Investigates transactions, manages tenants, views metrics</td><td>JWT-authenticated REST API at <code>/v1/admin/**</code></td></tr>
+      <tr><td><strong>Orange Money</strong></td><td>Payment provider (Cameroon)</td><td>REST API at <code>https://api-s1.orange.cm/omcoreapis/1.0.2</code>; OAuth2 consumer key/secret</td></tr>
+      <tr><td><strong>MTN MoMo</strong></td><td>Payment provider (Cameroon)</td><td>REST API (<code>sandbox.momodeveloper.mtn.com</code> / prod); OAuth2 API user + subscription key</td></tr>
+      <tr><td><strong>PostgreSQL</strong></td><td>Primary persistent store; Quartz job store; Envers audit store</td><td>HikariCP pool (max 25); Flyway migrations V1–V21</td></tr>
+      <tr><td><strong>Redis</strong></td><td>Idempotency reservation; fraud velocity counters; webhook dedup; rate limiting</td><td>Lettuce client; Bucket4j token buckets</td></tr>
+      <tr><td><strong>SMTP (GMX / Gmail)</strong></td><td>Transactional email</td><td>Dual-provider with circuit breaker; Thymeleaf templates</td></tr>
+      <tr><td><strong>Prometheus / OTLP</strong></td><td>Metrics and distributed tracing</td><td>Micrometer + OpenTelemetry exporter to <code>localhost:4318</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="l1-c4">
+  <h2>C4 Context Diagram</h2>
+
+  <div class="dsl-block">
+    <div class="dsl-label">Structurizr DSL</div>
+    <pre><code>workspace "Payam" "Mobile Money Gateway" {
+  model {
+    merchant   = person "Merchant (Tenant)"        "Accepts mobile money payments from customers"
+    customer   = person "End User (Customer)"      "Authorises payment via mobile money app"
+    adminUser  = person "Admin User"               "Investigates transactions, manages tenants"
+
+    payam = softwareSystem "Payam Gateway" "Multi-tenant payment gateway — Spring Boot modular monolith" {
+      tags "Internal"
+    }
+
+    orangeMoney = softwareSystem "Orange Money API"  "https://api-s1.orange.cm"            { tags "External" }
+    mtnMomo     = softwareSystem "MTN MoMo API"      "sandbox.momodeveloper.mtn.com / prod" { tags "External" }
+    postgres    = softwareSystem "PostgreSQL"         "Primary store, Quartz, Envers audit"  { tags "External" }
+    redis       = softwareSystem "Redis"              "Idempotency, fraud velocity, dedup"   { tags "External" }
+    smtp        = softwareSystem "SMTP (GMX/Gmail)"   "Transactional email"                  { tags "External" }
+    otel        = softwareSystem "OpenTelemetry / Prometheus" "Traces + metrics"             { tags "External" }
+
+    merchant  -> payam      "POST /v1/payments (X-Api-Key)"
+    payam     -> merchant   "Webhook delivery (HMAC-signed)"
+    customer  -> orangeMoney "Authorises payment in Orange app"
+    customer  -> mtnMomo     "Authorises payment in MTN app"
+    adminUser -> payam       "GET/POST /v1/admin/** (JWT)"
+    payam -> orangeMoney "Initiate + poll payment; OAuth2"
+    payam -> mtnMomo     "RequestToPay + poll; OAuth2"
+    orangeMoney -> payam "POST /v1/callbacks/orange"
+    mtnMomo     -> payam "PUT  /v1/callbacks/mtn/{extRef}"
+    payam -> postgres    "JPA/JDBC read-write"
+    payam -> redis       "SETEX, INCR, Bucket4j"
+    payam -> smtp        "sendMail (Thymeleaf rendered)"
+    payam -> otel        "OTLP traces; Prometheus scrape"
+  }
+  views {
+    systemContext payam "SystemContext" { include * autoLayout }
+  }
+}</code></pre>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="mermaid">
+graph TD
+    Merchant(["Merchant\n(Tenant)"]):::actor
+    Customer(["End User\n(Customer)"]):::actor
+    Admin(["Admin User"]):::actor
+    Payam["Payam Gateway\n(Spring Boot)"]:::system
+    Orange["Orange Money API"]:::ext
+    MTN["MTN MoMo API"]:::ext
+    PG[("PostgreSQL")]:::ext
+    Redis[("Redis")]:::ext
+    SMTP["SMTP\n(GMX/Gmail)"]:::ext
+    Obs["Prometheus / OTLP"]:::ext
+
+    Merchant -->|"POST /v1/payments\nX-Api-Key"| Payam
+    Payam -->|"Webhook\nHMAC-signed"| Merchant
+    Admin -->|"JWT /v1/admin/**"| Payam
+    Payam -->|"Initiate + poll"| Orange
+    Payam -->|"RequestToPay + poll"| MTN
+    Orange -->|"POST /v1/callbacks/orange"| Payam
+    MTN -->|"PUT /v1/callbacks/mtn/{ref}"| Payam
+    Customer -.->|"authorises in app"| Orange
+    Customer -.->|"authorises in app"| MTN
+    Payam --- PG
+    Payam --- Redis
+    Payam --- SMTP
+    Payam --- Obs
+
+    classDef actor fill:#1e3a5f,stroke:#3b82f6,color:#93c5fd
+    classDef system fill:#1a2e1a,stroke:#4ade80,color:#86efac,rx:8
+    classDef ext fill:#1a1a2e,stroke:#6366f1,color:#a5b4fc
+    </div>
+    <div class="diagram-title">Fig 1.1 — C4 System Context</div>
+  </div>
+</section>
+
+<section id="l1-modules">
+  <h2>Module Map</h2>
+  <p>Payam has 17 top-level modules under <code>com.softropic.payam</code>:</p>
+  <table>
+    <thead><tr><th>Module</th><th>Responsibility</th><th>Key Entry Points</th></tr></thead>
+    <tbody>
+      <tr><td><code>payment</code></td><td>Payment initiation orchestration</td><td><code>PaymentResource</code>, <code>PaymentOrchestrator</code></td></tr>
+      <tr><td><code>transaction</code></td><td>Lifecycle state machine, idempotency, ledger, hash-chain event log</td><td><code>TransactionService</code>, <code>IdempotencyService</code>, <code>LedgerService</code>, <code>EventLogService</code></td></tr>
+      <tr><td><code>orange</code></td><td>Orange Money adapter — init, poll, token, webhook</td><td><code>OrangeMoneyPort</code>, <code>OrangeMoneyClient</code></td></tr>
+      <tr><td><code>mtn</code></td><td>MTN MoMo adapter — RequestToPay, poll, token, callback</td><td><code>MtnMoMoPort</code>, <code>MtnMoMoClient</code></td></tr>
+      <tr><td><code>webhook</code></td><td>Inbound double-check; outbound tenant delivery with HMAC; Quartz retry</td><td><code>WebhookDoubleCheckHandler</code>, <code>WebhookDeliveryService</code>, <code>WebhookTransitionService</code></td></tr>
+      <tr><td><code>tenant</code></td><td>Multi-tenant management, API key auth, rotation, revocation</td><td><code>TenantService</code>, <code>ApiKeyService</code>, <code>ApiKeyAuthenticationFilter</code></td></tr>
+      <tr><td><code>security</code></td><td>JWT auth, 2FA, rate limiting, fraud-aware auth, session management</td><td><code>SecurityConfiguration</code>, <code>ApiAdvice</code></td></tr>
+      <tr><td><code>fraud</code></td><td>Velocity-based fraud scoring (IP, MSISDN, app, household) via Redis</td><td><code>FraudScoringService</code>, <code>VelocityCheckService</code></td></tr>
+      <tr><td><code>fee</code></td><td>Fixed/percentage fee rules per tenant</td><td><code>FeeEvaluationService</code></td></tr>
+      <tr><td><code>reconciliation</code></td><td>Daily internal ledger vs provider report comparison</td><td><code>ReconciliationService</code></td></tr>
+      <tr><td><code>alert</code></td><td>Real-time alerting on fraud spikes, failure rates, callback anomalies</td><td><code>AlertEvaluationService</code></td></tr>
+      <tr><td><code>admin</code></td><td>Transaction investigation, metrics dashboard, audit trail</td><td><code>AdminTransactionResource</code>, <code>AdminTransactionQueryService</code></td></tr>
+      <tr><td><code>email</code></td><td>Transactional email with circuit breaker and retry scheduler</td><td><code>MailManager</code>, <code>EmailRetryScheduler</code></td></tr>
+      <tr><td><code>platform</code></td><td>Provider MSISDN configuration, health status</td><td><code>PlatformConfigService</code></td></tr>
+      <tr><td><code>common</code></td><td>Shared: <code>MobileMoneyPort</code> interface, <code>PaymentCommand</code>, validation, auditing base</td><td><code>MobileMoneyPort</code>, <code>AbstractAuditingEntity</code></td></tr>
+      <tr><td><code>config</code></td><td>Application wiring: DataSource, async, observability</td><td><code>DataSourceConfig</code>, <code>ObservabilityConfig</code></td></tr>
+      <tr><td><code>ops</code> / <code>health</code></td><td>Operational endpoints, custom health indicators</td><td>Actuator at <code>:8367/manage/</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="l1-layers">
+  <h2>Layer Convention</h2>
+  <p>Every module follows the same 6-package convention, enforced by <code>ARCHITECTURE.md</code>:</p>
+  <pre><code>api/            ← @RestController — entry points, request/response mapping
+contract/       ← DTOs, enums, events, exceptions, value objects
+service/        ← @Service — business logic and orchestration
+infrastructure/ ← HTTP clients, Quartz listeners, Spring filters
+repo/           ← @Entity + Spring Data @Repository
+config/         ← @Configuration, @Bean, module wiring</code></pre>
+
+  <div class="callout success">
+    <strong>Dependency Rule</strong>
+    Dependency flow is strictly: <code>api → service → repo</code>. Infrastructure components call into service/repo.
+    <code>contract/</code> is importable from anywhere. Config is the composition root.
+    No upward or cross-layer shortcuts are permitted.
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="mermaid">
+graph LR
+    A["api\n(@RestController)"] --> S["service\n(@Service)"]
+    I["infrastructure\n(clients, filters)"] --> S
+    S --> R["repo\n(Spring Data)"]
+    S --> C["contract\n(DTOs, events)"]
+    A --> C
+    I --> C
+    R --> C
+    CFG["config\n(@Configuration)"] -.->|"wires"| A & S & I & R
+
+    style C fill:#1a1d27,stroke:#4ade80,color:#86efac
+    style CFG fill:#1a1d27,stroke:#6366f1,color:#a5b4fc,stroke-dasharray:4
+    </div>
+    <div class="diagram-title">Fig 1.2 — Intra-module layer dependency flow</div>
+  </div>
+</section>
+
+<!-- ═══════════════ LEVEL 2 ═══════════════ -->
+<section id="l2-payment">
+  <div class="breadcrumb"><a href="#l1-overview">L1 System Context</a> <span>›</span> L2 Use Case Interactions</div>
+  <h1 class="page-title"><span class="level-pill l2-pill">L2</span> Payment Initiation</h1>
+  <p>The core use case: a merchant POSTs a payment request and receives HTTP 202 within milliseconds.
+  The actual settlement happens asynchronously via provider callback or polling.</p>
+</section>
+
+<section id="l2-payment-seq">
+  <h2>Sequence Diagram — Happy Path</h2>
+  <div class="diagram-wrap">
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant M as Merchant
+    participant R as PaymentResource
+    participant F as ApiKeyAuthFilter
+    participant O as PaymentOrchestrator
+    participant Router as MsisdnRouter
+    participant Idem as IdempotencyService
+    participant TX as TransactionService
+    participant Fraud as FraudScoringService
+    participant Fee as FeeEvaluationService
+    participant Port as OrangeMoneyPort / MtnMoMoPort
+    participant PG as PostgreSQL
+    participant Redis as Redis
+
+    M->>F: POST /v1/payments\n{X-Api-Key, amount, msisdn}
+    F->>PG: lookup hashed key (24h rotation grace)
+    F-->>R: TenantContext + SecurityContext set
+    R->>O: initiatePayment(tenantId, request)
+    O->>Router: resolve(msisdn) → ORANGE | MTN
+    O->>Redis: NX+EX atomic reservation (idempotencyKey)
+    Redis-->>O: OK | ALREADY_EXISTS
+    O->>PG: TransactionService.initiate() [TX1 committed]
+    O->>Redis: FraudScoringService (4 velocity checks)
+    O->>PG: persist risk score + fee [TX2 committed]
+    O->>Port: initiateMerchantPayment(PaymentCommand)
+    Port->>Port: validateSubscriber()
+    Port->>Port: POST /mp/init → payToken\n[REQUIRES_NEW committed]
+    Port->>Port: POST /mp/pay
+    Port-->>O: providerRef
+    O->>PG: INITIATED→AUTH_PENDING→AUTHORIZED→PROCESSING [TX3]
+    O->>Redis: store idempotency response [TX4]
+    O-->>R: TransactionResponse
+    R-->>M: HTTP 202 {transactionId, status:PROCESSING}
+    </div>
+    <div class="diagram-title">Fig 2.1 — Payment initiation happy path (Orange Money shown)</div>
+  </div>
+</section>
+
+<section id="l2-payment-steps">
+  <h2>Step Breakdown</h2>
+
+  <h3>1. Authentication (ApiKeyAuthenticationFilter)</h3>
+  <p>The raw API key is hashed (SHA-256 + salt) before any DB lookup — the plaintext never persists.
+  The filter supports a <strong>24-hour rotation grace window</strong>: both the old ROTATED key and the new ACTIVE key
+  are accepted simultaneously during rollover. SUSPENDED tenants are rejected with HTTP 403 at this stage — no further processing occurs.</p>
+
+  <h3>2. Provider Routing (MsisdnRouter)</h3>
+  <p>The destination mobile number prefix (e.g. <code>67x</code>, <code>65x</code> for MTN; <code>69x</code>, <code>655</code>
+  for Orange in Cameroon <span class="inferred">INFERRED</span>) determines which adapter handles the payment.
+  The mapping is driven by platform configuration, not hardcoded.</p>
+
+  <h3>3. Idempotency Reservation</h3>
+  <p>A merchant-supplied <code>idempotencyKey</code> is SET in Redis with <code>NX+EX</code> (atomic). If the key
+  already exists, the cached response is returned immediately without re-processing. A PostgreSQL fallback handles Redis downtime
+  (see <a href="#pitfalls">Pitfall 8</a>).</p>
+
+  <h3>4. Transaction Creation</h3>
+  <p>A <code>Transaction</code> row is created in state <code>INITIATED</code> and committed in its own transaction
+  (<code>TX1</code>). This ensures the transaction is visible for reconciliation even if the orchestrator crashes
+  mid-flight.</p>
+
+  <h3>5. Fraud Scoring</h3>
+  <p>Four independent velocity checks run against Redis Bucket4j token buckets: IP velocity, MSISDN velocity,
+  application-level velocity, and household (same device fingerprint) velocity. Exceeding any threshold
+  increments a fraud score. Above the configured threshold, the payment is rejected and a
+  <code>FraudEvent</code> is published.</p>
+
+  <h3>6. Fee Calculation</h3>
+  <p>Per-tenant fee rules (fixed or percentage) are loaded from a cached rule set.
+  The computed fee is stored against the transaction within <code>TX2</code>.</p>
+
+  <h3>7. Provider Call (no active transaction)</h3>
+  <div class="callout warn">
+    <strong>No @Transactional here — this is intentional</strong>
+    The HTTP call to Orange/MTN happens with no DB connection held. See <a href="#l4-orchestrator">L4 — Orchestrator Transaction Boundaries</a> and <a href="#pitfalls">Pitfall 1</a>.
+  </div>
+
+  <h3>8. State Transitions</h3>
+  <p>After a successful provider response, four state transitions fire in sequence within <code>TX3</code>:
+  <code>INITIATED → AUTH_PENDING → AUTHORIZED → PROCESSING</code>. This looks redundant but is required
+  by the state machine's enforced step-by-step transitions. See <a href="#pitfalls">Pitfall 2</a>.</p>
+</section>
+
+<section id="l2-webhook">
+  <h2>Webhook Callback Use Case</h2>
+  <p>When the customer authorises (or rejects) the payment on their mobile device, the provider sends an
+  inbound callback to Payam. Payam applies the <strong>double-check pattern</strong> — it never trusts the
+  callback payload alone.</p>
+</section>
+
+<section id="l2-webhook-seq">
+  <h3>Sequence Diagram — Inbound Callback</h3>
+  <div class="diagram-wrap">
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant Prov as Orange/MTN
+    participant CB as OrangeCallbackResource\n/ MtnCallbackResource
+    participant Port as Provider Port
+    participant Redis as Redis
+    participant EV as ApplicationEventPublisher
+    participant DCH as WebhookDoubleCheckHandler
+    participant WTS as WebhookTransitionService
+    participant LS as LedgerService
+    participant ELS as EventLogService
+    participant WDS as WebhookDeliveryService
+    participant Merch as Merchant
+
+    Prov->>CB: POST /v1/callbacks/orange\n{payToken, status}
+    CB->>Port: processWebhook(payload)
+    Port->>Redis: SETNX dedup key (24h TTL)
+    Redis-->>Port: OK | duplicate
+    Port->>Port: publish WebhookReceivedEvent\n[inside TransactionTemplate]
+    Note right of Port: event published inside a\nsmall write transaction
+    Port-->>CB: HTTP 200 ACK
+
+    Note over DCH: @TransactionalEventListener(AFTER_COMMIT)
+    DCH->>Prov: GET /status/{payToken}  (double-check)
+    Prov-->>DCH: SUCCESSFUL | FAILED | PENDING
+    alt terminal status
+        DCH->>WTS: applyFinalTransition() [REQUIRES_NEW]
+        WTS->>WTS: PESSIMISTIC_WRITE lock on Transaction
+        WTS->>WTS: guard: already terminal? → skip
+        WTS->>WTS: PROCESSING → SUCCESS | FAILED
+        WTS->>LS: postEntry() → DEBIT + CREDIT rows
+        WTS->>ELS: append() → hash-chain event
+        WTS->>WDS: enqueue() → outbound delivery
+        WDS-->>Merch: POST {webhookUrl} HMAC-signed
+    end
+    </div>
+    <div class="diagram-title">Fig 2.2 — Inbound provider callback → state transition → merchant notification</div>
+  </div>
+</section>
+
+<section id="l2-webhook-double-check">
+  <h2>Double-Check Pattern</h2>
+  <div class="callout">
+    <strong>Design Principle</strong>
+    Payam never transitions a transaction to a terminal state based solely on a webhook payload.
+    The callback acts only as a trigger to re-query the provider's status API.
+    The provider API is the single source of truth.
+  </div>
+  <p>This guards against two attack vectors:</p>
+  <ul>
+    <li><strong>Forged callbacks</strong> — an attacker POSTing a fake SUCCESS callback to <code>/v1/callbacks/orange</code>
+    would still trigger a real status check against Orange's API, which would return PENDING or FAILED.</li>
+    <li><strong>Replay attacks</strong> — the Redis dedup check (24h TTL, NX set) prevents the same callback
+    from being processed twice even if the provider re-delivers.</li>
+  </ul>
+
+  <div class="callout warn">
+    <strong>INFERRED — Callback signature verification</strong>
+    It is unclear whether Payam verifies a provider-supplied HMAC/signature on <em>inbound</em> Orange callbacks.
+    The code applies dedup and double-check, but explicit signature verification of the inbound payload was
+    not confirmed. <span class="inferred">INFERRED</span>
+  </div>
+</section>
+
+<section id="l2-tenant">
+  <h2>Tenant Onboarding</h2>
+  <p>Admin creates a tenant record. The system generates an API key pair (raw key returned once, hashed form
+  stored). The merchant uses the raw key in <code>X-Api-Key</code> for all payment requests.
+  Keys can be <strong>rotated</strong> (old key accepted for 24h) or <strong>revoked</strong> (immediately rejected).
+  A Quartz job (<code>RotatedKeyCleanupJob</code>) runs every 5 minutes to revoke expired rotated keys.</p>
+  <div class="callout warn">
+    <strong>INFERRED — Self-service signup</strong>
+    Whether tenants can self-register or only admin-provisioned tenants are supported is
+    <span class="inferred">INFERRED</span> to be admin-only based on code structure, but not confirmed.
+  </div>
+</section>
+
+<section id="l2-admin">
+  <h2>Admin Investigation</h2>
+  <p>Admin users (JWT-authenticated) access <code>/v1/admin/**</code>. The admin module provides:</p>
+  <ul>
+    <li>Transaction search and detail view with full Envers audit trail (who changed what, when)</li>
+    <li>Event log chain integrity verification (<code>EventLogService.verifyChain()</code>)</li>
+    <li>Reconciliation report access</li>
+    <li>Alert rule management (fraud spike, failure rate thresholds, callback anomaly detection)</li>
+    <li>Tenant suspension/reactivation</li>
+    <li>Metrics dashboard backed by Micrometer counters (<code>payment.success.total</code>, <code>payment.failed.total</code>, <code>payment.fraud.blocked.total</code>)</li>
+  </ul>
+</section>
+
+<!-- ═══════════════ LEVEL 3 ═══════════════ -->
+<section id="l3-transaction">
+  <div class="breadcrumb">
+    <a href="#l1-overview">L1</a> <span>›</span>
+    <a href="#l2-payment">L2</a> <span>›</span>
+    L3 Service Internals
+  </div>
+  <h1 class="page-title"><span class="level-pill l3-pill">L3</span> Transaction Module</h1>
+  <p>The transaction module is the heart of Payam's reliability guarantees. It owns the state machine,
+  idempotency, double-entry ledger, and the immutable hash-chain event log.</p>
+</section>
+
+<section id="l3-tx-statemachine">
+  <h2>Transaction State Machine</h2>
+  <p><code>TransactionStatus</code> is an enum with an <code>allowedTransitions()</code> method returning an
+  <code>EnumSet</code>. Calling <code>transitionTo()</code> with an invalid next state throws
+  <code>IllegalStateTransitionException</code>. Terminal states accept no further transitions.</p>
+
+  <div class="diagram-wrap">
+    <div class="mermaid">
+stateDiagram-v2
+    [*] --> INITIATED : TransactionService.initiate()
+    INITIATED --> AUTH_PENDING : orchestrator step 1
+    AUTH_PENDING --> AUTHORIZED : orchestrator step 2
+    AUTHORIZED --> PROCESSING : orchestrator step 3
+    PROCESSING --> SUCCESS : webhook / poller (terminal)
+    PROCESSING --> FAILED : webhook / poller (terminal)
+    SUCCESS --> REVERSED : manual reversal (terminal)
+    FAILED --> [*]
+    SUCCESS --> [*]
+    REVERSED --> [*]
+
+    note right of PROCESSING : PESSIMISTIC_WRITE lock\nfor all transitions from here
+    </div>
+    <div class="diagram-title">Fig 3.1 — Transaction state machine (7 states, 3 terminal)</div>
+  </div>
+
+  <div class="callout warn">
+    <strong>32 illegal transitions are tested</strong>
+    The state machine test suite explicitly tests all 32 disallowed transitions.
+    Do not add convenience transition shortcuts — the step-by-step path is required.
+    See <a href="#pitfalls">Pitfall 2</a> for the three seemingly-redundant orchestrator transitions.
+  </div>
+</section>
+
+<section id="l3-tx-idempotency">
+  <h2>Idempotency Service</h2>
+  <p>Prevents duplicate payments when merchants retry a request (network failure, timeout).</p>
+  <h4>Algorithm</h4>
+  <ol>
+    <li><strong>Redis NX+EX reservation</strong> — atomic SET only if not exists, with TTL. Primary path.</li>
+    <li><strong>If Redis unavailable</strong> — PostgreSQL INSERT with <code>ON CONFLICT DO NOTHING</code> as fallback.</li>
+    <li>On a duplicate hit, the stored response is returned immediately (no re-processing).</li>
+    <li>After successful processing, <code>idempotencyService.store()</code> persists the response for future replays.</li>
+  </ol>
+  <div class="callout pitfall">
+    <strong>Pitfall 8 — Redis fallback is load-bearing, not optional</strong>
+    If Redis goes down and the PostgreSQL fallback is removed, ALL payments fail during the outage.
+    The fallback must remain in place.
+  </div>
+</section>
+
+<section id="l3-tx-ledger">
+  <h2>Ledger Service</h2>
+  <p>Every successful payment produces exactly two <code>LedgerEntry</code> rows in a single atomic transaction:</p>
+  <table>
+    <thead><tr><th>Entry</th><th>Account</th><th>Type</th><th>Amount</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>CUSTOMER_WALLET</code></td><td>DEBIT</td><td>payment amount</td></tr>
+      <tr><td>2</td><td><code>PROVIDER_CLEARING</code></td><td>CREDIT</td><td>payment amount</td></tr>
+    </tbody>
+  </table>
+  <p>Both rows share the same <code>entryGroupId</code>. The ledger is reconciled daily against provider reports
+  by <code>ReconciliationService</code>.</p>
+  <div class="callout warn">
+    <strong>INFERRED — Fee posting</strong>
+    Whether a third ledger entry for fee revenue is posted at settlement is
+    <span class="inferred">INFERRED</span> to be handled separately; fee storage on the transaction record was confirmed
+    but a corresponding ledger credit to a fee account was not explicitly verified.
+  </div>
+</section>
+
+<section id="l3-tx-eventlog">
+  <h2>Event Log (Hash Chain)</h2>
+  <p>Every state transition appends an immutable <code>PaymentEventLog</code> row. The rows form a
+  <strong>SHA-256 hash chain</strong> — each event stores the hash of the previous event, creating a tamper-evident
+  audit trail.</p>
+
+  <h4>Hash input format</h4>
+  <pre><code>{transactionId}|{status}|{timestamp}|{previousHash}</code></pre>
+  <p>The genesis event uses the literal string <code>"GENESIS"</code> as <code>previousHash</code>.
+  <code>EventLogService.verifyChain()</code> recomputes hashes from genesis and detects any modification.</p>
+  <p>The entity is marked <code>@Immutable</code> — Hibernate will not issue UPDATE statements for it.</p>
+  <div class="callout pitfall">
+    <strong>Pitfall — @Immutable ≠ DB-level constraint</strong>
+    <code>@Immutable</code> prevents Hibernate from issuing UPDATEs in the same session. A direct JDBC
+    or SQL statement bypasses this. The chain integrity check is the real defence; treat it as an audit
+    tool, not a security boundary.
+  </div>
+</section>
+
+<section id="l3-orange">
+  <h2>Orange Money Adapter</h2>
+  <p>File: <code>orange/service/OrangeMoneyPort.java</code>, <code>orange/infrastructure/OrangeMoneyClient.java</code></p>
+
+  <h4>Initiation sequence (provider-side)</h4>
+  <ol>
+    <li>Query subscriber info — validate MSISDN is active and capable of payments</li>
+    <li><code>POST /mp/init</code> — obtain a <strong>payToken</strong> (short-lived session token)</li>
+    <li>Persist payToken in <code>REQUIRES_NEW</code> transaction (crash safe — see <a href="#pitfalls">Pitfall 3</a>)</li>
+    <li><code>POST /mp/pay</code> — initiate the actual merchant payment using payToken</li>
+  </ol>
+
+  <div class="callout pitfall">
+    <strong>Pitfall 7 — Orange correlation key is payToken, not txnid</strong>
+    The Orange callback payload contains both <code>txnid</code> (Orange-internal) and <code>payToken</code>.
+    <strong>Only <code>payToken</code> correlates back to a Payam transaction.</strong>
+    Querying by <code>txnid</code> will return no match. This is a common integration mistake.
+  </div>
+
+  <h4>Token management</h4>
+  <p>OAuth2 access tokens (consumer key + secret) are cached with TTL. On expiry or 401,
+  the token is refreshed automatically.</p>
+
+  <h4>Circuit breaker</h4>
+  <p><code>@CircuitBreaker</code> wraps provider calls. Domain exceptions (<code>SubscriberInactive</code>,
+  <code>PayTokenExpired</code>) are in <code>ignoreExceptions</code> — they pass through without counting as failures.
+  No <code>fallbackMethod</code> is defined; <code>CallNotPermittedException</code> propagates to the orchestrator
+  and maps to HTTP 503. See <a href="#pitfalls">Pitfall on circuit breaker fallback</a>.</p>
+</section>
+
+<section id="l3-mtn">
+  <h2>MTN MoMo Adapter</h2>
+  <p>File: <code>mtn/service/MtnMoMoPort.java</code>, <code>mtn/infrastructure/MtnMoMoClient.java</code></p>
+
+  <h4>Initiation sequence</h4>
+  <ol>
+    <li>Validate account holder (<code>GET /v1_0/accountholder</code>)</li>
+    <li><code>POST /v1_0/requesttopay</code> — async request. Returns immediately with an <code>externalRef</code> UUID.</li>
+    <li>Persist <code>externalRef</code> (providerRef) in <code>REQUIRES_NEW</code> transaction before any further work</li>
+    <li>Callback arrives at <code>PUT /v1/callbacks/mtn/{externalRef}</code></li>
+  </ol>
+
+  <div class="callout warn">
+    <strong>INFERRED — MTN callback body structure</strong>
+    The MTN callback is a <code>PUT</code> (not <code>POST</code>) with the external reference in the path.
+    The body structure accepted by Payam is <span class="inferred">INFERRED</span> from the adapter code
+    and may differ slightly from the live MTN MoMo API specification.
+  </div>
+
+  <h4>Polling fallback</h4>
+  <p>If no callback arrives within a configured window, a Quartz poller job queries
+  <code>GET /v1_0/requesttopay/{externalRef}</code> and applies the same double-check transition logic.</p>
+</section>
+
+<section id="l3-fraud">
+  <h2>Fraud Engine</h2>
+  <p>File: <code>fraud/service/FraudScoringService.java</code>, <code>fraud/service/VelocityCheckService.java</code></p>
+
+  <p>Four independent <strong>token bucket velocity checks</strong> backed by Redis (Bucket4j + Lettuce).
+  Each bucket represents a sliding window of allowed requests per dimension:</p>
+  <table>
+    <thead><tr><th>Dimension</th><th>Bucket Key</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>IP address</td><td><code>fraud:ip:{ip}</code></td><td>Detect card-mill scripts from one origin</td></tr>
+      <tr><td>MSISDN</td><td><code>fraud:msisdn:{msisdn}</code></td><td>Detect repeated charges to same number</td></tr>
+      <tr><td>Application</td><td><code>fraud:app:{tenantId}</code></td><td>Detect compromised merchant credentials</td></tr>
+      <tr><td>Household</td><td><code>fraud:device:{fingerprint}</code></td><td>Detect same device reusing different numbers</td></tr>
+    </tbody>
+  </table>
+  <p>Exceeding any bucket threshold contributes to a fraud score. Above the configured score threshold,
+  the payment is rejected (<code>FraudException</code>), a <code>FraudEvent</code> is published, and the
+  <code>payment.fraud.blocked.total</code> counter increments.</p>
+
+  <div class="callout warn">
+    <strong>INFERRED — Bucket window duration</strong>
+    The token bucket window durations (e.g. 100 attempts per minute, per hour) are
+    <span class="inferred">INFERRED</span> to be configurable via <code>FraudRule</code> entities in the database.
+    The exact default values were not confirmed from the migration files.
+  </div>
+
+  <p>The buckets are distributed across JVM nodes because they live in Redis — the fraud engine is
+  cluster-safe without coordination overhead.</p>
+</section>
+
+<section id="l3-webhook-svc">
+  <h2>Webhook Services</h2>
+  <p>The webhook module handles both directions: inbound provider callbacks and outbound merchant notifications.</p>
+
+  <h3>Inbound — WebhookDoubleCheckHandler</h3>
+  <p>Fires via <code>@TransactionalEventListener(AFTER_COMMIT)</code>. Receives a <code>WebhookReceivedEvent</code>
+  after the dedup record commits, then calls the provider status API. Delegates terminal transitions to
+  <code>WebhookTransitionService</code> — a separate Spring bean to preserve AOP proxy integrity
+  (see <a href="#pitfalls">Pitfall 4</a>).</p>
+
+  <h3>Outbound — WebhookDeliveryService</h3>
+  <p>After a terminal transition, an outbound delivery is enqueued. The delivery is signed with
+  <strong>HMAC-SHA256</strong> using the tenant's webhook secret. The signature is sent in the
+  <code>X-Payam-Signature</code> header (or equivalent).</p>
+  <div class="callout pitfall">
+    <strong>Pitfall 5 — HMAC-SHA256 ≠ SHA-256</strong>
+    The outbound webhook uses <code>javax.crypto.Mac</code> (keyed HMAC), not <code>DigestUtils.sha256Hex</code>
+    (plain hash). Both are present in the codebase. Confusing them would produce an unverifiable signature
+    on the merchant side.
+  </div>
+  <p>Retry policy: <strong>exponential backoff</strong> — <code>2^attempt</code> minutes, capped at 60 minutes,
+  maximum 5 attempts. Retries are driven by a Quartz <code>WebhookDeliveryJob</code> using the PostgreSQL
+  JDBC job store (cluster-safe).</p>
+</section>
+
+<section id="l3-fee">
+  <h2>Fee Module</h2>
+  <p>File: <code>fee/service/FeeEvaluationService.java</code></p>
+  <p>Supports two rule types per tenant:</p>
+  <ul>
+    <li><strong>Fixed</strong> — flat amount regardless of payment amount</li>
+    <li><strong>Percentage</strong> — configurable rate applied to payment amount</li>
+  </ul>
+  <p>Rules are cached. The computed fee is stored on the <code>Transaction</code> record within TX2 of the
+  orchestrator. Fee rules are managed by admin users.</p>
+  <div class="callout warn">
+    <strong>INFERRED — Fee tiering</strong>
+    Whether fee rules can be tiered by amount range is <span class="inferred">INFERRED</span> — the service
+    supports at least fixed and percentage. More complex banding was not confirmed.
+  </div>
+</section>
+
+<section id="l3-reconciliation">
+  <h2>Reconciliation Module</h2>
+  <p>File: <code>reconciliation/service/ReconciliationService.java</code></p>
+  <p>A scheduled job compares the internal ledger against the provider's daily settlement report.
+  Discrepancies are stored in <code>reconciliation_discrepancy</code> and surfaced to admins.
+  Reports are stored in <code>reconciliation_report</code>.</p>
+  <div class="callout warn">
+    <strong>INFERRED — Provider report format</strong>
+    How Orange/MTN deliver their daily reports (SFTP file, API endpoint, email attachment) is
+    <span class="inferred">INFERRED</span>. The reconciliation code reads a report entity but the
+    ingestion mechanism was not confirmed.
+  </div>
+</section>
+
+<!-- ═══════════════ LEVEL 4 ═══════════════ -->
+<section id="l4-boundaries">
+  <div class="breadcrumb">
+    <a href="#l1-overview">L1</a> <span>›</span>
+    <a href="#l2-payment">L2</a> <span>›</span>
+    <a href="#l3-transaction">L3</a> <span>›</span>
+    L4 Concurrency &amp; Transactions
+  </div>
+  <h1 class="page-title"><span class="level-pill l4-pill">L4</span> Concurrency &amp; Transaction View</h1>
+  <p>This level maps exactly where database transactions begin and end, which operations hold DB connections,
+  which use Redis for coordination, and how concurrent requests are serialised.</p>
+</section>
+
+<section id="l4-orchestrator">
+  <h2>PaymentOrchestrator — Intentionally NOT @Transactional</h2>
+
+  <div class="callout pitfall">
+    <strong>Pitfall 1 — Do not add @Transactional to PaymentOrchestrator.initiate()</strong>
+    This method makes outbound HTTP calls that can take hundreds of milliseconds to seconds.
+    Wrapping the whole method in a DB transaction would hold a HikariCP connection open for the
+    duration of every provider call. With a pool of 25 connections and even moderate concurrency,
+    the pool exhausts and new requests queue indefinitely. The design deliberately uses discrete
+    TransactionTemplate blocks instead.
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="mermaid">
+sequenceDiagram
+    participant O as PaymentOrchestrator
+    participant TX1 as [TX1: Committed]
+    participant TX2 as [TX2: Committed]
+    participant HTTP as Provider HTTP
+    participant TX3 as [TX3: Committed]
+    participant TX4 as [TX4: Committed]
+    participant Pool as HikariCP Pool
+
+    Note over O: No @Transactional on method
+    O->>Pool: acquire connection
+    O->>TX1: TransactionService.initiate()\nINSERT transaction (INITIATED)
+    TX1-->>Pool: release connection ✓
+    O->>Pool: acquire connection
+    O->>TX2: persist risk score + fee
+    TX2-->>Pool: release connection ✓
+    Note over O: ← No connection held here →
+    O->>HTTP: POST to Orange / MTN (may take 500ms–5s)
+    HTTP-->>O: providerRef
+    O->>Pool: acquire connection
+    O->>TX3: state transitions ×4 + providerRef
+    TX3-->>Pool: release connection ✓
+    O->>Pool: acquire connection
+    O->>TX4: IdempotencyService.store()
+    TX4-->>Pool: release connection ✓
+    </div>
+    <div class="diagram-title">Fig 4.1 — HikariCP connection lifecycle across PaymentOrchestrator.initiate()</div>
+  </div>
+</section>
+
+<section id="l4-requires-new">
+  <h2>REQUIRES_NEW Transaction Blocks</h2>
+  <p>Three locations use <code>Propagation.REQUIRES_NEW</code> — each for a specific reason:</p>
+  <table>
+    <thead><tr><th>Location</th><th>Why REQUIRES_NEW</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>OrangeMoneyPort.persistPayToken()</code></td>
+        <td>Commits payToken before the <code>/mp/pay</code> API call. If the JVM crashes after
+        the call but before the outer flow completes, the payToken is already in the DB and the
+        reconciliation job can resume. <a href="#pitfalls">(Pitfall 3)</a></td>
+      </tr>
+      <tr>
+        <td><code>MtnMoMoPort.persistProviderRef()</code></td>
+        <td>Same crash-safety rationale for MTN's <code>externalRef</code>.</td>
+      </tr>
+      <tr>
+        <td><code>WebhookTransitionService.applyFinalTransition()</code></td>
+        <td>Fires from a <code>@TransactionalEventListener(AFTER_COMMIT)</code> handler where no
+        transaction is active. Without <code>REQUIRES_NEW</code>, <code>@Transactional</code> would
+        be a no-op (no existing transaction to join).</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="l4-locks">
+  <h2>Pessimistic Write Locks</h2>
+  <p><code>findByTransactionIdForUpdate()</code> uses <code>LockModeType.PESSIMISTIC_WRITE</code>
+  on every state transition. This prevents a race condition between the inbound provider webhook and the
+  Quartz poller job both attempting to apply a terminal transition simultaneously.</p>
+
+  <div class="diagram-wrap">
+    <div class="mermaid">
+sequenceDiagram
+    participant W as WebhookHandler\n(AFTER_COMMIT)
+    participant P as Quartz Poller\n(concurrent)
+    participant PG as PostgreSQL
+
+    par Simultaneous arrivals
+        W->>PG: SELECT ... FOR UPDATE\n(acquires row lock)
+        P->>PG: SELECT ... FOR UPDATE\n(blocks — waits)
+    end
+    W->>PG: check: already terminal? No
+    W->>PG: UPDATE status = SUCCESS
+    W->>PG: INSERT LedgerEntry × 2
+    W-->>PG: COMMIT (releases lock)
+    PG-->>P: lock acquired
+    P->>PG: check: already terminal? YES
+    P-->>PG: skip — COMMIT (no-op)
+    </div>
+    <div class="diagram-title">Fig 4.2 — Race condition prevention via PESSIMISTIC_WRITE lock + terminal guard</div>
+  </div>
+</section>
+
+<section id="l4-redis">
+  <h2>Redis Atomic Operations</h2>
+  <table>
+    <thead><tr><th>Use</th><th>Operation</th><th>Fallback</th></tr></thead>
+    <tbody>
+      <tr><td>Idempotency reservation</td><td><code>SET key value NX EX ttl</code></td><td>PostgreSQL INSERT ON CONFLICT</td></tr>
+      <tr><td>Webhook dedup</td><td><code>SET key value NX EX 86400</code></td><td>None (duplicate accepted if Redis down)</td></tr>
+      <tr><td>Fraud velocity counters</td><td>Bucket4j token bucket consume (Lua script)</td><td>Fail-open <span class="inferred">INFERRED</span></td></tr>
+      <tr><td>Rate limiting</td><td>Bucket4j token bucket (per user/IP)</td><td>Fail-open <span class="inferred">INFERRED</span></td></tr>
+    </tbody>
+  </table>
+  <p>All Redis operations use Lettuce (non-blocking) via <code>RedisTemplate</code>. Connection lifecycle
+  is managed by Spring's Lettuce connection factory.</p>
+</section>
+
+<section id="l4-events">
+  <h2>Spring Event Publication Pattern</h2>
+  <p>Payam uses Spring's <code>ApplicationEventPublisher</code> + PostgreSQL Event Publication Registry
+  (Spring Modulith's <code>spring-modulith-events-jdbc</code>) for durability. No Kafka or RabbitMQ.</p>
+
+  <div class="diagram-wrap">
+    <div class="mermaid">
+graph LR
+    A["Provider Port\npublishes\nWebhookReceivedEvent\ninside TransactionTemplate"] -->|"commit"| B["PostgreSQL\nEvent Publication\nRegistry\n(durable until consumed)"]
+    B --> C["@TransactionalEventListener\nAFTER_COMMIT\nWebhookDoubleCheckHandler"]
+    C --> D["applyFinalTransition\n[REQUIRES_NEW]"]
+    D --> E["WebhookDeliveryService\nenqueue outbound"]
+    E --> F["Quartz\nWebhookDeliveryJob"]
+    F -->|"POST HMAC-signed"| G["Merchant\nWebhook URL"]
+
+    style B fill:#1a1d27,stroke:#f59e0b,color:#fbbf24
+    </div>
+    <div class="diagram-title">Fig 4.3 — Event publication durability chain</div>
+  </div>
+
+  <div class="callout">
+    <strong>Why publish inside a TransactionTemplate?</strong>
+    The <code>WebhookReceivedEvent</code> is published inside a small write transaction. This ensures the
+    event is written to the Publication Registry atomically with the dedup record. If the event were
+    published outside a transaction and the process crashed, the dedup entry would exist (blocking replay)
+    but the event would never be delivered.
+  </div>
+</section>
+
+<section id="l4-quartz">
+  <h2>Quartz Scheduler</h2>
+  <p>Quartz uses the PostgreSQL JDBC job store (<code>QRTZ_*</code> tables). This makes it
+  cluster-safe — only one node executes each job even with multiple Payam instances.</p>
+  <table>
+    <thead><tr><th>Job</th><th>Schedule</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>WebhookDeliveryJob</code></td><td>On retry schedule (exponential backoff)</td><td>Re-attempt failed outbound webhook deliveries</td></tr>
+      <tr><td><code>RotatedKeyCleanupJob</code></td><td>Every 5 minutes</td><td>Revoke API keys whose rotation grace window has expired</td></tr>
+      <tr><td>Orange status poller <span class="inferred">INFERRED</span></td><td>Configurable interval</td><td>Query Orange status for PROCESSING transactions with no callback</td></tr>
+      <tr><td>MTN status poller <span class="inferred">INFERRED</span></td><td>Configurable interval</td><td>Query MTN status for PROCESSING transactions with no callback</td></tr>
+      <tr><td>Reconciliation job <span class="inferred">INFERRED</span></td><td>Daily</td><td>Compare ledger against provider reports</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════ PITFALLS ═══════════════ -->
+<section id="pitfalls">
+  <h1 class="page-title">10 Developer Misunderstanding Traps</h1>
+  <p class="subtitle">These are the areas most likely to cause bugs or incorrect assumptions by developers new to the codebase.</p>
+
+  <h3>Pitfall 1 — PaymentOrchestrator is NOT @Transactional (intentional)</h3>
+  <div class="callout pitfall">
+    <strong>Trap</strong>
+    Adding <code>@Transactional</code> to <code>PaymentOrchestrator.initiate()</code> would hold a HikariCP
+    connection open across outbound HTTP calls to Orange/MTN (potentially seconds per request). With 25
+    pooled connections and moderate concurrency, the pool exhausts. The design uses discrete
+    <code>TransactionTemplate</code> blocks (TX1–TX4) so connections are held only for milliseconds.
+    <strong>Never add @Transactional to this method.</strong>
+  </div>
+
+  <h3>Pitfall 2 — Three redundant transitions in the orchestrator (state machine constraint)</h3>
+  <div class="callout pitfall">
+    <strong>Trap</strong>
+    Lines ~241–261 of <code>PaymentOrchestrator</code> apply <code>INITIATED→AUTH_PENDING→AUTHORIZED→PROCESSING</code>
+    in rapid succession. It looks like a bug or dead code. It is not — the state machine's
+    <code>allowedTransitions()</code> only permits <em>adjacent</em> transitions. There is no direct
+    <code>INITIATED→PROCESSING</code> path. A TODO acknowledges this may eventually be simplified
+    by collapsing intermediate states for the orchestrator path.
+  </div>
+
+  <h3>Pitfall 3 — persistProviderRef uses REQUIRES_NEW (crash safety, not waste)</h3>
+  <div class="callout pitfall">
+    <strong>Trap</strong>
+    <code>MtnMoMoPort.persistProviderRef()</code> and <code>OrangeMoneyPort.persistPayToken()</code>
+    commit in separate <code>REQUIRES_NEW</code> transactions <em>before</em> the subsequent API call.
+    This looks wasteful (a commit before the "real" work). It is intentional crash safety: if the JVM
+    dies between the API call completing and the outer transaction committing, the providerRef is already
+    in PostgreSQL. Reconciliation can find and resolve these transactions.
+  </div>
+
+  <h3>Pitfall 4 — WebhookTransitionService exists only for AOP proxy integrity</h3>
+  <div class="callout pitfall">
+    <strong>Trap</strong>
+    <code>WebhookDoubleCheckHandler</code> delegates to a separate <code>WebhookTransitionService</code>
+    bean for the actual state transition. This seems like over-engineering. Without it, if the transition
+    method were called directly (<code>this.applyFinalTransition()</code>), Spring's AOP proxy would be
+    bypassed and <code>@Transactional</code> would be silently ignored — the transition would run without
+    a transaction. The extra bean is mandatory.
+  </div>
+
+  <h3>Pitfall 5 — Outbound webhook uses HMAC-SHA256, not SHA-256</h3>
+  <div class="callout pitfall">
+    <strong>Trap</strong>
+    <code>DigestUtils.sha256Hex()</code> (plain SHA-256, no key) is used elsewhere in the codebase for
+    the event log hash chain. Outbound webhook signatures use <code>javax.crypto.Mac</code> with
+    <code>HmacSHA256</code> (keyed hash). Using the wrong one produces a signature that merchants'
+    verification code will reject. Always use <code>Mac.getInstance("HmacSHA256")</code> for webhook
+    signing.
+  </div>
+
+  <h3>Pitfall 6 — FilterRegistrationBean(setEnabled=false) must not be removed</h3>
+  <div class="callout pitfall">
+    <strong>Trap</strong>
+    <code>ApiKeyAuthenticationFilter</code> is declared as a <code>@Bean</code> so it can be injected into
+    the <code>TenantSecurityConfig</code> filter chain. Without the paired
+    <code>FilterRegistrationBean(setEnabled=false)</code>, Spring Boot auto-registers it as a servlet
+    filter for ALL requests, including the JWT admin paths. The admin chain would then require an API key
+    on every request. The <code>setEnabled(false)</code> call must be present.
+  </div>
+
+  <h3>Pitfall 7 — Orange correlation key is payToken, not txnid</h3>
+  <div class="callout pitfall">
+    <strong>Trap</strong>
+    The Orange Money callback payload contains both a <code>txnid</code> (Orange-internal transaction
+    identifier) and a <code>payToken</code>. Payam correlates callbacks to its own transactions via
+    <code>payToken</code>. Querying by <code>txnid</code> will find nothing. Any code that processes
+    Orange callbacks must use <code>payToken</code> as the lookup key.
+  </div>
+
+  <h3>Pitfall 8 — Redis idempotency fallback is load-bearing</h3>
+  <div class="callout pitfall">
+    <strong>Trap</strong>
+    The PostgreSQL fallback in <code>IdempotencyService.checkAndReserve()</code> activates when Redis is
+    unavailable. Without it, a Redis outage causes every payment request to fail with an idempotency
+    reservation error. The fallback uses <code>INSERT ... ON CONFLICT DO NOTHING</code> for atomicity.
+    Do not remove this fallback as a "simplification."
+  </div>
+
+  <h3>Pitfall 9 — open-in-view=false changes lazy loading behaviour</h3>
+  <div class="callout pitfall">
+    <strong>Trap</strong>
+    <code>spring.jpa.open-in-view=false</code> is set. This disables the Open Session In View anti-pattern,
+    which means accessing an unloaded lazy association outside a <code>@Transactional</code> method throws
+    <code>LazyInitializationException</code> immediately. The codebase compensates with
+    <code>JOIN FETCH</code> in all repository queries that load associations. Adding a new entity relationship
+    without a corresponding <code>JOIN FETCH</code> will cause runtime exceptions in non-transactional code
+    paths (controllers, event listeners).
+  </div>
+
+  <h3>Pitfall 10 — UsernameNotFoundException maps to HTTP 200</h3>
+  <div class="callout pitfall">
+    <strong>Trap</strong>
+    In <code>ApiAdvice.java</code>, <code>UsernameNotFoundException</code> is intentionally mapped to
+    <code>HTTP 200 OK</code> (not 401). This is security hardening against username enumeration attacks —
+    a valid and invalid username produce the same HTTP response. Code that checks for 4xx to detect
+    auth failures will behave incorrectly. Treat the response body, not the status code, as the
+    authoritative signal.
+  </div>
+
+  <a href="#l1-overview" class="back-link">↑ Back to top</a>
+</section>
+
+</main>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1e3a5f',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#3b82f6',
+      lineColor: '#4b5563',
+      secondaryColor: '#1a1d27',
+      tertiaryColor: '#22263a',
+      background: '#0f1117',
+      mainBkg: '#1a1d27',
+      nodeBorder: '#2e3350',
+      clusterBkg: '#1a1d27',
+      titleColor: '#e2e8f0',
+      edgeLabelBackground: '#1a1d27',
+      actorBkg: '#1e3a5f',
+      actorBorder: '#3b82f6',
+      actorTextColor: '#93c5fd',
+      actorLineColor: '#4b5563',
+      signalColor: '#94a3b8',
+      signalTextColor: '#e2e8f0',
+      labelBoxBkgColor: '#1a1d27',
+      labelBoxBorderColor: '#2e3350',
+      labelTextColor: '#e2e8f0',
+      loopTextColor: '#e2e8f0',
+      noteBorderColor: '#6366f1',
+      noteBkgColor: '#2d1d5f',
+      noteTextColor: '#e2e8f0',
+      activationBorderColor: '#6c8aff',
+      activationBkgColor: '#1a1d27',
+      sequenceNumberColor: '#94a3b8',
+      sectionBkgColor: '#1e3a5f',
+      altSectionBkgColor: '#1a1d27',
+      sectionBkgColor2: '#1e3a5f',
+      taskBorderColor: '#3b82f6',
+      taskBkgColor: '#1e3a5f',
+      taskTextColor: '#e2e8f0',
+      taskTextOutsideColor: '#e2e8f0',
+      gridColor: '#2e3350',
+      doneTaskBkgColor: '#1a2e1a',
+      doneTaskBorderColor: '#4ade80',
+      critBorderColor: '#ef4444',
+      critBkgColor: '#450a0a',
+      todayLineColor: '#f59e0b',
+      fillType0: '#1e3a5f',
+      fillType1: '#2d1d5f',
+      fillType2: '#1a2e1a',
+      fillType3: '#3d2106',
+    },
+    flowchart: { curve: 'basis', htmlLabels: true },
+    sequence: { showSequenceNumbers: false, wrap: true, width: 150 },
+    stateDiagram: { defaultRenderer: 'dagre' },
+  });
+
+  // Sidebar active link tracking
+  const sections = document.querySelectorAll('section[id]');
+  const links = document.querySelectorAll('#sidebar a[href^="#"]');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        links.forEach(l => {
+          l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+        });
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
