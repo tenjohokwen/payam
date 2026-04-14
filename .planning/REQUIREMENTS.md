@@ -1,69 +1,68 @@
-# Requirements: Payam v6 — REST API Surface, Notifications & Admin UI
+# Requirements: Payam v7 — Backend Hardening & Bug Fixes
 
-**Milestone:** v6
-**Goal:** Expose the v5 service layer over HTTP, wire email notifications for all key tenant/key lifecycle events, and build Admin UI screens for tenant management.
-**Created:** 2026-04-07
+**Milestone:** v7
+**Goal:** Fix 13 audit-identified bugs and risk areas — critical data-consistency issues, transaction boundary problems, and medium concurrency hazards — so the system is production-safe under concurrent load.
+**Created:** 2026-04-14
 **Status:** Active
 
 ---
 
-## v6 Requirements
+## v7 Requirements
 
-### Auth Enforcement
+### Idempotency (IDEM)
 
-- [x] **TENT-09**: Admin API key filter blocks requests from SUSPENDED tenants with HTTP 403 before SecurityContext is populated
+- [ ] **IDEM-01**: When a Postgres write fails during idempotency store, Redis does NOT hold a stale value — Postgres is written first, Redis updated only on success
+- [ ] **IDEM-02**: Concurrent requests with the same idempotency key produce exactly one DB row — a single UPSERT replaces the current TOCTOU find+save pattern
 
-### Tenant REST API (TENT)
+### Reconciliation (RECON)
 
-- [x] **TENT-05**: Admin can retrieve a paginated, filterable (by status) list of tenants via `GET /v1/admin/tenants`
-- [x] **TENT-06**: Admin can retrieve full tenant detail (name, email, webhookUrl, status, keys) via `GET /v1/admin/tenants/{tenantRef}`
-- [x] **TENT-10**: Admin can update a tenant's display name via `PATCH /v1/admin/tenants/{tenantRef}/name`
-- [x] **TENT-02**: Admin can update a tenant's email address via `PATCH /v1/admin/tenants/{tenantRef}/email`
-- [x] **TENT-03**: Admin can update a tenant's webhookUrl via `PATCH /v1/admin/tenants/{tenantRef}/webhook-url`
-- [x] **TENT-04**: Admin can suspend a tenant via `POST /v1/admin/tenants/{tenantRef}/suspend` (atomically revokes all keys)
-- [x] **TENT-07**: Admin can reactivate a suspended tenant via `POST /v1/admin/tenants/{tenantRef}/reactivate` (response includes rawKey for new PROD key)
-- [x] **TENT-08**: Admin can regenerate a tenant's webhook secret via `POST /v1/admin/tenants/{tenantRef}/webhook-secret`
+- [ ] **RECON-01**: Reconciliation processes transactions in bounded pages (≤1000 rows per batch) — no full-day set is loaded into heap; discrepancies are persisted incrementally
+- [ ] **RECON-02**: When discrepancy persistence fails, the ReconciliationReport transitions to FAILED state — no report is left stuck in IN_PROGRESS
 
-### Webhook Secret REST API (WSEC)
+### Transaction Boundaries (TXN)
 
-- [x] **WSEC-03**: Admin can retrieve a tenant's plaintext webhook secret via `GET /v1/admin/tenants/{tenantRef}/webhook-secret` (excluded from standard tenant detail DTO; admin-only)
+- [ ] **TXN-01**: Fee evaluation executes before the transaction boundary in PaymentOrchestrator — the locked section covers state writes only, not fee computation
 
-### Email Notifications (NOTIF)
+### Webhook Infrastructure (WEBHOOK)
 
-- [x] **NOTIF-01**: Admin and tenant receive an email when a new API key is generated for the tenant (no key material in email body)
-- [x] **NOTIF-02**: Admin and tenant receive an email when an API key is rotated (key prefix and environment included; no raw key)
-- [x] **NOTIF-03**: Admin and tenant receive an email when an API key is manually revoked
-- [x] **NOTIF-04**: Admin and tenant receive an email when a revoked API key is reactivated
-- [x] **NOTIF-05**: Admin and tenant receive an email when the webhook secret is regenerated
-- [x] **NOTIF-06**: Admin and tenant receive an email on: tenant suspended, tenant reactivated, tenant email changed (notification to old address), tenant webhookUrl changed
+- [ ] **WEBHOOK-01**: Tenant data is loaded in one query per job tick (not per delivery) in WebhookDeliveryService — N deliveries produce 1 query, not N+1
+- [ ] **WEBHOOK-02**: Webhook enqueue fires only after the status-transition transaction commits — uses @TransactionalEventListener(phase = AFTER_COMMIT); enqueue failure does not roll back the state transition
+- [ ] **WEBHOOK-03**: Webhook RestTemplate has an explicit connect timeout (≤5s) and read timeout (≤10s) — a hanging tenant endpoint cannot block a Quartz thread indefinitely
 
-### Admin UI (UI)
+### API Key Concurrency (AKEY)
 
-- [x] **UI-01**: Admin can view a tenant list page with paginated q-table, status filter, and row-click navigation to tenant detail
-- [x] **UI-02**: Admin can view and edit tenant detail (name, email, webhookUrl) with inline save; can toggle status (suspend/reactivate) with a confirmation step
-- [x] **UI-03**: Admin sees a one-time API key display modal (persistent QDialog, copy-confirm gate, rawKey cleared from component state on dismissal) after key generation or rotation
-- [x] **UI-04**: Admin can reveal and re-mask a tenant's webhook secret via eye icon on tenant detail page (lazy-fetch; auto-re-masks after 30s)
+- [ ] **AKEY-09**: Concurrent rotations on the same API key are serialized — no two nodes can simultaneously succeed; protected by @Version or a unique constraint on (tenant_id, environment, status)
+
+### Ledger Integrity (LEDGER)
+
+- [ ] **LEDGER-01**: The database enforces that every entry_group_id has exactly one DEBIT and one CREDIT — unbalanced ledger posts are rejected at the DB layer
+
+### Operational Resilience (OPS)
+
+- [ ] **OPS-01**: MTN and Orange poller transactions have an explicit timeout so advisory locks are bounded — no indefinite lock hold on node crash
+- [ ] **OPS-02**: Fraud velocity token consumption occurs only after the idempotency result is successfully cached — a failed cache write does not consume a rate-limit token
+- [ ] **OPS-03**: TenantContext is cleared in a finally block on all request paths including exception paths — an integration test verifies the context is empty after an exception-path request
 
 ---
 
 ## Future Requirements
 
-*Deferred from v6 — not blocked, but not in scope*
+*Not in scope for v7*
 
-- Audit log viewer for tenant and API key changes (Envers data captured in v5; viewer deferred — webhook_secret masking required first)
+- Audit log viewer for tenant and API key changes (Envers data captured; viewer deferred)
 - Key permission scopes (read-only, write-only API keys)
-- Self-service tenant portal (admin-managed only through v6)
-- DEV/SANDBOX key auto-generation on tenant create (PROD only auto-generated)
-- Bulk tenant operations (suspend/reactivate multiple tenants)
+- Self-service tenant portal
+- DEV/SANDBOX key auto-generation on tenant create
+- Bulk tenant operations
 
 ---
 
 ## Out of Scope
 
-- WebhookSecret encryption at rest — plaintext storage is intentional for HMAC-SHA256 signing; reversible encryption would add operational complexity with no current requirement driver
-- Hard delete of tenants from UI — suspend is the correct v6 lifecycle action
-- Envers audit viewer UI — requires masking webhook_secret column first; deferred until that design decision is made
-- NOTIF email to both old and new address on email change — old address only; reducing blast radius of potential enumeration
+- ML/anomaly-detection fraud models — rule-based engine is sufficient; ML deferred
+- Multi-currency support — XAF only
+- Merchant settlement APIs
+- Direct refund/reversal endpoints
 
 ---
 
@@ -73,27 +72,20 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| TENT-09 | Phase 30 | Complete |
-| TENT-05 | Phase 31 | Complete |
-| TENT-06 | Phase 31 | Complete |
-| TENT-10 | Phase 31 | Complete |
-| TENT-02 | Phase 31 | Complete |
-| TENT-03 | Phase 31 | Complete |
-| TENT-04 | Phase 31 | Complete |
-| TENT-07 | Phase 31 | Complete |
-| TENT-08 | Phase 31 | Complete |
-| WSEC-03 | Phase 31 | Complete |
-| NOTIF-01 | Phase 32 | Complete |
-| NOTIF-02 | Phase 32 | Complete |
-| NOTIF-03 | Phase 32 | Complete |
-| NOTIF-04 | Phase 32 | Complete |
-| NOTIF-05 | Phase 32 | Complete |
-| NOTIF-06 | Phase 32 | Complete |
-| UI-01 | Phase 33 | Complete |
-| UI-02 | Phase 33 | Complete |
-| UI-03 | Phase 33 | Complete |
-| UI-04 | Phase 33 | Complete |
+| IDEM-01 | — | Pending |
+| IDEM-02 | — | Pending |
+| RECON-01 | — | Pending |
+| RECON-02 | — | Pending |
+| TXN-01 | — | Pending |
+| WEBHOOK-01 | — | Pending |
+| WEBHOOK-02 | — | Pending |
+| WEBHOOK-03 | — | Pending |
+| AKEY-09 | — | Pending |
+| LEDGER-01 | — | Pending |
+| OPS-01 | — | Pending |
+| OPS-02 | — | Pending |
+| OPS-03 | — | Pending |
 
 ---
 
-*Last updated: 2026-04-07*
+*Last updated: 2026-04-14*
