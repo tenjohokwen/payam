@@ -11,8 +11,8 @@
 
 ### Idempotency (IDEM)
 
-- [ ] **IDEM-01**: When a Postgres write fails during idempotency store, Redis does NOT hold a stale value — Postgres is written first, Redis updated only on success
-- [ ] **IDEM-02**: Concurrent requests with the same idempotency key produce exactly one DB row — a single UPSERT replaces the current TOCTOU find+save pattern
+- [x] **IDEM-01**: When a Postgres write fails during idempotency store, Redis does NOT hold a stale value — Postgres is written first, Redis updated only on success
+- [x] **IDEM-02**: Concurrent requests with the same idempotency key produce exactly one DB row — a single UPSERT replaces the current TOCTOU find+save pattern
 
 ### Reconciliation (RECON)
 
@@ -70,8 +70,8 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| IDEM-01 | Phase 35 | Pending |
-| IDEM-02 | Phase 35 | Pending |
+| IDEM-01 | Phase 35 | Complete |
+| IDEM-02 | Phase 35 | Complete |
 | RECON-01 | Phase 36 | Pending |
 | RECON-02 | Phase 36 | Pending |
 | TXN-01 | Phase 38 | Pending |

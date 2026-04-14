@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v7
-milestone_name: Backend Hardening & Bug Fixes
-status: roadmap_ready
-stopped_at: Phase 35 (not started)
-last_updated: "2026-04-14T00:00:00.000Z"
+milestone: v1.0.2
+milestone_name: milestone
+status: executing
+stopped_at: Completed 35-01-PLAN.md
+last_updated: "2026-04-14T13:23:32.101Z"
 last_activity: 2026-04-14
 progress:
-  total_phases: 6
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 11
+  completed_phases: 5
+  total_plans: 14
+  completed_plans: 13
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-14 — Milestone v7 started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Milestone v7 — Backend Hardening & Bug Fixes (phases 35–40)
+**Current focus:** Phase 35 — idempotency-correctness
 
 ## Current Position
 
-Phase: 35 — Idempotency Correctness (not started)
-Plan: —
-Status: Roadmap defined; ready to plan Phase 35
-Last activity: 2026-04-14 — v7 roadmap created (phases 35–40)
+Phase: 35 (idempotency-correctness) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-04-14
 
 ```
 Progress [░░░░░░░░░░░░░░░░░░░░] 0% — 0 of 6 phases complete
@@ -89,6 +89,8 @@ Key context from v6 research:
 - [Phase 34]: PlatformConfigService.findByProvider uses IllegalStateException consistent with existing error contract
 - [Phase 34]: callbackHmacSecret removed from OrangeMoneyConfig — HMAC verification was speculative; Orange does not confirm this header in v1.0.2; callbackUrl added instead
 - [Phase 34]: OrangePathMatrixTest also updated (not in plan scope) — had /infos/merchant stub that would cause silent test failures after adapter rewrite
+- [Phase 35]: Conflict target uses column-list form (tenant_id, idempotency_key) not ON CONFLICT ON CONSTRAINT — consistent with reserve() and avoids constraint-name coupling
+- [Phase 35]: Postgres-first write ordering in IdempotencyService.store(): repo.upsert() before redis.set(); Redis in isolated try/catch (IDEM-01)
 
 ### Roadmap Evolution
 
@@ -105,6 +107,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-14T00:00:00.000Z
-Stopped at: v7 roadmap created — ready to plan Phase 35
+Last session: 2026-04-14T13:23:32.094Z
+Stopped at: Completed 35-01-PLAN.md
 Resume file: None

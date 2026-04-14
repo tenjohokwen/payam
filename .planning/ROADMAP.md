@@ -186,7 +186,7 @@ Plans:
   4. mvn verify passes with all existing concurrency and idempotency E2E tests green
 **Plans**: 2 plans
 Plans:
-- [ ] 35-01-PLAN.md — Repository upsert() + IdempotencyService.store() rewrite (Postgres-first) + new IDEM-01/IDEM-02 IT tests
+- [x] 35-01-PLAN.md — Repository upsert() + IdempotencyService.store() rewrite (Postgres-first) + new IDEM-01/IDEM-02 IT tests
 - [ ] 35-02-PLAN.md — Full mvn verify regression run + sign-off summary
 
 ### Phase 36: Reconciliation Hardening
@@ -283,7 +283,7 @@ Plans:
 | 32. Email Notification Infrastructure | v6 | 3/3 | Complete | 2026-04-08 |
 | 33. Admin UI — Tenant Management | v6 | 4/4 | Complete | 2026-04-09 |
 | 34. Orange Money Adapter Alignment | v6 | 2/2 | Complete | 2026-04-14 |
-| 35. Idempotency Correctness | v7 | 0/? | Not started | — |
+| 35. Idempotency Correctness | v7 | 1/2 | In Progress|  |
 | 36. Reconciliation Hardening | v7 | 0/? | Not started | — |
 | 37. Webhook Subsystem Fixes | v7 | 0/? | Not started | — |
 | 38. Transaction Boundary & Fraud Ordering | v7 | 0/? | Not started | — |
