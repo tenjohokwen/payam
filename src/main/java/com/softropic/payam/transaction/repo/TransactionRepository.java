@@ -70,24 +70,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     long countByTxStatus(TransactionStatus txStatus);
 
     /**
-     * Find transactions eligible for daily reconciliation.
-     *
-     * Returns transactions for a given provider within the time window [from, to)
-     * that have a non-null providerRef and are in reconcilable statuses:
-     * SUCCESS, FAILED, or PROCESSING (INITIATED/AUTH_PENDING/AUTHORIZED are too early).
-     *
-     * Used by LedgerSnapshotService in Phase 9 reconciliation.
-     */
-    @Query("SELECT t FROM Transaction t WHERE t.provider = :provider " +
-           "AND t.createdDate >= :from AND t.createdDate < :to " +
-           "AND t.txStatus IN ('SUCCESS','FAILED','PROCESSING') " +
-           "AND t.providerRef IS NOT NULL")
-    List<Transaction> findForReconciliation(
-        @Param("provider") MobilePaymentProvider provider,
-        @Param("from") Instant from,
-        @Param("to") Instant to);
-
-    /**
      * Paged variant of {@link #findForReconciliation} for RECON-01.
      * MUST include ORDER BY t.id ASC — without a stable sort, offset pagination can skip or duplicate rows.
      * Page size is chosen by caller (ReconciliationProviderRunner uses 1000).
