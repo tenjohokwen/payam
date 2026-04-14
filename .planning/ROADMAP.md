@@ -283,7 +283,7 @@ Plans:
 | 32. Email Notification Infrastructure | v6 | 3/3 | Complete | 2026-04-08 |
 | 33. Admin UI — Tenant Management | v6 | 4/4 | Complete | 2026-04-09 |
 | 34. Orange Money Adapter Alignment | v6 | 2/2 | Complete | 2026-04-14 |
-| 35. Idempotency Correctness | v7 | 2/2 | Complete   | 2026-04-14 |
+| 35. Idempotency Correctness | v7 | 2/2 | Complete    | 2026-04-14 |
 | 36. Reconciliation Hardening | v7 | 0/? | Not started | — |
 | 37. Webhook Subsystem Fixes | v7 | 0/? | Not started | — |
 | 38. Transaction Boundary & Fraud Ordering | v7 | 0/? | Not started | — |
