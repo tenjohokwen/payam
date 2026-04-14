@@ -293,7 +293,7 @@ Plans:
 | 34. Orange Money Adapter Alignment | v6 | 2/2 | Complete | 2026-04-14 |
 | 35. Idempotency Correctness | v7 | 2/2 | Complete    | 2026-04-14 |
 | 36. Reconciliation Hardening | v7 | 2/2 | Complete    | 2026-04-14 |
-| 37. Webhook Subsystem Fixes | v7 | 4/4 | Complete   | 2026-04-14 |
+| 37. Webhook Subsystem Fixes | v7 | 4/4 | Complete    | 2026-04-14 |
 | 38. Transaction Boundary & Fraud Ordering | v7 | 0/? | Not started | — |
 | 39. Concurrency Guards & DB Constraints | v7 | 0/? | Not started | — |
 | 40. Operational Resilience | v7 | 0/? | Not started | — |
