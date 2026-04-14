@@ -10,12 +10,14 @@ import com.softropic.payam.transaction.repo.Transaction;
 import com.softropic.payam.transaction.repo.TransactionRepository;
 import com.softropic.payam.transaction.service.EventLogService;
 import com.softropic.payam.transaction.service.LedgerService;
+import com.softropic.payam.webhook.contract.WebhookEnqueueRequestedEvent;
 import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,15 +37,18 @@ public class WebhookTransitionService {
     private final EventLogService eventLogService;
     private final WebhookDeliveryService webhookDeliveryService;
     private final LedgerService ledgerService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public WebhookTransitionService(TransactionRepository transactionRepository,
                                     EventLogService eventLogService,
                                     WebhookDeliveryService webhookDeliveryService,
-                                    LedgerService ledgerService) {
+                                    LedgerService ledgerService,
+                                    ApplicationEventPublisher eventPublisher) {
         this.transactionRepository = transactionRepository;
         this.eventLogService = eventLogService;
         this.webhookDeliveryService = webhookDeliveryService;
         this.ledgerService = ledgerService;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -112,16 +117,18 @@ public class WebhookTransitionService {
             "WEBHOOK_DOUBLE_CHECK", metadata
         );
 
-        // Enqueue outbound tenant notification — async delivery via WebhookDeliveryJob
-        // tx.getFeeAmount() is null for pre-Phase-10 transactions; enqueue() null-guards to ZERO
-        webhookDeliveryService.enqueue(
+        // Publish AFTER_COMMIT event so enqueue happens only after THIS transaction commits (WEBHOOK-02).
+        // If this REQUIRES_NEW transaction rolls back, no listener fires and no delivery log row is
+        // created. The listener (WebhookDeliveryService.onEnqueueRequested) swallows any enqueue
+        // exception so delivery-pipeline failures cannot propagate back and affect the state transition.
+        eventPublisher.publishEvent(new WebhookEnqueueRequestedEvent(
             tx.getTransactionId(),
             tx.getTenantId(),
             eventType.name(),
             target,
             tx.getExternalReference(),
             tx.getFeeAmount()
-        );
+        ));
     }
 
     /**

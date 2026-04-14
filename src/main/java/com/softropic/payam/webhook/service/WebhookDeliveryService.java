@@ -5,6 +5,7 @@ import com.softropic.payam.tenant.repo.Tenant;
 import com.softropic.payam.tenant.repo.TenantRepository;
 import com.softropic.payam.transaction.contract.TransactionStatus;
 import com.softropic.payam.webhook.contract.OutboundWebhookPayload;
+import com.softropic.payam.webhook.contract.WebhookEnqueueRequestedEvent;
 import com.softropic.payam.webhook.repo.WebhookDeliveryLog;
 import com.softropic.payam.webhook.repo.WebhookDeliveryLogRepository;
 
@@ -19,7 +20,10 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -110,6 +114,37 @@ public class WebhookDeliveryService {
         // enclosing @Transactional(REQUIRES_NEW) context directly, which is correct here.
         attemptDeliveryInternal(entry, tenant);
         repo.save(entry);
+    }
+
+    /**
+     * AFTER_COMMIT listener that enqueues a webhook delivery after the triggering transaction
+     * has committed (WEBHOOK-02).
+     *
+     * REQUIRES_NEW: @TransactionalEventListener(AFTER_COMMIT) fires when no transaction is active,
+     * so we open a fresh transaction for the enqueue INSERT and the inline first delivery attempt.
+     *
+     * Exception handling: any failure inside enqueue is caught and logged at ERROR. We must NOT
+     * rethrow — the triggering state transition has already been committed, and an exception here
+     * would only pollute subsequent synchronization callbacks (see Research Pitfall 5).
+     */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onEnqueueRequested(WebhookEnqueueRequestedEvent event) {
+        try {
+            enqueue(event.transactionId(),
+                    event.tenantId(),
+                    event.eventType(),
+                    event.status(),
+                    event.externalReference(),
+                    event.feeAmount());
+        } catch (Exception e) {
+            log.error("Webhook enqueue failed after commit — delivery skipped",
+                kv("operation", "webhook_enqueue_after_commit"),
+                kv("transactionId", event.transactionId()),
+                kv("tenantId", event.tenantId()),
+                kv("status", "ENQUEUE_FAILED"),
+                e);
+        }
     }
 
     /**
