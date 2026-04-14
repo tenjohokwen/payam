@@ -69,6 +69,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ Orange Money adapter aligned with Use Case 1 spec: PayRequest has correct 7-field /mp/pay body, initTransaction() calls POST /mp/init (replacing getMerchantInfo/GET /infos/merchant), PlatformConfigService.findByProvider() resolves channelMsisdn, HMAC verification removed from OrangeCallbackController, description field propagated PaymentRequest→PaymentCommand→OrangeMoneyPort — Phase 34
 - ✓ Idempotency storage durability: IdempotencyKeyRepository.upsert() native INSERT...ON CONFLICT replaces racy find+save; IdempotencyService.store() writes Postgres before Redis — no stale cache on Postgres failure (IDEM-01), no DataIntegrityViolationException under concurrent load (IDEM-02) — Validated in Phase 35: IDEM-01, IDEM-02
 - ✓ Reconciliation memory + stuck-state hardening: ReconciliationProviderRunner @Service with REQUIRES_NEW isolation on all public methods; paged fetch ≤1000 rows per batch (ORDER BY id ASC) with incremental discrepancy persistence; markFailed() runs in independent transaction so crashes never leave reports stuck at IN_PROGRESS; LedgerSnapshotService deleted — Validated in Phase 36: RECON-01, RECON-02
+- ✓ Webhook subsystem fixes: N+1 tenant query eliminated via `loadTenants(Set<Long>)` + one `findAllById` IN-clause SELECT in `WebhookDeliveryJob`; enqueue decoupled from state-transition via `@TransactionalEventListener(AFTER_COMMIT) + REQUIRES_NEW` on `WebhookDeliveryService.onEnqueueRequested`; `WebhookConfig` RestTemplate gets 5s connect / 10s read timeouts — Validated in Phase 37: WEBHOOK-01, WEBHOOK-02, WEBHOOK-03
 
 - ✓ Platform MSISDN management: admin can view/update Orange + MTN platform MSISDNs; email notification on every change — v4
 - ✓ Spring Boot Actuator `/manage/health` reflects live provider MSISDN validation + circuit breaker state for both providers — v4
@@ -152,7 +153,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 ## Current State
 
 **Shipped:** v6 (2026-04-14) — 34 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5 + 5 v6), 82 plans
-**In Progress:** v7 — Backend Hardening & Bug Fixes (Phase 36 complete — reconciliation memory + stuck-state hardening fixed)
+**In Progress:** v7 — Backend Hardening & Bug Fixes (Phase 37 complete — webhook N+1, post-commit enqueue, RestTemplate timeouts fixed)
 **Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar + Hibernate Envers
 **Observability:** Full Loki-queryable structured logging + Spring Boot Actuator health with live provider MSISDN validation + CB state
 **Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage + 22 tenant/key integration tests
@@ -179,4 +180,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-14 — Phase 36 complete (Reconciliation Hardening: RECON-01, RECON-02 validated)*
+*Last updated: 2026-04-14 — Phase 37 complete (Webhook Subsystem Fixes: WEBHOOK-01, WEBHOOK-02, WEBHOOK-03 validated)*
