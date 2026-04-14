@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 38-01-PLAN.md
-last_updated: "2026-04-14T21:29:04.421Z"
+stopped_at: Completed 38-03-PLAN.md — sign-off FAILED, VelocityCounterFloodTest regression
+last_updated: "2026-04-14T23:42:05.521Z"
 last_activity: 2026-04-14
 progress:
   total_phases: 11
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 23
-  completed_plans: 21
+  completed_plans: 23
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-04-14 — Milestone v7 started)
 ## Current Position
 
 Phase: 38 (transaction-boundary-fraud-ordering) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-14
 
@@ -97,6 +97,7 @@ Key context from v6 research:
 - [Phase 37-webhook-subsystem-fixes]: Retain single-arg attemptDelivery overload alongside new two-arg variant — enqueue() path still uses single-arg; no callers broken
 - [Phase 37-webhook-subsystem-fixes]: [37-02] WebhookDeliveryService hosts onEnqueueRequested listener — delivery logic co-located; webhookDeliveryService field kept in WebhookTransitionService to preserve collaborator documentation
 - [Phase 38-transaction-boundary-fraud-ordering]: feeRuleIdVal extracted via .map(r -> r.getId()) — FeeRule not imported into PaymentOrchestrator; pre-lock cache reads hoisted above transactionTemplate block
+- [Phase 38-transaction-boundary-fraud-ordering]: VelocityCounterFloodTest regression: probe/consume split in Plan 02 (OPS-02) is incompatible with CONC-03 invariant — non-consuming probe allows 100 concurrent requests to bypass IP_VELOCITY gate; Plan 02 must be revised
 
 ### Roadmap Evolution
 
@@ -109,10 +110,10 @@ None.
 
 ### Blockers/Concerns
 
-None.
+- Phase 38 VelocityCounterFloodTest regression blocks sign-off
 
 ## Session Continuity
 
-Last session: 2026-04-14T21:29:04.412Z
-Stopped at: Completed 38-01-PLAN.md
+Last session: 2026-04-14T23:41:50.890Z
+Stopped at: Completed 38-03-PLAN.md — sign-off FAILED, VelocityCounterFloodTest regression
 Resume file: None

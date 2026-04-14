@@ -40,7 +40,7 @@
 ### Operational Resilience (OPS)
 
 - [ ] **OPS-01**: MTN and Orange poller transactions have an explicit timeout so advisory locks are bounded — no indefinite lock hold on node crash
-- [ ] **OPS-02**: Fraud velocity token consumption occurs only after the idempotency result is successfully cached — a failed cache write does not consume a rate-limit token
+- [x] **OPS-02**: Fraud velocity token consumption occurs only after the idempotency result is successfully cached — a failed cache write does not consume a rate-limit token
 - [ ] **OPS-03**: TenantContext is cleared in a finally block on all request paths including exception paths — an integration test verifies the context is empty after an exception-path request
 
 ---
@@ -81,7 +81,7 @@
 | AKEY-09 | Phase 39 | Pending |
 | LEDGER-01 | Phase 39 | Pending |
 | OPS-01 | Phase 40 | Pending |
-| OPS-02 | Phase 38 | Pending |
+| OPS-02 | Phase 38 | Complete |
 | OPS-03 | Phase 40 | Pending |
 
 ---
