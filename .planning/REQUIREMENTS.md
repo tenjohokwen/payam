@@ -35,7 +35,7 @@
 
 ### Ledger Integrity (LEDGER)
 
-- [ ] **LEDGER-01**: The database enforces that every entry_group_id has exactly one DEBIT and one CREDIT — unbalanced ledger posts are rejected at the DB layer
+- [x] **LEDGER-01**: The database enforces that every entry_group_id has exactly one DEBIT and one CREDIT — unbalanced ledger posts are rejected at the DB layer
 
 ### Operational Resilience (OPS)
 
@@ -79,7 +79,7 @@
 | WEBHOOK-02 | Phase 37 | Complete |
 | WEBHOOK-03 | Phase 37 | Complete |
 | AKEY-09 | Phase 39 | Complete |
-| LEDGER-01 | Phase 39 | Pending |
+| LEDGER-01 | Phase 39 | Complete |
 | OPS-01 | Phase 40 | Pending |
 | OPS-02 | Phase 38 | Complete |
 | OPS-03 | Phase 40 | Pending |

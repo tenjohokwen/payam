@@ -247,7 +247,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 39-01-PLAN.md — AKEY-09: @Version optimistic lock on TenantApiKey + V22 migration + ApiAdvice 409 handler + ApiKeyConcurrentRotationIT
-- [ ] 39-02-PLAN.md — LEDGER-01: V23 deferrable unique constraint on ledger_entry(entry_group_id, direction) + LedgerConstraintIT
+- [x] 39-02-PLAN.md — LEDGER-01: V23 deferrable unique constraint on ledger_entry(entry_group_id, direction) + LedgerConstraintIT
 
 ### Phase 40: Operational Resilience
 **Goal**: Advisory locks are time-bounded so a crashed node cannot hold them indefinitely, and TenantContext is guaranteed cleared on every request path including exception paths
@@ -303,5 +303,5 @@ Plans:
 | 36. Reconciliation Hardening | v7 | 2/2 | Complete    | 2026-04-14 |
 | 37. Webhook Subsystem Fixes | v7 | 4/4 | Complete    | 2026-04-14 |
 | 38. Transaction Boundary & Fraud Ordering | v7 | 3/4 | Complete    | 2026-04-15 |
-| 39. Concurrency Guards & DB Constraints | v7 | 1/2 | In Progress|  |
+| 39. Concurrency Guards & DB Constraints | v7 | 2/2 | Complete   | 2026-04-15 |
 | 40. Operational Resilience | v7 | 0/? | Not started | — |

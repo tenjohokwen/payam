@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
-status: executing
-stopped_at: Completed 39-01-PLAN.md
-last_updated: "2026-04-15T05:23:12.542Z"
+status: verifying
+stopped_at: Completed 39-02-PLAN.md
+last_updated: "2026-04-15T05:47:34.298Z"
 last_activity: 2026-04-15
 progress:
   total_phases: 11
-  completed_phases: 9
+  completed_phases: 10
   total_plans: 26
-  completed_plans: 25
+  completed_plans: 26
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-14 — Milestone v7 started)
 
 Phase: 39 (concurrency-guards-db-constraints) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-15
 
 ```
@@ -100,6 +100,8 @@ Key context from v6 research:
 - [Phase 38-transaction-boundary-fraud-ordering]: VelocityCounterFloodTest regression: probe/consume split in Plan 02 (OPS-02) is incompatible with CONC-03 invariant — non-consuming probe allows 100 concurrent requests to bypass IP_VELOCITY gate; Plan 02 must be revised
 - [Phase 39]: Used primitive long for @Version on TenantApiKey (not boxed Long) to prevent NPE in Hibernate VersionType.seed()
 - [Phase 39]: V22 migration must pair main.tenant_api_key ADD COLUMN with main.tenant_api_key_aud ADD COLUMN — Envers requires column parity (V21 pattern)
+- [Phase 39-concurrency-guards-db-constraints]: DEFERRABLE INITIALLY DEFERRED chosen over constraint trigger for LEDGER-01 — simpler DDL, satisfies requirement as stated
+- [Phase 39-concurrency-guards-db-constraints]: Two-DEBIT pattern in unbalancedInsert test — lone DEBIT satisfies the unique constraint; two DEBITs is what LEDGER-01 blocks
 
 ### Roadmap Evolution
 
@@ -116,6 +118,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-15T05:23:12.530Z
-Stopped at: Completed 39-01-PLAN.md
+Last session: 2026-04-15T05:47:34.292Z
+Stopped at: Completed 39-02-PLAN.md
 Resume file: None
