@@ -20,10 +20,15 @@ quartz:
   jdbc:
     initialize-schema: never
   properties:
-    org.quartz.jobStore.tablePrefix: QRTZ_
-    org.quartz.jobStore.isClustered: false
+    org.quartz.scheduler.instanceName: mobile-pay-scheduler
+    org.quartz.scheduler.instanceId: AUTO
     org.quartz.threadPool.threadCount: 3
+    org.quartz.jobStore.class: org.quartz.impl.jdbcjobstore.JobStoreTX
     org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+    org.quartz.jobStore.tablePrefix: QRTZ_
+    org.quartz.jobStore.isClustered: true
+    org.quartz.jobStore.clusterCheckinInterval: 20000
+    org.quartz.jobStore.misfireThreshold: 60000
 
 spring:
   mvc:

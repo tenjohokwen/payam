@@ -121,10 +121,10 @@ public class OrangePathMatrixTest extends AbstractPayamE2ETest {
 
     static Stream<Arguments> orangePathMatrix() {
         return Stream.of(
-            Arguments.of("success",           "SUCCESS",    1),
-            Arguments.of("payToken-expiry",   "PROCESSING", -1), // stays PROCESSING (decision [20-01])
-            Arguments.of("init-failure",      "FAILED",    -1), // event count varies by orchestrator path
-            Arguments.of("polling-fallback",  "SUCCESS",    1)
+            Arguments.of("success",           "SUCCESS",    2),
+            Arguments.of("payToken-expiry",   "PROCESSING", 1), 
+            Arguments.of("init-failure",      "FAILED",     1), 
+            Arguments.of("polling-fallback",  "SUCCESS",    2)
         );
     }
 
@@ -133,10 +133,10 @@ public class OrangePathMatrixTest extends AbstractPayamE2ETest {
     void orangePath_drivesCorrectFinalState(String scenarioName, String finalStatus,
                                             int expectedMinEventCount) throws Exception {
         switch (scenarioName) {
-            case "success"          -> runSuccessScenario(finalStatus);
-            case "payToken-expiry"  -> runPayTokenExpiryScenario(finalStatus);
-            case "init-failure"     -> runInitFailureScenario(finalStatus);
-            case "polling-fallback" -> runPollingFallbackScenario(finalStatus);
+            case "success"          -> runSuccessScenario(finalStatus, expectedMinEventCount);
+            case "payToken-expiry"  -> runPayTokenExpiryScenario(finalStatus, expectedMinEventCount);
+            case "init-failure"     -> runInitFailureScenario(finalStatus, expectedMinEventCount);
+            case "polling-fallback" -> runPollingFallbackScenario(finalStatus, expectedMinEventCount);
             default -> throw new IllegalArgumentException("Unknown scenario: " + scenarioName);
         }
     }
@@ -145,7 +145,7 @@ public class OrangePathMatrixTest extends AbstractPayamE2ETest {
     // Scenario implementations
     // -------------------------------------------------------------------------
 
-    private void runSuccessScenario(String finalStatus) {
+    private void runSuccessScenario(String finalStatus, int expectedMinEventCount) {
         orangeServer.stubFor(post(urlPathMatching("/mp/pay"))
             .willReturn(okJson("{\"status\":\"SUCCESS\",\"message\":\"OK\"}")));
         // Double-check GET status — Orange uses SUCCESSFULL (double-L) per decision [21-01]
@@ -162,11 +162,11 @@ public class OrangePathMatrixTest extends AbstractPayamE2ETest {
         Awaitility.await().atMost(8, TimeUnit.SECONDS).untilAsserted(() -> {
             invariant.assertLegalStateTransition(init.transactionId(), finalStatus);
             invariant.chain().assertChainValid(init.transactionId());
-            assertEventCountAtLeast(init.transactionId(), 1);
+            assertEventCountAtLeast(init.transactionId(), expectedMinEventCount);
         });
     }
 
-    private void runPayTokenExpiryScenario(String finalStatus) {
+    private void runPayTokenExpiryScenario(String finalStatus, int expectedMinEventCount) {
         orangeServer.stubFor(post(urlPathMatching("/mp/pay"))
             .willReturn(okJson("{\"status\":\"SUCCESS\",\"message\":\"OK\"}")));
         // Do NOT stub paymentstatus — poller must NOT reach it once payToken expiry is detected
@@ -210,9 +210,10 @@ public class OrangePathMatrixTest extends AbstractPayamE2ETest {
         assertThat(status)
             .as("Transaction must remain PROCESSING on payToken expiry")
             .isEqualTo(finalStatus);
+        assertEventCountAtLeast(init.transactionId(), expectedMinEventCount);
     }
 
-    private void runInitFailureScenario(String finalStatus) {
+    private void runInitFailureScenario(String finalStatus, int expectedMinEventCount) {
         // POST /mp/pay returns 500 — orchestrator marks FAILED
         orangeServer.stubFor(post(urlPathMatching("/mp/pay"))
             .willReturn(aResponse().withStatus(500)));
@@ -243,9 +244,16 @@ public class OrangePathMatrixTest extends AbstractPayamE2ETest {
         assertThat(response.getStatusCode().value())
             .as("Orange init failure must not return 202")
             .isNotEqualTo(202);
+
+        String txId = response.getBody().transactionId();
+        assertThat(txId).isNotNull();
+
+        invariant.assertLegalStateTransition(txId, finalStatus);
+        invariant.chain().assertChainValid(txId);
+        assertEventCountAtLeast(txId, expectedMinEventCount);
     }
 
-    private void runPollingFallbackScenario(String finalStatus) throws Exception {
+    private void runPollingFallbackScenario(String finalStatus, int expectedMinEventCount) throws Exception {
         orangeServer.stubFor(post(urlPathMatching("/mp/pay"))
             .willReturn(okJson("{\"status\":\"SUCCESS\",\"message\":\"OK\"}")));
 
@@ -283,7 +291,7 @@ public class OrangePathMatrixTest extends AbstractPayamE2ETest {
         // Polling path: skip assertLedgerBalanced (no ledger on polling path)
         invariant.assertLegalStateTransition(init.transactionId(), finalStatus);
         invariant.chain().assertChainValid(init.transactionId());
-        assertEventCountAtLeast(init.transactionId(), 1);
+        assertEventCountAtLeast(init.transactionId(), expectedMinEventCount);
     }
 
     // -------------------------------------------------------------------------

@@ -18,7 +18,6 @@ import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,14 +32,6 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
     private static final Logger log = LoggerFactory.getLogger(OrangeStatusPollerJob.class);
 
     /**
-     * Stable advisory lock key that uniquely identifies this poller in the cluster.
-     * Must differ from MtnStatusPollerJob's key (4_001L).
-     * pg_try_advisory_xact_lock is transaction-level: auto-released on commit/rollback,
-     * non-blocking (returns false instead of waiting), so there is no deadlock risk.
-     */
-    private static final long ORANGE_POLLER_LOCK_KEY = 4_002L;
-
-    /**
      * Maximum transactions processed per poller invocation.
      * Prevents a backlog spike from overwhelming the JVM heap or exhausting the DB connection.
      * Smaller batches (100) allow better distribution across a multi-node cluster.
@@ -49,10 +40,9 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
 
     /**
      * Wall-clock transaction timeout (in SECONDS, not milliseconds) for a single poller tick.
-     * Bounds the worst-case pg_try_advisory_xact_lock hold time: when the 300-second budget
-     * is exceeded, Postgres raises 57014 query_canceled, Spring rolls the transaction back,
-     * and the transaction-level advisory lock is released automatically. Matches the Quartz
-     * re-fire interval (5 minutes) so a tick cannot overlap its successor.
+     * Bounds worst-case execution: when the 300-second budget is exceeded, Postgres raises
+     * 57014 query_canceled, Spring rolls the transaction back, and Hikari returns the
+     * connection to the pool. Matches the Quartz re-fire interval (5 minutes).
      */
     private static final int POLLER_TRANSACTION_TIMEOUT_SECONDS = 300;
 
@@ -60,20 +50,17 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
     private final OrangeMoneyPort orangeMoneyPort;
     private final EventLogService eventLogService;
     private final OrangeMoneyConfig config;
-    private final JdbcTemplate jdbcTemplate;
     private final ObservationRegistry observationRegistry;
 
     public OrangeStatusPollerJob(TransactionRepository transactionRepository,
                                  OrangeMoneyPort orangeMoneyPort,
                                  EventLogService eventLogService,
                                  OrangeMoneyConfig config,
-                                 JdbcTemplate jdbcTemplate,
                                  ObservationRegistry observationRegistry) {
         this.transactionRepository = transactionRepository;
         this.orangeMoneyPort = orangeMoneyPort;
         this.eventLogService = eventLogService;
         this.config = config;
-        this.jdbcTemplate = jdbcTemplate;
         this.observationRegistry = observationRegistry;
     }
 
@@ -101,17 +88,6 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
     }
 
     private void runPoller() {
-        // Non-blocking transaction-level advisory lock — only one node polls at a time.
-        // pg_try_advisory_xact_lock returns false immediately if another session holds it,
-        // and the lock is auto-released when this transaction ends (commit or rollback).
-        Boolean locked = jdbcTemplate.queryForObject(
-            "SELECT pg_try_advisory_xact_lock(?)", Boolean.class, ORANGE_POLLER_LOCK_KEY);
-        if (!Boolean.TRUE.equals(locked)) {
-            log.info("Orange poller skipped: lock held by another node",
-                kv("operation", "orange_poller_scan"));
-            return;
-        }
-
         int initialDelaySeconds = config.getPoller().getInitialDelaySeconds();
         Instant cutoff = Instant.now().minus(initialDelaySeconds, ChronoUnit.SECONDS);
 

@@ -17,8 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  *  - the timeout attribute is dropped (default is -1),
  *  - the value is accidentally changed from seconds to milliseconds (e.g. 300000).
  *
- * The 300-second value matches the Quartz re-fire interval so the advisory lock
- * cannot be held across successive ticks on a hung node.
+ * The 300-second value matches the Quartz re-fire interval so a hung tick
+ * cannot hold a DB connection across successive ticks.
  */
 class MtnStatusPollerJobTimeoutTest {
 
