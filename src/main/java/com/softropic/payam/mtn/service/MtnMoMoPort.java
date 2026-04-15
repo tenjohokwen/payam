@@ -218,13 +218,18 @@ public class MtnMoMoPort implements MobileMoneyPort {
 
     /**
      * Persist providerRef (referenceId) to the Transaction record BEFORE the API call.
-     * Uses REQUIRES_NEW so this commit survives even if the outer flow crashes (Pitfall 6).
+     * Uses TransactionTemplate directly (not @Transactional) because this method is called via
+     * self-invocation (this.persistProviderRef), which bypasses the Spring AOP proxy and makes
+     * @Transactional a no-op. TransactionTemplate creates a real transaction so that
+     * findByTransactionIdForUpdate can acquire the pessimistic write lock (Pitfall 6).
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     protected void persistProviderRef(String transactionId, String providerRef) {
-        transactionRepository.findByTransactionId(transactionId).ifPresent(tx -> {
-            tx.setProviderRef(providerRef);
-            transactionRepository.save(tx);
+        transactionTemplate.execute(status -> {
+            transactionRepository.findByTransactionIdForUpdate(transactionId).ifPresent(tx -> {
+                tx.setProviderRef(providerRef);
+                transactionRepository.save(tx);
+            });
+            return null;
         });
     }
 

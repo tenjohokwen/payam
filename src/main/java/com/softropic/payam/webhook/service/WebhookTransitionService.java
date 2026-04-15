@@ -69,19 +69,26 @@ public class WebhookTransitionService {
             .orElseThrow(() -> new IllegalStateException(
                 "Transaction not found during double-check: " + event.transactionId()));
 
-        // Guard: already in terminal state (webhook race with poller — Pitfall 2)
-        if (tx.getTxStatus() == TransactionStatus.SUCCESS
-                || tx.getTxStatus() == TransactionStatus.FAILED) {
-            log.info("Double-check: already terminal",
+        // Map raw provider status to target TransactionStatus using provider-specific mapper
+        TransactionStatus target = resolveTarget(event.provider(), result.rawStatus());
+
+        // Guard: only apply the transition if the current state allows it.
+        // This covers two races:
+        //   1. Already-terminal (SUCCESS/FAILED/REVERSED have no allowed transitions) — Pitfall 2
+        //   2. Still-INITIATED: orchestrator hasn't reached applyTransition(PROCESSING) yet because
+        //      the provider callback arrived in the gap after persistPayToken/persistProviderRef
+        //      committed but before the orchestrator's PROCESSING transition committed.
+        //      In this case the webhook double-check must skip; the poller will apply the
+        //      terminal state once the orchestrator has moved the row to PROCESSING.
+        if (!tx.getTxStatus().allowedTransitions().contains(target)) {
+            log.info("Double-check: skipping — transition not valid in current state",
                 kv("operation", "webhook_double_check"),
                 kv("transactionId", event.transactionId()),
                 kv("currentState", tx.getTxStatus()),
-                kv("status", "ALREADY_TERMINAL"));
+                kv("targetState", target),
+                kv("status", "TRANSITION_SKIPPED"));
             return;
         }
-
-        // Map raw provider status to target TransactionStatus using provider-specific mapper
-        TransactionStatus target = resolveTarget(event.provider(), result.rawStatus());
 
         tx.applyTransition(target);
         transactionRepository.save(tx);

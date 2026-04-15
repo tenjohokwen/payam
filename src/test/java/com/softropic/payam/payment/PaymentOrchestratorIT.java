@@ -507,6 +507,6 @@ class PaymentOrchestratorIT {
         // TXN-01: evaluateFee must have been called BEFORE findByTransactionIdForUpdate
         InOrder inOrder = Mockito.inOrder(feeSpy, txRepoSpy);
         inOrder.verify(feeSpy).evaluateFee(eq(tenantId), any(java.math.BigDecimal.class));
-        inOrder.verify(txRepoSpy).findByTransactionIdForUpdate(anyString());
+        inOrder.verify(txRepoSpy, Mockito.atLeastOnce()).findByTransactionIdForUpdate(anyString());
     }
 }

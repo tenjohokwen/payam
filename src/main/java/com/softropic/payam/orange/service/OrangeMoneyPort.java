@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -254,16 +253,19 @@ public class OrangeMoneyPort implements MobileMoneyPort {
 
     /**
      * Persist payToken and issuance time to the Transaction record.
-     * This is deliberately separate from the outer flow — the INITIATED row was already committed
-     * by TransactionService. Uses REQUIRES_NEW propagation to commit the payToken fields
-     * immediately so the poller and webhook handler can see them.
+     * Uses TransactionTemplate directly (not @Transactional) because this method is called via
+     * self-invocation (this.persistPayToken), which bypasses the Spring AOP proxy and makes
+     * @Transactional a no-op. TransactionTemplate creates a real transaction so that
+     * findByTransactionIdForUpdate can acquire the pessimistic write lock.
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     protected void persistPayToken(String transactionId, String payToken, Instant issuedAt) {
-        transactionRepository.findByTransactionId(transactionId).ifPresent(tx -> {
-            tx.setPayToken(payToken);
-            tx.setPayTokenIssuedAt(issuedAt);
-            transactionRepository.save(tx);
+        transactionTemplate.execute(status -> {
+            transactionRepository.findByTransactionIdForUpdate(transactionId).ifPresent(tx -> {
+                tx.setPayToken(payToken);
+                tx.setPayTokenIssuedAt(issuedAt);
+                transactionRepository.save(tx);
+            });
+            return null;
         });
     }
 
