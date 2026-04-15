@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -53,6 +54,11 @@ class ReconciliationProviderRunnerTest {
 
     @BeforeEach
     void setUp() {
+        // Wire the self-reference that @Lazy @Autowired would provide in production.
+        // Without a Spring context, @InjectMocks leaves it null; pointing it at the
+        // runner itself gives the orchestrator methods direct access to processPage/saveReport.
+        ReflectionTestUtils.setField(runner, "self", runner);
+
         reportDate = LocalDate.of(2026, 4, 13);
         from = Instant.parse("2026-04-13T00:00:00Z");
         to = Instant.parse("2026-04-14T00:00:00Z");

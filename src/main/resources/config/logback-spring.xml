@@ -7,7 +7,9 @@
     <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
             <providers>
-                <timestamp/>
+                <timestamp>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
                 <logLevel/>
                 <threadName/>
                 <loggerName/>

@@ -42,7 +42,7 @@ public class ReconciliationJob extends QuartzJobBean {
      * a programmatic Observation that produces the same span + timer as @Observed would.
      */
     @Override
-    @Transactional
+    @Transactional(timeout = 1800)
     protected void executeInternal(JobExecutionContext context) {
         Observation.createNotStarted("quartz.reconciliation", observationRegistry)
                 .lowCardinalityKeyValue("job", "ReconciliationJob")
