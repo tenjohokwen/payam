@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 39-02-PLAN.md
-last_updated: "2026-04-15T07:11:26.227Z"
+status: executing
+stopped_at: Completed 40-01-PLAN.md
+last_updated: "2026-04-15T09:29:45.944Z"
 last_activity: 2026-04-15
 progress:
   total_phases: 11
   completed_phases: 10
-  total_plans: 26
-  completed_plans: 26
+  total_plans: 28
+  completed_plans: 27
 ---
 
 # Project State
@@ -20,13 +20,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-14 — Milestone v7 started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 39 — concurrency-guards-db-constraints
+**Current focus:** Phase 40 — operational-resilience
 
 ## Current Position
 
-Phase: 40
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 40 (operational-resilience) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-04-15
 
 ```
@@ -102,6 +102,7 @@ Key context from v6 research:
 - [Phase 39]: V22 migration must pair main.tenant_api_key ADD COLUMN with main.tenant_api_key_aud ADD COLUMN — Envers requires column parity (V21 pattern)
 - [Phase 39-concurrency-guards-db-constraints]: DEFERRABLE INITIALLY DEFERRED chosen over constraint trigger for LEDGER-01 — simpler DDL, satisfies requirement as stated
 - [Phase 39-concurrency-guards-db-constraints]: Two-DEBIT pattern in unbalancedInsert test — lone DEBIT satisfies the unique constraint; two DEBITs is what LEDGER-01 blocks
+- [Phase 40]: @Transactional(timeout=300) on MTN/Orange poller executeInternal closes OPS-01 — 300s matches 5-minute Quartz re-fire interval
 
 ### Roadmap Evolution
 
@@ -118,6 +119,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-15T05:47:34.292Z
-Stopped at: Completed 39-02-PLAN.md
+Last session: 2026-04-15T09:29:45.931Z
+Stopped at: Completed 40-01-PLAN.md
 Resume file: None
