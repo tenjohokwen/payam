@@ -16,6 +16,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.experimental.SuperBuilder;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -52,6 +53,9 @@ public class TenantApiKey extends AbstractAuditingEntity {
 
     @Column(name = "rotated_at")
     private Instant rotatedAt;
+
+    @Version
+    private long version;
 
     public Tenant getTenant() {
         return tenant;
@@ -100,4 +104,7 @@ public class TenantApiKey extends AbstractAuditingEntity {
     public void setRotatedAt(Instant rotatedAt) {
         this.rotatedAt = rotatedAt;
     }
+
+    public long getVersion() { return version; }
+    public void setVersion(long version) { this.version = version; }
 }

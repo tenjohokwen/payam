@@ -372,6 +372,20 @@ public class ApiAdvice {
         return logErrorAndReturnDTO(ise, defaultMsg, "generic.conflict");
     }
 
+    /**
+     * Handles concurrent rotation races (AKEY-09). When two threads both attempt to
+     * rotate the same TenantApiKey, Hibernate's version-conditional UPDATE matches
+     * zero rows on the loser, and Spring Data wraps the JPA OptimisticLockException
+     * in ObjectOptimisticLockingFailureException. Map it to 409 Conflict.
+     */
+    @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorDto optimisticLockExceptionHandler(
+            final org.springframework.orm.ObjectOptimisticLockingFailureException ex) {
+        final String defaultMsg = "Concurrent modification conflict — please retry";
+        return logErrorAndReturnDTO(ex, defaultMsg, "generic.conflict");
+    }
+
 
 
     private List<FieldError> deduplicate(List<FieldError> fieldErrors) {
