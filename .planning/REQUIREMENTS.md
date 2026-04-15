@@ -31,7 +31,7 @@
 
 ### API Key Concurrency (AKEY)
 
-- [ ] **AKEY-09**: Concurrent rotations on the same API key are serialized — no two nodes can simultaneously succeed; protected by @Version or a unique constraint on (tenant_id, environment, status)
+- [x] **AKEY-09**: Concurrent rotations on the same API key are serialized — no two nodes can simultaneously succeed; protected by @Version or a unique constraint on (tenant_id, environment, status)
 
 ### Ledger Integrity (LEDGER)
 
@@ -78,7 +78,7 @@
 | WEBHOOK-01 | Phase 37 | Complete |
 | WEBHOOK-02 | Phase 37 | Complete |
 | WEBHOOK-03 | Phase 37 | Complete |
-| AKEY-09 | Phase 39 | Pending |
+| AKEY-09 | Phase 39 | Complete |
 | LEDGER-01 | Phase 39 | Pending |
 | OPS-01 | Phase 40 | Pending |
 | OPS-02 | Phase 38 | Complete |

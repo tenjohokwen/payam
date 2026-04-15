@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 38-03-PLAN.md — sign-off FAILED, VelocityCounterFloodTest regression
-last_updated: "2026-04-15T04:29:37.407Z"
+stopped_at: Completed 39-01-PLAN.md
+last_updated: "2026-04-15T05:23:12.542Z"
 last_activity: 2026-04-15
 progress:
   total_phases: 11
   completed_phases: 9
-  total_plans: 24
-  completed_plans: 24
+  total_plans: 26
+  completed_plans: 25
 ---
 
 # Project State
@@ -20,13 +20,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-14 — Milestone v7 started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 38 — transaction-boundary-fraud-ordering
+**Current focus:** Phase 39 — concurrency-guards-db-constraints
 
 ## Current Position
 
-Phase: 39
-Plan: Not started
-Status: Executing Phase 38
+Phase: 39 (concurrency-guards-db-constraints) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-04-15
 
 ```
@@ -98,6 +98,8 @@ Key context from v6 research:
 - [Phase 37-webhook-subsystem-fixes]: [37-02] WebhookDeliveryService hosts onEnqueueRequested listener — delivery logic co-located; webhookDeliveryService field kept in WebhookTransitionService to preserve collaborator documentation
 - [Phase 38-transaction-boundary-fraud-ordering]: feeRuleIdVal extracted via .map(r -> r.getId()) — FeeRule not imported into PaymentOrchestrator; pre-lock cache reads hoisted above transactionTemplate block
 - [Phase 38-transaction-boundary-fraud-ordering]: VelocityCounterFloodTest regression: probe/consume split in Plan 02 (OPS-02) is incompatible with CONC-03 invariant — non-consuming probe allows 100 concurrent requests to bypass IP_VELOCITY gate; Plan 02 must be revised
+- [Phase 39]: Used primitive long for @Version on TenantApiKey (not boxed Long) to prevent NPE in Hibernate VersionType.seed()
+- [Phase 39]: V22 migration must pair main.tenant_api_key ADD COLUMN with main.tenant_api_key_aud ADD COLUMN — Envers requires column parity (V21 pattern)
 
 ### Roadmap Evolution
 
@@ -114,6 +116,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-14T23:41:50.890Z
-Stopped at: Completed 38-03-PLAN.md — sign-off FAILED, VelocityCounterFloodTest regression
+Last session: 2026-04-15T05:23:12.530Z
+Stopped at: Completed 39-01-PLAN.md
 Resume file: None
