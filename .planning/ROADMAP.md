@@ -307,4 +307,4 @@ Plans:
 | 37. Webhook Subsystem Fixes | v7 | 4/4 | Complete    | 2026-04-14 |
 | 38. Transaction Boundary & Fraud Ordering | v7 | 3/4 | Complete    | 2026-04-15 |
 | 39. Concurrency Guards & DB Constraints | v7 | 2/2 | Complete    | 2026-04-15 |
-| 40. Operational Resilience | v7 | 2/2 | Complete   | 2026-04-15 |
+| 40. Operational Resilience | v7 | 2/2 | Complete    | 2026-04-15 |
