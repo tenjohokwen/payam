@@ -55,6 +55,7 @@ public class MailManager {
         sendEmailSync(envelope);
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendEmailSync(final Envelope envelope) {
         logger.info("sendEmailFrom template called:  Envelope {}", envelope);
         final List<Recipient> recipients = envelope.recipients();
