@@ -70,6 +70,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ Idempotency storage durability: IdempotencyKeyRepository.upsert() native INSERT...ON CONFLICT replaces racy find+save; IdempotencyService.store() writes Postgres before Redis — no stale cache on Postgres failure (IDEM-01), no DataIntegrityViolationException under concurrent load (IDEM-02) — Validated in Phase 35: IDEM-01, IDEM-02
 - ✓ Reconciliation memory + stuck-state hardening: ReconciliationProviderRunner @Service with REQUIRES_NEW isolation on all public methods; paged fetch ≤1000 rows per batch (ORDER BY id ASC) with incremental discrepancy persistence; markFailed() runs in independent transaction so crashes never leave reports stuck at IN_PROGRESS; LedgerSnapshotService deleted — Validated in Phase 36: RECON-01, RECON-02
 - ✓ Webhook subsystem fixes: N+1 tenant query eliminated via `loadTenants(Set<Long>)` + one `findAllById` IN-clause SELECT in `WebhookDeliveryJob`; enqueue decoupled from state-transition via `@TransactionalEventListener(AFTER_COMMIT) + REQUIRES_NEW` on `WebhookDeliveryService.onEnqueueRequested`; `WebhookConfig` RestTemplate gets 5s connect / 10s read timeouts — Validated in Phase 37: WEBHOOK-01, WEBHOOK-02, WEBHOOK-03
+- ✓ Concurrency guards & DB constraints: `@Version long version` on `TenantApiKey` (V22 migration: main + AUD Envers parity) serializes concurrent rotations — loser gets `ObjectOptimisticLockingFailureException` → HTTP 409 via `ApiAdvice`; deferrable unique constraint `uq_ledger_entry_group_direction` on `main.ledger_entry(entry_group_id, direction) DEFERRABLE INITIALLY DEFERRED` (V23 migration with pre-flight DO $$ guard) rejects unbalanced ledger writes at commit time — Validated in Phase 39: AKEY-09, LEDGER-01
 
 - ✓ Platform MSISDN management: admin can view/update Orange + MTN platform MSISDNs; email notification on every change — v4
 - ✓ Spring Boot Actuator `/manage/health` reflects live provider MSISDN validation + circuit breaker state for both providers — v4
@@ -153,7 +154,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 ## Current State
 
 **Shipped:** v6 (2026-04-14) — 34 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5 + 5 v6), 82 plans
-**In Progress:** v7 — Backend Hardening & Bug Fixes (Phase 38 complete — TXN-01: fee evaluation hoisted above DB row lock; OPS-02: velocity token consumption proved safe via idempotency-key replay path)
+**In Progress:** v7 — Backend Hardening & Bug Fixes (Phase 39 complete — AKEY-09: concurrent rotation serialized via @Version optimistic lock; LEDGER-01: unbalanced ledger writes rejected by deferrable unique DB constraint)
 **Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar + Hibernate Envers
 **Observability:** Full Loki-queryable structured logging + Spring Boot Actuator health with live provider MSISDN validation + CB state
 **Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage + 22 tenant/key integration tests
@@ -165,6 +166,8 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
+
+*Last updated: 2026-04-15*
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
