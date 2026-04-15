@@ -120,3 +120,15 @@ None — no external service configuration required.
 ---
 *Phase: 39-concurrency-guards-db-constraints*
 *Completed: 2026-04-15*
+
+## Self-Check: PASSED
+
+- FOUND: src/test/java/com/softropic/payam/tenant/ApiKeyConcurrentRotationIT.java
+- FOUND: src/main/resources/db/migration/V22__api_key_version.sql
+- FOUND: src/main/java/com/softropic/payam/tenant/repo/TenantApiKey.java
+- FOUND: src/main/java/com/softropic/payam/security/api/ApiAdvice.java
+- FOUND: .planning/phases/39-concurrency-guards-db-constraints/39-01-SUMMARY.md
+- FOUND commit 987e0a8 (test: stub IT)
+- FOUND commit 7173025 (chore: V22 migration)
+- FOUND commit 754bd8a (feat: @Version + ApiAdvice + full IT)
+- FOUND commit 0f7ad2f (docs: plan metadata)
