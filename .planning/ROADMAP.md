@@ -261,7 +261,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 40-01-PLAN.md — OPS-01: @Transactional(timeout=300) on MTN/Orange poller executeInternal + reflection-based timeout unit tests
-- [ ] 40-02-PLAN.md — OPS-03: TenantContextExceptionIT (two-request probe: exception-path request followed by different-tenant probe)
+- [x] 40-02-PLAN.md — OPS-03: TenantContextExceptionIT (two-request probe: exception-path request followed by different-tenant probe)
 
 ## Progress
 
@@ -307,4 +307,4 @@ Plans:
 | 37. Webhook Subsystem Fixes | v7 | 4/4 | Complete    | 2026-04-14 |
 | 38. Transaction Boundary & Fraud Ordering | v7 | 3/4 | Complete    | 2026-04-15 |
 | 39. Concurrency Guards & DB Constraints | v7 | 2/2 | Complete    | 2026-04-15 |
-| 40. Operational Resilience | v7 | 1/2 | In Progress|  |
+| 40. Operational Resilience | v7 | 2/2 | Complete   | 2026-04-15 |
