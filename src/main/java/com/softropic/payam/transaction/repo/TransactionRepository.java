@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
     Optional<Transaction> findByTransactionId(String transactionId);
@@ -38,13 +39,28 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     /**
      * Find PROCESSING transactions for a given provider that have not been modified
      * since {@code lastModifiedDate}. Used by the status poller jobs.
-     * Pageable is required to cap the result set and avoid unbounded memory usage.
+     *
+     * {@code txStatus} and {@code provider} must be passed as their enum {@code .name()} strings
+     * because this is a native query and enums are not auto-converted.
+     *
+     * FOR UPDATE SKIP LOCKED: rows already claimed by another cluster node are silently skipped,
+     * so two poller instances never process the same transaction concurrently.
+     * ORDER BY id ASC: deterministic ordering; stable across pages; oldest-inserted rows first.
+     * LIMIT :limit: caps heap usage and bounds worst-case execution time per tick.
      */
-    List<Transaction> findByTxStatusAndProviderAndLastModifiedDateBefore(
-        TransactionStatus txStatus,
-        MobilePaymentProvider provider,
-        Instant lastModifiedDate,
-        Pageable pageable);
+    @Query(value = "SELECT * FROM main.transaction" +
+                   " WHERE tx_status = :txStatus" +
+                   " AND provider = :provider" +
+                   " AND last_modified_date < :lastModifiedDate" +
+                   " ORDER BY id ASC" +
+                   " LIMIT :limit" +
+                   " FOR UPDATE SKIP LOCKED",
+           nativeQuery = true)
+    List<Transaction> findProcessingTransactionsSkipLocked(
+        @Param("txStatus") String txStatus,
+        @Param("provider") String provider,
+        @Param("lastModifiedDate") Instant lastModifiedDate,
+        @Param("limit") int limit);
 
     /**
      * Admin cross-tenant search. All parameters are optional (null = wildcard).

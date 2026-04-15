@@ -57,6 +57,14 @@ public class WebhookDeliveryService {
     private static final Logger log = LoggerFactory.getLogger(WebhookDeliveryService.class);
     private static final int MAX_ATTEMPTS = 5;
 
+    /**
+     * Maximum number of pending webhook rows claimed per Quartz tick.
+     * Caps heap usage and keeps per-tick HTTP fan-out predictable.
+     * FOR UPDATE SKIP LOCKED in the underlying query ensures at most this many rows
+     * are locked, so other cluster nodes can claim the remainder immediately.
+     */
+    private static final int DELIVERY_BATCH_SIZE = 50;
+
     private final WebhookDeliveryLogRepository repo;
     private final TenantRepository tenantRepository;
     private final RestTemplate noRetryRestTemplate;
@@ -336,10 +344,11 @@ public class WebhookDeliveryService {
     }
 
     /**
-     * Find all delivery log rows eligible for retry: not yet delivered, nextRetryAt due, below max attempts.
+     * Find up to DELIVERY_BATCH_SIZE delivery log rows eligible for retry.
+     * Uses FOR UPDATE SKIP LOCKED so two cluster nodes never claim the same rows.
      */
     public List<WebhookDeliveryLog> findPendingDeliveries() {
-        return repo.findPendingForRetry(Instant.now(), MAX_ATTEMPTS);
+        return repo.findPendingForRetry(Instant.now(), MAX_ATTEMPTS, DELIVERY_BATCH_SIZE);
     }
 
     /**

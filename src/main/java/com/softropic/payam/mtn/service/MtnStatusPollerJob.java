@@ -13,10 +13,10 @@ import static net.logstash.logback.argument.StructuredArguments.kv;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import org.quartz.DisallowConcurrentExecution;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+@DisallowConcurrentExecution
 @Component
 public class MtnStatusPollerJob extends QuartzJobBean {
 
@@ -99,9 +100,9 @@ public class MtnStatusPollerJob extends QuartzJobBean {
             : Instant.now().minus(initialDelaySeconds, ChronoUnit.SECONDS);
 
         List<Transaction> stuck = transactionRepository
-            .findByTxStatusAndProviderAndLastModifiedDateBefore(
-                TransactionStatus.PROCESSING, MobilePaymentProvider.MTN, cutoff,
-                PageRequest.of(0, POLL_BATCH_SIZE));
+            .findProcessingTransactionsSkipLocked(
+                TransactionStatus.PROCESSING.name(), MobilePaymentProvider.MTN.name(),
+                cutoff, POLL_BATCH_SIZE);
 
         log.info("Poller scan",
             kv("operation", "mtn_poller_scan"),

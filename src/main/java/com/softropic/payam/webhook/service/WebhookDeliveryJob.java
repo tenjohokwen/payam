@@ -7,6 +7,7 @@ import static net.logstash.logback.argument.StructuredArguments.kv;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import org.quartz.DisallowConcurrentExecution;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
  * Uses Quartz JDBC store — delivery state survives JVM restart.
  * NOT @Retryable — in-memory retry state is lost on restart; Quartz JDBC is the durability mechanism.
  */
+@DisallowConcurrentExecution
 @Component
 public class WebhookDeliveryJob extends QuartzJobBean {
 

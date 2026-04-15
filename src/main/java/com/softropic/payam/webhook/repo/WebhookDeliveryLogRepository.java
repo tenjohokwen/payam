@@ -13,8 +13,22 @@ public interface WebhookDeliveryLogRepository extends JpaRepository<WebhookDeliv
 
     /**
      * For Quartz retry job: find pending deliveries whose retry time has passed.
-     * Returns rows where delivered=false, nextRetryAt is due, and attemptCount is below max.
+     * Returns at most {@code limit} rows where delivered=false, nextRetryAt is due, and
+     * attemptCount is below max.
+     *
+     * FOR UPDATE SKIP LOCKED: rows already claimed by another node are silently skipped,
+     * so two cluster nodes never process the same delivery row concurrently.
+     * ORDER BY next_retry_at ASC: deterministic priority — oldest-due deliveries first.
      */
-    @Query("SELECT w FROM WebhookDeliveryLog w WHERE w.delivered = false AND w.nextRetryAt <= :now AND w.attemptCount < :maxAttempts")
-    List<WebhookDeliveryLog> findPendingForRetry(@Param("now") Instant now, @Param("maxAttempts") int maxAttempts);
+    @Query(value = "SELECT * FROM main.webhook_delivery_log" +
+                   " WHERE delivered = false" +
+                   " AND next_retry_at <= :now" +
+                   " AND attempt_count < :maxAttempts" +
+                   " ORDER BY next_retry_at ASC" +
+                   " LIMIT :limit" +
+                   " FOR UPDATE SKIP LOCKED",
+           nativeQuery = true)
+    List<WebhookDeliveryLog> findPendingForRetry(@Param("now") Instant now,
+                                                 @Param("maxAttempts") int maxAttempts,
+                                                 @Param("limit") int limit);
 }

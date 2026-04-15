@@ -2,6 +2,7 @@ package com.softropic.payam.reconciliation.service;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import org.quartz.DisallowConcurrentExecution;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +26,7 @@ import java.time.ZoneOffset;
  * Reconciles transactions from the previous UTC calendar day against provider records.
  * Top-level exceptions are caught and logged to prevent Quartz from unscheduling the trigger.
  */
+@DisallowConcurrentExecution
 @Component
 public class ReconciliationJob extends QuartzJobBean {
 
