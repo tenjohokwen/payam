@@ -234,36 +234,34 @@ public class PaymentOrchestrator {
                         System.currentTimeMillis() - providerStart);
             }
 
-            // Apply state transitions: INITIATED -> AUTH_PENDING -> AUTHORIZED -> PROCESSING
-            // Three applyTransition calls required — direct INITIATED->PROCESSING not allowed by state machine
+            // Transition directly to PROCESSING — intermediate AUTH_PENDING/AUTHORIZED steps
+            // have no operational meaning for the synchronous provider call path.
             transactionTemplate.execute(status -> {
                 Transaction locked = transactionRepository
                         .findByTransactionIdForUpdate(tx.getTransactionId())
                         .orElseThrow(() -> new IllegalStateException("Transaction not found: " + tx.getTransactionId()));
-                //TODO Verify if this is needed. This doesn't seem to make much sense. I think putting TransactionStatus.PROCESSING directly makes sense
-                locked.applyTransition(TransactionStatus.AUTH_PENDING);
-                log.info("Transaction state changed",
-                    kv("operation", "transaction_state_change"),
-                    kv("transactionId", tx.getTransactionId()),
-                    kv("fromState", TransactionStatus.INITIATED.name()),
-                    kv("toState", TransactionStatus.AUTH_PENDING.name()),
-                    kv("actor", "ORCHESTRATOR"));
-                locked.applyTransition(TransactionStatus.AUTHORIZED);
-                log.info("Transaction state changed",
-                    kv("operation", "transaction_state_change"),
-                    kv("transactionId", tx.getTransactionId()),
-                    kv("fromState", TransactionStatus.AUTH_PENDING.name()),
-                    kv("toState", TransactionStatus.AUTHORIZED.name()),
-                    kv("actor", "ORCHESTRATOR"));
                 locked.applyTransition(TransactionStatus.PROCESSING);
-                log.info("Transaction state changed",
-                    kv("operation", "transaction_state_change"),
-                    kv("transactionId", tx.getTransactionId()),
-                    kv("fromState", TransactionStatus.AUTHORIZED.name()),
-                    kv("toState", TransactionStatus.PROCESSING.name()),
-                    kv("actor", "ORCHESTRATOR"));
                 return null;
             });
+            log.info("Transaction state changed",
+                kv("operation", "transaction_state_change"),
+                kv("transactionId", tx.getTransactionId()),
+                kv("fromState", TransactionStatus.INITIATED.name()),
+                kv("toState", TransactionStatus.PROCESSING.name()),
+                kv("actor", "ORCHESTRATOR"));
+            String processingMetadata = result.providerRef() != null
+                    ? "\"" + result.providerRef() + "\""
+                    : null;
+            eventLogService.append(
+                    tx.getTransactionId(),
+                    tx.getTraceId(),
+                    tx.getExternalReference(),
+                    TransactionEventType.PROVIDER_PROCESSING,
+                    TransactionStatus.INITIATED,
+                    TransactionStatus.PROCESSING,
+                    "ORCHESTRATOR",
+                    processingMetadata
+            );
 
             PaymentResponse response = PaymentResponse.accepted(tx.getTransactionId(), "PROCESSING", result.providerRef(),
                     capturedFee[0], capturedFeeRuleId[0]);

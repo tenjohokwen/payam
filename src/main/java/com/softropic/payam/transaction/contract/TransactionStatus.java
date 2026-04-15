@@ -10,7 +10,7 @@ public enum TransactionStatus {
     INITIATED {
         @Override
         public Set<TransactionStatus> allowedTransitions() {
-            return EnumSet.of(AUTH_PENDING, FAILED);
+            return EnumSet.of(AUTH_PENDING, PROCESSING, FAILED);
         }
     },
     AUTH_PENDING {

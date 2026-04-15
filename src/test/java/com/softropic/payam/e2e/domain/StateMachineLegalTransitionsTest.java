@@ -32,7 +32,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * 1. All illegal transitions throw IllegalStateTransitionException and leave the DB row unchanged.
  * 2. All legal transitions succeed in the documented order.
  *
- * Legal chain: INITIATED -> AUTH_PENDING -> AUTHORIZED -> PROCESSING -> SUCCESS
+ * Legal chains:
+ *   Long:  INITIATED -> AUTH_PENDING -> AUTHORIZED -> PROCESSING -> SUCCESS
+ *   Short: INITIATED -> PROCESSING -> SUCCESS  (used by synchronous provider path)
  * PROCESSING can also reach FAILED and REVERSED.
  * Any state can reach FAILED except terminals.
  */
@@ -59,9 +61,8 @@ public class StateMachineLegalTransitionsTest extends AbstractPayamE2ETest {
 
     static Stream<Arguments> illegalTransitions() {
         return Stream.of(
-            // From INITIATED: not allowed to SUCCESS, PROCESSING, REVERSED, AUTHORIZED
+            // From INITIATED: not allowed to SUCCESS, REVERSED, AUTHORIZED
             Arguments.of(TransactionStatus.INITIATED,    TransactionStatus.SUCCESS),
-            Arguments.of(TransactionStatus.INITIATED,    TransactionStatus.PROCESSING),
             Arguments.of(TransactionStatus.INITIATED,    TransactionStatus.REVERSED),
             Arguments.of(TransactionStatus.INITIATED,    TransactionStatus.AUTHORIZED),
 
@@ -144,7 +145,7 @@ public class StateMachineLegalTransitionsTest extends AbstractPayamE2ETest {
     // -------------------------------------------------------------------------
 
     @Test
-    void allLegalTransitions_succeedInOrder() {
+    void allLegalTransitions_longChain_succeedInOrder() {
         Long tenantId = createTenantId();
         String txId = persistTransactionInStatus(tenantId, TransactionStatus.INITIATED);
 
@@ -157,6 +158,20 @@ public class StateMachineLegalTransitionsTest extends AbstractPayamE2ETest {
         assertDbStatus(txId, "AUTHORIZED");
 
         // AUTHORIZED -> PROCESSING
+        applyAndSave(txId, TransactionStatus.PROCESSING);
+        assertDbStatus(txId, "PROCESSING");
+
+        // PROCESSING -> SUCCESS
+        applyAndSave(txId, TransactionStatus.SUCCESS);
+        assertDbStatus(txId, "SUCCESS");
+    }
+
+    @Test
+    void allLegalTransitions_shortChain_initiatedDirectlyToProcessing() {
+        Long tenantId = createTenantId();
+        String txId = persistTransactionInStatus(tenantId, TransactionStatus.INITIATED);
+
+        // INITIATED -> PROCESSING (synchronous provider path — skips AUTH_PENDING/AUTHORIZED)
         applyAndSave(txId, TransactionStatus.PROCESSING);
         assertDbStatus(txId, "PROCESSING");
 
