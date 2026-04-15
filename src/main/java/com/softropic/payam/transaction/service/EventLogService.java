@@ -6,14 +6,31 @@ import com.softropic.payam.transaction.repo.PaymentEventLog;
 import com.softropic.payam.transaction.repo.PaymentEventLogRepository;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 
 @Service
 public class EventLogService {
+
+    /** Number of distinct transaction IDs verified per database round-trip. */
+    private static final int AUDIT_PAGE_SIZE = 200;
+
+    /**
+     * Result of verifying one page of transaction hash-chains.
+     *
+     * @param total      number of transactions examined in this page
+     * @param valid      number whose chain is intact
+     * @param violations transactionIds with a broken or unverifiable chain
+     * @param hasMore    true when there are further pages to process
+     */
+    public record AuditPageResult(int total, int valid, List<String> violations, boolean hasMore) {}
 
     private final PaymentEventLogRepository paymentEventLogRepository;
 
@@ -51,6 +68,41 @@ public class EventLogService {
                 eventType, statusFrom, statusTo, actor, metadata, previousHash);
 
         return paymentEventLogRepository.save(entry);
+    }
+
+    /**
+     * Verifies one page of transaction hash-chains in a single, short-lived read transaction.
+     *
+     * <p>By opening and closing a dedicated transaction per page, the Hibernate L1 cache is
+     * discarded at the end of each call — preventing unbounded memory growth when the event
+     * log contains many transactions.  The caller loops over pages without holding any
+     * transaction of its own.
+     *
+     * @param from optional lower bound on {@code created_date} (inclusive); null means unbounded
+     * @param to   optional upper bound on {@code created_date} (inclusive); null means unbounded
+     * @param page zero-based page index
+     */
+    @Transactional(readOnly = true)
+    public AuditPageResult auditPage(Instant from, Instant to, int page) {
+        Page<String> txPage = paymentEventLogRepository.findDistinctTransactionIdsPaged(
+                from, to, PageRequest.of(page, AUDIT_PAGE_SIZE));
+
+        int validCount = 0;
+        List<String> violations = new ArrayList<>();
+
+        for (String txId : txPage.getContent()) {
+            try {
+                if (verifyChain(txId)) {
+                    validCount++;
+                } else {
+                    violations.add(txId);
+                }
+            } catch (Exception e) {
+                violations.add(txId);
+            }
+        }
+
+        return new AuditPageResult(txPage.getNumberOfElements(), validCount, violations, txPage.hasNext());
     }
 
     /**

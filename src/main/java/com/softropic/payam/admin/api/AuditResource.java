@@ -3,20 +3,23 @@ package com.softropic.payam.admin.api;
 import com.softropic.payam.admin.contract.HashChainAuditSummaryDto;
 import com.softropic.payam.admin.contract.HashChainResultDto;
 import com.softropic.payam.security.common.util.SecurityConstants;
-import com.softropic.payam.transaction.repo.PaymentEventLogRepository;
 import com.softropic.payam.transaction.service.EventLogService;
+import com.softropic.payam.transaction.service.EventLogService.AuditPageResult;
 
 import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +43,6 @@ import java.util.List;
 public class AuditResource {
 
     private final EventLogService eventLogService;
-    private final PaymentEventLogRepository eventLogRepository;
 
     /**
      * Verifies the hash chain integrity for a single transaction.
@@ -65,39 +67,34 @@ public class AuditResource {
     /**
      * Verifies hash chains for all transactions in the event log.
      *
-     * <p>NOTE: This iterates all distinct transaction IDs and verifies each chain.
-     * On large event logs this operation can be slow — consider adding date windowing
-     * for production use (the {@code from} and {@code to} parameters are accepted but
-     * not yet applied in this Phase 10 implementation).
+     * <p>Processes transactions in pages of 200 so that no single database query or JPA session
+     * holds the full dataset in memory.  Each page runs in its own read transaction, allowing the
+     * Hibernate L1 cache to be discarded between pages.
      *
-     * @param from optional ISO date string (e.g. 2026-01-01) — reserved for future filtering
-     * @param to   optional ISO date string (e.g. 2026-12-31) — reserved for future filtering
+     * @param from optional ISO date (e.g. 2026-01-01) — lower bound on event creation date, inclusive
+     * @param to   optional ISO date (e.g. 2026-12-31) — upper bound on event creation date, inclusive
      * @return 200 with a summary: total checked, valid count, list of violating transactionIds
      */
     @GetMapping("/hash-chain")
-    @Transactional(readOnly = true)
     public ResponseEntity<HashChainAuditSummaryDto> auditAll(
-            @RequestParam(required = false) String from,
-            @RequestParam(required = false) String to) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
 
-        //TODO this method will cause memory issues when there are many transactions
-        List<String> transactionIds = eventLogRepository.findAllDistinctTransactionIds();
+        Instant fromInstant = from != null ? from.atStartOfDay(ZoneOffset.UTC).toInstant() : null;
+        Instant toInstant   = to   != null ? to.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant() : null;
+
+        int total = 0, validCount = 0;
         List<String> violations = new ArrayList<>();
-        int validCount = 0;
 
-        for (String txId : transactionIds) {
-            try {
-                if (eventLogService.verifyChain(txId)) {
-                    validCount++;
-                } else {
-                    violations.add(txId);
-                }
-            } catch (Exception e) {
-                violations.add(txId);
-            }
-        }
+        int page = 0;
+        AuditPageResult result;
+        do {
+            result = eventLogService.auditPage(fromInstant, toInstant, page++);
+            total      += result.total();
+            validCount += result.valid();
+            violations.addAll(result.violations());
+        } while (result.hasMore());
 
-        return ResponseEntity.ok(new HashChainAuditSummaryDto(
-                transactionIds.size(), validCount, violations));
+        return ResponseEntity.ok(new HashChainAuditSummaryDto(total, validCount, violations));
     }
 }
