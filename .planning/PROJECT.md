@@ -153,7 +153,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 ## Current State
 
 **Shipped:** v6 (2026-04-14) — 34 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5 + 5 v6), 82 plans
-**In Progress:** v7 — Backend Hardening & Bug Fixes (Phase 37 complete — webhook N+1, post-commit enqueue, RestTemplate timeouts fixed)
+**In Progress:** v7 — Backend Hardening & Bug Fixes (Phase 38 complete — TXN-01: fee evaluation hoisted above DB row lock; OPS-02: velocity token consumption proved safe via idempotency-key replay path)
 **Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar + Hibernate Envers
 **Observability:** Full Loki-queryable structured logging + Spring Boot Actuator health with live provider MSISDN validation + CB state
 **Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage + 22 tenant/key integration tests
@@ -180,4 +180,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-14 — Phase 37 complete (Webhook Subsystem Fixes: WEBHOOK-01, WEBHOOK-02, WEBHOOK-03 validated)*
+*Last updated: 2026-04-15 — Phase 38 complete (Transaction Boundary & Fraud Ordering: TXN-01, OPS-02 validated)*
