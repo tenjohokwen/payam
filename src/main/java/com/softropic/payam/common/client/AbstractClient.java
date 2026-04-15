@@ -36,6 +36,12 @@ public abstract class AbstractClient {
 
     public static final String API_VERSION_HEADER_KEY = "x-api-version";
 
+    /** Connect timeout for outbound provider calls (10s). */
+    private static final int CONNECT_TIMEOUT_MS = 10_000;
+
+    /** Read timeout for outbound provider calls (30s — mobile money responses can be slow). */
+    private static final int READ_TIMEOUT_MS = 30_000;
+
     private final String host;
 
     protected final RestTemplate restTemplate;
@@ -46,7 +52,10 @@ public abstract class AbstractClient {
 
     protected AbstractClient(RestRequestInterceptor restRequestInterceptor, String host, String heartbeatPath) {
         this.restRequestInterceptor = restRequestInterceptor;
-        restTemplate = new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
+        SimpleClientHttpRequestFactory inner = new SimpleClientHttpRequestFactory();
+        inner.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        inner.setReadTimeout(READ_TIMEOUT_MS);
+        restTemplate = new RestTemplate(new BufferingClientHttpRequestFactory(inner));
         restTemplate.setInterceptors(Collections.singletonList(this.restRequestInterceptor));
         restTemplate.setMessageConverters(messageConverters());
         this.host = host;
