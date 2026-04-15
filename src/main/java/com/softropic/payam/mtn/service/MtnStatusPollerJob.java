@@ -46,6 +46,15 @@ public class MtnStatusPollerJob extends QuartzJobBean {
      */
     private static final int POLL_BATCH_SIZE = 100;
 
+    /**
+     * Wall-clock transaction timeout (in SECONDS, not milliseconds) for a single poller tick.
+     * Bounds the worst-case pg_try_advisory_xact_lock hold time: when the 300-second budget
+     * is exceeded, Postgres raises 57014 query_canceled, Spring rolls the transaction back,
+     * and the transaction-level advisory lock is released automatically. Matches the Quartz
+     * re-fire interval (5 minutes) so a tick cannot overlap its successor.
+     */
+    private static final int POLLER_TRANSACTION_TIMEOUT_SECONDS = 300;
+
     private final TransactionRepository transactionRepository;
     private final MtnMoMoPort mtnMoMoPort;
     private final EventLogService eventLogService;
@@ -86,7 +95,7 @@ public class MtnStatusPollerJob extends QuartzJobBean {
      * a programmatic Observation that produces the same span + timer as @Observed would.
      */
     @Override
-    @Transactional
+    @Transactional(timeout = POLLER_TRANSACTION_TIMEOUT_SECONDS)
     protected void executeInternal(JobExecutionContext context) {
         Observation.createNotStarted("quartz.mtn-poller", observationRegistry)
                 .lowCardinalityKeyValue("job", "MtnStatusPollerJob")
