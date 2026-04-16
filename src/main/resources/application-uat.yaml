@@ -64,7 +64,7 @@ spring:
     password: postgres
     hikari:
       pool-name: hikari-db-pool
-      connection-timeout: 50000
+      connection-timeout: 30000
       idle-timeout: 300000
       max-lifetime: 900000    #It?s not a very good idea to keep connections open for a very long time since a connection could be closed unexpectedly by a networking failure without the pool knowing of it.
       maximum-pool-size: 25   #postgress puts a limit of 100 connections (so we can have up to 4 nodes, i.e. 25 for each)

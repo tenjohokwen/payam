@@ -82,3 +82,8 @@ With connection-init-sql, all three write paths now agree on UTC:
 
 ## Documentation
 * What are the benefits of EventLogService and how as well as for what reasons can it be queried?
+
+
+## add to template project
+* Connection Timeout: hikari.connection-timeout is set to 50,000ms (50s). This is very high. In a high-traffic environment, threads should fail faster when the pool is exhausted so the system can recover. Standard practice is usually 30s or less.
+
