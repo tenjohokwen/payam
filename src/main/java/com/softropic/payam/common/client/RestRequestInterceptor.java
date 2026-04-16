@@ -73,7 +73,10 @@ public class RestRequestInterceptor implements ClientHttpRequestInterceptor {
                 log.error("Provider API error response",
                         kv("operation", "provider_http_call"),
                         kv("httpStatus", httpResponse.getStatusCode().value()),
-                        kv("status", "ERROR"));
+                        kv("status", "ERROR"),
+                          kv("serverResponseBody", response),
+                          kv("requestUrl", request.getURI().toASCIIString()),
+                          kv("requestMethod", request.getMethod()));
 
                 throw HttpClientException.builder(RequestIdProvider.provideRequestId())
                                          .withHttpMethod(request.getMethod())

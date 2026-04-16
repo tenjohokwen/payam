@@ -3,6 +3,7 @@
     <springProperty name="appName"     source="spring.application.name" defaultValue="payam"/>
     <springProperty name="environment" source="app.environment"         defaultValue="dev"/>
     <springProperty name="appVersion"  source="app.version"             defaultValue="unknown"/>
+    <springProperty name="lokiUrl"     source="loki.url"                defaultValue="http://localhost:3100"/>
 
     <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
@@ -30,8 +31,23 @@
         </encoder>
     </appender>
 
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>${lokiUrl}/loki/api/v1/push</url>
+        </http>
+        <format>
+            <label>
+                <pattern>service=${appName},environment=${environment},version=${appVersion},host=${HOSTNAME},level=%level</pattern>
+            </label>
+            <message>
+                <pattern>l=%level t=%thread c=%logger{20} | %msg %ex</pattern>
+            </message>
+        </format>
+    </appender>
+
     <root level="ERROR">
         <appender-ref ref="JSON"/>
+        <appender-ref ref="LOKI"/>
     </root>
 
 </configuration>

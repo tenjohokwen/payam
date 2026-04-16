@@ -141,6 +141,8 @@ email:
 # default location is directly in the classpath (root of resources folder)
 logging.config: classpath:config/logback-spring.xml
 ##logback.access.config: classpath:config/logback-access-spring.xml ##using custom LoggingFilter for access logging because it logs payload
+loki:
+  url: http://localhost:3100
 app:
   environment: ${ENVIRONMENT:dev}
   version: ${APP_VERSION:unknown}
