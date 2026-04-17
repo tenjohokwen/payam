@@ -40,23 +40,23 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PIN-01 | — | Pending |
-| PIN-02 | — | Pending |
-| PIN-03 | — | Pending |
-| PIN-04 | — | Pending |
-| PIN-05 | — | Pending |
-| PIN-06 | — | Pending |
-| PIN-07 | — | Pending |
-| PIN-08 | — | Pending |
-| PIN-09 | — | Pending |
-| PIN-10 | — | Pending |
-| PIN-11 | — | Pending |
+| PIN-01 | Phase 41 | Pending |
+| PIN-02 | Phase 41 | Pending |
+| PIN-03 | Phase 42 | Pending |
+| PIN-04 | Phase 42 | Pending |
+| PIN-05 | Phase 42 | Pending |
+| PIN-06 | Phase 43 | Pending |
+| PIN-07 | Phase 43 | Pending |
+| PIN-08 | Phase 43 | Pending |
+| PIN-09 | Phase 43 | Pending |
+| PIN-10 | Phase 44 | Pending |
+| PIN-11 | Phase 44 | Pending |
 
 **Coverage:**
 - v8 requirements: 11 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 11 ⚠️
+- Mapped to phases: 11 (100%)
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-17*
-*Last updated: 2026-04-17 after initial definition*
+*Last updated: 2026-04-17 — traceability mapped to Phases 41–44*
