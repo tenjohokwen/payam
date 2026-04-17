@@ -369,7 +369,7 @@ Plans:
 | 38. Transaction Boundary & Fraud Ordering | v7 | 4/4 | Complete | 2026-04-15 |
 | 39. Concurrency Guards & DB Constraints | v7 | 2/2 | Complete | 2026-04-15 |
 | 40. Operational Resilience | v7 | 2/2 | Complete | 2026-04-15 |
-| 41. PIN Schema & Encryption Config | v8 | 1/1 | Complete   | 2026-04-17 |
+| 41. PIN Schema & Encryption Config | v8 | 1/1 | Complete    | 2026-04-17 |
 | 42. PIN Backend API | v8 | 0/? | Not started | - |
 | 43. PIN Frontend | v8 | 0/? | Not started | - |
 | 44. PIN Email Notification | v8 | 0/? | Not started | - |
