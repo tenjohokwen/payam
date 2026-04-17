@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v8
-milestone_name: Platform Config PIN
-status: planning
-stopped_at: —
-last_updated: "2026-04-17T00:00:00.000Z"
-last_activity: 2026-04-17
+milestone: v1.0.2
+milestone_name: milestone
+status: executing
+stopped_at: Completed 41-01-PLAN.md
+last_updated: "2026-04-17T21:43:56.004Z"
+last_activity: 2026-04-17 -- Phase 41 execution started
 progress:
-  total_phases: 4
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 15
+  completed_phases: 12
+  total_plans: 29
+  completed_plans: 29
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17 — Milestone v8 started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** v8 Platform Config PIN — roadmap defined, ready to plan Phase 41
+**Current focus:** Phase 41 — pin-schema-encryption-config
 
 ## Current Position
 
-Phase: Phase 41 (not started)
-Plan: —
-Status: Roadmap defined — ready to plan
-Last activity: 2026-04-17 — v8 roadmap created (Phases 41–44)
+Phase: 41 (pin-schema-encryption-config) — EXECUTING
+Plan: 1 of 1
+Status: Executing Phase 41
+Last activity: 2026-04-17 -- Phase 41 execution started
 
 ```
 Progress [░░░░░░░░░░░░░░░░░░░░] 0% — 0 of 4 phases complete
@@ -85,6 +85,8 @@ Key context from v6/v7:
 - [Phase 39-concurrency-guards-db-constraints]: DEFERRABLE INITIALLY DEFERRED chosen over constraint trigger for LEDGER-01 — simpler DDL, satisfies requirement as stated
 - [Phase 40]: @Transactional(timeout=300) on MTN/Orange poller executeInternal closes OPS-01 — 300s matches 5-minute Quartz re-fire interval
 - [Phase 40-02]: No production code changes needed for OPS-03 — ApiKeyAuthenticationFilter finally block already clears TenantContext on all paths including exception paths; only test coverage was missing
+- [Phase 41]: VARCHAR(500) for pin ciphertext: AES256 Base64 output for 4-8 char PIN is ~80-120 chars; 500 provides headroom
+- [Phase 41]: platform_config_aud created in V24 (not V20): V20 already shipped; idempotent CREATE TABLE IF NOT EXISTS in V24 corrects the Envers gap
 
 ### Roadmap Evolution
 
@@ -100,6 +102,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-17T00:00:00.000Z
-Stopped at: v8 roadmap created — ready to plan Phase 41
+Last session: 2026-04-17T21:43:35.119Z
+Stopped at: Completed 41-01-PLAN.md
 Resume file: None

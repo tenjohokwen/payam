@@ -7,8 +7,8 @@
 
 ### Data Model & Encryption
 
-- [ ] **PIN-01**: Admin can persist an AES256-encrypted PIN for a provider — Flyway migration adds nullable `pin` VARCHAR column to `main.platform_config`; plaintext PIN never persists to the database
-- [ ] **PIN-02**: System resolves the Cryptopher/Jasypt encryption key from `payam.platform.pin-encryption-secret` (backed by `PLATFORM_PIN_ENCRYPTION_SECRET` env var) — property added to `PayamPlatformProperties`
+- [x] **PIN-01**: Admin can persist an AES256-encrypted PIN for a provider — Flyway migration adds nullable `pin` VARCHAR column to `main.platform_config`; plaintext PIN never persists to the database
+- [x] **PIN-02**: System resolves the Cryptopher/Jasypt encryption key from `payam.platform.pin-encryption-secret` (backed by `PLATFORM_PIN_ENCRYPTION_SECRET` env var) — property added to `PayamPlatformProperties`
 
 ### Backend API
 
@@ -40,8 +40,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PIN-01 | Phase 41 | Pending |
-| PIN-02 | Phase 41 | Pending |
+| PIN-01 | Phase 41 | Complete |
+| PIN-02 | Phase 41 | Complete |
 | PIN-03 | Phase 42 | Pending |
 | PIN-04 | Phase 42 | Pending |
 | PIN-05 | Phase 42 | Pending |
