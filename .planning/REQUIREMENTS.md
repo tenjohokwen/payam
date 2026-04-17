@@ -12,9 +12,9 @@
 
 ### Backend API
 
-- [x] **PIN-03**: Admin can set or update a provider PIN via `PUT /v1/admin/platform-config/{provider}` — optional `pin` field; validated as alphanumeric 4–8 characters (returns 400 on failure); encrypted via Cryptopher before persisting; saved atomically with MSISDN in one transaction
-- [x] **PIN-04**: Admin can see whether a PIN is configured via `GET /v1/admin/platform-config/{provider}` — response includes `pinConfigured: boolean` (`true` if PIN is set); actual PIN value is never returned in this response
-- [x] **PIN-05**: Admin can retrieve the plaintext PIN via `GET /v1/admin/platform-config/{provider}/pin` — PIN is decrypted on demand and returned; returns 404 if no PIN is configured for that provider
+- [ ] **PIN-03**: Admin can set or update a provider PIN via `PUT /v1/admin/platform-config/{provider}` — optional `pin` field; validated as alphanumeric 4–8 characters (returns 400 on failure); encrypted via Cryptopher before persisting; saved atomically with MSISDN in one transaction
+- [ ] **PIN-04**: Admin can see whether a PIN is configured via `GET /v1/admin/platform-config/{provider}` — response includes `pinConfigured: boolean` (`true` if PIN is set); actual PIN value is never returned in this response
+- [ ] **PIN-05**: Admin can retrieve the plaintext PIN via `GET /v1/admin/platform-config/{provider}/pin` — PIN is decrypted on demand and returned; returns 404 if no PIN is configured for that provider
 
 ### Frontend
 
@@ -42,9 +42,9 @@
 |-------------|-------|--------|
 | PIN-01 | Phase 41 | Complete |
 | PIN-02 | Phase 41 | Complete |
-| PIN-03 | Phase 42 | Complete |
-| PIN-04 | Phase 42 | Complete |
-| PIN-05 | Phase 42 | Complete |
+| PIN-03 | Phase 42 | Pending |
+| PIN-04 | Phase 42 | Pending |
+| PIN-05 | Phase 42 | Pending |
 | PIN-06 | Phase 43 | Pending |
 | PIN-07 | Phase 43 | Pending |
 | PIN-08 | Phase 43 | Pending |
