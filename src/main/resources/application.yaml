@@ -270,8 +270,8 @@ resilience4j:
           - org.springframework.web.client.ResourceAccessException
 
 orange:
-  base-url: https://api-s1.orange.cm  #https://api-s1.orange.cm/omcoreapis/1.0.2
-  pay-url: https://api-s1.orange.cm  #https://api-s1.orange.cm/omcoreapis/1.0.1
+  base-url: https://api-s1.orange.cm/omcoreapis/1.0.2
+  pay-url: https://api-s1.orange.cm/omcoreapis/1.0.1
   token-url: https://api-s1.orange.cm/token
   consumer-key: ${ORANGE_CONSUMER_KEY:test-key}
   consumer-secret: ${ORANGE_CONSUMER_SECRET:test-secret}

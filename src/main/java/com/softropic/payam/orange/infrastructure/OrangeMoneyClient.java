@@ -76,15 +76,14 @@ public class OrangeMoneyClient extends AbstractClient {
         return response.getBody();
     }
 
-    /** GET /infos/subscriber?msisdn={msisdn} */
-    public SubscriberInfoResponse getSubscriberInfo(String bearerToken, String msisdn) {
-        String url = buildClientURI("/infos/subscriber",
-                Map.of(),
-                Map.of("msisdn", msisdn)).toString();
+    /** POST /infos/subscriber/{userType}/{msisdn} — validates a subscriber and returns their registered name */
+    public SubscriberInfoResponse getSubscriberInfo(String bearerToken, String userType, String msisdn, String channelMsisdn) {
+        String url = buildClientURL("/infos/subscriber/" + userType + "/" + msisdn);
+        Map<String, String> body = Map.of("channelMsisdn", channelMsisdn);
 
         long start = System.currentTimeMillis();
         ResponseEntity<SubscriberInfoResponse> response = makeHttpRequest(
-                url, HttpMethod.GET, null, SubscriberInfoResponse.class, bearerHeaders(bearerToken));
+                url, HttpMethod.POST, body, SubscriberInfoResponse.class, bearerHeaders(bearerToken));
         // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
         log.info("Provider HTTP call",
                 kv("externalService", "ORANGE_MONEY"),

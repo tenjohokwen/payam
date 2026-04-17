@@ -22,6 +22,7 @@
 * [ ] Ensure observability with client requests. (may have to modify RestRequestInterceptor)
 * [ ] Ensure observability server URLs are configured for prod (the server URL of each LGTM component)
 * [ ] Ensure redis server, postgres and LGTM servers are up
+* [ ] Turn on HTTPS
 * [ ] Ensure you have scripts that clean up the various tables (AI should write them and also write tests that clean up mid way and continue inserting data and verify that data well inserted and nothing is lost)
 * [ ] prepare the following env variables
 

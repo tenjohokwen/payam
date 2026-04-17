@@ -7,7 +7,6 @@ import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.common.payment.SubscriberStatus;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.orange.contract.exception.PayTokenExpiredException;
-import com.softropic.payam.orange.contract.exception.SubscriberInactiveException;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
@@ -91,23 +90,21 @@ class OrangeMoneyPortIT {
     }
 
     @Test
-    void subscriber_validation_returns_active_for_actif_msisdn() {
-        orangeServer.stubFor(get(urlPathEqualTo("/infos/subscriber"))
-            .withQueryParam("msisdn", equalTo("692954629"))
-            .willReturn(okJson("{\"status\":\"ACTIF\",\"message\":\"OK\"}")));
+    void subscriber_validation_returns_active_for_known_msisdn() {
+        orangeServer.stubFor(post(urlPathEqualTo("/infos/subscriber/customer/692954629"))
+            .willReturn(okJson("{\"data\":{\"firstname\":\"Jean\",\"lastname\":\"Dupont\"},\"message\":\"OK\"}")));
 
         SubscriberStatus status = orangeMoneyPort.validateSubscriber("+237692954629");
 
         assertThat(status.active()).isTrue();
         assertThat(status.msisdn()).isEqualTo("+237692954629");
-        assertThat(status.rawStatus()).isEqualTo("ACTIF");
+        assertThat(status.rawStatus()).isEqualTo("OK");
     }
 
     @Test
-    void subscriber_validation_returns_inactive_for_inactif_msisdn() {
-        orangeServer.stubFor(get(urlPathEqualTo("/infos/subscriber"))
-            .withQueryParam("msisdn", equalTo("692954629"))
-            .willReturn(okJson("{\"status\":\"INACTIF\",\"message\":\"Not active\"}")));
+    void subscriber_validation_returns_inactive_for_unknown_msisdn() {
+        orangeServer.stubFor(post(urlPathEqualTo("/infos/subscriber/customer/692954629"))
+            .willReturn(okJson("{\"data\":null,\"message\":\"Not found\"}")));
 
         SubscriberStatus status = orangeMoneyPort.validateSubscriber("+237692954629");
 
@@ -116,8 +113,6 @@ class OrangeMoneyPortIT {
 
     @Test
     void merchant_payment_initiation_returns_pending_result_with_pay_token() {
-        orangeServer.stubFor(get(urlPathEqualTo("/infos/subscriber"))
-            .willReturn(okJson("{\"status\":\"ACTIF\"}")));
         orangeServer.stubFor(post(urlPathEqualTo("/mp/init"))
             .willReturn(okJson("{\"data\":{\"payToken\":\"tok-abc-123\"},\"message\":\"OK\"}")));
         // Note: pay endpoint uses 1.0.1 path — in tests orange.pay-url=${orange.base-url}
@@ -139,25 +134,6 @@ class OrangeMoneyPortIT {
 
         assertThat(result.pending()).isTrue();
         assertThat(result.providerRef()).isEqualTo("tok-abc-123");
-    }
-
-    @Test
-    void initiate_throws_subscriber_inactive_exception_when_msisdn_inactive() {
-        orangeServer.stubFor(get(urlPathEqualTo("/infos/subscriber"))
-            .willReturn(okJson("{\"status\":\"INACTIF\"}")));
-
-        var tx = transactionService.initiate(tenantId, MobilePaymentProvider.ORANGE,
-            BigDecimal.valueOf(500), "XAF", "EXT-002");
-
-        PaymentCommand cmd = new PaymentCommand(
-            tx.getTransactionId(), tx.getTraceId(), tenantId,
-            "+237699000000", BigDecimal.valueOf(500), "XAF",
-            "EXT-002", "IDEM-002", MobilePaymentProvider.ORANGE,
-            null, null, null, null  // last null = description
-        );
-
-        assertThatThrownBy(() -> orangeMoneyPort.initiateMerchantPayment(cmd))
-            .isInstanceOf(SubscriberInactiveException.class);
     }
 
     @Test

@@ -10,25 +10,17 @@ import com.softropic.payam.orange.contract.dto.InitTransactionResponse;
 import com.softropic.payam.orange.contract.dto.PayRequest;
 import com.softropic.payam.orange.contract.dto.PayResponse;
 import com.softropic.payam.orange.contract.dto.SubscriberInfoResponse;
-import com.softropic.payam.orange.contract.exception.OrangeApiException;
 import com.softropic.payam.orange.contract.exception.PayTokenExpiredException;
-import com.softropic.payam.orange.contract.exception.SubscriberInactiveException;
 import com.softropic.payam.orange.infrastructure.OrangeMoneyClient;
+import com.softropic.payam.platform.service.PlatformConfigService;
 import com.softropic.payam.transaction.contract.TransactionEventType;
 import com.softropic.payam.transaction.contract.TransactionStatus;
 import com.softropic.payam.transaction.repo.TransactionRepository;
-import com.softropic.payam.platform.service.PlatformConfigService;
 import com.softropic.payam.transaction.service.EventLogService;
-
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import io.github.resilience4j.retry.annotation.Retry;
-
 import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static net.logstash.logback.argument.StructuredArguments.kv;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +28,11 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
 import java.time.Instant;
+
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
+
+import static net.logstash.logback.argument.StructuredArguments.kv;
 
 @Service
 public class OrangeMoneyPort implements MobileMoneyPort {
@@ -76,7 +73,7 @@ public class OrangeMoneyPort implements MobileMoneyPort {
      * has already committed the INITIATED row before calling this method. Do not wrap this
      * method in @Transactional — that would hold the DB connection open during the outbound HTTP calls.
      *
-     * Flow: validate subscriber -> get payToken -> call pay -> return ProviderResult(pending=true)
+     * Flow: get payToken -> call pay -> return ProviderResult(pending=true)
      */
     @Override
     @CircuitBreaker(name = "orange")
@@ -85,21 +82,15 @@ public class OrangeMoneyPort implements MobileMoneyPort {
         String token = orangeTokenService.getAccessToken();
         String nationalMsisdn = stripCountryCode(cmd.msisdn());
 
-        // Step 1: Validate subscriber
-        SubscriberInfoResponse subscriberInfo = orangeMoneyClient.getSubscriberInfo(token, nationalMsisdn);
-        if (!subscriberInfo.isActive()) {
-            throw new SubscriberInactiveException(cmd.msisdn());
-        }
-
-        // Step 2: Get payToken via POST /mp/init
+        // Step 1: Get payToken via POST /mp/init
         InitTransactionResponse initResponse = orangeMoneyClient.initTransaction(token);
         String payToken = initResponse.getPayToken();
         Instant payTokenIssuedAt = Instant.now();
 
-        // Step 3: Persist payToken and issuance time on the transaction (non-transactional update)
+        // Step 2: Persist payToken and issuance time on the transaction (non-transactional update)
         persistPayToken(cmd.transactionId(), payToken, payTokenIssuedAt);
 
-        // Step 4: Call /mp/pay
+        // Step 3: Call /mp/pay
         PayRequest payRequest = buildPayRequest(cmd, payToken, nationalMsisdn);
         PayResponse payResponse = orangeMoneyClient.pay(token, payRequest);
 
@@ -139,8 +130,9 @@ public class OrangeMoneyPort implements MobileMoneyPort {
     public SubscriberStatus validateSubscriber(String msisdn) {
         String token = orangeTokenService.getAccessToken();
         String nationalMsisdn = stripCountryCode(msisdn);
-        SubscriberInfoResponse response = orangeMoneyClient.getSubscriberInfo(token, nationalMsisdn);
-        return new SubscriberStatus(response.isActive(), msisdn, response.getStatus());
+        String channelMsisdn = platformConfigService.findByProvider("ORANGE").platformMsisdn();
+        SubscriberInfoResponse response = orangeMoneyClient.getSubscriberInfo(token, "customer", nationalMsisdn, channelMsisdn);
+        return new SubscriberStatus(response.isActive(), msisdn, response.getMessage());
     }
 
     /**
