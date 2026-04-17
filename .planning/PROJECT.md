@@ -164,7 +164,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 This document evolves at phase transitions and milestone boundaries.
 
-*Last updated: 2026-04-15*
+*Last updated: 2026-04-17
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
@@ -180,4 +180,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-17 — Milestone v8 started (Platform Config PIN)*
+*Last updated: 2026-04-17
