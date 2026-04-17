@@ -40,6 +40,15 @@ public class PlatformConfig extends AbstractAuditingEntity {
     private String platformMsisdn;
 
     /**
+     * AES256-encrypted PIN for this provider.
+     * NULL when no PIN has been set.
+     * Holds ciphertext only - never plaintext.
+     * Populated by Phase 42 via updatePin().
+     */
+    @Column(name = "pin")
+    private String pin;
+
+    /**
      * Update the platform MSISDN for this provider.
      * Called by {@link com.softropic.payam.platform.service.PlatformConfigService#update}
      * within a transaction; JPA dirty-checking persists the change on commit.

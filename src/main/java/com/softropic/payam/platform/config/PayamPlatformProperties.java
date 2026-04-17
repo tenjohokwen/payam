@@ -14,6 +14,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * payam:
  *   platform:
  *     notification-email: ${PLATFORM_NOTIFICATION_EMAIL:admin@example.com}
+ *     pin-encryption-secret: ${PLATFORM_PIN_ENCRYPTION_SECRET:}
  * </pre>
  */
 @ConfigurationProperties(prefix = "payam.platform")
@@ -28,5 +29,21 @@ public class PayamPlatformProperties {
 
     public void setNotificationEmail(String notificationEmail) {
         this.notificationEmail = notificationEmail;
+    }
+
+    /**
+     * AES256 encryption secret for provider PINs.
+     * Bound from {@code payam.platform.pin-encryption-secret}.
+     * Set via {@code PLATFORM_PIN_ENCRYPTION_SECRET} environment variable.
+     * Phase 42 validates non-blank before constructing the encryptor.
+     */
+    private String pinEncryptionSecret;
+
+    public String getPinEncryptionSecret() {
+        return pinEncryptionSecret;
+    }
+
+    public void setPinEncryptionSecret(String pinEncryptionSecret) {
+        this.pinEncryptionSecret = pinEncryptionSecret;
     }
 }
