@@ -1,89 +1,62 @@
-# Requirements: Payam v7 — Backend Hardening & Bug Fixes
+# Requirements: Payam
 
-**Milestone:** v7
-**Goal:** Fix 13 audit-identified bugs and risk areas — critical data-consistency issues, transaction boundary problems, and medium concurrency hazards — so the system is production-safe under concurrent load.
-**Created:** 2026-04-14
-**Status:** Active
+**Defined:** 2026-04-17
+**Core Value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
 
----
+## v8 Requirements
 
-## v7 Requirements
+### Data Model & Encryption
 
-### Idempotency (IDEM)
+- [ ] **PIN-01**: Admin can persist an AES256-encrypted PIN for a provider — Flyway migration adds nullable `pin` VARCHAR column to `main.platform_config`; plaintext PIN never persists to the database
+- [ ] **PIN-02**: System resolves the Cryptopher/Jasypt encryption key from `payam.platform.pin-encryption-secret` (backed by `PLATFORM_PIN_ENCRYPTION_SECRET` env var) — property added to `PayamPlatformProperties`
 
-- [x] **IDEM-01**: When a Postgres write fails during idempotency store, Redis does NOT hold a stale value — Postgres is written first, Redis updated only on success
-- [x] **IDEM-02**: Concurrent requests with the same idempotency key produce exactly one DB row — a single UPSERT replaces the current TOCTOU find+save pattern
+### Backend API
 
-### Reconciliation (RECON)
+- [ ] **PIN-03**: Admin can set or update a provider PIN via `PUT /v1/admin/platform-config/{provider}` — optional `pin` field; validated as alphanumeric 4–8 characters (returns 400 on failure); encrypted via Cryptopher before persisting; saved atomically with MSISDN in one transaction
+- [ ] **PIN-04**: Admin can see whether a PIN is configured via `GET /v1/admin/platform-config/{provider}` — response includes `pinConfigured: boolean` (`true` if PIN is set); actual PIN value is never returned in this response
+- [ ] **PIN-05**: Admin can retrieve the plaintext PIN via `GET /v1/admin/platform-config/{provider}/pin` — PIN is decrypted on demand and returned; returns 404 if no PIN is configured for that provider
 
-- [x] **RECON-01**: Reconciliation processes transactions in bounded pages (≤1000 rows per batch) — no full-day set is loaded into heap; discrepancies are persisted incrementally
-- [x] **RECON-02**: When discrepancy persistence fails, the ReconciliationReport transitions to FAILED state — no report is left stuck in IN_PROGRESS
+### Frontend
 
-### Transaction Boundaries (TXN)
+- [ ] **PIN-06**: Admin sees an optional PIN input field on each provider card in `PlatformConfigPage.vue` — masked by default (type=password), with Quasar `q-input` password-toggle eye icon
+- [ ] **PIN-07**: When admin clicks the eye icon on the provider card, the UI calls `GET /{provider}/pin`, populates the field with plaintext, and starts a strict 60-second countdown that auto-masks the field and clears the plaintext from component state on expiry or on manual re-mask before expiry
+- [ ] **PIN-08**: Admin's "Save" button submits MSISDN and PIN in one `PUT` call; an empty PIN field on save retains the existing PIN without overwriting; placeholder text communicates this behaviour to the admin
+- [ ] **PIN-09**: Admin sees an optional PIN input field in the Add Provider dialog — same masked Quasar toggle pattern; no auto-mask timer (admin just entered the value)
 
-- [x] **TXN-01**: Fee evaluation executes before the transaction boundary in PaymentOrchestrator — the locked section covers state writes only, not fee computation
+### Email Notification
 
-### Webhook Infrastructure (WEBHOOK)
-
-- [x] **WEBHOOK-01**: Tenant data is loaded in one query per job tick (not per delivery) in WebhookDeliveryService — N deliveries produce 1 query, not N+1
-- [x] **WEBHOOK-02**: Webhook enqueue fires only after the status-transition transaction commits — uses @TransactionalEventListener(phase = AFTER_COMMIT); enqueue failure does not roll back the state transition
-- [x] **WEBHOOK-03**: Webhook RestTemplate has an explicit connect timeout (≤5s) and read timeout (≤10s) — a hanging tenant endpoint cannot block a Quartz thread indefinitely
-
-### API Key Concurrency (AKEY)
-
-- [x] **AKEY-09**: Concurrent rotations on the same API key are serialized — no two nodes can simultaneously succeed; protected by @Version or a unique constraint on (tenant_id, environment, status)
-
-### Ledger Integrity (LEDGER)
-
-- [x] **LEDGER-01**: The database enforces that every entry_group_id has exactly one DEBIT and one CREDIT — unbalanced ledger posts are rejected at the DB layer
-
-### Operational Resilience (OPS)
-
-- [x] **OPS-01**: MTN and Orange poller transactions have an explicit timeout so advisory locks are bounded — no indefinite lock hold on node crash
-- [x] **OPS-02**: Fraud velocity token consumption occurs only after the idempotency result is successfully cached — a failed cache write does not consume a rate-limit token
-- [x] **OPS-03**: TenantContext is cleared in a finally block on all request paths including exception paths — an integration test verifies the context is empty after an exception-path request
-
----
-
-## Future Requirements
-
-*Not in scope for v7*
-
-- Audit log viewer for tenant and API key changes (Envers data captured; viewer deferred)
-- Key permission scopes (read-only, write-only API keys)
-- Self-service tenant portal
-- DEV/SANDBOX key auto-generation on tenant create
-- Bulk tenant operations
-
----
+- [ ] **PIN-10**: `PlatformConfigChangedEvent` carries `msisdnChanged` (boolean), `pinChanged` (boolean), and `changedBy` (String) — event fires only when MSISDN changed OR PIN changed; first-time PIN creation (was null) does not fire an event
+- [ ] **PIN-11**: Email notification states provider name, which field(s) changed (MSISDN / PIN / both), admin username who made the change, and timestamp — PIN value (plaintext or ciphertext) never appears in the email
 
 ## Out of Scope
 
-- ML/anomaly-detection fraud models — rule-based engine is sufficient; ML deferred
-- Multi-currency support — XAF only
-- Merchant settlement APIs
-- Direct refund/reversal endpoints
-
----
+| Feature | Reason |
+|---------|--------|
+| PIN rotation history / audit trail | No regulatory requirement at this stage; Envers not needed for PlatformConfig |
+| Multiple PINs per provider | Single credential per provider is sufficient for current Orange Money spec |
+| PIN-protected endpoints beyond platform config | Out of scope for v8; provider API may expand later |
 
 ## Traceability
 
-| REQ-ID | Phase | Status |
-|--------|-------|--------|
-| IDEM-01 | Phase 35 | Complete |
-| IDEM-02 | Phase 35 | Complete |
-| RECON-01 | Phase 36 | Complete |
-| RECON-02 | Phase 36 | Complete |
-| TXN-01 | Phase 38 | Complete |
-| WEBHOOK-01 | Phase 37 | Complete |
-| WEBHOOK-02 | Phase 37 | Complete |
-| WEBHOOK-03 | Phase 37 | Complete |
-| AKEY-09 | Phase 39 | Complete |
-| LEDGER-01 | Phase 39 | Complete |
-| OPS-01 | Phase 40 | Complete |
-| OPS-02 | Phase 38 | Complete |
-| OPS-03 | Phase 40 | Complete |
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| PIN-01 | — | Pending |
+| PIN-02 | — | Pending |
+| PIN-03 | — | Pending |
+| PIN-04 | — | Pending |
+| PIN-05 | — | Pending |
+| PIN-06 | — | Pending |
+| PIN-07 | — | Pending |
+| PIN-08 | — | Pending |
+| PIN-09 | — | Pending |
+| PIN-10 | — | Pending |
+| PIN-11 | — | Pending |
+
+**Coverage:**
+- v8 requirements: 11 total
+- Mapped to phases: 0 (pending roadmap)
+- Unmapped: 11 ⚠️
 
 ---
-
-*Last updated: 2026-04-14*
+*Requirements defined: 2026-04-17*
+*Last updated: 2026-04-17 after initial definition*
