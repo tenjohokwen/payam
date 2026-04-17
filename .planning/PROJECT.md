@@ -76,12 +76,17 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ Platform MSISDN management: admin can view/update Orange + MTN platform MSISDNs; email notification on every change — v4
 - ✓ Spring Boot Actuator `/manage/health` reflects live provider MSISDN validation + circuit breaker state for both providers — v4
 - ✓ Admin health dashboard: all Actuator component results visible to ROLE_ADMIN; access-denied banner for non-admins — v4
+- ✓ Email notifications for 6 tenant/key lifecycle events: key generation/rotation, revocation/reactivation, secret generation, tenant status change, webhookUrl change, tenant email change — Validated in Phase 32: NOTIF-01..06
+- ✓ OPS-02: fraud velocity token consumption occurs only after idempotency result cached — proved via FraudVelocityOrderingIT idempotency-key replay path — Validated in Phase 38: OPS-02
+- ✓ OPS-04 / TXN-01: fee evaluation hoisted before transaction boundary in PaymentOrchestrator — Validated in Phase 38: TXN-01
+- ✓ AKEY-09: concurrent API key rotation serialized via @Version optimistic lock — loser receives HTTP 409 — Validated in Phase 39: AKEY-09
+- ✓ LEDGER-01: deferrable unique constraint on ledger_entry(entry_group_id, direction) rejects unbalanced debit+credit pairs at commit time — Validated in Phase 39: LEDGER-01
 
 ### Active
 
-<!-- v6 REST API surface, notifications, Admin UI — in progress -->
+<!-- v8 Platform Config PIN — in progress -->
 
-- Email notifications for 6 events: key generation/rotation, revocation/reactivation, secret generation, tenant status change, webhookUrl change, tenant email change (NOTIF-01..06)
+- Platform Config PIN: AES256-encrypted pin field on PlatformConfig, reveal endpoint, UI masked input with 60s auto-mask, enriched email notification (PIN-01..05)
 
 ### Out of Scope
 
@@ -133,36 +138,27 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 | Entity-level load+save (not bulk JPQL) for `revokeExpiredRotatedKeys()` | Envers captures each revocation as a separate audit revision; bulk JPQL bypasses Envers | ✓ Good — use entity-level ops when audit trail is required per row |
 | Flyway V21 migrates `rotated_at` to `TIMESTAMPTZ` | Quartz job's `Instant` parameters compared against TIMESTAMP(no tz) caused timezone mismatch in Testcontainers (Postgres defaulted to Europe/Berlin) | ✓ Good — always use TIMESTAMPTZ for timestamp columns that are compared with JVM Instant values |
 
-## Current Milestone: v7 Backend Hardening & Bug Fixes
+## Current Milestone: v8 Platform Config PIN
 
-**Goal:** Fix 13 audit-identified bugs and risk areas — critical data-consistency issues, transaction boundary problems, and medium concurrency hazards — so the system is production-safe under concurrent load.
+**Goal:** Extend PlatformConfig with an AES256-encrypted PIN field so provider credentials (e.g. Orange channelUserMsisdn PIN) can be stored securely, revealed on demand via a dedicated endpoint, and audited via email notification.
 
-**Target fixes:**
-- [CRIT-5A] Idempotency write ordering: Postgres first, then Redis (currently Redis-first → permanent inconsistency on PG failure)
-- [CRIT-1A] Reconciliation unbounded fetch: paginate findTransactionsForDateAndProvider() in 1000-row batches
-- [HIGH-3A] PaymentOrchestrator: move fee evaluation before transaction boundary to reduce lock contention
-- [HIGH-2A] WebhookDeliveryService: eliminate N+1 tenant lookup per delivery (JOIN or bulk-load)
-- [HIGH-5C] WebhookTransitionService: move enqueue to @TransactionalEventListener(AFTER_COMMIT)
-- [HIGH-4AB] WebhookConfig: add connect/read timeouts to RestTemplate
-- [MED-2B] IdempotencyService: replace TOCTOU find+save with single DB UPSERT
-- [MED-5B] ApiKeyService: add @Version or unique constraint for concurrent rotation
-- [MED-3B] ReconciliationService: catch exceptions, transition report to FAILED state
-- [MED-5D] LedgerService: add DB constraint enforcing balanced debit+credit pairs per entry_group_id
-- [MED-6A] Poller advisory locks: add transaction timeout to bound lock hold duration
-- [MED-6B] FraudScoringService: reorder so fraud eval precedes idempotency cache write
-- [MED-6C] TenantContext filter: audit try-finally guarantees + integration test for exception path
+**Target features:**
+- [PIN-01] AES256-encrypted `pin` column on `PlatformConfig` entity — Flyway migration, `payam.platform.pin-encryption-secret` property backed by `PLATFORM_PIN_ENCRYPTION_SECRET` env var
+- [PIN-02] PUT `/v1/admin/platform-config/{provider}` extended — optional `pin` field, alphanumeric 4–8 char validation, encrypted via Cryptopher, saved atomically with MSISDN
+- [PIN-03] GET `/v1/admin/platform-config/{provider}/pin` reveal endpoint — decrypts and returns plaintext PIN; 404 if not set; `PlatformConfigDto` gains `pinConfigured: boolean`
+- [PIN-04] Admin UI — PIN field in provider card (masked, eye-reveal calls reveal endpoint, 60s auto-mask timer); PIN field in Add Provider dialog (no timer)
+- [PIN-05] Email notification — enriched `PlatformConfigChangedEvent` with `msisdnChanged`/`pinChanged`/`changedBy`; fires on MSISDN change or PIN change (first-time PIN set does not trigger email)
 
 ## Current State
 
-**Shipped:** v6 (2026-04-14) — 34 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5 + 5 v6), 82 plans
-**In Progress:** v7 — Backend Hardening & Bug Fixes (Phase 40 complete — OPS-01: poller transaction timeout bounds advisory lock hold time; OPS-03: TenantContext exception-path cleared by integration test)
+**Shipped:** v7 (2026-04-17) — 40 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5 + 5 v6 + 6 v7), 90 plans
+**In Progress:** v8 — Platform Config PIN
 **Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar + Hibernate Envers
 **Observability:** Full Loki-queryable structured logging + Spring Boot Actuator health with live provider MSISDN validation + CB state
 **Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage + 22 tenant/key integration tests
 **Constraint:** `mvn verify` (including integration tests) must pass before every commit
 **Known tech debt:**
 - `TenantProvisioningIT.tearDown()` does not clean audit tables — rows accumulate across test runs (non-critical)
-- B2B-01/B2B-02 (OrangeClient channelUserMsisdn fix) deferred from v4
 
 ## Evolution
 
@@ -184,4 +180,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-15 — Phase 40 complete (Operational Resilience: OPS-01, OPS-03 validated)*
+*Last updated: 2026-04-17 — Milestone v8 started (Platform Config PIN)*
