@@ -282,3 +282,4 @@ orange:
 payam:
   platform:
     notification-email: ${PLATFORM_NOTIFICATION_EMAIL:tenjoh_okwen@yahoo.com}
+    pin-encryption-secret: ${PLATFORM_PIN_ENCRYPTION_SECRET:}
