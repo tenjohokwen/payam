@@ -8,7 +8,8 @@
 - ✅ **v4 Platform Config & Health** — Phases 24–26 (shipped 2026-04-02) — see [milestones/v4-ROADMAP.md](milestones/v4-ROADMAP.md)
 - ✅ **v5 Tenant & API Key Management Service Layer** — Phases 27–29 (shipped 2026-04-06) — see [milestones/v5-ROADMAP.md](milestones/v5-ROADMAP.md)
 - ✅ **v6 REST API Surface, Notifications & Admin UI** — Phases 30–34 (shipped 2026-04-14) — see [milestones/v6-ROADMAP.md](milestones/v6-ROADMAP.md)
-- 🚧 **v7 Backend Hardening & Bug Fixes** — Phases 35–40 (active)
+- ✅ **v7 Backend Hardening & Bug Fixes** — Phases 35–40 (shipped 2026-04-17) — see [milestones/v7-ROADMAP.md](milestones/v7-ROADMAP.md)
+- 🚧 **v8 Platform Config PIN** — Phases 41–44 (active)
 
 ## Phases
 
@@ -83,15 +84,25 @@
 
 </details>
 
-<details open>
-<summary>🚧 v7 Backend Hardening & Bug Fixes (Phases 35–40) — ACTIVE</summary>
+<details>
+<summary>✅ v7 Backend Hardening & Bug Fixes (Phases 35–40) — SHIPPED 2026-04-17</summary>
 
-- [ ] **Phase 35: Idempotency Correctness** - Fix write ordering (Postgres-first) and replace TOCTOU find+save with UPSERT
-- [x] **Phase 36: Reconciliation Hardening** - Paginate unbounded fetch in batches and transition reports to FAILED on exception
-- [ ] **Phase 37: Webhook Subsystem Fixes** - Eliminate N+1 tenant lookup, move enqueue to AFTER_COMMIT, add RestTemplate timeouts
-- [ ] **Phase 38: Transaction Boundary & Fraud Ordering** - Move fee eval before transaction lock; reorder fraud eval to precede idempotency cache write
-- [ ] **Phase 39: Concurrency Guards & DB Constraints** - Serialize concurrent API key rotation; enforce balanced ledger pairs at DB layer
-- [ ] **Phase 40: Operational Resilience** - Bound advisory lock hold with poller transaction timeout; guarantee TenantContext cleanup in finally block
+- [x] Phase 35: Idempotency Correctness (2/2 plans) — completed 2026-04-14
+- [x] Phase 36: Reconciliation Hardening (2/2 plans) — completed 2026-04-14
+- [x] Phase 37: Webhook Subsystem Fixes (4/4 plans) — completed 2026-04-14
+- [x] Phase 38: Transaction Boundary & Fraud Ordering (4/4 plans) — completed 2026-04-15
+- [x] Phase 39: Concurrency Guards & DB Constraints (2/2 plans) — completed 2026-04-15
+- [x] Phase 40: Operational Resilience (2/2 plans) — completed 2026-04-15
+
+</details>
+
+<details open>
+<summary>🚧 v8 Platform Config PIN (Phases 41–44) — ACTIVE</summary>
+
+- [ ] **Phase 41: PIN Schema & Encryption Config** - Add nullable `pin` column to `platform_config` via Flyway migration and wire AES256 encryption key through `PayamPlatformProperties`
+- [ ] **Phase 42: PIN Backend API** - Extend PUT update to accept and encrypt PIN; add GET reveal endpoint; expose `pinConfigured` boolean on existing GET response
+- [ ] **Phase 43: PIN Frontend** - PIN masked input field with 60s auto-mask reveal on provider card and PIN field in Add Provider dialog
+- [ ] **Phase 44: PIN Email Notification** - Enrich `PlatformConfigChangedEvent` with change-type flags and update email template to state which field(s) changed
 
 </details>
 
@@ -233,7 +244,7 @@ Plans:
 - [x] 38-01-PLAN.md — TXN-01: hoist fee evaluation above transactionTemplate lock in PaymentOrchestrator + InOrder regression test
 - [x] 38-02-PLAN.md — OPS-02: VelocityCheckService.probeVelocity + FraudScoringService.probe/consumeTokens + PaymentOrchestrator rewire + FraudVelocityOrderingIT
 - [x] 38-03-PLAN.md — Full mvn verify regression run + sign-off summary (FAILED — CONC-03 regression)
-- [ ] 38-04-PLAN.md — Gap closure: OPS-02 via idempotency-key replay path + FraudVelocityOrderingIT + mvn verify
+- [x] 38-04-PLAN.md — Gap closure: OPS-02 via idempotency-key replay path + FraudVelocityOrderingIT + mvn verify
 
 ### Phase 39: Concurrency Guards & DB Constraints
 **Goal**: Concurrent API key rotations are serialized at the DB layer and unbalanced ledger entries are rejected by a DB constraint before they can be committed
@@ -262,6 +273,60 @@ Plans:
 Plans:
 - [x] 40-01-PLAN.md — OPS-01: @Transactional(timeout=300) on MTN/Orange poller executeInternal + reflection-based timeout unit tests
 - [x] 40-02-PLAN.md — OPS-03: TenantContextExceptionIT (two-request probe: exception-path request followed by different-tenant probe)
+
+### Phase 41: PIN Schema & Encryption Config
+**Goal**: The system can store an AES256-encrypted PIN for each provider and resolve the encryption key from configuration
+**Depends on**: Phase 40
+**Requirements**: PIN-01, PIN-02
+**Success Criteria** (what must be TRUE):
+  1. A Flyway migration adds a nullable `pin` VARCHAR column to `main.platform_config` — the migration runs cleanly on a database that already has platform config rows
+  2. `PayamPlatformProperties` exposes a `pinEncryptionSecret` field bound to `payam.platform.pin-encryption-secret`, which maps to the `PLATFORM_PIN_ENCRYPTION_SECRET` environment variable
+  3. The `PlatformConfig` entity maps the `pin` column — the field holds ciphertext (never plaintext) when a PIN has been set
+  4. mvn verify passes with no migration failures and no regressions
+**Plans**: 1 plan
+Plans:
+- [x] 41-01-PLAN.md — V24 migration (pin column + platform_config_aud) + entity field + PayamPlatformProperties pinEncryptionSecret + YAML binding
+
+### Phase 42: PIN Backend API
+**Goal**: Admins can set, update, and retrieve a provider PIN through the existing platform config endpoints
+**Depends on**: Phase 41
+**Requirements**: PIN-03, PIN-04, PIN-05
+**Success Criteria** (what must be TRUE):
+  1. `PUT /v1/admin/platform-config/{provider}` accepts an optional `pin` field; a value that is not alphanumeric or is outside 4–8 characters returns HTTP 400; a valid PIN is encrypted via Cryptopher and saved atomically with MSISDN in one transaction
+  2. `GET /v1/admin/platform-config/{provider}` returns `pinConfigured: true` when a PIN is stored and `pinConfigured: false` when none is set — the actual PIN value is never present in this response
+  3. `GET /v1/admin/platform-config/{provider}/pin` returns the decrypted plaintext PIN when one is configured; returns HTTP 404 when no PIN has been set
+  4. An empty or absent PIN field on PUT does not overwrite an existing stored PIN
+  5. mvn verify passes including any platform config integration tests
+**Plans**: 3 plans
+Plans:
+- [x] 42-01-PLAN.md — Foundation: PinDto, extended 4-arg PlatformConfigDto with @Pattern + pinConfigured, PlatformConfig.updatePin(), pinCryptopher @Bean, test secret property, fixture updates
+- [ ] 42-02-PLAN.md — Service wiring: widen PlatformConfigService.update() to (provider, msisdn, pin) with encryption + blank-preserves-existing semantics, add findPinByProvider() with 404/409 handling (PIN-03, PIN-05)
+- [ ] 42-03-PLAN.md — Resource layer: @Valid PUT, new GET /{provider} with pinConfigured, new GET /{provider}/pin + PlatformConfigAdminResourceIT covering all PIN-03/PIN-04/PIN-05 HTTP paths
+**UI hint**: no
+
+### Phase 43: PIN Frontend
+**Goal**: Admins can view, reveal, and set a provider PIN directly from the platform config admin page
+**Depends on**: Phase 42
+**Requirements**: PIN-06, PIN-07, PIN-08, PIN-09
+**Success Criteria** (what must be TRUE):
+  1. Each provider card in `PlatformConfigPage.vue` shows a masked PIN input field (type=password) with a Quasar eye-toggle icon; the field is empty on page load (PIN value is not pre-fetched)
+  2. Clicking the eye icon calls `GET /{provider}/pin`, populates the field with the decrypted plaintext, and starts a 60-second countdown; when the countdown expires the field is re-masked and the plaintext is cleared from component state
+  3. Clicking the eye icon again before expiry re-masks the field immediately and cancels the countdown without waiting for it to expire
+  4. The Save button submits MSISDN and PIN together in one PUT call; leaving the PIN field empty on save preserves the existing PIN — placeholder text communicates this to the admin
+  5. The Add Provider dialog includes the same masked PIN input with eye toggle; no auto-mask timer applies in the dialog
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 44: PIN Email Notification
+**Goal**: Admins receive an email that identifies which platform config field(s) changed and who made the change, without exposing any PIN value
+**Depends on**: Phase 42
+**Requirements**: PIN-10, PIN-11
+**Success Criteria** (what must be TRUE):
+  1. `PlatformConfigChangedEvent` carries `msisdnChanged` (boolean), `pinChanged` (boolean), and `changedBy` (String) — the event is not fired when neither field changes and is not fired when a PIN is set for the first time (was null before the update)
+  2. The notification email body states the provider name, which field(s) changed (MSISDN, PIN, or both), the admin username who made the change, and a timestamp
+  3. The email never contains the PIN value in plaintext or ciphertext form
+  4. The email is delivered after the transaction commits — a rollback of the config update does not send an email
+**Plans**: TBD
 
 ## Progress
 
@@ -302,9 +367,13 @@ Plans:
 | 32. Email Notification Infrastructure | v6 | 3/3 | Complete | 2026-04-08 |
 | 33. Admin UI — Tenant Management | v6 | 4/4 | Complete | 2026-04-09 |
 | 34. Orange Money Adapter Alignment | v6 | 2/2 | Complete | 2026-04-14 |
-| 35. Idempotency Correctness | v7 | 2/2 | Complete    | 2026-04-14 |
-| 36. Reconciliation Hardening | v7 | 2/2 | Complete    | 2026-04-14 |
-| 37. Webhook Subsystem Fixes | v7 | 4/4 | Complete    | 2026-04-14 |
-| 38. Transaction Boundary & Fraud Ordering | v7 | 3/4 | Complete    | 2026-04-15 |
-| 39. Concurrency Guards & DB Constraints | v7 | 2/2 | Complete    | 2026-04-15 |
-| 40. Operational Resilience | v7 | 2/2 | Complete    | 2026-04-15 |
+| 35. Idempotency Correctness | v7 | 2/2 | Complete | 2026-04-14 |
+| 36. Reconciliation Hardening | v7 | 2/2 | Complete | 2026-04-14 |
+| 37. Webhook Subsystem Fixes | v7 | 4/4 | Complete | 2026-04-14 |
+| 38. Transaction Boundary & Fraud Ordering | v7 | 4/4 | Complete | 2026-04-15 |
+| 39. Concurrency Guards & DB Constraints | v7 | 2/2 | Complete | 2026-04-15 |
+| 40. Operational Resilience | v7 | 2/2 | Complete | 2026-04-15 |
+| 41. PIN Schema & Encryption Config | v8 | 1/1 | Complete    | 2026-04-17 |
+| 42. PIN Backend API | v8 | 1/3 | In Progress|  |
+| 43. PIN Frontend | v8 | 0/? | Not started | - |
+| 44. PIN Email Notification | v8 | 0/? | Not started | - |
