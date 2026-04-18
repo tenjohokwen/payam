@@ -61,6 +61,30 @@ export const adminApi = {
   },
 
   /**
+   * Retrieve the decrypted plaintext PIN for a provider (PIN-05).
+   * Returns: { pin: string } on 200.
+   * Throws 404 when no PIN is configured; 409 when no config row exists.
+   * @param {string} provider - 'ORANGE' or 'MTN'
+   */
+  getPlatformConfigPin(provider) {
+    return api.get(`/v1/admin/platform-config/${provider}/pin`)
+  },
+
+  /**
+   * Update the platform MSISDN and optionally the PIN for a provider (PIN-03).
+   * Empty or undefined `pin` is omitted from the JSON body so the backend
+   * preserves the existing PIN (PIN-08 semantics).
+   * @param {string} provider - 'ORANGE' or 'MTN'
+   * @param {string} platformMsisdn
+   * @param {string|undefined} pin - omit or pass undefined/empty to preserve existing PIN
+   */
+  updatePlatformConfigFull(provider, platformMsisdn, pin) {
+    const body = { provider, platformMsisdn }
+    if (pin !== undefined && pin !== '') body.pin = pin
+    return api.put(`/v1/admin/platform-config/${provider}`, body)
+  },
+
+  /**
    * Get the Spring Boot Actuator health response.
    * Admin JWT required to see component details (components field absent for non-admin).
    * Returns: { status: 'UP'|'DOWN', components?: { [name]: { status, details? } } }
