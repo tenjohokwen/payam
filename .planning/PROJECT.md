@@ -84,15 +84,17 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ### Active
 
-<!-- v8 Platform Config PIN — Phase 42 backend complete, Phase 43 frontend in progress -->
+<!-- v8 Platform Config PIN — Phase 41-44 complete, Phase 43 frontend in progress -->
 
-- Platform Config PIN UI: masked PIN input with eye-reveal + 60s auto-mask timer, PIN field in Add Provider dialog, enriched email notification (PIN-01, PIN-04, PIN-05)
+- Platform Config PIN UI: masked PIN input with eye-reveal + 60s auto-mask timer, PIN field in Add Provider dialog (PIN-01, PIN-04, PIN-05)
 
 ### Partially Validated (Phase 42)
 
 - ✓ AES256-encrypted `pin` column on `PlatformConfig` entity — Flyway migration, `pinCryptopher` @Bean backed by `payam.platform.pin-encryption-secret` — Validated in Phase 41: PIN-01, PIN-02
 - ✓ PUT `/v1/admin/platform-config/{provider}` extended — optional `pin` field, alphanumeric 4–8 char @Pattern validation via `@Valid`, encrypted atomically with MSISDN — Validated in Phase 42: PIN-03
 - ✓ GET `/v1/admin/platform-config/{provider}/pin` reveal endpoint — decrypts and returns `PinDto`; 404 if not configured; `PlatformConfigDto` gains `pinConfigured: boolean`; no ciphertext leakage via `@JsonInclude(NON_NULL)` — Validated in Phase 42: PIN-04, PIN-05
+- ✓ `PlatformConfigChangedEvent` widened to 6 components (provider, oldMsisdn, newMsisdn, msisdnChanged, pinChanged, changedBy); conditional publish per PIN-10 fire rules — suppressed on no-op, first-time PIN creation, new-row creation; `changedBy` resolved via SecurityUtil on request thread — Validated in Phase 44: PIN-10
+- ✓ `PlatformConfigEmailListener` extends Envelope data map with msisdnChanged, pinChanged, changedBy, changedAt; Thymeleaf template renders conditional MSISDN/PIN rows + admin username + timestamp; no PIN value leakage — Validated in Phase 44: PIN-11
 
 ### Out of Scope
 
