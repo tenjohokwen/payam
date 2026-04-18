@@ -59,6 +59,8 @@ class PlatformConfigServiceTest {
         assertThat(result.provider()).isEqualTo(provider);
         assertThat(result.platformMsisdn()).isEqualTo(newMsisdn);
         assertThat(existing.getPlatformMsisdn()).isEqualTo(newMsisdn);
+        assertThat(result.pinConfigured()).isFalse();   // existing builder sets no pin
+        assertThat(result.pin()).isNull();              // service never returns pin on update path
         verify(platformConfigRepository).save(existing);
         verify(eventPublisher).publishEvent(any(PlatformConfigChangedEvent.class));
     }
@@ -79,6 +81,8 @@ class PlatformConfigServiceTest {
         // Then
         assertThat(result.provider()).isEqualTo("ORANGE");
         assertThat(result.platformMsisdn()).isEqualTo("652000001");
+        assertThat(result.pinConfigured()).isFalse();
+        assertThat(result.pin()).isNull();
     }
 
     @Test
@@ -106,6 +110,8 @@ class PlatformConfigServiceTest {
         // Then
         assertThat(result.provider()).isEqualTo(provider);
         assertThat(result.platformMsisdn()).isEqualTo(newMsisdn);
+        assertThat(result.pinConfigured()).isFalse();   // orElseGet branch builds fresh config without pin
+        assertThat(result.pin()).isNull();
         verify(platformConfigRepository).save(any(PlatformConfig.class));
         verifyNoInteractions(eventPublisher);
     }
