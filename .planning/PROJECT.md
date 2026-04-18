@@ -84,9 +84,15 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ### Active
 
-<!-- v8 Platform Config PIN — in progress -->
+<!-- v8 Platform Config PIN — Phase 42 backend complete, Phase 43 frontend in progress -->
 
-- Platform Config PIN: AES256-encrypted pin field on PlatformConfig, reveal endpoint, UI masked input with 60s auto-mask, enriched email notification (PIN-01..05)
+- Platform Config PIN UI: masked PIN input with eye-reveal + 60s auto-mask timer, PIN field in Add Provider dialog, enriched email notification (PIN-01, PIN-04, PIN-05)
+
+### Partially Validated (Phase 42)
+
+- ✓ AES256-encrypted `pin` column on `PlatformConfig` entity — Flyway migration, `pinCryptopher` @Bean backed by `payam.platform.pin-encryption-secret` — Validated in Phase 41: PIN-01, PIN-02
+- ✓ PUT `/v1/admin/platform-config/{provider}` extended — optional `pin` field, alphanumeric 4–8 char @Pattern validation via `@Valid`, encrypted atomically with MSISDN — Validated in Phase 42: PIN-03
+- ✓ GET `/v1/admin/platform-config/{provider}/pin` reveal endpoint — decrypts and returns `PinDto`; 404 if not configured; `PlatformConfigDto` gains `pinConfigured: boolean`; no ciphertext leakage via `@JsonInclude(NON_NULL)` — Validated in Phase 42: PIN-04, PIN-05
 
 ### Out of Scope
 
@@ -152,7 +158,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 ## Current State
 
 **Shipped:** v7 (2026-04-17) — 40 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5 + 5 v6 + 6 v7), 90 plans
-**In Progress:** v8 — Platform Config PIN
+**In Progress:** v8 — Platform Config PIN (Phase 42 backend complete; Phase 43 frontend next)
 **Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar + Hibernate Envers
 **Observability:** Full Loki-queryable structured logging + Spring Boot Actuator health with live provider MSISDN validation + CB state
 **Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage + 22 tenant/key integration tests
@@ -164,7 +170,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 This document evolves at phase transitions and milestone boundaries.
 
-*Last updated: 2026-04-17
+*Last updated: 2026-04-18
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
@@ -180,4 +186,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-17
+*Last updated: 2026-04-18
