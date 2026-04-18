@@ -58,4 +58,20 @@ public class PlatformConfig extends AbstractAuditingEntity {
     public void updateMsisdn(String newMsisdn) {
         this.platformMsisdn = newMsisdn;
     }
+
+    /**
+     * Update the encrypted PIN for this provider (PIN-03).
+     *
+     * <p>Called by {@link com.softropic.payam.platform.service.PlatformConfigService#update}
+     * within a transaction; JPA dirty-checking persists the change on commit.
+     *
+     * <p>The value MUST be the AES256 ciphertext produced by {@code Cryptopher.encrypt(pin)};
+     * passing plaintext breaks the at-rest encryption contract (PIN-01).
+     *
+     * @param ciphertext the AES256-encrypted PIN; pass {@code null} only when explicitly
+     *                   clearing the PIN (not exposed in the v8 API surface)
+     */
+    public void updatePin(String ciphertext) {
+        this.pin = ciphertext;
+    }
 }
