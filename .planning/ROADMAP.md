@@ -299,7 +299,7 @@ Plans:
   5. mvn verify passes including any platform config integration tests
 **Plans**: 3 plans
 Plans:
-- [ ] 42-01-PLAN.md — Foundation: PinDto, extended 4-arg PlatformConfigDto with @Pattern + pinConfigured, PlatformConfig.updatePin(), pinCryptopher @Bean, test secret property, fixture updates
+- [x] 42-01-PLAN.md — Foundation: PinDto, extended 4-arg PlatformConfigDto with @Pattern + pinConfigured, PlatformConfig.updatePin(), pinCryptopher @Bean, test secret property, fixture updates
 - [ ] 42-02-PLAN.md — Service wiring: widen PlatformConfigService.update() to (provider, msisdn, pin) with encryption + blank-preserves-existing semantics, add findPinByProvider() with 404/409 handling (PIN-03, PIN-05)
 - [ ] 42-03-PLAN.md — Resource layer: @Valid PUT, new GET /{provider} with pinConfigured, new GET /{provider}/pin + PlatformConfigAdminResourceIT covering all PIN-03/PIN-04/PIN-05 HTTP paths
 **UI hint**: no
@@ -374,6 +374,6 @@ Plans:
 | 39. Concurrency Guards & DB Constraints | v7 | 2/2 | Complete | 2026-04-15 |
 | 40. Operational Resilience | v7 | 2/2 | Complete | 2026-04-15 |
 | 41. PIN Schema & Encryption Config | v8 | 1/1 | Complete    | 2026-04-17 |
-| 42. PIN Backend API | v8 | 0/3 | Not started | - |
+| 42. PIN Backend API | v8 | 1/3 | In Progress|  |
 | 43. PIN Frontend | v8 | 0/? | Not started | - |
 | 44. PIN Email Notification | v8 | 0/? | Not started | - |

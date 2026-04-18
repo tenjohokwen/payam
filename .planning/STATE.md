@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 41-01-PLAN.md
-last_updated: "2026-04-17T21:48:44.055Z"
-last_activity: 2026-04-17
+stopped_at: Completed 42-01-PLAN.md
+last_updated: "2026-04-18T04:51:39.585Z"
+last_activity: 2026-04-18
 progress:
   total_phases: 15
   completed_phases: 12
-  total_plans: 29
-  completed_plans: 29
+  total_plans: 32
+  completed_plans: 30
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17 — Milestone v8 started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 41 — pin-schema-encryption-config
+**Current focus:** Phase 42 — pin-backend-api
 
 ## Current Position
 
-Phase: 42
-Plan: Not started
-Status: Executing Phase 41
-Last activity: 2026-04-17
+Phase: 42 (pin-backend-api) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-04-18
 
 ```
 Progress [░░░░░░░░░░░░░░░░░░░░] 0% — 0 of 4 phases complete
@@ -87,6 +87,8 @@ Key context from v6/v7:
 - [Phase 40-02]: No production code changes needed for OPS-03 — ApiKeyAuthenticationFilter finally block already clears TenantContext on all paths including exception paths; only test coverage was missing
 - [Phase 41]: VARCHAR(500) for pin ciphertext: AES256 Base64 output for 4-8 char PIN is ~80-120 chars; 500 provides headroom
 - [Phase 41]: platform_config_aud created in V24 (not V20): V20 already shipped; idempotent CREATE TABLE IF NOT EXISTS in V24 corrects the Envers gap
+- [Phase 42-01]: regex ^$|^[a-zA-Z0-9]{4,8}$ allows empty string (PIN-08) while enforcing 4-8 alphanumeric chars (PIN-03); @JsonInclude(NON_NULL) on record class suppresses null pin from GET responses (PIN-04); pin=null at all service DTO sites prevents ciphertext leakage
+- [Phase 42-01]: pinCryptopher bean name derived from @Bean method name — Plan 02 injects by type via @RequiredArgsConstructor; PlatformConfigService update() signature unchanged (2-param) — Plan 02 widens to 3 params
 
 ### Roadmap Evolution
 
@@ -102,6 +104,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-17T21:43:35.119Z
-Stopped at: Completed 41-01-PLAN.md
+Last session: 2026-04-18T04:51:39.579Z
+Stopped at: Completed 42-01-PLAN.md
 Resume file: None
