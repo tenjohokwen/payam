@@ -1,7 +1,8 @@
 ---
 phase: 43
 slug: pin-frontend
-status: draft
+status: approved
+reviewed_at: 2026-04-18
 shadcn_initialized: false
 preset: none
 created: 2026-04-18
