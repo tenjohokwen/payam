@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 40-02-PLAN.md
-last_updated: "2026-04-15T09:50:15.718Z"
+stopped_at: "Completed 43-01-PLAN.md (awaiting checkpoint:human-verify)"
+last_updated: "2026-04-18T10:01:53.080Z"
 last_activity: 2026-04-15
 progress:
   total_phases: 11
@@ -104,6 +104,8 @@ Key context from v6 research:
 - [Phase 39-concurrency-guards-db-constraints]: Two-DEBIT pattern in unbalancedInsert test — lone DEBIT satisfies the unique constraint; two DEBITs is what LEDGER-01 blocks
 - [Phase 40]: @Transactional(timeout=300) on MTN/Orange poller executeInternal closes OPS-01 — 300s matches 5-minute Quartz re-fire interval
 - [Phase 40-02]: No production code changes needed for OPS-03 — ApiKeyAuthenticationFilter finally block already clears TenantContext on all paths including exception paths; only test coverage was missing
+- [Phase 43-pin-frontend]: Per-provider keyed timer maps use plain objects {} not refs for setTimeout/setInterval handles; onUnmounted clears all provider keys to prevent navigation leaks
+- [Phase 43-pin-frontend]: PIN-08 semantics: pass pin || undefined to updatePlatformConfigFull; method omits empty/undefined pin from PUT body so backend preserves existing PIN
 
 ### Roadmap Evolution
 
@@ -120,6 +122,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-15T09:45:13.147Z
-Stopped at: Completed 40-02-PLAN.md
+Last session: 2026-04-18T10:01:53.072Z
+Stopped at: Completed 43-01-PLAN.md (awaiting checkpoint:human-verify)
 Resume file: None
