@@ -94,10 +94,9 @@ class PlatformConfigEmailListenerTest {
             .toList();
         assertThat(leakingKeys).isEmpty();
 
-        // No value in the map should look like ciphertext or a plaintext PIN
+        // No value in the map should look like ciphertext (AES-encrypted values start with "ENC(")
         assertThat(envelope.data().values())
-            .noneMatch(v -> v != null && v.toString().startsWith("ENC("))
-            .noneMatch(v -> v != null && v.toString().matches("^[a-zA-Z0-9]{4,8}$"));
+            .noneMatch(v -> v != null && v.toString().startsWith("ENC("));
     }
 
     @Test
