@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 42-01-PLAN.md
-last_updated: "2026-04-18T04:51:39.585Z"
+stopped_at: Completed 42-02-PLAN.md
+last_updated: "2026-04-18T05:15:40.723Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 32
-  completed_plans: 30
+  completed_plans: 31
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-04-17 — Milestone v8 started)
 ## Current Position
 
 Phase: 42 (pin-backend-api) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-18
 
@@ -89,6 +89,8 @@ Key context from v6/v7:
 - [Phase 41]: platform_config_aud created in V24 (not V20): V20 already shipped; idempotent CREATE TABLE IF NOT EXISTS in V24 corrects the Envers gap
 - [Phase 42-01]: regex ^$|^[a-zA-Z0-9]{4,8}$ allows empty string (PIN-08) while enforcing 4-8 alphanumeric chars (PIN-03); @JsonInclude(NON_NULL) on record class suppresses null pin from GET responses (PIN-04); pin=null at all service DTO sites prevents ciphertext leakage
 - [Phase 42-01]: pinCryptopher bean name derived from @Bean method name — Plan 02 injects by type via @RequiredArgsConstructor; PlatformConfigService update() signature unchanged (2-param) — Plan 02 widens to 3 params
+- [Phase 42-pin-backend-api]: StringUtils.isNotBlank(pin) guards encrypt path — null and blank both skip encryption (PIN-08 semantics, consistent with Cryptopher)
+- [Phase 42-pin-backend-api]: ResourceNotFoundException (404) for null pin vs IllegalStateException (409) for missing config row in findPinByProvider
 
 ### Roadmap Evolution
 
@@ -104,6 +106,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-18T04:51:39.579Z
-Stopped at: Completed 42-01-PLAN.md
+Last session: 2026-04-18T05:15:40.717Z
+Stopped at: Completed 42-02-PLAN.md
 Resume file: None
