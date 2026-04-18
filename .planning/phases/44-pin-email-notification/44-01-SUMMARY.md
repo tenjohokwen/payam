@@ -93,3 +93,12 @@ None — plan executed exactly as written. The worktree required a `git merge ma
 ## Known Stubs
 
 None. All changes are complete production logic. Plan 44-02 (listener + template) is required to make the PIN-10 behavior observable end-to-end, but that is explicitly noted in the plan objective as out of scope for Plan 44-01.
+
+## Self-Check: PASSED
+
+- FOUND: PlatformConfigChangedEvent.java
+- FOUND: PlatformConfigService.java
+- FOUND: 44-01-SUMMARY.md
+- FOUND: fcc8767 (RED commit)
+- FOUND: f79fce0 (GREEN commit)
+- Tests run: 20, Failures: 0, Errors: 0
