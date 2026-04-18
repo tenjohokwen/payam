@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
-status: executing
-stopped_at: Completed 41-01-PLAN.md
-last_updated: "2026-04-17T21:43:56.004Z"
-last_activity: 2026-04-17 -- Phase 41 execution started
+status: verifying
+stopped_at: Completed 44-pin-email-notification-44-02-PLAN.md
+last_updated: "2026-04-18T16:54:21.729Z"
+last_activity: 2026-04-18
 progress:
   total_phases: 15
-  completed_phases: 12
-  total_plans: 29
-  completed_plans: 29
+  completed_phases: 11
+  total_plans: 28
+  completed_plans: 34
 ---
 
 # Project State
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-04-17 — Milestone v8 started)
 
 Phase: 41 (pin-schema-encryption-config) — EXECUTING
 Plan: 1 of 1
-Status: Executing Phase 41
-Last activity: 2026-04-17 -- Phase 41 execution started
+Status: Phase complete — ready for verification
+Last activity: 2026-04-18
 
 ```
 Progress [░░░░░░░░░░░░░░░░░░░░] 0% — 0 of 4 phases complete
@@ -87,6 +87,8 @@ Key context from v6/v7:
 - [Phase 40-02]: No production code changes needed for OPS-03 — ApiKeyAuthenticationFilter finally block already clears TenantContext on all paths including exception paths; only test coverage was missing
 - [Phase 41]: VARCHAR(500) for pin ciphertext: AES256 Base64 output for 4-8 char PIN is ~80-120 chars; 500 provides headroom
 - [Phase 41]: platform_config_aud created in V24 (not V20): V20 already shipped; idempotent CREATE TABLE IF NOT EXISTS in V24 corrects the Envers gap
+- [Phase 44-pin-email-notification]: Use @EventListener (not @TransactionalEventListener) on PlatformConfigEmailListener to avoid double-wrapping since MailManager handles AFTER_COMMIT internally
+- [Phase 44-pin-email-notification]: PIN-11 security: Envelope data map contains only boolean pinChanged, never the PIN ciphertext or plaintext
 
 ### Roadmap Evolution
 
@@ -102,6 +104,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-17T21:43:35.119Z
-Stopped at: Completed 41-01-PLAN.md
+Last session: 2026-04-18T16:54:21.723Z
+Stopped at: Completed 44-pin-email-notification-44-02-PLAN.md
 Resume file: None

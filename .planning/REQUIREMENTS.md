@@ -26,7 +26,7 @@
 ### Email Notification
 
 - [ ] **PIN-10**: `PlatformConfigChangedEvent` carries `msisdnChanged` (boolean), `pinChanged` (boolean), and `changedBy` (String) — event fires only when MSISDN changed OR PIN changed; first-time PIN creation (was null) does not fire an event
-- [ ] **PIN-11**: Email notification states provider name, which field(s) changed (MSISDN / PIN / both), admin username who made the change, and timestamp — PIN value (plaintext or ciphertext) never appears in the email
+- [x] **PIN-11**: Email notification states provider name, which field(s) changed (MSISDN / PIN / both), admin username who made the change, and timestamp — PIN value (plaintext or ciphertext) never appears in the email
 
 ## Out of Scope
 
@@ -50,7 +50,7 @@
 | PIN-08 | Phase 43 | Pending |
 | PIN-09 | Phase 43 | Pending |
 | PIN-10 | Phase 44 | Pending |
-| PIN-11 | Phase 44 | Pending |
+| PIN-11 | Phase 44 | Complete |
 
 **Coverage:**
 - v8 requirements: 11 total
