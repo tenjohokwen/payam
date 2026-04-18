@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: verifying
-stopped_at: "Completed 43-01-PLAN.md (awaiting checkpoint:human-verify)"
-last_updated: "2026-04-18T10:01:53.080Z"
-last_activity: 2026-04-18 -- Phase 43 execution started
+stopped_at: Completed 43-01-PLAN.md (human-verify checkpoint approved — plan complete)
+last_updated: "2026-04-18T15:27:46.772Z"
+last_activity: 2026-04-18
 progress:
   total_phases: 15
-  completed_phases: 13
+  completed_phases: 14
   total_plans: 33
-  completed_plans: 32
+  completed_plans: 33
 ---
 
 # Project State
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-04-17 — Milestone v8 started)
 
 Phase: 43 (pin-frontend) — EXECUTING
 Plan: 1 of 1
-Status: Executing Phase 43
-Last activity: 2026-04-18 -- Phase 43 execution started
+Status: Phase complete — ready for verification
+Last activity: 2026-04-18
 
 ```
 Progress [░░░░░░░░░░░░░░░░░░░░] 0% — 0 of 4 phases complete
@@ -94,6 +94,8 @@ Key context from v6/v7:
 - [Phase 42-pin-backend-api]: Added GET /{provider} single-provider endpoint for PIN-04; cleanDb uses UPDATE not DELETE on platform_config; test admin INSERTs copied verbatim; no @Transactional on IT class
 - [Phase 43-pin-frontend]: Per-provider keyed timer maps use plain objects {} not refs for setTimeout/setInterval handles; onUnmounted clears all provider keys to prevent navigation leaks
 - [Phase 43-pin-frontend]: PIN-08 semantics: pass pin || undefined to updatePlatformConfigFull; method omits empty/undefined pin from PUT body so backend preserves existing PIN
+- [Phase 43-pin-frontend]: Per-provider keyed timer maps use plain objects {} not refs for setTimeout/setInterval handles; onUnmounted clears all keys to prevent navigation leaks
+- [Phase 43-pin-frontend]: PIN-08 semantics: pass pin || undefined to updatePlatformConfigFull; method omits empty/undefined pin from PUT body so backend preserves existing PIN
 
 ### Roadmap Evolution
 
@@ -109,6 +111,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-18T10:01:53.072Z
-Stopped at: Completed 43-01-PLAN.md (awaiting checkpoint:human-verify)
+Last session: 2026-04-18T15:27:46.764Z
+Stopped at: Completed 43-01-PLAN.md (human-verify checkpoint approved — plan complete)
 Resume file: None

@@ -316,7 +316,7 @@ Plans:
   5. The Add Provider dialog includes the same masked PIN input with eye toggle; no auto-mask timer applies in the dialog
 **Plans**: 1 plan
 Plans:
-- [ ] 43-01-PLAN.md — admin.api.js PIN client methods + PlatformConfigPage.vue per-provider PIN input with 60s reveal countdown + Add Provider dialog PIN field (PIN-06, PIN-07, PIN-08, PIN-09)
+- [x] 43-01-PLAN.md — admin.api.js PIN client methods + PlatformConfigPage.vue per-provider PIN input with 60s reveal countdown + Add Provider dialog PIN field (PIN-06, PIN-07, PIN-08, PIN-09)
 **UI hint**: yes
 
 ### Phase 44: PIN Email Notification
@@ -377,5 +377,5 @@ Plans:
 | 40. Operational Resilience | v7 | 2/2 | Complete | 2026-04-15 |
 | 41. PIN Schema & Encryption Config | v8 | 1/1 | Complete    | 2026-04-17 |
 | 42. PIN Backend API | v8 | 3/3 | Complete    | 2026-04-18 |
-| 43. PIN Frontend | v8 | 0/1 | Not started | - |
+| 43. PIN Frontend | v8 | 1/1 | Complete   | 2026-04-18 |
 | 44. PIN Email Notification | v8 | 0/? | Not started | - |
