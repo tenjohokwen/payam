@@ -372,4 +372,4 @@ Plans:
 | 41. PIN Schema & Encryption Config | v8 | 1/1 | Complete   | 2026-04-17 |
 | 42. PIN Backend API | v8 | 0/? | Not started | - |
 | 43. PIN Frontend | v8 | 0/? | Not started | - |
-| 44. PIN Email Notification | v8 | 0/? | Not started | - |
+| 44. PIN Email Notification | v8 | 0/? | Complete    | 2026-04-18 |
