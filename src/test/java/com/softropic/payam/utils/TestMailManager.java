@@ -45,4 +45,12 @@ public class TestMailManager extends MailManager {
     public void clear() {
         sentMails.clear();
     }
+
+    /**
+     * Returns the full map of captured envelopes keyed by sendId.
+     * Added to support IT assertions that iterate or count envelopes.
+     */
+    public Map<String, Envelope> getEnvelopes() {
+        return sentMails;
+    }
 }

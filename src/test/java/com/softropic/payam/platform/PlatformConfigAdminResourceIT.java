@@ -28,10 +28,12 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 
 /**
  * Integration test for PlatformConfigAdminResource — covers PIN-03 / PIN-04 / PIN-05
@@ -47,7 +49,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @ActiveProfiles("dev")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-                properties = {"enable.test.mail=true"})
+                properties = {"enable.test.mail=true",
+                              "payam.platform.pin-encryption-secret=test-pin-secret-for-tests"})
 @Import(TestConfig.class)
 @TestPropertySource(properties = "spring.cloud.compatibility-verifier.enabled=false")
 class PlatformConfigAdminResourceIT {
@@ -66,11 +69,19 @@ class PlatformConfigAdminResourceIT {
     @LocalServerPort
     int port;
 
+    @Autowired
+    private com.softropic.payam.email.service.MailManager mailManager;
+
     private RestTemplate restTemplate;
     private HttpHeaders adminCookies;
 
+    private com.softropic.payam.utils.TestMailManager testMailManager() {
+        return (com.softropic.payam.utils.TestMailManager) mailManager;
+    }
+
     @BeforeEach
     void setUp() {
+        testMailManager().clear();
         cleanDb();
         loginAttemptsService.resetLoginRecording();
 
@@ -271,6 +282,110 @@ class PlatformConfigAdminResourceIT {
                 PinDto.class))
             .isInstanceOf(HttpClientErrorException.class)
             .hasFieldOrPropertyWithValue("statusCode", HttpStatus.NOT_FOUND);
+    }
+
+    // ---------------------------------------------------------------------
+    // PIN-10 / PIN-11: email dispatch + data map shape + suppression rules
+    // ---------------------------------------------------------------------
+
+    @Test
+    void putConfig_shouldDispatchEmailWithMsisdnChangedTrueOnMsisdnUpdate() {
+        // Given — set an initial MSISDN to have a "before" state
+        putConfig(PROVIDER, "111111", null);
+        // Wait for the first envelope, then clear so we can detect only the second one
+        waitForEnvelopeCount(1);
+        testMailManager().clear();
+
+        // When — MSISDN changes, PIN not supplied
+        putConfig(PROVIDER, "222222", null);
+
+        // Then
+        await().atMost(Duration.ofSeconds(5)).until(() -> envelopeCount() > 0);
+        Map<String, Object> data = latestEnvelopeData();
+        assertThat(data).containsEntry("provider", PROVIDER);
+        assertThat(data).containsEntry("oldMsisdn", "111111");
+        assertThat(data).containsEntry("newMsisdn", "222222");
+        assertThat(data).containsEntry("msisdnChanged", true);
+        assertThat(data).containsEntry("pinChanged", false);
+        assertThat(data).containsKey("changedBy");
+        assertThat(data.get("changedBy").toString()).isNotBlank();
+        assertThat(data).containsKey("changedAt");
+        // PIN-11: no PIN value key in the data map
+        assertThat(data.keySet().stream()
+                .filter(k -> k.toLowerCase().contains("pin") && !"pinChanged".equals(k))
+                .toList()).isEmpty();
+    }
+
+    @Test
+    void putConfig_shouldNotDispatchEmailWhenMsisdnUnchangedAndPinBlank() {
+        // Given — set MSISDN once
+        putConfig(PROVIDER, "111111", null);
+        waitForEnvelopeCount(1);
+        int before = envelopeCount();
+
+        // When — PUT with same MSISDN and empty pin (no-op)
+        putConfig(PROVIDER, "111111", "");
+
+        // Then — no new envelope dispatched within the await timeout window
+        try {
+            await().atMost(Duration.ofSeconds(3))
+                   .until(() -> envelopeCount() > before);
+            // If we reach here an envelope WAS dispatched — fail the test
+            org.junit.jupiter.api.Assertions.fail(
+                "Expected no envelope on no-op update, but envelopeCount rose above " + before);
+        } catch (org.awaitility.core.ConditionTimeoutException expected) {
+            // Expected — no envelope within 3 seconds confirms suppression
+        }
+        assertThat(envelopeCount()).isEqualTo(before);
+    }
+
+    @Test
+    void putConfig_shouldNotDispatchEmailOnFirstTimePinCreation() {
+        // Given — set MSISDN once without pin
+        putConfig(PROVIDER, "111111", null);
+        waitForEnvelopeCount(1);
+        int before = envelopeCount();
+
+        // When — PUT with SAME MSISDN (unchanged) but a new PIN (first-time PIN creation)
+        putConfig(PROVIDER, "111111", "1234");
+
+        // Then — no envelope dispatched (PIN-10: first-time PIN creation does not fire)
+        try {
+            await().atMost(Duration.ofSeconds(3))
+                   .until(() -> envelopeCount() > before);
+            org.junit.jupiter.api.Assertions.fail(
+                "Expected no envelope on first-time PIN creation, but envelopeCount rose");
+        } catch (org.awaitility.core.ConditionTimeoutException expected) {
+            // Expected
+        }
+        assertThat(envelopeCount()).isEqualTo(before);
+
+        // But PIN was still persisted — verify via reveal endpoint
+        ResponseEntity<PinDto> pinResponse = restTemplate.exchange(
+                "/v1/admin/platform-config/" + PROVIDER + "/pin",
+                HttpMethod.GET, new HttpEntity<>(adminCookies), PinDto.class);
+        assertThat(pinResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(pinResponse.getBody().pin()).isEqualTo("1234");
+    }
+
+    // --- helpers ---
+
+    private int envelopeCount() {
+        return testMailManager().getEnvelopes().size();
+    }
+
+    private void waitForEnvelopeCount(int expected) {
+        await().atMost(Duration.ofSeconds(5)).until(() -> envelopeCount() >= expected);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> latestEnvelopeData() {
+        java.util.Collection<com.softropic.payam.email.contract.Envelope> all =
+            testMailManager().getEnvelopes().values();
+        return all.stream()
+                .reduce((a, b) -> b)
+                .orElseThrow(() -> new AssertionError("No envelope captured"))
+                .data();
     }
 
     // ---------------------------------------------------------------------
