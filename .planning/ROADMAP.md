@@ -297,11 +297,7 @@ Plans:
   3. `GET /v1/admin/platform-config/{provider}/pin` returns the decrypted plaintext PIN when one is configured; returns HTTP 404 when no PIN has been set
   4. An empty or absent PIN field on PUT does not overwrite an existing stored PIN
   5. mvn verify passes including any platform config integration tests
-**Plans**: 3 plans
-Plans:
-- [x] 42-01-PLAN.md — Foundation: PinDto, extended 4-arg PlatformConfigDto with @Pattern + pinConfigured, PlatformConfig.updatePin(), pinCryptopher @Bean, test secret property, fixture updates
-- [x] 42-02-PLAN.md — Service wiring: widen PlatformConfigService.update() to (provider, msisdn, pin) with encryption + blank-preserves-existing semantics, add findPinByProvider() with 404/409 handling (PIN-03, PIN-05)
-- [x] 42-03-PLAN.md — Resource layer: @Valid PUT, new GET /{provider} with pinConfigured, new GET /{provider}/pin + PlatformConfigAdminResourceIT covering all PIN-03/PIN-04/PIN-05 HTTP paths
+**Plans**: TBD
 **UI hint**: no
 
 ### Phase 43: PIN Frontend
@@ -314,9 +310,7 @@ Plans:
   3. Clicking the eye icon again before expiry re-masks the field immediately and cancels the countdown without waiting for it to expire
   4. The Save button submits MSISDN and PIN together in one PUT call; leaving the PIN field empty on save preserves the existing PIN — placeholder text communicates this to the admin
   5. The Add Provider dialog includes the same masked PIN input with eye toggle; no auto-mask timer applies in the dialog
-**Plans**: 1 plan
-Plans:
-- [x] 43-01-PLAN.md — admin.api.js PIN client methods + PlatformConfigPage.vue per-provider PIN input with 60s reveal countdown + Add Provider dialog PIN field (PIN-06, PIN-07, PIN-08, PIN-09)
+**Plans**: TBD
 **UI hint**: yes
 
 ### Phase 44: PIN Email Notification
@@ -375,7 +369,7 @@ Plans:
 | 38. Transaction Boundary & Fraud Ordering | v7 | 4/4 | Complete | 2026-04-15 |
 | 39. Concurrency Guards & DB Constraints | v7 | 2/2 | Complete | 2026-04-15 |
 | 40. Operational Resilience | v7 | 2/2 | Complete | 2026-04-15 |
-| 41. PIN Schema & Encryption Config | v8 | 1/1 | Complete    | 2026-04-17 |
-| 42. PIN Backend API | v8 | 3/3 | Complete    | 2026-04-18 |
-| 43. PIN Frontend | v8 | 1/1 | Complete    | 2026-04-18 |
+| 41. PIN Schema & Encryption Config | v8 | 1/1 | Complete   | 2026-04-17 |
+| 42. PIN Backend API | v8 | 0/? | Not started | - |
+| 43. PIN Frontend | v8 | 0/? | Not started | - |
 | 44. PIN Email Notification | v8 | 0/? | Not started | - |

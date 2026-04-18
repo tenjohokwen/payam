@@ -7,6 +7,7 @@ import com.softropic.payam.platform.repo.PlatformConfig;
 import com.softropic.payam.platform.repo.PlatformConfigRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,6 +31,9 @@ class PlatformConfigServiceTest {
     @Mock
     private com.softropic.payam.security.contract.util.Cryptopher pinCryptopher;
 
+    @Mock
+    private com.softropic.payam.security.service.SecurityUtil securityUtil;
+
     @InjectMocks
     private PlatformConfigService platformConfigService;
 
@@ -46,6 +50,7 @@ class PlatformConfigServiceTest {
                 .build();
 
         when(platformConfigRepository.findByProvider(provider)).thenReturn(Optional.of(existing));
+        when(securityUtil.getCurrentUserName()).thenReturn("admin@test");
 
         // When
         PlatformConfigDto result = platformConfigService.update(provider, newMsisdn, null);
@@ -108,7 +113,7 @@ class PlatformConfigServiceTest {
         assertThat(result.pinConfigured()).isFalse();   // orElseGet branch builds fresh config without pin
         assertThat(result.pin()).isNull();
         verify(platformConfigRepository).save(any(PlatformConfig.class));
-        verify(eventPublisher).publishEvent(any(PlatformConfigChangedEvent.class));
+        verifyNoInteractions(eventPublisher);
     }
 
     // ---------------------------------------------------------------------
@@ -130,6 +135,7 @@ class PlatformConfigServiceTest {
 
         when(platformConfigRepository.findByProvider(provider)).thenReturn(Optional.of(existing));
         when(pinCryptopher.encrypt(plaintextPin)).thenReturn(ciphertext);
+        when(securityUtil.getCurrentUserName()).thenReturn("admin@test");
 
         // When
         PlatformConfigDto result = platformConfigService.update(provider, newMsisdn, plaintextPin);
@@ -160,6 +166,7 @@ class PlatformConfigServiceTest {
                 .build();
 
         when(platformConfigRepository.findByProvider(provider)).thenReturn(Optional.of(existing));
+        when(securityUtil.getCurrentUserName()).thenReturn("admin@test");
 
         // When
         PlatformConfigDto result = platformConfigService.update(provider, newMsisdn, null);
@@ -188,6 +195,7 @@ class PlatformConfigServiceTest {
                 .build();
 
         when(platformConfigRepository.findByProvider(provider)).thenReturn(Optional.of(existing));
+        when(securityUtil.getCurrentUserName()).thenReturn("admin@test");
 
         // When (empty string — the frontend sends "" to mean "do not change pin")
         PlatformConfigDto resultEmpty = platformConfigService.update(provider, "654321", "");
@@ -264,5 +272,204 @@ class PlatformConfigServiceTest {
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("ORANGE");
         verify(pinCryptopher, never()).decrypt(any());
+    }
+
+    // ---------------------------------------------------------------------
+    // PIN-10: conditional event publishing — msisdnChanged / pinChanged flags
+    // ---------------------------------------------------------------------
+
+    @Test
+    void update_shouldFireEventWithMsisdnChangedFlagWhenMsisdnChanges() {
+        // Given
+        String provider = "ORANGE";
+        PlatformConfig existing = PlatformConfig.builder()
+                .provider(provider)
+                .platformMsisdn("111")
+                .status(EntityStatus.ACTIVE)
+                .build();
+        when(platformConfigRepository.findByProvider(provider)).thenReturn(Optional.of(existing));
+        when(securityUtil.getCurrentUserName()).thenReturn("admin@test");
+
+        // When
+        platformConfigService.update(provider, "222", null);
+
+        // Then
+        ArgumentCaptor<PlatformConfigChangedEvent> captor =
+            ArgumentCaptor.forClass(PlatformConfigChangedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        PlatformConfigChangedEvent event = captor.getValue();
+        assertThat(event.provider()).isEqualTo("ORANGE");
+        assertThat(event.oldMsisdn()).isEqualTo("111");
+        assertThat(event.newMsisdn()).isEqualTo("222");
+        assertThat(event.msisdnChanged()).isTrue();
+        assertThat(event.pinChanged()).isFalse();
+        assertThat(event.changedBy()).isEqualTo("admin@test");
+    }
+
+    @Test
+    void update_shouldFireEventWithPinChangedFlagWhenExistingPinIsUpdated() {
+        // Given — existing config has MSISDN "111" AND an existing PIN
+        String provider = "ORANGE";
+        PlatformConfig existing = PlatformConfig.builder()
+                .provider(provider)
+                .platformMsisdn("111")
+                .pin("ENC(OLD)")
+                .status(EntityStatus.ACTIVE)
+                .build();
+        when(platformConfigRepository.findByProvider(provider)).thenReturn(Optional.of(existing));
+        when(pinCryptopher.encrypt("9999")).thenReturn("ENC(9999)");
+        when(securityUtil.getCurrentUserName()).thenReturn("admin@test");
+
+        // When — MSISDN unchanged (same value), but PIN is being replaced
+        platformConfigService.update(provider, "111", "9999");
+
+        // Then
+        ArgumentCaptor<PlatformConfigChangedEvent> captor =
+            ArgumentCaptor.forClass(PlatformConfigChangedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        PlatformConfigChangedEvent event = captor.getValue();
+        assertThat(event.msisdnChanged()).isFalse();
+        assertThat(event.pinChanged()).isTrue();
+        assertThat(event.changedBy()).isEqualTo("admin@test");
+    }
+
+    @Test
+    void update_shouldFireEventWithBothFlagsWhenBothChange() {
+        // Given — both MSISDN changes and PIN is being replaced (existing PIN present)
+        String provider = "ORANGE";
+        PlatformConfig existing = PlatformConfig.builder()
+                .provider(provider)
+                .platformMsisdn("111")
+                .pin("ENC(OLD)")
+                .status(EntityStatus.ACTIVE)
+                .build();
+        when(platformConfigRepository.findByProvider(provider)).thenReturn(Optional.of(existing));
+        when(pinCryptopher.encrypt("9999")).thenReturn("ENC(9999)");
+        when(securityUtil.getCurrentUserName()).thenReturn("admin@test");
+
+        // When
+        platformConfigService.update(provider, "222", "9999");
+
+        // Then
+        ArgumentCaptor<PlatformConfigChangedEvent> captor =
+            ArgumentCaptor.forClass(PlatformConfigChangedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        PlatformConfigChangedEvent event = captor.getValue();
+        assertThat(event.msisdnChanged()).isTrue();
+        assertThat(event.pinChanged()).isTrue();
+    }
+
+    @Test
+    void update_shouldNotFireEventWhenMsisdnUnchangedAndPinBlank() {
+        // Given — MSISDN same, no PIN change
+        PlatformConfig existing = PlatformConfig.builder()
+                .provider("ORANGE").platformMsisdn("111").pin("ENC(OLD)").status(EntityStatus.ACTIVE).build();
+        when(platformConfigRepository.findByProvider("ORANGE")).thenReturn(Optional.of(existing));
+
+        // When
+        platformConfigService.update("ORANGE", "111", "");
+
+        // Then
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    void update_shouldNotFireEventWhenMsisdnUnchangedAndPinNull() {
+        // Given — MSISDN same, PIN null (leave untouched)
+        PlatformConfig existing = PlatformConfig.builder()
+                .provider("ORANGE").platformMsisdn("111").pin("ENC(OLD)").status(EntityStatus.ACTIVE).build();
+        when(platformConfigRepository.findByProvider("ORANGE")).thenReturn(Optional.of(existing));
+
+        // When
+        platformConfigService.update("ORANGE", "111", null);
+
+        // Then
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    void update_shouldNotFireEventOnFirstTimePinCreation() {
+        // Given — MSISDN same, PIN is first-time (oldPin was null)
+        PlatformConfig existing = PlatformConfig.builder()
+                .provider("ORANGE").platformMsisdn("111").status(EntityStatus.ACTIVE).build();
+        when(platformConfigRepository.findByProvider("ORANGE")).thenReturn(Optional.of(existing));
+        when(pinCryptopher.encrypt("1234")).thenReturn("ENC(1234)");
+
+        // When — MSISDN unchanged, PIN is first-time creation
+        platformConfigService.update("ORANGE", "111", "1234");
+
+        // Then — no event (first-time PIN suppressed per PIN-10)
+        verifyNoInteractions(eventPublisher);
+        // But PIN was still encrypted and persisted
+        verify(pinCryptopher).encrypt("1234");
+    }
+
+    @Test
+    void update_shouldFireEventWithFirstTimePinButMsisdnAlsoChanged() {
+        // Given — MSISDN changes AND first-time PIN (oldPin was null)
+        PlatformConfig existing = PlatformConfig.builder()
+                .provider("ORANGE").platformMsisdn("111").status(EntityStatus.ACTIVE).build();
+        when(platformConfigRepository.findByProvider("ORANGE")).thenReturn(Optional.of(existing));
+        when(pinCryptopher.encrypt("1234")).thenReturn("ENC(1234)");
+        when(securityUtil.getCurrentUserName()).thenReturn("admin@test");
+
+        // When
+        platformConfigService.update("ORANGE", "222", "1234");
+
+        // Then — event fires because MSISDN changed; pinChanged=false (first-time PIN per PIN-10)
+        ArgumentCaptor<PlatformConfigChangedEvent> captor =
+            ArgumentCaptor.forClass(PlatformConfigChangedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        PlatformConfigChangedEvent event = captor.getValue();
+        assertThat(event.msisdnChanged()).isTrue();
+        assertThat(event.pinChanged()).isFalse();
+    }
+
+    @Test
+    void update_shouldNotFireEventFromOrElseGetBranch() {
+        // Given — repository returns empty (new row creation path)
+        when(platformConfigRepository.findByProvider("MTN")).thenReturn(Optional.empty());
+
+        // When
+        platformConfigService.update("MTN", "987", null);
+
+        // Then — orElseGet (new-row creation) must not publish any event
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    void update_shouldResolveChangedByFromSecurityUtilForEventPayload() {
+        // Given
+        PlatformConfig existing = PlatformConfig.builder()
+                .provider("ORANGE").platformMsisdn("111").status(EntityStatus.ACTIVE).build();
+        when(platformConfigRepository.findByProvider("ORANGE")).thenReturn(Optional.of(existing));
+        when(securityUtil.getCurrentUserName()).thenReturn("admin@test");
+
+        // When
+        platformConfigService.update("ORANGE", "222", null);
+
+        // Then — changedBy must equal the mocked SecurityUtil return value
+        ArgumentCaptor<PlatformConfigChangedEvent> captor =
+            ArgumentCaptor.forClass(PlatformConfigChangedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().changedBy()).isEqualTo("admin@test");
+    }
+
+    @Test
+    void update_shouldFallBackToUnknownWhenSecurityUtilReturnsNull() {
+        // Given
+        PlatformConfig existing = PlatformConfig.builder()
+                .provider("ORANGE").platformMsisdn("111").status(EntityStatus.ACTIVE).build();
+        when(platformConfigRepository.findByProvider("ORANGE")).thenReturn(Optional.of(existing));
+        when(securityUtil.getCurrentUserName()).thenReturn(null);
+
+        // When
+        platformConfigService.update("ORANGE", "222", null);
+
+        // Then — changedBy must be "unknown" (never null) when SecurityUtil returns null
+        ArgumentCaptor<PlatformConfigChangedEvent> captor =
+            ArgumentCaptor.forClass(PlatformConfigChangedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().changedBy()).isEqualTo("unknown");
     }
 }

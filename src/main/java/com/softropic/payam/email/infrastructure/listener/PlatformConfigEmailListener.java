@@ -50,6 +50,10 @@ public class PlatformConfigEmailListener {
         data.put("provider", event.provider());
         data.put("oldMsisdn", event.oldMsisdn() != null ? event.oldMsisdn() : "");
         data.put("newMsisdn", event.newMsisdn());
+        data.put("msisdnChanged", event.msisdnChanged());
+        data.put("pinChanged", event.pinChanged());
+        data.put("changedBy", event.changedBy() != null ? event.changedBy() : "unknown");
+        data.put("changedAt", Instant.now(ClockProvider.getClock()).toString());
 
         final Envelope envelope = new Envelope(
             List.of(recipient),

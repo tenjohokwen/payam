@@ -7,6 +7,7 @@ import com.softropic.payam.platform.contract.event.PlatformConfigChangedEvent;
 import com.softropic.payam.platform.repo.PlatformConfig;
 import com.softropic.payam.platform.repo.PlatformConfigRepository;
 import com.softropic.payam.security.contract.util.Cryptopher;
+import com.softropic.payam.security.service.SecurityUtil;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,15 +17,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
 /**
  * Business logic for reading and updating platform configuration (MSISDNs per provider).
  *
- * <p>The {@code update()} method publishes a {@link PlatformConfigChangedEvent} inside
- * the {@code @Transactional} boundary so that {@code @TransactionalEventListener(AFTER_COMMIT)}
- * listeners (e.g., the email notification in plan 24-02) fire after the DB commit.
+ * <p>The {@code update()} method conditionally publishes a {@link PlatformConfigChangedEvent}
+ * carrying msisdnChanged/pinChanged flags and the admin username (PIN-10). The event is
+ * suppressed when neither field changes, on first-time PIN creation, and on new-row creation.
+ * {@code @TransactionalEventListener(AFTER_COMMIT)} listeners (e.g., the email notification)
+ * fire after the DB commit.
  */
 @Service
 @Transactional
@@ -35,6 +39,7 @@ public class PlatformConfigService {
     private final PlatformConfigRepository platformConfigRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final Cryptopher pinCryptopher;
+    private final SecurityUtil securityUtil;
 
     /**
      * Return all platform config rows (one per provider).
@@ -75,13 +80,13 @@ public class PlatformConfigService {
      * <p>MSISDN and PIN updates occur in the same {@code @Transactional} method, so they
      * commit atomically (PIN-03 atomicity guarantee).
      *
-     * <p>Publishes a {@link PlatformConfigChangedEvent} carrying the MSISDN diff. The event
-     * does NOT carry PIN information — Phase 44 will enrich it with msisdnChanged/pinChanged
-     * flags.
+     * <p>Conditionally publishes a {@link PlatformConfigChangedEvent} carrying msisdnChanged/pinChanged
+     * flags and the admin username (PIN-10). The event is suppressed when neither field changes,
+     * on first-time PIN creation, and on new-row creation.
      *
      * @param provider   provider key (case-insensitive; normalised to upper-case)
      * @param newMsisdn  the new MSISDN value
-     * @param pin        the new plaintext PIN (alphanumeric 4–8 chars), or {@code null} /
+     * @param pin        the new plaintext PIN (alphanumeric 4-8 chars), or {@code null} /
      *                   blank to leave the existing PIN untouched (PIN-08)
      * @return updated DTO reflecting the persisted state; {@code pin} is always {@code null}
      *         on the response, {@code pinConfigured} reflects whether a PIN is now stored
@@ -91,13 +96,24 @@ public class PlatformConfigService {
         return platformConfigRepository.findByProvider(upper)
                 .map(config -> {
                     String oldMsisdn = config.getPlatformMsisdn();
+                    String oldPin    = config.getPin();              // snapshot BEFORE any mutation (PIN-10)
+
                     config.updateMsisdn(newMsisdn);
                     if (StringUtils.isNotBlank(pin)) {
                         String ciphertext = pinCryptopher.encrypt(pin);
                         config.updatePin(ciphertext);
                     }
                     platformConfigRepository.save(config);
-                    eventPublisher.publishEvent(new PlatformConfigChangedEvent(upper, oldMsisdn, newMsisdn));
+
+                    boolean msisdnChanged = !Objects.equals(oldMsisdn, newMsisdn);
+                    boolean pinChanged    = StringUtils.isNotBlank(pin) && oldPin != null;
+
+                    if (msisdnChanged || pinChanged) {
+                        String rawName = securityUtil.getCurrentUserName();
+                        String changedBy = rawName != null ? rawName : "unknown";
+                        eventPublisher.publishEvent(new PlatformConfigChangedEvent(
+                            upper, oldMsisdn, newMsisdn, msisdnChanged, pinChanged, changedBy));
+                    }
                     log.info("Platform config updated", kv("provider", upper), kv("event", "platform_config_updated"));
                     return new PlatformConfigDto(upper, newMsisdn, config.getPin() != null, null);
                 })
@@ -108,10 +124,17 @@ public class PlatformConfigService {
                             .status(com.softropic.payam.common.persistence.EntityStatus.ACTIVE)
                             .build();
                     platformConfigRepository.save(newConfig);
-                    eventPublisher.publishEvent(new PlatformConfigChangedEvent(upper, "", newMsisdn));
+                    // PIN-10: first-time row creation does not publish an event.
                     log.info("Platform config created", kv("provider", upper), kv("event", "platform_config_created"));
                     return new PlatformConfigDto(upper, newMsisdn, false, null);
                 });
+    }
+
+    /**
+     * Convenience overload: update MSISDN only (no PIN change).
+     */
+    public PlatformConfigDto update(String provider, String newMsisdn) {
+        return update(provider, newMsisdn, null);
     }
 
     /**

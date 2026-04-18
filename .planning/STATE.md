@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 43-01-PLAN.md (human-verify checkpoint approved — plan complete)
-last_updated: "2026-04-18T15:30:46.117Z"
+stopped_at: Completed 44-pin-email-notification-44-02-PLAN.md
+last_updated: "2026-04-18T16:54:21.729Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 15
-  completed_phases: 14
-  total_plans: 33
-  completed_plans: 33
+  completed_phases: 11
+  total_plans: 28
+  completed_plans: 34
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17 — Milestone v8 started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 43 — pin-frontend
+**Current focus:** Phase 41 — pin-schema-encryption-config
 
 ## Current Position
 
-Phase: 44
-Plan: Not started
+Phase: 41 (pin-schema-encryption-config) — EXECUTING
+Plan: 1 of 1
 Status: Phase complete — ready for verification
 Last activity: 2026-04-18
 
@@ -87,15 +87,8 @@ Key context from v6/v7:
 - [Phase 40-02]: No production code changes needed for OPS-03 — ApiKeyAuthenticationFilter finally block already clears TenantContext on all paths including exception paths; only test coverage was missing
 - [Phase 41]: VARCHAR(500) for pin ciphertext: AES256 Base64 output for 4-8 char PIN is ~80-120 chars; 500 provides headroom
 - [Phase 41]: platform_config_aud created in V24 (not V20): V20 already shipped; idempotent CREATE TABLE IF NOT EXISTS in V24 corrects the Envers gap
-- [Phase 42-01]: regex ^$|^[a-zA-Z0-9]{4,8}$ allows empty string (PIN-08) while enforcing 4-8 alphanumeric chars (PIN-03); @JsonInclude(NON_NULL) on record class suppresses null pin from GET responses (PIN-04); pin=null at all service DTO sites prevents ciphertext leakage
-- [Phase 42-01]: pinCryptopher bean name derived from @Bean method name — Plan 02 injects by type via @RequiredArgsConstructor; PlatformConfigService update() signature unchanged (2-param) — Plan 02 widens to 3 params
-- [Phase 42-pin-backend-api]: StringUtils.isNotBlank(pin) guards encrypt path — null and blank both skip encryption (PIN-08 semantics, consistent with Cryptopher)
-- [Phase 42-pin-backend-api]: ResourceNotFoundException (404) for null pin vs IllegalStateException (409) for missing config row in findPinByProvider
-- [Phase 42-pin-backend-api]: Added GET /{provider} single-provider endpoint for PIN-04; cleanDb uses UPDATE not DELETE on platform_config; test admin INSERTs copied verbatim; no @Transactional on IT class
-- [Phase 43-pin-frontend]: Per-provider keyed timer maps use plain objects {} not refs for setTimeout/setInterval handles; onUnmounted clears all provider keys to prevent navigation leaks
-- [Phase 43-pin-frontend]: PIN-08 semantics: pass pin || undefined to updatePlatformConfigFull; method omits empty/undefined pin from PUT body so backend preserves existing PIN
-- [Phase 43-pin-frontend]: Per-provider keyed timer maps use plain objects {} not refs for setTimeout/setInterval handles; onUnmounted clears all keys to prevent navigation leaks
-- [Phase 43-pin-frontend]: PIN-08 semantics: pass pin || undefined to updatePlatformConfigFull; method omits empty/undefined pin from PUT body so backend preserves existing PIN
+- [Phase 44-pin-email-notification]: Use @EventListener (not @TransactionalEventListener) on PlatformConfigEmailListener to avoid double-wrapping since MailManager handles AFTER_COMMIT internally
+- [Phase 44-pin-email-notification]: PIN-11 security: Envelope data map contains only boolean pinChanged, never the PIN ciphertext or plaintext
 
 ### Roadmap Evolution
 
@@ -111,6 +104,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-18T15:27:46.764Z
-Stopped at: Completed 43-01-PLAN.md (human-verify checkpoint approved — plan complete)
+Last session: 2026-04-18T16:54:21.723Z
+Stopped at: Completed 44-pin-email-notification-44-02-PLAN.md
 Resume file: None
