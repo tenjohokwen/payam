@@ -78,6 +78,19 @@ PIN field eye-toggle icon: uses flat/round `q-btn` with no explicit color — in
 
 ---
 
+## Visual Hierarchy
+
+Primary visual anchor on each provider card is the `q-input` PIN field. Eye icon is the secondary action (append slot of the PIN field). Save button (`"Save {PROVIDER} Config"`) is the primary CTA and the lowest element in the card reading order — full-width or right-aligned, `color="primary"`.
+
+Reading order within each provider card:
+1. Card heading (provider name — `text-h6`)
+2. MSISDN input field
+3. PIN input field (primary visual anchor — `q-input` with eye-icon append)
+4. Countdown caption (visible only when PIN is revealed — `text-caption text-grey`)
+5. Save button (primary CTA — `color="primary"`)
+
+---
+
 ## Component Inventory
 
 All new components extend existing Quasar patterns already present in the codebase.
@@ -191,7 +204,7 @@ Same as IC-03, triggered by the `setTimeout` callback.
 
 | Element | Copy |
 |---------|------|
-| Primary CTA (provider card) | "Save" |
+| Primary CTA (provider card) | "Save {{ config.provider }} Config" — e.g. "Save ORANGE Config", "Save MTN Config" — bound to `config.provider` at render time |
 | PIN input label (provider card) | "Provider PIN" |
 | PIN placeholder — PIN configured | "Leave blank to keep existing PIN" |
 | PIN placeholder — PIN not configured | "Optional — 4-8 alphanumeric characters" |
