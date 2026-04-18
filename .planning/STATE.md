@@ -3,41 +3,41 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 40-02-PLAN.md
-last_updated: "2026-04-15T09:50:15.718Z"
-last_activity: 2026-04-15
+stopped_at: Completed 44-01-PLAN.md
+last_updated: "2026-04-18T16:11:34.570Z"
+last_activity: 2026-04-18
 progress:
-  total_phases: 11
-  completed_phases: 11
-  total_plans: 28
-  completed_plans: 28
+  total_phases: 15
+  completed_phases: 13
+  total_plans: 32
+  completed_plans: 34
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-14 — Milestone v7 started)
+See: .planning/PROJECT.md (updated 2026-04-17 — Milestone v8 started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 40 — operational-resilience
+**Current focus:** Phase 43 — pin-frontend
 
 ## Current Position
 
-Phase: 40
+Phase: 44
 Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-04-15
+Last activity: 2026-04-18
 
 ```
-Progress [░░░░░░░░░░░░░░░░░░░░] 0% — 0 of 6 phases complete
+Progress [░░░░░░░░░░░░░░░░░░░░] 0% — 0 of 4 phases complete
 ```
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 82 (across v1–v6, including phase 34)
+- Total plans completed: 90 (across v1–v7)
 - Average duration: —
 - Total execution time: —
 
@@ -47,68 +47,61 @@ Progress [░░░░░░░░░░░░░░░░░░░░] 0% — 0
 
 Decisions are logged in PROJECT.md Key Decisions table.
 
-Key context carried forward from v6:
+Key context carried forward from v7:
 
-- Service layer is complete — v6 is purely HTTP surface, notification wiring, and frontend
-- All 6 TenantService operations are implemented and tested; no new domain logic required
-- Hibernate Envers audit trail active on tenant + api_key tables
+- Last Flyway migration: V23 (deferrable unique constraint on ledger_entry). Next migration is V24.
+- PlatformConfig entity + PlatformConfigService + PlatformConfigResource already exist (v4, Phase 24)
+- PlatformConfigChangedEvent + PlatformConfigEmailListener already exist (v4, Phase 24)
+- Cryptopher/Jasypt AES256 utility already exists in the codebase
+- PayamPlatformProperties already exists
+- PUT /v1/admin/platform-config/{provider} already handles MSISDN updates
+- PlatformConfigDto already exists
+- PlatformConfigPage.vue exists in Vue 3 + Quasar frontend
+- @EventListener on PlatformConfigEmailListener (not @TransactionalEventListener) — MailManager handles AFTER_COMMIT; this is the correct pattern for this listener
+- platformConfigChanged.html Thymeleaf template exists — Phase 44 extends it, does not replace it
+
+Key context from v6/v7:
+
+- Service layer is complete — v8 extends existing service/entity/resource, not new modules
+- Hibernate Envers audit trail active on tenant + api_key tables (not platform_config — out of scope per REQUIREMENTS.md)
 - ApiKeyService uses saveAndFlush ordering pattern for constraint-safe rotation
 - Quartz RotatedKeyCleanupJob running every 5 minutes (AKEY-05)
 - PREFIX_UUID key format in place (AKEY-01)
-
-Key context from v6 research:
-
-- TenantAdminResource already exists at /v1/admin/tenants — Phase 31 adds 8 new methods
-- ApiKeyAuthenticationFilter already JOIN FETCHes tenant — TENT-09 needs one condition only
-- webhook_secret stored plaintext (V8 migration) — correct for HMAC signing; no migration needed
-- rawKey already returned in ApiKeyDto on create/rotate — AKEY-07 is frontend-only
-- Email pattern: @EventListener on listener, Envelope -> MailManager @TransactionalEventListener(AFTER_COMMIT)
 - @EnableMethodSecurity active — use method-level @PreAuthorize only (class-level breaks @ExceptionHandler)
-- No Flyway migration needed — all columns exist in V21 schema
-- Phase 32 and Phase 33 are independent after Phase 31 (can parallelize if needed)
-- [Phase 30]: SUSPENDED check placed after authenticate() and before TenantContext.set(): ensures suspended tenants never populate SecurityContext
+- TenantQueryService separate from TenantService — isolates readOnly transactions from mutation operations
 - [Phase 30]: response.sendError(SC_FORBIDDEN) body is Tomcat HTML page — test assertions check HTTP 403 status only, not body text
-- [Phase 31-01]: TenantQueryService separate from TenantService — isolates readOnly transactions from mutation operations
-- [Phase 31-01]: TenantDetailDto excludes webhookSecret — secret reveal is dedicated WSEC-03 endpoint
-- [Phase 31-01]: status @RequestParam is String with manual TenantStatus.valueOf() — avoids Spring binding failure on absent optional enum param
-- [Phase 31]: POST /webhook-secret returns 204 not the secret string — consistent with WSEC-03 dedicated GET endpoint for secret reveal
 - [Phase 31]: IllegalStateException -> 409 Conflict in ApiAdvice prevents 500 on ApiKeyService double-reactivate scenario
 - [Phase 31]: HttpComponentsClientHttpRequestFactory required for PATCH in integration tests; SimpleClientHttpRequestFactory does not support PATCH
-- [Phase 32-01]: Plain-record domain events (no ApplicationEvent), security constraint at contract layer (no raw key/secret in events or templates), th:switch for conditional tenantStatusChanged rendering
-- [Phase 32-02]: [32-02] No event publishing in generateAndStore() — callers publish semantically correct events at the business operation level to avoid double-event on rotation
-- [Phase 32-02]: [32-02] updateEmail captures oldEmail before setter — ensures EMAIL_CHANGED event carries pre-mutation address for correct D-03 routing to old address
-- [Phase 32]: reactivate() mirrors revoke() structure; AKEY-02 guard prevents dual active keys; 204 No Content response (no new raw key)
-- [Phase 33-01]: generateKey endpoint injects TenantRepository for entity resolution from tenantRef; 409 guard lives in ApiKeyService.generateAndStore (IllegalStateException) mapped by ApiAdvice
-- [Phase 33-02]: OneTimeKeyModal resets copied state via watch on modelValue to prevent stale checkbox state on reopen
-- [Phase 33-02]: generateKey passes env as query param via { params: { env } } not request body
-- [Phase 33]: onRequest passes p.page - 1 to API (Spring 0-indexed vs Quasar 1-indexed correction)
-- [Phase 33]: statusFilter 'ALL' maps to undefined API param to avoid sending literal 'ALL' string to backend
+- [Phase 32-02]: No event publishing in generateAndStore() — callers publish semantically correct events at the business operation level to avoid double-event on rotation
 - [Phase 33]: axios interceptor returns response.data directly — resp.data.X accesses corrected to resp.X in TenantDetailPage
 - [Phase 33]: clearTimers() in onUnmounted prevents countdown interval leak; rawKey.value = null on modal close (D-11)
-- [Phase 34]: description field appended last in PaymentRequest/PaymentCommand records for backward-compatible evolution
 - [Phase 34]: PlatformConfigService.findByProvider uses IllegalStateException consistent with existing error contract
-- [Phase 34]: callbackHmacSecret removed from OrangeMoneyConfig — HMAC verification was speculative; Orange does not confirm this header in v1.0.2; callbackUrl added instead
-- [Phase 34]: OrangePathMatrixTest also updated (not in plan scope) — had /infos/merchant stub that would cause silent test failures after adapter rewrite
-- [Phase 35]: Conflict target uses column-list form (tenant_id, idempotency_key) not ON CONFLICT ON CONSTRAINT — consistent with reserve() and avoids constraint-name coupling
 - [Phase 35]: Postgres-first write ordering in IdempotencyService.store(): repo.upsert() before redis.set(); Redis in isolated try/catch (IDEM-01)
-- [Phase 36]: Surefire Docker-context errors in SecurityFilterChainIT and TenantAdminResourceIT are pre-existing, not Phase 36 regressions — same classes pass in failsafe runner; Maven exit 0 confirms build success
+- [Phase 36]: Surefire Docker-context errors in SecurityFilterChainIT and TenantAdminResourceIT are pre-existing, not regressions — same classes pass in failsafe runner; Maven exit 0 confirms build success
 - [Phase 37-webhook-subsystem-fixes]: CONNECT_TIMEOUT_MS=5000ms READ_TIMEOUT_MS=10000ms on SimpleClientHttpRequestFactory in WebhookConfig.noRetryRestTemplate (WEBHOOK-03)
-- [Phase 37-webhook-subsystem-fixes]: WebhookConfigTest uses reflection on private fields (no public getters on SimpleClientHttpRequestFactory) to pin timeout values
-- [Phase 37-webhook-subsystem-fixes]: Retain single-arg attemptDelivery overload alongside new two-arg variant — enqueue() path still uses single-arg; no callers broken
-- [Phase 37-webhook-subsystem-fixes]: [37-02] WebhookDeliveryService hosts onEnqueueRequested listener — delivery logic co-located; webhookDeliveryService field kept in WebhookTransitionService to preserve collaborator documentation
 - [Phase 38-transaction-boundary-fraud-ordering]: feeRuleIdVal extracted via .map(r -> r.getId()) — FeeRule not imported into PaymentOrchestrator; pre-lock cache reads hoisted above transactionTemplate block
-- [Phase 38-transaction-boundary-fraud-ordering]: VelocityCounterFloodTest regression: probe/consume split in Plan 02 (OPS-02) is incompatible with CONC-03 invariant — non-consuming probe allows 100 concurrent requests to bypass IP_VELOCITY gate; Plan 02 must be revised
 - [Phase 39]: Used primitive long for @Version on TenantApiKey (not boxed Long) to prevent NPE in Hibernate VersionType.seed()
 - [Phase 39]: V22 migration must pair main.tenant_api_key ADD COLUMN with main.tenant_api_key_aud ADD COLUMN — Envers requires column parity (V21 pattern)
 - [Phase 39-concurrency-guards-db-constraints]: DEFERRABLE INITIALLY DEFERRED chosen over constraint trigger for LEDGER-01 — simpler DDL, satisfies requirement as stated
-- [Phase 39-concurrency-guards-db-constraints]: Two-DEBIT pattern in unbalancedInsert test — lone DEBIT satisfies the unique constraint; two DEBITs is what LEDGER-01 blocks
 - [Phase 40]: @Transactional(timeout=300) on MTN/Orange poller executeInternal closes OPS-01 — 300s matches 5-minute Quartz re-fire interval
 - [Phase 40-02]: No production code changes needed for OPS-03 — ApiKeyAuthenticationFilter finally block already clears TenantContext on all paths including exception paths; only test coverage was missing
+- [Phase 41]: VARCHAR(500) for pin ciphertext: AES256 Base64 output for 4-8 char PIN is ~80-120 chars; 500 provides headroom
+- [Phase 41]: platform_config_aud created in V24 (not V20): V20 already shipped; idempotent CREATE TABLE IF NOT EXISTS in V24 corrects the Envers gap
+- [Phase 42-01]: regex ^$|^[a-zA-Z0-9]{4,8}$ allows empty string (PIN-08) while enforcing 4-8 alphanumeric chars (PIN-03); @JsonInclude(NON_NULL) on record class suppresses null pin from GET responses (PIN-04); pin=null at all service DTO sites prevents ciphertext leakage
+- [Phase 42-01]: pinCryptopher bean name derived from @Bean method name — Plan 02 injects by type via @RequiredArgsConstructor; PlatformConfigService update() signature unchanged (2-param) — Plan 02 widens to 3 params
+- [Phase 42-pin-backend-api]: StringUtils.isNotBlank(pin) guards encrypt path — null and blank both skip encryption (PIN-08 semantics, consistent with Cryptopher)
+- [Phase 42-pin-backend-api]: ResourceNotFoundException (404) for null pin vs IllegalStateException (409) for missing config row in findPinByProvider
+- [Phase 42-pin-backend-api]: Added GET /{provider} single-provider endpoint for PIN-04; cleanDb uses UPDATE not DELETE on platform_config; test admin INSERTs copied verbatim; no @Transactional on IT class
+- [Phase 43-pin-frontend]: Per-provider keyed timer maps use plain objects {} not refs for setTimeout/setInterval handles; onUnmounted clears all provider keys to prevent navigation leaks
+- [Phase 43-pin-frontend]: PIN-08 semantics: pass pin || undefined to updatePlatformConfigFull; method omits empty/undefined pin from PUT body so backend preserves existing PIN
+- [Phase 43-pin-frontend]: Per-provider keyed timer maps use plain objects {} not refs for setTimeout/setInterval handles; onUnmounted clears all keys to prevent navigation leaks
+- [Phase 43-pin-frontend]: PIN-08 semantics: pass pin || undefined to updatePlatformConfigFull; method omits empty/undefined pin from PUT body so backend preserves existing PIN
+- [Phase 44-pin-email-notification]: Resolve changedBy on request thread via SecurityUtil — SecurityContextHolder is thread-local and empty in AFTER_COMMIT listener thread
+- [Phase 44-pin-email-notification]: pinChanged = StringUtils.isNotBlank(pin) && oldPin != null — first-time PIN (oldPin==null) not treated as change per PIN-10; must snapshot oldPin before config.updatePin()
 
 ### Roadmap Evolution
 
-- Phase 34 added: Orange Money flow improvements - align OrangeMoneyClient and OrangeMoneyPort with the Orange Money spec Use Case 1
-- Phases 35–40 added: v7 Backend Hardening & Bug Fixes roadmap (2026-04-14)
+- Phases 41–44 added: v8 Platform Config PIN roadmap (2026-04-17)
 
 ### Pending Todos
 
@@ -116,10 +109,10 @@ None.
 
 ### Blockers/Concerns
 
-- Phase 38 VelocityCounterFloodTest regression blocks sign-off
+None.
 
 ## Session Continuity
 
-Last session: 2026-04-15T09:45:13.147Z
-Stopped at: Completed 40-02-PLAN.md
+Last session: 2026-04-18T16:11:34.563Z
+Stopped at: Completed 44-01-PLAN.md
 Resume file: None
