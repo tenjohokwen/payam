@@ -48,7 +48,7 @@ class PlatformConfigServiceTest {
         when(platformConfigRepository.findByProvider(provider)).thenReturn(Optional.of(existing));
 
         // When
-        PlatformConfigDto result = platformConfigService.update(provider, newMsisdn);
+        PlatformConfigDto result = platformConfigService.update(provider, newMsisdn, null);
 
         // Then
         assertThat(result.provider()).isEqualTo(provider);
@@ -100,7 +100,7 @@ class PlatformConfigServiceTest {
         when(platformConfigRepository.findByProvider(provider)).thenReturn(Optional.empty());
 
         // When
-        PlatformConfigDto result = platformConfigService.update(provider, newMsisdn);
+        PlatformConfigDto result = platformConfigService.update(provider, newMsisdn, null);
 
         // Then
         assertThat(result.provider()).isEqualTo(provider);
