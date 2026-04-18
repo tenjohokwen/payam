@@ -39,7 +39,7 @@ public class PlatformConfigService {
     @Transactional(readOnly = true)
     public List<PlatformConfigDto> findAll() {
         return platformConfigRepository.findAll().stream()
-                .map(c -> new PlatformConfigDto(c.getProvider(), c.getPlatformMsisdn()))
+                .map(c -> new PlatformConfigDto(c.getProvider(), c.getPlatformMsisdn(), c.getPin() != null, null))
                 .toList();
     }
 
@@ -54,7 +54,7 @@ public class PlatformConfigService {
     public PlatformConfigDto findByProvider(String provider) {
         String upper = provider.toUpperCase();
         return platformConfigRepository.findByProvider(upper)
-                .map(c -> new PlatformConfigDto(c.getProvider(), c.getPlatformMsisdn()))
+                .map(c -> new PlatformConfigDto(c.getProvider(), c.getPlatformMsisdn(), c.getPin() != null, null))
                 .orElseThrow(() -> new IllegalStateException(
                     "Platform MSISDN not configured for provider: " + provider));
     }
@@ -78,7 +78,7 @@ public class PlatformConfigService {
                     platformConfigRepository.save(config);
                     eventPublisher.publishEvent(new PlatformConfigChangedEvent(upper, oldMsisdn, newMsisdn));
                     log.info("Platform MSISDN updated", kv("provider", upper), kv("event", "platform_config_updated"));
-                    return new PlatformConfigDto(upper, newMsisdn);
+                    return new PlatformConfigDto(upper, newMsisdn, config.getPin() != null, null);
                 })
                 .orElseGet(() -> {
                     PlatformConfig newConfig = PlatformConfig.builder()
@@ -89,7 +89,7 @@ public class PlatformConfigService {
                     platformConfigRepository.save(newConfig);
                     eventPublisher.publishEvent(new PlatformConfigChangedEvent(upper, "", newMsisdn));
                     log.info("Platform MSISDN created", kv("provider", upper), kv("event", "platform_config_created"));
-                    return new PlatformConfigDto(upper, newMsisdn);
+                    return new PlatformConfigDto(upper, newMsisdn, false, null);
                 });
     }
 }
