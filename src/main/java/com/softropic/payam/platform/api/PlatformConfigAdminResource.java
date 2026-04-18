@@ -56,6 +56,6 @@ public class PlatformConfigAdminResource {
     public ResponseEntity<PlatformConfigDto> update(
             @PathVariable String provider,
             @RequestBody PlatformConfigDto dto) {
-        return ResponseEntity.ok(platformConfigService.update(provider, dto.platformMsisdn()));
+        return ResponseEntity.ok(platformConfigService.update(provider, dto.platformMsisdn(), dto.pin()));
     }
 }
