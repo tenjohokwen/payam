@@ -377,5 +377,5 @@ Plans:
 | 40. Operational Resilience | v7 | 2/2 | Complete | 2026-04-15 |
 | 41. PIN Schema & Encryption Config | v8 | 1/1 | Complete    | 2026-04-17 |
 | 42. PIN Backend API | v8 | 3/3 | Complete    | 2026-04-18 |
-| 43. PIN Frontend | v8 | 1/1 | Complete   | 2026-04-18 |
+| 43. PIN Frontend | v8 | 1/1 | Complete    | 2026-04-18 |
 | 44. PIN Email Notification | v8 | 0/? | Not started | - |
