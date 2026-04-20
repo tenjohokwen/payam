@@ -9,7 +9,7 @@
 - ✅ **v5 Tenant & API Key Management Service Layer** — Phases 27–29 (shipped 2026-04-06) — see [milestones/v5-ROADMAP.md](milestones/v5-ROADMAP.md)
 - ✅ **v6 REST API Surface, Notifications & Admin UI** — Phases 30–34 (shipped 2026-04-14) — see [milestones/v6-ROADMAP.md](milestones/v6-ROADMAP.md)
 - ✅ **v7 Backend Hardening & Bug Fixes** — Phases 35–40 (shipped 2026-04-17) — see [milestones/v7-ROADMAP.md](milestones/v7-ROADMAP.md)
-- 🚧 **v8 Platform Config PIN** — Phases 41–44 (active)
+- 🚧 **v8 Platform Config PIN** — Phases 41–45 (active)
 
 ## Phases
 
@@ -103,6 +103,7 @@
 - [ ] **Phase 42: PIN Backend API** - Extend PUT update to accept and encrypt PIN; add GET reveal endpoint; expose `pinConfigured` boolean on existing GET response
 - [ ] **Phase 43: PIN Frontend** - PIN masked input field with 60s auto-mask reveal on provider card and PIN field in Add Provider dialog
 - [ ] **Phase 44: PIN Email Notification** - Enrich `PlatformConfigChangedEvent` with change-type flags and update email template to state which field(s) changed
+- [ ] **Phase 45: PIN Add-Provider Fix** - Extend `orElseGet` branch in `PlatformConfigService` to persist PIN on new row creation; add brief frontend UX feedback in Add Provider dialog
 
 </details>
 
@@ -324,6 +325,18 @@ Plans:
   4. The email is delivered after the transaction commits — a rollback of the config update does not send an email
 **Plans**: TBD
 
+### Phase 45: PIN Add-Provider Fix
+**Goal**: PIN entered in the Add Provider dialog is persisted on first creation and the admin receives clear UX feedback
+**Depends on**: Phase 43, Phase 42
+**Requirements**: PIN-09
+**Gap Closure**: Closes GAP-01 from v8-MILESTONE-AUDIT.md
+**Success Criteria** (what must be TRUE):
+  1. When an admin fills in the PIN field in the Add Provider dialog and submits, the PIN is encrypted and persisted atomically with the new `PlatformConfig` row — `pinConfigured: true` is returned in the response
+  2. An empty PIN field in the Add Provider dialog creates a row with no PIN — `pinConfigured: false`, no error
+  3. The Add Provider dialog provides brief UX feedback so the admin knows whether the PIN was set (e.g., updated `pinConfigured` state reflected on the card after creation)
+  4. `mvn verify` passes with the existing platform config integration tests and any new tests covering first-creation with PIN
+**Plans**: 1 plan
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -373,3 +386,4 @@ Plans:
 | 42. PIN Backend API | v8 | 0/? | Not started | - |
 | 43. PIN Frontend | v8 | 0/? | Not started | - |
 | 44. PIN Email Notification | v8 | 0/? | Complete    | 2026-04-18 |
+| 45. PIN Add-Provider Fix | v8 | 0/1 | Not started | - |
