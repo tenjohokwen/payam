@@ -73,9 +73,10 @@ public class PlatformConfigService {
      * Update the platform MSISDN and (optionally) the PIN for the given provider (upsert).
      *
      * <p>If the provider exists, its MSISDN is updated; the PIN is encrypted and updated only
-     * when {@code pin} is non-blank. If not, a new row is created (PIN cannot be set on initial
-     * creation via this code path; the orElseGet branch ignores the pin parameter — first-time
-     * PIN provisioning happens on a subsequent update once the row exists).
+     * when {@code pin} is non-blank. If not, a new row is created and — when a non-blank
+     * {@code pin} is supplied — the PIN is encrypted and persisted on the same insert
+     * (PIN-09). No {@link PlatformConfigChangedEvent} is published on first-time row
+     * creation regardless of whether a PIN was set (PIN-10).
      *
      * <p>MSISDN and PIN updates occur in the same {@code @Transactional} method, so they
      * commit atomically (PIN-03 atomicity guarantee).
@@ -123,10 +124,14 @@ public class PlatformConfigService {
                             .platformMsisdn(newMsisdn)
                             .status(com.softropic.payam.common.persistence.EntityStatus.ACTIVE)
                             .build();
+                    if (StringUtils.isNotBlank(pin)) {
+                        String ciphertext = pinCryptopher.encrypt(pin);
+                        newConfig.updatePin(ciphertext);
+                    }
                     platformConfigRepository.save(newConfig);
                     // PIN-10: first-time row creation does not publish an event.
                     log.info("Platform config created", kv("provider", upper), kv("event", "platform_config_created"));
-                    return new PlatformConfigDto(upper, newMsisdn, false, null);
+                    return new PlatformConfigDto(upper, newMsisdn, newConfig.getPin() != null, null);
                 });
     }
 
