@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 44-pin-email-notification-44-02-PLAN.md
-last_updated: "2026-04-18T17:02:05.436Z"
-last_activity: 2026-04-18
+status: executing
+stopped_at: Phase 45 UI-SPEC approved
+last_updated: "2026-04-20T12:28:21.626Z"
+last_activity: 2026-04-20 -- Phase 45 execution started
 progress:
-  total_phases: 15
+  total_phases: 16
   completed_phases: 15
-  total_plans: 35
+  total_plans: 36
   completed_plans: 35
 ---
 
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17 — Milestone v8 started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 41 — pin-schema-encryption-config
+**Current focus:** Phase 45 — pin-add-provider-fix
 
 ## Current Position
 
-Phase: 44
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-18
+Phase: 45 (pin-add-provider-fix) — EXECUTING
+Plan: 1 of 1
+Status: Executing Phase 45
+Last activity: 2026-04-20 -- Phase 45 execution started
 
 ```
 Progress [░░░░░░░░░░░░░░░░░░░░] 0% — 0 of 4 phases complete
@@ -104,6 +104,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-18T16:54:21.723Z
-Stopped at: Completed 44-pin-email-notification-44-02-PLAN.md
-Resume file: None
+Last session: 2026-04-20T12:08:05.597Z
+Stopped at: Phase 45 UI-SPEC approved
+Resume file: .planning/phases/45-pin-add-provider-fix/45-UI-SPEC.md
