@@ -437,6 +437,62 @@ class PlatformConfigServiceTest {
         verifyNoInteractions(eventPublisher);
     }
 
+    // ---------------------------------------------------------------------
+    // PIN-09 (GAP-01): orElseGet branch persists PIN on first-row creation
+    // ---------------------------------------------------------------------
+
+    @Test
+    void update_shouldEncryptAndPersistPinOnNewRowCreation() {
+        // Given — no existing row; PIN provided
+        String provider = "MTN";
+        String newMsisdn = "987654";
+        String plainPin = "abcd";
+        String ciphertext = "ENC(abcd)";
+        when(platformConfigRepository.findByProvider(provider)).thenReturn(Optional.empty());
+        when(pinCryptopher.encrypt(plainPin)).thenReturn(ciphertext);
+
+        // When
+        PlatformConfigDto result = platformConfigService.update(provider, newMsisdn, plainPin);
+
+        // Then — response reflects persisted PIN
+        assertThat(result.provider()).isEqualTo(provider);
+        assertThat(result.platformMsisdn()).isEqualTo(newMsisdn);
+        assertThat(result.pinConfigured()).isTrue();       // NOT the hardcoded false
+        assertThat(result.pin()).isNull();                  // PIN-04: never returned in DTO
+
+        // And — ciphertext went through pinCryptopher.encrypt()
+        verify(pinCryptopher).encrypt(plainPin);
+
+        // And — the saved entity carries the ciphertext (captured from save())
+        ArgumentCaptor<PlatformConfig> captor = ArgumentCaptor.forClass(PlatformConfig.class);
+        verify(platformConfigRepository).save(captor.capture());
+        assertThat(captor.getValue().getPin()).isEqualTo(ciphertext);
+
+        // And — PIN-10 rule: no event on first-time row creation
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    void update_shouldCreateNewRowWithNoPinWhenPinIsBlank() {
+        // Given — no existing row; blank PIN (both null and empty string)
+        when(platformConfigRepository.findByProvider("MTN")).thenReturn(Optional.empty());
+
+        // When — null pin
+        PlatformConfigDto nullResult = platformConfigService.update("MTN", "987654", null);
+        // Then
+        assertThat(nullResult.pinConfigured()).isFalse();
+
+        // When — empty-string pin
+        PlatformConfigDto emptyResult = platformConfigService.update("MTN", "987654", "");
+        // Then
+        assertThat(emptyResult.pinConfigured()).isFalse();
+
+        // pinCryptopher.encrypt() was never called for either blank case
+        verify(pinCryptopher, never()).encrypt(any());
+        // No event for either case
+        verifyNoInteractions(eventPublisher);
+    }
+
     @Test
     void update_shouldResolveChangedByFromSecurityUtilForEventPayload() {
         // Given
