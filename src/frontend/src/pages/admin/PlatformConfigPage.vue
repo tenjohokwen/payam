@@ -258,7 +258,8 @@ async function addProvider() {
     newProvider.value = { name: '', msisdn: '', pin: '' }
     dialogPinVisible.value = false
 
-    $q.notify({ type: 'positive', message: `${provider} configuration added` })
+    const pinMsg = updated.pinConfigured ? ' (PIN set)' : ''
+    $q.notify({ type: 'positive', message: `${provider} configuration added${pinMsg}` })
   } catch (err) {
     if (err.response?.status === 400) {
       $q.notify({ type: 'negative', message: 'PIN must be 4–8 alphanumeric characters.' })
