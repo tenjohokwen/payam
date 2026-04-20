@@ -1,7 +1,8 @@
 ---
 phase: 45
 slug: pin-add-provider-fix
-status: draft
+status: approved
+reviewed_at: 2026-04-20T00:00:00Z
 shadcn_initialized: false
 preset: none
 created: 2026-04-20
