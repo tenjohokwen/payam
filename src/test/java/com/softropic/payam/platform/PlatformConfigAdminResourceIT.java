@@ -389,6 +389,55 @@ class PlatformConfigAdminResourceIT {
     }
 
     // ---------------------------------------------------------------------
+    // PIN-09 (GAP-01): orElseGet branch persists PIN on first-row creation
+    // ---------------------------------------------------------------------
+
+    @Test
+    void putConfig_shouldPersistPinOnFirstCreation() {
+        // Given — delete all platform_config rows to force the orElseGet branch.
+        // The V17 seed inserts ORANGE and MTN; cleanDb() only resets values (UPDATE),
+        // so we must explicitly DELETE to exercise the new-row code path.
+        transactionTemplate.execute(status -> {
+            jdbcTemplate.execute("DELETE FROM main.platform_config");
+            return 0;
+        });
+
+        // When — PUT with a valid PIN for a provider that has no row
+        ResponseEntity<Map> response = putConfig(PROVIDER, "654321", "abcd");
+
+        // Then — response reflects the persisted PIN (GAP-01 closure)
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).containsEntry("pinConfigured", true);
+        assertThat(response.getBody()).doesNotContainKey("pin");
+
+        // And — GET /pin round-trips the ciphertext through pinCryptopher.decrypt()
+        ResponseEntity<PinDto> pinResp = restTemplate.exchange(
+                "/v1/admin/platform-config/" + PROVIDER + "/pin",
+                HttpMethod.GET,
+                new HttpEntity<>(adminCookies),
+                PinDto.class);
+        assertThat(pinResp.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(pinResp.getBody().pin()).isEqualTo("abcd");
+    }
+
+    @Test
+    void putConfig_shouldCreateRowWithNoPinWhenPinFieldAbsent_orElseGetBranch() {
+        // Given — delete all rows to force orElseGet
+        transactionTemplate.execute(status -> {
+            jdbcTemplate.execute("DELETE FROM main.platform_config");
+            return 0;
+        });
+
+        // When — PUT with no pin (null body field)
+        ResponseEntity<Map> response = putConfig(PROVIDER, "654321", null);
+
+        // Then — row created, no PIN
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).containsEntry("pinConfigured", false);
+        assertThat(response.getBody()).doesNotContainKey("pin");
+    }
+
+    // ---------------------------------------------------------------------
     // Helper: PUT /{provider} body — used by multiple tests
     // ---------------------------------------------------------------------
 
