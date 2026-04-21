@@ -81,19 +81,17 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ OPS-04 / TXN-01: fee evaluation hoisted before transaction boundary in PaymentOrchestrator — Validated in Phase 38: TXN-01
 - ✓ AKEY-09: concurrent API key rotation serialized via @Version optimistic lock — loser receives HTTP 409 — Validated in Phase 39: AKEY-09
 - ✓ LEDGER-01: deferrable unique constraint on ledger_entry(entry_group_id, direction) rejects unbalanced debit+credit pairs at commit time — Validated in Phase 39: LEDGER-01
+- ✓ AES256-encrypted `pin` column on `PlatformConfig` entity — Flyway V24 migration, `pinCryptopher` @Bean backed by `payam.platform.pin-encryption-secret` / `PLATFORM_PIN_ENCRYPTION_SECRET` env var — v8 (Phase 41): PIN-01, PIN-02
+- ✓ PUT `/v1/admin/platform-config/{provider}` accepts optional `pin` field with alphanumeric 4–8 char validation; encrypted via `pinCryptopher` and persisted atomically with MSISDN; `PlatformConfigDto` gains `pinConfigured: boolean` — v8 (Phase 42): PIN-03, PIN-04
+- ✓ GET `/v1/admin/platform-config/{provider}/pin` reveal endpoint — decrypts and returns plaintext PIN; 404 if not configured; no ciphertext leakage via `@JsonInclude(NON_NULL)` on `PlatformConfigDto` — v8 (Phase 42): PIN-05
+- ✓ Per-provider masked PIN input on `PlatformConfigPage.vue` — Quasar eye-toggle, eye-click reveals via GET /pin, 60s countdown auto-masks, manual re-click re-masks immediately, empty Save preserves existing PIN — v8 (Phase 43): PIN-06, PIN-07, PIN-08
+- ✓ Add Provider dialog PIN field persisted on first row creation — `orElseGet` branch extended to mirror `map` branch; snackbar shows "(PIN set)" confirmation — v8 (Phase 45): PIN-09
+- ✓ `PlatformConfigChangedEvent` carries `msisdnChanged`, `pinChanged`, `changedBy`; fires only on real change, suppressed on no-op and first-time PIN creation — v8 (Phase 44): PIN-10
+- ✓ `PlatformConfigEmailListener` renders conditional MSISDN/PIN change rows + admin username + timestamp in email; PIN value never leaks — v8 (Phase 44): PIN-11
 
 ### Active
 
-<!-- v8 Platform Config PIN — Phase 41-45 complete -->
-
-### Partially Validated (Phase 42)
-
-- ✓ AES256-encrypted `pin` column on `PlatformConfig` entity — Flyway migration, `pinCryptopher` @Bean backed by `payam.platform.pin-encryption-secret` — Validated in Phase 41: PIN-01, PIN-02
-- ✓ PUT `/v1/admin/platform-config/{provider}` extended — optional `pin` field, alphanumeric 4–8 char @Pattern validation via `@Valid`, encrypted atomically with MSISDN — Validated in Phase 42: PIN-03
-- ✓ GET `/v1/admin/platform-config/{provider}/pin` reveal endpoint — decrypts and returns `PinDto`; 404 if not configured; `PlatformConfigDto` gains `pinConfigured: boolean`; no ciphertext leakage via `@JsonInclude(NON_NULL)` — Validated in Phase 42: PIN-04, PIN-05
-- ✓ `PlatformConfigChangedEvent` widened to 6 components (provider, oldMsisdn, newMsisdn, msisdnChanged, pinChanged, changedBy); conditional publish per PIN-10 fire rules — suppressed on no-op, first-time PIN creation, new-row creation; `changedBy` resolved via SecurityUtil on request thread — Validated in Phase 44: PIN-10
-- ✓ `PlatformConfigEmailListener` extends Envelope data map with msisdnChanged, pinChanged, changedBy, changedAt; Thymeleaf template renders conditional MSISDN/PIN rows + admin username + timestamp; no PIN value leakage — Validated in Phase 44: PIN-11
-- ✓ `PlatformConfigService.update()` `orElseGet` branch persists PIN on new-row creation (mirrors `map` branch); `addProvider()` snackbar shows PIN-set confirmation — Validated in Phase 45: PIN-09
+<!-- No active v9 requirements yet — start next milestone with /gsd:new-milestone -->
 
 ### Out of Scope
 
@@ -144,34 +142,35 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 | Bulk `@Modifying` JPQL for `TenantService.suspend()` key revocation | Atomicity: N individual saves risk partial failure if one key fails to save; single query is all-or-nothing | ✓ Good — use bulk JPQL for multi-row state transitions |
 | Entity-level load+save (not bulk JPQL) for `revokeExpiredRotatedKeys()` | Envers captures each revocation as a separate audit revision; bulk JPQL bypasses Envers | ✓ Good — use entity-level ops when audit trail is required per row |
 | Flyway V21 migrates `rotated_at` to `TIMESTAMPTZ` | Quartz job's `Instant` parameters compared against TIMESTAMP(no tz) caused timezone mismatch in Testcontainers (Postgres defaulted to Europe/Berlin) | ✓ Good — always use TIMESTAMPTZ for timestamp columns that are compared with JVM Instant values |
+| `VARCHAR(500)` for `pin` ciphertext column (v8) | AES256 Base64 output for 4–8 char PIN is ~80–120 chars; 500 provides headroom without over-engineering | ✓ Good — correct sizing; CHAR(512) would have been equivalent |
+| `platform_config_aud` created in V24 (not V20) (v8) | V20 already shipped; `CREATE TABLE IF NOT EXISTS` in V24 corrects the Envers gap idempotently | ✓ Good — idempotent CREATE TABLE IF NOT EXISTS pattern for retroactive Envers table creation |
+| `updatePin(ciphertext)` called BEFORE `save(newConfig)` in `orElseGet` branch (v8) | JPA flushes at transaction commit; setting the field before save ensures the pin column is included in the INSERT | ✓ Good — required ordering for JPA transient-to-persistent PIN assignment |
+| No `PlatformConfigChangedEvent` from `orElseGet` branch even when PIN set (v8) | PIN-10 semantics: first-time row creation does not count as a "change event" | ✓ Good — consistent with PIN-10 fire rules; matches audit's explicit exclusion |
 
-## Current Milestone: v8 Platform Config PIN
+## Shipped Milestone: v8 Platform Config PIN ✅
 
-**Goal:** Extend PlatformConfig with an AES256-encrypted PIN field so provider credentials (e.g. Orange channelUserMsisdn PIN) can be stored securely, revealed on demand via a dedicated endpoint, and audited via email notification.
+**Shipped:** 2026-04-21 — 5 phases (41–45), 8 plans
 
-**Target features:**
-- [PIN-01] AES256-encrypted `pin` column on `PlatformConfig` entity — Flyway migration, `payam.platform.pin-encryption-secret` property backed by `PLATFORM_PIN_ENCRYPTION_SECRET` env var
-- [PIN-02] PUT `/v1/admin/platform-config/{provider}` extended — optional `pin` field, alphanumeric 4–8 char validation, encrypted via Cryptopher, saved atomically with MSISDN
-- [PIN-03] GET `/v1/admin/platform-config/{provider}/pin` reveal endpoint — decrypts and returns plaintext PIN; 404 if not set; `PlatformConfigDto` gains `pinConfigured: boolean`
-- [PIN-04] Admin UI — PIN field in provider card (masked, eye-reveal calls reveal endpoint, 60s auto-mask timer); PIN field in Add Provider dialog (no timer)
-- [PIN-05] Email notification — enriched `PlatformConfigChangedEvent` with `msisdnChanged`/`pinChanged`/`changedBy`; fires on MSISDN change or PIN change (first-time PIN set does not trigger email)
+**Delivered:** AES256-encrypted PIN field on `PlatformConfig` — admins can store, reveal (masked with 60s auto-expiry), and receive email notification for provider credential changes. Add Provider dialog correctly persists PIN on first creation (GAP-01 closed in Phase 45). All 11 requirements (PIN-01..PIN-11) satisfied.
 
 ## Current State
 
-**Shipped:** v7 (2026-04-17) — 40 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5 + 5 v6 + 6 v7), 90 plans
-**In Progress:** v8 — Platform Config PIN complete (Phase 45: GAP-01 closed)
-**Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar + Hibernate Envers
+**Shipped:** v8 (2026-04-21) — 45 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5 + 5 v6 + 6 v7 + 5 v8), 98 plans
+**Next:** v9 — TBD (start with `/gsd:new-milestone`)
+**Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar + Hibernate Envers + Cryptopher/Jasypt AES256
 **Observability:** Full Loki-queryable structured logging + Spring Boot Actuator health with live provider MSISDN validation + CB state
-**Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage + 22 tenant/key integration tests
+**Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage + 22 tenant/key integration tests + PIN integration tests (PlatformConfigAdminResourceIT: 12 tests)
 **Constraint:** `mvn verify` (including integration tests) must pass before every commit
 **Known tech debt:**
 - `TenantProvisioningIT.tearDown()` does not clean audit tables — rows accumulate across test runs (non-critical)
+- Dead `updatePlatformConfig(provider, platformMsisdn)` method in `admin.api.js` (TD-01) — no longer called after v8; risk of misuse by future devs
+- `@EventListener` (synchronous) on `PlatformConfigEmailListener` — failure rolls back config update; matches project pattern but `@TransactionalEventListener` would be safer (TD-02, low risk)
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
-*Last updated: 2026-04-20
+*Last updated: 2026-04-21 after v8 milestone
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
@@ -187,4 +186,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-20
+*Last updated: 2026-04-21 after v8 milestone

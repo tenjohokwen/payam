@@ -9,7 +9,7 @@
 - ✅ **v5 Tenant & API Key Management Service Layer** — Phases 27–29 (shipped 2026-04-06) — see [milestones/v5-ROADMAP.md](milestones/v5-ROADMAP.md)
 - ✅ **v6 REST API Surface, Notifications & Admin UI** — Phases 30–34 (shipped 2026-04-14) — see [milestones/v6-ROADMAP.md](milestones/v6-ROADMAP.md)
 - ✅ **v7 Backend Hardening & Bug Fixes** — Phases 35–40 (shipped 2026-04-17) — see [milestones/v7-ROADMAP.md](milestones/v7-ROADMAP.md)
-- ✅ **v8 Platform Config PIN** — Phases 41–45 (shipped 2026-04-21) — see [milestones/v8-ROADMAP.md](milestones/v8-ROADMAP.md)
+- 🚧 **v8 Platform Config PIN** — Phases 41–45 (active)
 
 ## Phases
 
@@ -96,14 +96,14 @@
 
 </details>
 
-<details>
-<summary>✅ v8 Platform Config PIN (Phases 41–45) — SHIPPED 2026-04-21</summary>
+<details open>
+<summary>🚧 v8 Platform Config PIN (Phases 41–44) — ACTIVE</summary>
 
-- [x] Phase 41: PIN Schema & Encryption Config (1/1 plans) — completed 2026-04-17
-- [x] Phase 42: PIN Backend API (3/3 plans) — completed 2026-04-18
-- [x] Phase 43: PIN Frontend (1/1 plans) — completed 2026-04-18
-- [x] Phase 44: PIN Email Notification (2/2 plans) — completed 2026-04-18
-- [x] Phase 45: PIN Add-Provider Fix (1/1 plans) — completed 2026-04-20
+- [ ] **Phase 41: PIN Schema & Encryption Config** - Add nullable `pin` column to `platform_config` via Flyway migration and wire AES256 encryption key through `PayamPlatformProperties`
+- [ ] **Phase 42: PIN Backend API** - Extend PUT update to accept and encrypt PIN; add GET reveal endpoint; expose `pinConfigured` boolean on existing GET response
+- [ ] **Phase 43: PIN Frontend** - PIN masked input field with 60s auto-mask reveal on provider card and PIN field in Add Provider dialog
+- [ ] **Phase 44: PIN Email Notification** - Enrich `PlatformConfigChangedEvent` with change-type flags and update email template to state which field(s) changed
+- [ ] **Phase 45: PIN Add-Provider Fix** - Extend `orElseGet` branch in `PlatformConfigService` to persist PIN on new row creation; add brief frontend UX feedback in Add Provider dialog
 
 </details>
 
@@ -382,8 +382,8 @@ Plans:
 | 38. Transaction Boundary & Fraud Ordering | v7 | 4/4 | Complete | 2026-04-15 |
 | 39. Concurrency Guards & DB Constraints | v7 | 2/2 | Complete | 2026-04-15 |
 | 40. Operational Resilience | v7 | 2/2 | Complete | 2026-04-15 |
-| 41. PIN Schema & Encryption Config | v8 | 1/1 | Complete | 2026-04-17 |
-| 42. PIN Backend API | v8 | 3/3 | Complete | 2026-04-18 |
-| 43. PIN Frontend | v8 | 1/1 | Complete | 2026-04-18 |
-| 44. PIN Email Notification | v8 | 2/2 | Complete | 2026-04-18 |
-| 45. PIN Add-Provider Fix | v8 | 1/1 | Complete | 2026-04-20 |
+| 41. PIN Schema & Encryption Config | v8 | 1/1 | Complete   | 2026-04-17 |
+| 42. PIN Backend API | v8 | 0/? | Not started | - |
+| 43. PIN Frontend | v8 | 0/? | Not started | - |
+| 44. PIN Email Notification | v8 | 0/? | Complete    | 2026-04-18 |
+| 45. PIN Add-Provider Fix | v8 | 0/1 | Complete    | 2026-04-20 |

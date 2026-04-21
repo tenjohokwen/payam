@@ -115,6 +115,46 @@
 
 ---
 
+## Milestone: v8 — Platform Config PIN
+
+**Shipped:** 2026-04-21
+**Phases:** 5 (41–45) | **Plans:** 8
+
+### What Was Built
+- Flyway V24 migration: nullable `pin` VARCHAR(500) on `platform_config` + `platform_config_aud` Envers table
+- `pinCryptopher` @Bean with `payam.platform.pin-encryption-secret` property binding; `PlatformConfigService.update()` encrypts PIN atomically with MSISDN
+- `GET /pin` reveal endpoint (decrypts on demand, 404 if not set); `PlatformConfigDto` gains `pinConfigured: boolean`
+- Quasar masked PIN input on provider card with eye-toggle, 60s auto-mask countdown, and manual re-mask; PIN preserved on empty Save
+- `PlatformConfigChangedEvent` widened to carry `msisdnChanged`, `pinChanged`, `changedBy`; email template renders conditional MSISDN/PIN rows with admin username + timestamp; PIN never in email
+- Phase 45 closed GAP-01: `orElseGet` branch extended to persist PIN on new-row creation; Add Provider snackbar confirms PIN-set status
+
+### What Worked
+- **Milestone audit correctly identified GAP-01:** The audit caught the `orElseGet` branch bug before shipping — preventing a silent data loss for the "add provider with PIN" flow. This was exactly the kind of gap that integration testing alone wouldn't have found without the cross-phase audit.
+- **Phase 45 decimal-like insertion for gap closure:** Adding Phase 45 as the gap closure phase (after audit) executed cleanly in a single plan with 4 TDD commits (RED×2 → GREEN → TASK-2). The pattern of audit → gap closure phase → ship is now proven across two milestones (v5 and v8).
+- **PIN-10 fire rules (conditional publish) proved clean:** The `isNotBlank(pin) && oldPin != null` guard correctly suppresses the event on first-time creation while still firing on subsequent updates. The rule was non-obvious but the implementation was straightforward once the condition was precisely stated in the requirement.
+- **TDD pattern for PIN service:** RED/GREEN commits for both unit (PlatformConfigServiceTest) and IT (PlatformConfigAdminResourceIT) made the `orElseGet` fix fast and reviewable — no ambiguity about what was added.
+
+### What Was Inefficient
+- **REQUIREMENTS.md traceability table not updated during execution:** PIN-03 through PIN-10 showed "Pending" at milestone completion despite all being satisfied. The stale table required manual correction at archival time. The audit had to annotate this as a note rather than just reading the table.
+- **gsd-tools one-liner extraction unreliable for multi-task plans:** MILESTONES.md received "One-liner:", "Branch changed:", "Task 1:" verbatim from SUMMARY files that didn't follow the `One-liner: ...` format convention. Required manual rewrite of the v8 accomplishments section.
+- **Phase 42 plans count in ROADMAP progress table never updated:** Table showed "0/?" for Phase 42, 43 throughout execution. Progress table requires manual updates — not automatically maintained by any tool.
+
+### Patterns Established
+- **`updatePin(ciphertext)` must be called BEFORE `save(newConfig)` in JPA `orElseGet` branch.** JPA assigns the entity to the persistence context on `save()`; fields set after `save()` but before flush may or may not be included. Call field mutators before save to guarantee inclusion in the INSERT.
+- **Idempotent `CREATE TABLE IF NOT EXISTS` for retroactive Envers tables.** When a Flyway migration was skipped (V20 created tenant_aud but missed platform_config_aud), add a new migration with `CREATE TABLE IF NOT EXISTS` — safe to run on both fresh and already-migrated databases.
+- **Audit-then-gap-closure is the correct ship gate.** Two milestones (v5, v8) have now used the audit → decimal phase gap closure → ship pattern. The pattern is reliable and keeps the milestone scope honest without blocking the ship.
+
+### Key Lessons
+1. **Update REQUIREMENTS.md traceability as each plan completes, not at milestone end.** The stale "Pending" rows created audit noise and required manual correction. A simple `[x]` check after each VERIFICATION.md sign-off would have kept it accurate.
+2. **Write `One-liner:` in SUMMARY.md frontmatter consistently.** The gsd-tools CLI reads this field for MILESTONES.md extraction; plans without a clean one-liner field produce garbage in the milestones log.
+3. **The `orElseGet` pattern in JPA service methods is a common fork-persistence trap.** When service methods have create-or-update logic, always verify both branches handle all persisted fields identically — divergence is hard to find in reviews but caught immediately in TDD with a failing test.
+
+### Cost Observations
+- Sessions: ~3 (2026-04-17 → 2026-04-21)
+- Notable: Audit-driven gap closure (Phase 45) demonstrated the ROI of milestone audits — 1–2 hour fix prevented silent data loss in a user-visible flow
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -126,6 +166,9 @@
 | v3 | 6 | 18 | Test suite — Testcontainers over mocks validated by catching JSONB bug |
 | v4 | 3 | 5 | Platform ops — Actuator health indicators + admin MSISDN + health dashboard |
 | v5 | 4 | 6 | Service layer — tenant/key lifecycle, Envers audit, Quartz cleanup; gap closure via decimal phase |
+| v6 | 5 | 12 | REST API surface + email notifications + Admin UI; 14 tenant + 3 email IT tests |
+| v7 | 6 | 16 | Backend hardening — idempotency, reconciliation, webhook, fraud ordering, concurrency, resilience |
+| v8 | 5 | 8 | Provider credential management — AES256 PIN storage, masked UI, email notification; audit-driven gap closure |
 
 ### Cumulative Quality
 
@@ -136,6 +179,9 @@
 | v3 | 32 E2E classes | Mutation ≥90%, concurrency races, SM path matrix |
 | v4 | — | No new test classes |
 | v5 | 4 integration test classes | TenantServiceIT (9), TenantAuditIT (3), TenantProvisioningIT (6 existing), RotatedKeyCleanupJobIT (4) |
+| v6 | 3 integration test classes | TenantAdminResourceIT (14), TenantLifecycleEmailIT (3), E2E+IT |
+| v7 | 8 integration test classes | IDEM-01/02 race tests, RECON-01/02, WEBHOOK-01/02/03, TXN-01, OPS-02, AKEY-09 409, LEDGER-01 |
+| v8 | 1 integration test class (extended) | PlatformConfigAdminResourceIT (+7 tests for PIN-03/04/05/09), PlatformConfigServiceTest (+4 units) |
 
 ### Top Lessons (Verified Across Milestones)
 

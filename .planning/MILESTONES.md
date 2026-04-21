@@ -1,5 +1,22 @@
 # Project Milestones: Payam
 
+## v8 Platform Config PIN (Shipped: 2026-04-21)
+
+**Delivered:** AES256-encrypted PIN field on `PlatformConfig` — admins can store, reveal (masked with 60s auto-expiry), and receive email notification for provider credential changes, with GAP-01 (Add Provider PIN persistence) closed in Phase 45.
+
+**Phases completed:** 41–45 (5 phases, 8 plans)
+
+**Key accomplishments:**
+
+- Flyway V24: nullable `pin` VARCHAR(500) column on `main.platform_config`, `platform_config_aud` Envers table, `PayamPlatformProperties.pinEncryptionSecret` bound to `PLATFORM_PIN_ENCRYPTION_SECRET` env var — full AES256 storage foundation (Phase 41)
+- `Cryptopher` bean wired via `pinCryptopher` @Bean; `PlatformConfigService.update()` encrypts and persists PIN atomically with MSISDN; `PUT /v1/admin/platform-config/{provider}` validates alphanumeric 4–8 chars; `PlatformConfigDto` gains `pinConfigured: boolean` (Phase 42)
+- `GET /v1/admin/platform-config/{provider}/pin` reveals decrypted plaintext PIN on demand; 404 when not configured; no ciphertext leakage via `@JsonInclude(NON_NULL)` — full PIN-03/04/05 backend coverage (Phase 42)
+- Per-provider masked PIN input with Quasar eye-toggle on `PlatformConfigPage.vue`; eye-click calls reveal endpoint, populates field, starts strict 60s countdown; re-click before expiry re-masks immediately; Save preserves existing PIN when field left empty (Phase 43)
+- `PlatformConfigChangedEvent` widened to carry `msisdnChanged`, `pinChanged`, `changedBy`; fires only on real change, suppressed on no-op and first-time PIN creation; `PlatformConfigEmailListener` extended with conditional MSISDN/PIN rows + admin username + timestamp — PIN value never in email (Phase 44)
+- GAP-01 closed: `orElseGet` branch in `PlatformConfigService.update()` now encrypts and persists PIN on new-row creation, mirroring the `map` branch; Add Provider success notify shows "(PIN set)" confirmation when `pinConfigured=true` (Phase 45)
+
+---
+
 ## v5 Tenant & API Key Management Service Layer (Shipped: 2026-04-06)
 
 **Delivered:** Complete service layer for tenant lifecycle and API key management — `TenantService` lifecycle operations, `ApiKeyService` guards, Hibernate Envers audit trail, PREFIX_UUID key format, and Quartz automated cleanup job. Service layer fully verified; HTTP REST surface and Admin UI deferred to v6.

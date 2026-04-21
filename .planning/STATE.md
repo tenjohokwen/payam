@@ -1,43 +1,43 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0.2
-milestone_name: milestone
-status: executing
-stopped_at: Phase 45 UI-SPEC approved
-last_updated: "2026-04-20T13:44:02.609Z"
-last_activity: 2026-04-20
+milestone: v8
+milestone_name: Platform Config PIN
+status: complete
+stopped_at: v8 milestone archived
+last_updated: "2026-04-21T00:00:00.000Z"
+last_activity: 2026-04-21
 progress:
-  total_phases: 16
-  completed_phases: 16
-  total_plans: 36
-  completed_plans: 36
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 8
+  completed_plans: 8
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-17 — Milestone v8 started)
+See: .planning/PROJECT.md (updated 2026-04-21 — Milestone v8 complete)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 45 — pin-add-provider-fix
+**Current focus:** v8 shipped — planning v9 with /gsd:new-milestone
 
 ## Current Position
 
-Phase: 45
-Plan: Not started
-Status: Executing Phase 45
-Last activity: 2026-04-20
+Phase: v8 complete
+Plan: All plans complete
+Status: Milestone archived — ready for /gsd:new-milestone
+Last activity: 2026-04-21
 
 ```
-Progress [░░░░░░░░░░░░░░░░░░░░] 0% — 0 of 4 phases complete
+Progress [████████████████████] 100% — v8 shipped (5/5 phases, 8/8 plans)
 ```
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 90 (across v1–v7)
+- Total plans completed: 98 (across v1–v8)
 - Average duration: —
 - Total execution time: —
 
@@ -47,52 +47,21 @@ Progress [░░░░░░░░░░░░░░░░░░░░] 0% — 0
 
 Decisions are logged in PROJECT.md Key Decisions table.
 
-Key context carried forward from v7:
+Key context carried forward from v8 (for v9 planning):
 
-- Last Flyway migration: V23 (deferrable unique constraint on ledger_entry). Next migration is V24.
-- PlatformConfig entity + PlatformConfigService + PlatformConfigResource already exist (v4, Phase 24)
-- PlatformConfigChangedEvent + PlatformConfigEmailListener already exist (v4, Phase 24)
-- Cryptopher/Jasypt AES256 utility already exists in the codebase
-- PayamPlatformProperties already exists
-- PUT /v1/admin/platform-config/{provider} already handles MSISDN updates
-- PlatformConfigDto already exists
-- PlatformConfigPage.vue exists in Vue 3 + Quasar frontend
-- @EventListener on PlatformConfigEmailListener (not @TransactionalEventListener) — MailManager handles AFTER_COMMIT; this is the correct pattern for this listener
-- platformConfigChanged.html Thymeleaf template exists — Phase 44 extends it, does not replace it
-
-Key context from v6/v7:
-
-- Service layer is complete — v8 extends existing service/entity/resource, not new modules
-- Hibernate Envers audit trail active on tenant + api_key tables (not platform_config — out of scope per REQUIREMENTS.md)
-- ApiKeyService uses saveAndFlush ordering pattern for constraint-safe rotation
-- Quartz RotatedKeyCleanupJob running every 5 minutes (AKEY-05)
-- PREFIX_UUID key format in place (AKEY-01)
-- @EnableMethodSecurity active — use method-level @PreAuthorize only (class-level breaks @ExceptionHandler)
-- TenantQueryService separate from TenantService — isolates readOnly transactions from mutation operations
-- [Phase 30]: response.sendError(SC_FORBIDDEN) body is Tomcat HTML page — test assertions check HTTP 403 status only, not body text
-- [Phase 31]: IllegalStateException -> 409 Conflict in ApiAdvice prevents 500 on ApiKeyService double-reactivate scenario
-- [Phase 31]: HttpComponentsClientHttpRequestFactory required for PATCH in integration tests; SimpleClientHttpRequestFactory does not support PATCH
-- [Phase 32-02]: No event publishing in generateAndStore() — callers publish semantically correct events at the business operation level to avoid double-event on rotation
-- [Phase 33]: axios interceptor returns response.data directly — resp.data.X accesses corrected to resp.X in TenantDetailPage
-- [Phase 33]: clearTimers() in onUnmounted prevents countdown interval leak; rawKey.value = null on modal close (D-11)
-- [Phase 34]: PlatformConfigService.findByProvider uses IllegalStateException consistent with existing error contract
-- [Phase 35]: Postgres-first write ordering in IdempotencyService.store(): repo.upsert() before redis.set(); Redis in isolated try/catch (IDEM-01)
-- [Phase 36]: Surefire Docker-context errors in SecurityFilterChainIT and TenantAdminResourceIT are pre-existing, not regressions — same classes pass in failsafe runner; Maven exit 0 confirms build success
-- [Phase 37-webhook-subsystem-fixes]: CONNECT_TIMEOUT_MS=5000ms READ_TIMEOUT_MS=10000ms on SimpleClientHttpRequestFactory in WebhookConfig.noRetryRestTemplate (WEBHOOK-03)
-- [Phase 38-transaction-boundary-fraud-ordering]: feeRuleIdVal extracted via .map(r -> r.getId()) — FeeRule not imported into PaymentOrchestrator; pre-lock cache reads hoisted above transactionTemplate block
-- [Phase 39]: Used primitive long for @Version on TenantApiKey (not boxed Long) to prevent NPE in Hibernate VersionType.seed()
-- [Phase 39]: V22 migration must pair main.tenant_api_key ADD COLUMN with main.tenant_api_key_aud ADD COLUMN — Envers requires column parity (V21 pattern)
-- [Phase 39-concurrency-guards-db-constraints]: DEFERRABLE INITIALLY DEFERRED chosen over constraint trigger for LEDGER-01 — simpler DDL, satisfies requirement as stated
-- [Phase 40]: @Transactional(timeout=300) on MTN/Orange poller executeInternal closes OPS-01 — 300s matches 5-minute Quartz re-fire interval
-- [Phase 40-02]: No production code changes needed for OPS-03 — ApiKeyAuthenticationFilter finally block already clears TenantContext on all paths including exception paths; only test coverage was missing
-- [Phase 41]: VARCHAR(500) for pin ciphertext: AES256 Base64 output for 4-8 char PIN is ~80-120 chars; 500 provides headroom
-- [Phase 41]: platform_config_aud created in V24 (not V20): V20 already shipped; idempotent CREATE TABLE IF NOT EXISTS in V24 corrects the Envers gap
-- [Phase 44-pin-email-notification]: Use @EventListener (not @TransactionalEventListener) on PlatformConfigEmailListener to avoid double-wrapping since MailManager handles AFTER_COMMIT internally
-- [Phase 44-pin-email-notification]: PIN-11 security: Envelope data map contains only boolean pinChanged, never the PIN ciphertext or plaintext
+- Last Flyway migration: V24 (platform_config_aud + nullable pin column). Next migration is V25.
+- PlatformConfig entity now has `pin` (nullable VARCHAR(500) ciphertext) + `updatePin(ciphertext)` method
+- `pinCryptopher` @Bean backed by `PayamPlatformProperties.pinEncryptionSecret` / `PLATFORM_PIN_ENCRYPTION_SECRET`
+- `PlatformConfigDto` has `pinConfigured: boolean` — actual PIN ciphertext/plaintext never serialized to client
+- GET `/v1/admin/platform-config/{provider}/pin` returns `PinDto{pin: String}` — dedicated reveal endpoint
+- `PlatformConfigChangedEvent`: 6-field record (provider, oldMsisdn, newMsisdn, msisdnChanged, pinChanged, changedBy)
+- `@EventListener` on PlatformConfigEmailListener (not @TransactionalEventListener) — MailManager handles AFTER_COMMIT
+- Dead method `updatePlatformConfig(provider, platformMsisdn)` in admin.api.js — not called, low-risk TD-01
+- All established v6/v7 patterns still apply (see prior session context)
 
 ### Roadmap Evolution
 
-- Phases 41–44 added: v8 Platform Config PIN roadmap (2026-04-17)
+- v8 complete (2026-04-21): Phases 41–45 (5 phases, 8 plans) archived
 
 ### Pending Todos
 
@@ -104,6 +73,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-20T12:08:05.597Z
-Stopped at: Phase 45 UI-SPEC approved
-Resume file: .planning/phases/45-pin-add-provider-fix/45-UI-SPEC.md
+Last session: 2026-04-21
+Stopped at: v8 milestone complete
+Resume: /gsd:new-milestone to start v9
