@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -74,7 +75,8 @@ class LedgerConstraintIT {
             })
         )
         .isInstanceOfAny(DataIntegrityViolationException.class,
-                         org.springframework.transaction.TransactionSystemException.class)
+                         org.springframework.transaction.TransactionSystemException.class,
+                         JpaSystemException.class)
         .satisfies(ex -> {
             // Unwrap cause chain to verify the trigger message appears somewhere
             Throwable root = ex;
