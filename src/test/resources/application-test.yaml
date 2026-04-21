@@ -1,0 +1,14 @@
+logging:
+  config: classpath:logback-test.xml
+
+management:
+  tracing:
+    enabled: false
+  otlp:
+    tracing:
+      export:
+        enabled: false
+  metrics:
+    export:
+      prometheus:
+        enabled: false

@@ -47,7 +47,7 @@ import static org.awaitility.Awaitility.await;
  * <p>Pre-seeded data: Flyway V17 inserts ORANGE and MTN rows into {@code main.platform_config}
  * with empty MSISDN and null PIN. The tests use ORANGE.
  */
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = {"enable.test.mail=true",
                               "payam.platform.pin-encryption-secret=test-pin-secret-for-tests"})

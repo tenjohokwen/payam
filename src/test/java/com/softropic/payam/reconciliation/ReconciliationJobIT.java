@@ -48,7 +48,7 @@ import static org.mockito.Mockito.when;
  *
  * @MockBean on MtnMoMoPort and OrangeMoneyPort prevents real HTTP calls to providers.
  */
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = {"enable.test.mail=true"})
 @Import(TestConfig.class)

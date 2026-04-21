@@ -37,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Enables datasource-proxy query counting via the log.database.spy property so that
  * QueryCountVerifier (backed by QueryCountHolder) returns meaningful counts.
  */
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = {"enable.test.mail=true"})
 @Import(TestConfig.class)

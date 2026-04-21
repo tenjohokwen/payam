@@ -48,7 +48,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * {@link TestMailManager} replaces the real mail sender; sent envelopes are captured in memory.
  */
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {

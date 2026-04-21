@@ -29,7 +29,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = {"ledger.database.spy=true", "enable.test.mail=true"})
 @Import(TestConfig.class)

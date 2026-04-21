@@ -25,7 +25,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 //TODO take note "webEnvironment=WebEnvironment.RANDOM_PORT" is needed so as to configure TestRestTemplate
 @SpringBootTest(webEnvironment= SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {"logging.level.org.springframework.security=TRACE"})
 @Import(TestConfig.class)

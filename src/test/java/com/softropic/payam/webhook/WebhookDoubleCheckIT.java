@@ -52,7 +52,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Uses @EnableWireMock to intercept outbound provider status API calls.
  * Transactions are seeded directly via jdbcTemplate in PROCESSING state.
  */
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = {"enable.test.mail=true"})
 @Import(TestConfig.class)

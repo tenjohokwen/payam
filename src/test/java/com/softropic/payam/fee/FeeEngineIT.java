@@ -53,7 +53,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Uses SimpleClientHttpRequestFactory (noRetryRestTemplate pattern) to avoid httpclient5
  * auto-retry masking.
  */
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = {"enable.test.mail=true"})
 @Import(TestConfig.class)

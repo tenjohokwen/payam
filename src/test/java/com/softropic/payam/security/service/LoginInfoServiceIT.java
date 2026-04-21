@@ -30,7 +30,7 @@ import static com.softropic.payam.security.contract.exception.SecurityError.OTP_
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {"rate.limiting.enabled=false"})
 @Import(TestConfig.class)

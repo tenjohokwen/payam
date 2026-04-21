@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * IP whitelist is set to empty (sandbox mode) via @TestPropertySource.
  * HMAC secret is empty (sandbox mode) by default — Test 5 temporarily sets it.
  */
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = {"enable.test.mail=true"})
 @Import(TestConfig.class)

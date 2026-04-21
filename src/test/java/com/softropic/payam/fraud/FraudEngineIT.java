@@ -49,7 +49,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *   <li>A non-blocked payment results in a Transaction row with non-null risk_score in the DB.</li>
  * </ol>
  */
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = {"enable.test.mail=true"})
 @Import(TestConfig.class)

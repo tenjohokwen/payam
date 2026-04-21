@@ -41,7 +41,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {"logging.level.org.springframework.security=TRACE", "enable.test.mail=true"})
 @Import(TestConfig.class)
 @Sql({UserServiceIT.SEC_DATA_SQL_PATH})

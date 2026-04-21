@@ -89,7 +89,7 @@ import static org.assertj.core.api.Assertions.assertThat;
     @ConfigureWireMock(name = "orange",    baseUrlProperties = {"orange.base-url", "orange.pay-url"}),
     @ConfigureWireMock(name = "tenant-wh") // URL assigned dynamically to Tenant entity — no baseUrlProperties
 })
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 public class OutboundWebhookDeliveryE2ETest {
 
     @LocalServerPort

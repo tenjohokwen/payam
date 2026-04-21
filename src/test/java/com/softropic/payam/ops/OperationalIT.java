@@ -50,7 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>Uses SimpleClientHttpRequestFactory to avoid httpclient5 auto-retry masking.
  */
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = {"enable.test.mail=true"})
 @Import(TestConfig.class)

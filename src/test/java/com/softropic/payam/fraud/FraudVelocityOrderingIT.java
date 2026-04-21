@@ -48,7 +48,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>Boilerplate copied verbatim from {@link FraudEngineIT} — same annotations, same setUp/tearDown,
  * same helpers. No mocking: uses only the real production path.
  */
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = {"enable.test.mail=true"})
 @Import(TestConfig.class)

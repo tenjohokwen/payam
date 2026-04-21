@@ -60,7 +60,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Uses @EnableWireMock for both provider status APIs and the tenant's webhook endpoint.
  * The "tenant-wh" WireMock server acts as the tenant's configured webhook URL.
  */
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = {"enable.test.mail=true"})
 @Import(TestConfig.class)

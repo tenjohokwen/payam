@@ -9,6 +9,19 @@
 * It is important to note the presence of application.properties file in the test resources folder
 * It overrides the application.yaml file for tests
 
+## Decoupling LGTM Stack from Tests
+The LGTM stack (Loki, Grafana, Tempo, Mimir/Prometheus) is used for observability in production and development but can cause tests to fail if not available. To ensure tests are portable and do not depend on the LGTM docker stack, the following properties are configured in `src/test/resources/application.properties`:
+
+* `logging.config=classpath:logback-test.xml`: Overrides the default `logback-spring.xml` (which includes the Loki appender) with a minimal test configuration.
+* `management.tracing.enabled=false`: Disables distributed tracing.
+* `management.otlp.tracing.export.enabled=false`: Prevents the OTLP exporter from attempting to connect to Tempo.
+* `management.metrics.export.prometheus.enabled=false`: Disables the Prometheus metrics endpoint export during tests.
+
+This allows `mvn verify` to pass without running `docker compose -f docker-compose-lgtm.yaml up`.
+
+* **NB** You should put the application.properties file in your test resources folder and it will affect only tests
+* **NB**  application.properties overwrites ONLY application.yaml. If you have a specific env config, it overrides the default configs
+
 
 ## Understanding Wiremock
 * To start with, the application.properties files overwrites the application.yaml file

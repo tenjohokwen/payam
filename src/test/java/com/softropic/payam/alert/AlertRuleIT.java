@@ -56,7 +56,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>Counter-based tests manipulate Micrometer counters directly to simulate accumulated
  * payment outcomes without running actual payments.
  */
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = {"enable.test.mail=true"})
 @Import({TestConfig.class, AlertRuleIT.CaptorConfig.class})

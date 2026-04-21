@@ -34,7 +34,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  * WebhookDeliveryLog row is inserted BEFORE the attempt — we only assert existence/absence
  * of the row, not delivery success.
  */
-@ActiveProfiles("dev")
+@ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = {"enable.test.mail=true"})
 @Import(TestConfig.class)
