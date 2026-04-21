@@ -145,7 +145,7 @@ public class OrangeMoneyClient extends AbstractClient {
 
         long start = System.currentTimeMillis();
         ResponseEntity<PayResponse> response = makeHttpRequest(
-                url, HttpMethod.GET, null, PayResponse.class, bearerHeaders(bearerToken));
+                url, HttpMethod.GET, null, PayResponse.class, xAuthHeaders(bearerToken));
         // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
         log.info("Provider HTTP call",
                 kv("externalService", "ORANGE_MONEY"),
