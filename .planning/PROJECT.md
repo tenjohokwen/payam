@@ -89,6 +89,8 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ `PlatformConfigChangedEvent` carries `msisdnChanged`, `pinChanged`, `changedBy`; fires only on real change, suppressed on no-op and first-time PIN creation — v8 (Phase 44): PIN-10
 - ✓ `PlatformConfigEmailListener` renders conditional MSISDN/PIN change rows + admin username + timestamp in email; PIN value never leaks — v8 (Phase 44): PIN-11
 
+- ✓ Flyway V25 schema migration: drop `uq_ledger_entry_group_direction` unique constraint, add deferrable `check_ledger_balance` constraint trigger (SUM DEBIT == SUM CREDIT per entry group at commit), relax `amount >= 0` for zero-fee entries, add nullable `flow VARCHAR(20)` to `main.transaction` and `main.transaction_aud` — v9 (Phase 46): SCHEMA-01, SCHEMA-02, SCHEMA-03, SCHEMA-04
+
 ### Active
 
 <!-- v9 Ledger Disbursement Support — requirements defined 2026-04-21 -->
