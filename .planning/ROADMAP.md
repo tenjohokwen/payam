@@ -371,7 +371,11 @@ Plans:
   4. `WebhookTransitionService` compiles and passes its existing integration tests after migrating its call-site to `LedgerPosting.collection(amount, currency)` — the old 4-arg `postEntry` method no longer exists in the codebase
   5. `Transaction` entity has a nullable `flow` field annotated `@Enumerated(STRING)`; `getEffectiveFlow()` returns `LedgerFlow.COLLECTION` when `flow` is null
   6. `mvn verify` passes with all existing webhook and ledger tests green
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 47-01-PLAN.md — LedgerFlow enum + LedgerPosting record (CONTRACT-01..04) with unit tests
+- [ ] 47-02-PLAN.md — LedgerService rewrite (switch-routed, private account-code constants) + migrate 3 call sites (SERVICE-01..05)
+- [ ] 47-03-PLAN.md — Transaction.flow field + getEffectiveFlow() + mvn verify phase gate (SERVICE-06)
 
 ### Phase 48: Test Coverage
 **Goal**: Every ledger flow variant is proven correct by unit tests, the PITest mutation threshold is maintained, and a real-database integration test confirms disbursement rows persist without constraint violation
@@ -450,6 +454,6 @@ Plans:
 | 44. PIN Email Notification | v8 | 2/2 | Complete | 2026-04-18 |
 | 45. PIN Add-Provider Fix | v8 | 1/1 | Complete | 2026-04-20 |
 | 46. Flyway V25 Schema Migration | v9 | 1/1 | Complete    | 2026-04-21 |
-| 47. Contract Types + LedgerService Rewrite | v9 | 0/TBD | Not started | - |
+| 47. Contract Types + LedgerService Rewrite | v9 | 0/3 | Not started | - |
 | 48. Test Coverage | v9 | 0/TBD | Not started | - |
 | 49. Orange Cashout Wiring | v9 | 0/TBD | Not started | - |
