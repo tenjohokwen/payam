@@ -13,11 +13,13 @@ public class PayRequest {
     @JsonProperty("orderId")           private String orderId;
     @JsonProperty("description")       private String description;
     @JsonProperty("notifUrl")          private String notifUrl;
+    @JsonProperty("pin")               private String pin;
 
     /** Factory method — preferred over direct constructor for readability. */
     public static PayRequest of(String payToken, String subscriberMsisdn,
                                 String channelUserMsisdn, String amount,
-                                String orderId, String description, String notifUrl) {
+                                String orderId, String description, String notifUrl,
+                                String pin) {
         PayRequest req = new PayRequest();
         req.payToken          = payToken;
         req.subscriberMsisdn  = subscriberMsisdn;
@@ -26,6 +28,7 @@ public class PayRequest {
         req.orderId           = orderId;
         req.description       = description;
         req.notifUrl          = notifUrl;
+        req.pin               = pin;
         return req;
     }
 
@@ -36,4 +39,5 @@ public class PayRequest {
     public String getOrderId()           { return orderId; }
     public String getDescription()       { return description; }
     public String getNotifUrl()          { return notifUrl; }
+    public String getPin()               { return pin; }
 }

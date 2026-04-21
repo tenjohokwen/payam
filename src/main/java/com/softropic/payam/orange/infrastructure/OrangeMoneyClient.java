@@ -99,14 +99,14 @@ public class OrangeMoneyClient extends AbstractClient {
 
     /**
      * POST /mp/init — returns a payToken for a new merchant payment transaction.
-     * No request body. Response: {"data":{"payToken":"MP-XXXX"},"message":"OK"}
+     * Requires Bearer token and X-AUTH-TOKEN (base64 of apiUsername:apiPassword).
      */
     public InitTransactionResponse initTransaction(String bearerToken) {
         String url = buildClientURL("/mp/init");
 
         long start = System.currentTimeMillis();
         ResponseEntity<InitTransactionResponse> response = makeHttpRequest(
-                url, HttpMethod.POST, null, InitTransactionResponse.class, bearerHeaders(bearerToken));
+                url, HttpMethod.POST, null, InitTransactionResponse.class, xAuthHeaders(bearerToken));
         log.info("Provider HTTP call",
                 kv("externalService", "ORANGE_MONEY"),
                 kv("operation", "initTransaction"),
@@ -119,13 +119,13 @@ public class OrangeMoneyClient extends AbstractClient {
         return response.getBody();
     }
 
-    /** POST /mp/pay (uses config.getPayUrl() which is v1.0.1 — not baseUrl) */
+    /** POST /mp/pay (uses config.getPayUrl() which is v1.0.2 — not baseUrl) */
     public PayResponse pay(String bearerToken, PayRequest request) {
         String url = config.getPayUrl() + "/mp/pay";
 
         long start = System.currentTimeMillis();
         ResponseEntity<PayResponse> response = makeHttpRequest(
-                url, HttpMethod.POST, request, PayResponse.class, bearerHeaders(bearerToken));
+                url, HttpMethod.POST, request, PayResponse.class, xAuthHeaders(bearerToken));
         // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
         log.info("Provider HTTP call",
                 kv("externalService", "ORANGE_MONEY"),
@@ -190,6 +190,16 @@ public class OrangeMoneyClient extends AbstractClient {
     private HttpHeaders bearerHeaders(String token) {
         return toHttpHeaders(Map.of(
                 "Authorization", "Bearer " + token,
+                "Content-Type", "application/json"
+        ));
+    }
+
+    private HttpHeaders xAuthHeaders(String token) {
+        String authHeader = config.getApiUsername() + ":" + config.getApiPassword();
+        String xAuthToken = Base64.getEncoder().encodeToString(authHeader.getBytes(StandardCharsets.UTF_8));
+        return toHttpHeaders(Map.of(
+                "Authorization", "Bearer " + token,
+                "X-AUTH-TOKEN", xAuthToken,
                 "Content-Type", "application/json"
         ));
     }

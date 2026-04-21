@@ -125,7 +125,7 @@ public class PaymentOrchestrator {
         try {
             provider = msisdnRouter.resolve(request.msisdn());
         } catch (UnknownMsisdnPrefixException e) {
-            log.warn("Unknown MSISDN prefix", kv("operation", "route_msisdn"), kv("status", "UNKNOWN_PREFIX"));
+            log.error("Unknown MSISDN prefix", kv("operation", "route_msisdn"), kv("status", "UNKNOWN_PREFIX"));
             return PaymentResponse.failed(null,
                     OrchestratorError.UNKNOWN_MSISDN_PREFIX.getErrorCode(),
                     e.getMessage());
@@ -278,7 +278,7 @@ public class PaymentOrchestrator {
             return response;
 
         } catch (CallNotPermittedException e) {
-            log.warn("Payment initiation failed",
+            log.error("Payment initiation failed",
                 kv("operation", "initiate_payment"),
                 kv("tenantId", TenantContext.get()),
                 kv("transactionId", tx.getTransactionId()),
@@ -293,7 +293,7 @@ public class PaymentOrchestrator {
                     "Provider temporarily unavailable");
 
         } catch (SubscriberInactiveException | MtnAccountInactiveException e) {
-            log.warn("Payment initiation failed",
+            log.error("Payment initiation failed",
                 kv("operation", "initiate_payment"),
                 kv("tenantId", TenantContext.get()),
                 kv("transactionId", tx.getTransactionId()),
@@ -308,7 +308,7 @@ public class PaymentOrchestrator {
                     e.getMessage());
 
         } catch (HttpClientException e) {
-            log.warn("Payment initiation failed",
+            log.error("Payment initiation failed",
                 kv("operation", "initiate_payment"),
                 kv("tenantId", TenantContext.get()),
                 kv("transactionId", tx.getTransactionId()),

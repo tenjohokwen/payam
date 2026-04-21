@@ -12,6 +12,8 @@ public class OrangeMoneyConfig {
     private String tokenUrl;
     private String consumerKey;
     private String consumerSecret;
+    private String apiUsername;
+    private String apiPassword;
     private int payTokenExpiryThresholdMinutes = 8;
     private Poller poller = new Poller();
     private List<String> callbackIpWhitelist = new ArrayList<>();
@@ -46,6 +48,12 @@ public class OrangeMoneyConfig {
 
     public String getConsumerSecret() { return consumerSecret; }
     public void setConsumerSecret(String consumerSecret) { this.consumerSecret = consumerSecret; }
+
+    public String getApiUsername() { return apiUsername; }
+    public void setApiUsername(String apiUsername) { this.apiUsername = apiUsername; }
+
+    public String getApiPassword() { return apiPassword; }
+    public void setApiPassword(String apiPassword) { this.apiPassword = apiPassword; }
 
     public int getPayTokenExpiryThresholdMinutes() { return payTokenExpiryThresholdMinutes; }
     public void setPayTokenExpiryThresholdMinutes(int payTokenExpiryThresholdMinutes) {

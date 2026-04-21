@@ -2,6 +2,7 @@ package com.softropic.payam.e2e.payment;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.softropic.payam.e2e.AbstractFailureFlowTest;
+import com.softropic.payam.e2e.PlatformConfigInitializer;
 import com.softropic.payam.e2e.builder.DeterministicUuidFactory;
 import com.softropic.payam.e2e.builder.PaymentRequestBuilder;
 import com.softropic.payam.e2e.builder.TenantBuilder;
@@ -13,6 +14,7 @@ import com.softropic.payam.payment.contract.PaymentResponse;
 import com.softropic.payam.tenant.repo.TenantRepository;
 import com.softropic.payam.tenant.service.TenantService;
 
+import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -88,6 +90,9 @@ public class OrangePayTokenExpiryE2ETest extends AbstractFailureFlowTest {
     @Autowired
     private OrangeStatusPollerJob orangeStatusPollerJob;
 
+    @Autowired
+    private PlatformConfigInitializer platformConfigInitializer;
+
     private TenantBuilder.CreatedTenant tenant;
     private String transactionId;
     private String idempotencyKey;
@@ -98,6 +103,8 @@ public class OrangePayTokenExpiryE2ETest extends AbstractFailureFlowTest {
     @Override
     protected void setupPreconditions() {
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+
+        platformConfigInitializer.initOrange();
 
         // Stub Orange initiation stubs — subscriber info, merchant info, and pay endpoint.
         // The /mp/paymentstatus endpoint is intentionally NOT stubbed here — the poller
@@ -115,6 +122,11 @@ public class OrangePayTokenExpiryE2ETest extends AbstractFailureFlowTest {
 
         uuidFactory = new DeterministicUuidFactory(0xEF0AB1L);
         invariant = new InvariantVerifier(jdbcTemplate, redis, mtnServer, orangeServer);
+    }
+
+    @AfterEach
+    void tearDown() {
+        platformConfigInitializer.clear();
     }
 
     /**

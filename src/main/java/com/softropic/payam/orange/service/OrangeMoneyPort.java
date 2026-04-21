@@ -90,8 +90,11 @@ public class OrangeMoneyPort implements MobileMoneyPort {
         // Step 2: Persist payToken and issuance time on the transaction (non-transactional update)
         persistPayToken(cmd.transactionId(), payToken, payTokenIssuedAt);
 
+        // Fetch PIN
+        String pin = platformConfigService.findPinByProvider("ORANGE").pin();
+
         // Step 3: Call /mp/pay
-        PayRequest payRequest = buildPayRequest(cmd, payToken, nationalMsisdn);
+        PayRequest payRequest = buildPayRequest(cmd, payToken, nationalMsisdn, pin);
         PayResponse payResponse = orangeMoneyClient.pay(token, payRequest);
 
         // Append event log entry for INIT->PROCESSING
@@ -261,12 +264,12 @@ public class OrangeMoneyPort implements MobileMoneyPort {
         });
     }
 
-    private PayRequest buildPayRequest(PaymentCommand cmd, String payToken, String nationalMsisdn) {
+    private PayRequest buildPayRequest(PaymentCommand cmd, String payToken, String nationalMsisdn, String pin) {
         String channelMsisdn = platformConfigService.findByProvider("ORANGE").platformMsisdn();
         String orderId = cmd.externalReference() != null ? cmd.externalReference() : cmd.transactionId();
         String desc = cmd.description() != null ? cmd.description() : "Payment";
         return PayRequest.of(payToken, nationalMsisdn, channelMsisdn,
-                cmd.amount().toPlainString(), orderId, desc, config.getCallbackUrl());
+                cmd.amount().toPlainString(), orderId, desc, config.getCallbackUrl(), pin);
     }
 
     // No fallback methods — circuit-open throws CallNotPermittedException to caller.

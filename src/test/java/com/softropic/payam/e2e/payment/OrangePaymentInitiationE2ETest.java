@@ -2,6 +2,7 @@ package com.softropic.payam.e2e.payment;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.softropic.payam.e2e.AbstractWebhookFlowTest;
+import com.softropic.payam.e2e.PlatformConfigInitializer;
 import com.softropic.payam.e2e.builder.DeterministicUuidFactory;
 import com.softropic.payam.e2e.builder.PaymentRequestBuilder;
 import com.softropic.payam.e2e.builder.TenantBuilder;
@@ -13,6 +14,7 @@ import com.softropic.payam.tenant.repo.TenantRepository;
 import com.softropic.payam.tenant.service.TenantService;
 
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -56,6 +58,9 @@ public class OrangePaymentInitiationE2ETest extends AbstractWebhookFlowTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private PlatformConfigInitializer platformConfigInitializer;
+
     private TenantBuilder.CreatedTenant tenant;
     private String transactionId;
     private String idempotencyKey;
@@ -65,6 +70,8 @@ public class OrangePaymentInitiationE2ETest extends AbstractWebhookFlowTest {
 
     @Override
     protected void setupPreconditions() {
+        platformConfigInitializer.initOrange();
+
         // Stub Orange provider endpoints (token already stubbed by stubTokenEndpoints() in base)
         orangeServer.stubFor(get(urlPathEqualTo("/infos/subscriber"))
             .willReturn(okJson("{\"status\":\"ACTIF\",\"message\":\"OK\"}")));
@@ -82,6 +89,11 @@ public class OrangePaymentInitiationE2ETest extends AbstractWebhookFlowTest {
 
         uuidFactory = new DeterministicUuidFactory(0xBEEFEL);
         invariant = new InvariantVerifier(jdbcTemplate, redis, mtnServer, orangeServer);
+    }
+
+    @AfterEach
+    void tearDown() {
+        platformConfigInitializer.clear();
     }
 
     @Override

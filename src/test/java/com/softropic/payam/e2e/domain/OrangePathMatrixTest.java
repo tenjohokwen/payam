@@ -2,6 +2,7 @@ package com.softropic.payam.e2e.domain;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.softropic.payam.e2e.AbstractPayamE2ETest;
+import com.softropic.payam.e2e.PlatformConfigInitializer;
 import com.softropic.payam.e2e.builder.PaymentRequestBuilder;
 import com.softropic.payam.e2e.builder.TenantBuilder;
 import com.softropic.payam.e2e.verify.InvariantVerifier;
@@ -13,6 +14,7 @@ import com.softropic.payam.tenant.repo.TenantRepository;
 import com.softropic.payam.tenant.service.TenantService;
 
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -58,7 +60,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * Covers 4 Orange scenarios in a single @ParameterizedTest:
  *   1. success          — webhook happy path → SUCCESS
- *   2. payToken-expiry  — poller detects expired payToken → PROCESSING (not FAILED, decision [20-01])
+ *   2. payToken-expiry  — poller detects expired payToken → FAILED (Decision [20-01] reversed)
  *   3. init-failure     — POST /mp/pay returns 500 → FAILED
  *   4. polling-fallback — no webhook, OrangeStatusPollerJob drives SUCCESS
  */
@@ -85,6 +87,9 @@ public class OrangePathMatrixTest extends AbstractPayamE2ETest {
     @Autowired
     private FraudRuleCache fraudRuleCache;
 
+    @Autowired
+    private PlatformConfigInitializer platformConfigInitializer;
+
     private TenantBuilder.CreatedTenant tenant;
     private InvariantVerifier invariant;
     private RestTemplate noRetryRestTemplate;
@@ -92,6 +97,8 @@ public class OrangePathMatrixTest extends AbstractPayamE2ETest {
     @BeforeEach
     void setUp() {
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+
+        platformConfigInitializer.initOrange();
 
         // Seed permissive fraud rules (BLOCK_THRESHOLD=70 allows normal payments)
         transactionTemplate.execute(status -> {
@@ -119,10 +126,15 @@ public class OrangePathMatrixTest extends AbstractPayamE2ETest {
         noRetryRestTemplate = buildNoRetryRestTemplate();
     }
 
+    @AfterEach
+    void tearDown() {
+        platformConfigInitializer.clear();
+    }
+
     static Stream<Arguments> orangePathMatrix() {
         return Stream.of(
             Arguments.of("success",           "SUCCESS",    2),
-            Arguments.of("payToken-expiry",   "PROCESSING", 1), 
+            Arguments.of("payToken-expiry",   "FAILED",     1), 
             Arguments.of("init-failure",      "FAILED",     1), 
             Arguments.of("polling-fallback",  "SUCCESS",    2)
         );
@@ -175,13 +187,15 @@ public class OrangePathMatrixTest extends AbstractPayamE2ETest {
         assertThat(init.transactionId()).isNotNull();
 
         // Backdate pay_token_issued_at and last_modified_date with REQUIRES_NEW
+        final Instant now = Instant.now();
+        Instant backdated = now.minus(10, ChronoUnit.MINUTES);
         DefaultTransactionDefinition requiresNew = new DefaultTransactionDefinition();
         requiresNew.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         new TransactionTemplate(transactionManager, requiresNew).execute(status -> {
             jdbcTemplate.update(
                 "UPDATE main.transaction SET pay_token_issued_at = NOW() - INTERVAL '1 year', " +
-                "last_modified_date = NOW() - INTERVAL '3 minutes' " +
-                "WHERE transaction_id = ?", init.transactionId());
+                "last_modified_date = ? " +
+                "WHERE transaction_id = ?", Timestamp.from(backdated), init.transactionId());
             return null;
         });
 
@@ -202,13 +216,13 @@ public class OrangePathMatrixTest extends AbstractPayamE2ETest {
             throw new RuntimeException("Failed to invoke OrangeStatusPollerJob.executeInternal", e);
         }
 
-        // Transaction stays PROCESSING — expiry increments pollAttempts and returns early
-        // FAILED only fires at pollAttempts >= 15 (decision [20-01])
+        // Transaction transitions to FAILED immediately on payToken expiry
+        // Do NOT increment pollAttempts; the token expiry is not a poll outcome.
         String status = jdbcTemplate.queryForObject(
             "SELECT tx_status FROM main.transaction WHERE transaction_id = ?",
             String.class, init.transactionId());
         assertThat(status)
-            .as("Transaction must remain PROCESSING on payToken expiry")
+            .as("Transaction must transition to FAILED on payToken expiry")
             .isEqualTo(finalStatus);
         assertEventCountAtLeast(init.transactionId(), expectedMinEventCount);
     }
@@ -261,7 +275,7 @@ public class OrangePathMatrixTest extends AbstractPayamE2ETest {
         assertThat(init.transactionId()).isNotNull();
 
         // Backdate last_modified_date with REQUIRES_NEW
-        Instant backdated = Instant.now().minus(7, ChronoUnit.MINUTES);
+        Instant backdated = Instant.now().minus(10, ChronoUnit.MINUTES);
         DefaultTransactionDefinition requiresNew = new DefaultTransactionDefinition();
         requiresNew.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         new TransactionTemplate(transactionManager, requiresNew).execute(status -> {

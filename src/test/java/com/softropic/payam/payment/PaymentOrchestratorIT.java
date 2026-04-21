@@ -4,6 +4,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.fee.service.FeeRuleCache;
 import com.softropic.payam.payment.contract.PaymentResponse;
+import com.softropic.payam.platform.service.PlatformConfigService;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
 
@@ -76,7 +77,9 @@ class PaymentOrchestratorIT {
     @Autowired TransactionTemplate transactionTemplate;
     @Autowired StringRedisTemplate redis;
     @Autowired CircuitBreakerRegistry circuitBreakerRegistry;
-    @Autowired FeeRuleCache feeRuleCache;
+    @Autowired FeeRuleCache          feeRuleCache;
+    @Autowired PlatformConfigService platformConfigService;
+
 
     @SpyBean
     com.softropic.payam.fee.service.FeeEvaluationService feeSpy;
@@ -236,9 +239,18 @@ class PaymentOrchestratorIT {
 
     @Test
     void orange_msisdn_routes_to_orange_and_returns_202() {
+        // Seed platform config with PIN
+        platformConfigService.update("ORANGE", "691301143", "2222");
+
         // Stub Orange subscriber info endpoint
         orangeServer.stubFor(get(urlPathEqualTo("/infos/subscriber"))
             .willReturn(okJson("{\"status\":\"ACTIF\",\"message\":\"OK\"}")));
+
+        //Stub Orange access token endpoint
+        orangeServer.stubFor(post(urlPathEqualTo("/token"))
+                                     .withHeader("Authorization", containing("Basic"))
+                                     .withRequestBody(equalTo("grant_type=client_credentials"))
+                                     .willReturn(okJson("{\"access_token\":\"test-bearer-token\",\"token_type\":\"Bearer\",\"expires_in\":3600}")));
 
         // Stub Orange merchant info endpoint — returns payToken
         orangeServer.stubFor(post(urlPathEqualTo("/mp/init"))

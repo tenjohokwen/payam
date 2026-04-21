@@ -24,7 +24,7 @@ All examples use Spring's `RestTemplate` or `WebClient` — no dependency on the
 
 ## 1. Overview
 
-**Base URL:** `https://apis.orange.cm`
+**Base URL:** `https://api-s1.orange.cm/omcoreapis/1.0.2`
 
 The Orange Money API follows a consistent pattern for all financial transactions:
 
@@ -58,10 +58,14 @@ The `payToken` is the unique handle for every transaction — keep it in your da
 ### `application.yml`
 
 ```yaml
-orange-money:
-  base-url: https://apis.orange.cm
-  api-key: YOUR_API_KEY          # X-AUTH-TOKEN header value
-  bearer-token: YOUR_BEARER_TOKEN # Authorization: Bearer <token>
+orange:
+  base-url: https://api-s1.orange.cm/omcoreapis/1.0.2
+  pay-url: https://api-s1.orange.cm/omcoreapis/1.0.2
+  token-url: https://api-s1.orange.cm/token
+  consumer-key: YOUR_CONSUMER_KEY
+  consumer-secret: YOUR_CONSUMER_SECRET
+  api-username: YOUR_API_USERNAME
+  api-password: YOUR_API_PASSWORD
   channel-msisdn: "6XXXXXXXX"    # Your registered Orange Money channel number
 ```
 
@@ -69,34 +73,18 @@ orange-money:
 
 ```java
 @Configuration
+@ConfigurationProperties(prefix = "orange")
 public class OrangeMoneyConfig {
-
-    @Value("${orange-money.base-url}")
     private String baseUrl;
+    private String payUrl;
+    private String tokenUrl;
+    private String consumerKey;
+    private String consumerSecret;
+    private String apiUsername;
+    private String apiPassword;
+    private String callbackUrl;
 
-    @Value("${orange-money.api-key}")
-    private String apiKey;
-
-    @Value("${orange-money.bearer-token}")
-    private String bearerToken;
-
-    @Bean
-    public RestTemplate orangeMoneyRestTemplate() {
-        RestTemplate restTemplate = new RestTemplate();
-        restTemplate.getInterceptors().add((request, body, execution) -> {
-            request.getHeaders().set("X-AUTH-TOKEN", apiKey);
-            request.getHeaders().set("Authorization", "Bearer " + bearerToken);
-            request.getHeaders().set("Content-Type", "application/json");
-            request.getHeaders().set("Accept", "application/json");
-            return execution.execute(request, body);
-        });
-        return restTemplate;
-    }
-
-    @Bean
-    public String orangeMoneyBaseUrl() {
-        return baseUrl;
-    }
+    // Getters and setters...
 }
 ```
 
@@ -104,14 +92,41 @@ public class OrangeMoneyConfig {
 
 ## 3. Authentication
 
-Every request (except password update and bulk status) requires **both** headers:
+### Step 1 — Request Access Token
 
-| Header | Value |
-|--------|-------|
-| `X-AUTH-TOKEN` | Your API key |
-| `Authorization` | `Bearer <your-bearer-token>` |
+Before calling any financial endpoints, you must obtain an OAuth2 Bearer token. This is done by sending a POST request to the token URL using Basic Auth with your `consumer-key` and `consumer-secret`.
 
-Both tokens are provisioned by Orange when you register as a partner. They do not expire per-request — treat them as long-lived credentials and store them securely (environment variables / secrets manager, not in source code).
+**Request**
+```http
+POST /token HTTP/1.1
+Host: api-s1.orange.cm
+Authorization: Basic <base64(consumer-key:consumer-secret)>
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials
+```
+
+**Response**
+```json
+{ 
+    "access_token": "26a28627-3799-3694-a108-226be1ce2649", 
+    "scope": "am_application_scope default", 
+    "token_type": "Bearer", 
+    "expires_in": 3600 
+}
+```
+
+### Step 2 — Subsequent Requests
+
+Every subsequent request requires **both** of these headers:
+
+| Header | Value | Description |
+|--------|-------|-------------|
+| `Authorization` | `Bearer <access_token>` | OAuth2 token from Step 1 |
+| `X-AUTH-TOKEN` | `<base64(api-username:api-password)>` | Base64 of Orange API credentials |
+
+The `X-AUTH-TOKEN` is the base64-encoded value of `orange.api-username:orange.api-password`.
+Example: `OMSANDBOXAPI:OMS@NDBOX@PI` → `T01TQU5EQk9YQVBJOk9NU0BOREJPWEBQSQ==`
 
 ---
 
@@ -143,29 +158,31 @@ Your server          Orange API              Customer phone
 ### Step 1 — Init: obtain a payToken
 
 **Request**
-```
-POST https://apis.orange.cm/mp/init
-X-AUTH-TOKEN: <api-key>
-Authorization: Bearer <token>
+```http
+POST https://api-s1.orange.cm/omcoreapis/1.0.2/mp/init
+X-AUTH-TOKEN: <base64(api-username:api-password)>
+Authorization: Bearer <access_token>
 ```
 No request body.
 
 **Response**
 ```json
 {
+  "message": "Merchant payment request successfully initiated",
   "data": {
     "payToken": "MP-XXXXXXXXXXXXXXXX"
-  },
-  "message": "OK"
+  }
 }
 ```
 
 ### Step 2 — Pay: submit transaction details
 
 **Request**
-```
-POST https://apis.orange.cm/mp/pay
+```http
+POST https://api-s1.orange.cm/omcoreapis/1.0.2/mp/pay
 Content-Type: application/json
+X-AUTH-TOKEN: <base64(api-username:api-password)>
+Authorization: Bearer <access_token>
 ```
 
 **Request body**
@@ -179,17 +196,18 @@ Content-Type: application/json
 | `orderId` | string | Yes | Your internal order/reference ID |
 | `description` | string | Yes | Human-readable payment description |
 | `notifUrl` | string | Yes | Your webhook URL for async notification |
-| `pin` | string | No | Channel PIN (required by some configurations) |
+| `pin` | string | Yes | Channel PIN (mandatory) |
 
 ```json
 {
   "payToken": "MP-XXXXXXXXXXXXXXXX",
   "subscriberMsisdn": "6XXXXXXXXX",
   "channelUserMsisdn": "6XXXXXXXXX",
-  "amount": "5000",
+  "amount": "10",
   "orderId": "ORDER-2024-001",
   "description": "Payment for order #001",
-  "notifUrl": "https://your-app.com/api/webhooks/orange-money"
+  "notifUrl": "https://your-app.com/api/webhooks/orange-money",
+  "pin": "XXXX"
 }
 ```
 
@@ -224,7 +242,7 @@ Content-Type: application/json
 If the customer has not already received the USSD prompt, you can trigger it manually:
 
 ```
-GET https://apis.orange.cm/mp/push/{payToken}
+GET https://api-s1.orange.cm/omcoreapis/1.0.2/mp/push/{payToken}
 ```
 
 Returns the same response shape as the Pay step.
@@ -329,12 +347,10 @@ Verify that a subscriber exists and retrieve their registered name before initia
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `channelMsisdn` | string | Yes | Your channel phone number (authorising the lookup) |
-| `pin` | string | No | Channel PIN |
 
 ```json
 {
-  "channelMsisdn": "6XXXXXXXXX",
-  "pin": "XXXX"
+  "channelMsisdn": "6XXXXXXXXX"
 }
 ```
 
@@ -396,13 +412,13 @@ For channel-to-customer transfers, use **Inverse C2C** (`/ic2c`) instead — it 
 
 **Step 1 — Init**
 ```
-POST https://apis.orange.cm/c2c/init
+POST https://api-s1.orange.cm/omcoreapis/1.0.2/c2c/init
 ```
 No body. Returns `{ "data": { "payToken": "C2C-XXX" } }`.
 
 **Step 2 — Pay**
 ```
-POST https://apis.orange.cm/c2c/pay
+POST https://api-s1.orange.cm/omcoreapis/1.0.2/c2c/pay
 ```
 
 **Request body**
@@ -450,7 +466,7 @@ POST https://apis.orange.cm/c2c/pay
 
 **Step 3 — Check status (if needed)**
 ```
-GET https://apis.orange.cm/c2c/paymentstatus/{payToken}
+GET https://api-s1.orange.cm/omcoreapis/1.0.2/c2c/paymentstatus/{payToken}
 ```
 
 ### Inverse C2C (Channel → Customer)
@@ -488,7 +504,7 @@ Use `/ic2c` endpoints with the same three-step flow. The pay body uses `toChanne
 ### Bulk transaction status query
 
 ```
-POST https://apis.orange.cm/transactions/paymentstatus
+POST https://api-s1.orange.cm/omcoreapis/1.0.2/transactions/paymentstatus
 Content-Type: application/json
 ```
 *No authentication headers required for this endpoint.*
@@ -668,7 +684,7 @@ public boolean updateChannelPassword(String username, String currentPassword,
 ### Status check endpoint (per type)
 
 ```
-GET https://apis.orange.cm/{type}/paymentstatus/{payToken}
+GET https://api-s1.orange.cm/omcoreapis/1.0.2/{type}/paymentstatus/{payToken}
 ```
 
 Where `{type}` is one of: `mp`, `cashout`, `cashin`, `c2c`, `ic2c`, `acashout`.
@@ -676,7 +692,7 @@ Where `{type}` is one of: `mp`, `cashout`, `cashin`, `c2c`, `ic2c`, `acashout`.
 ### Bulk status check
 
 ```
-POST https://apis.orange.cm/transactions/paymentstatus
+POST https://api-s1.orange.cm/omcoreapis/1.0.2/transactions/paymentstatus
 Content-Type: application/json
 
 {

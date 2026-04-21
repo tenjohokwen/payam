@@ -271,10 +271,12 @@ resilience4j:
 
 orange:
   base-url: https://api-s1.orange.cm/omcoreapis/1.0.2
-  pay-url: https://api-s1.orange.cm/omcoreapis/1.0.1
-  token-url: https://api-s1.orange.cm/omcoreapis/1.0.2/token
+  pay-url: https://api-s1.orange.cm/omcoreapis/1.0.2
+  token-url: https://api-s1.orange.cm/token
   consumer-key: ${ORANGE_CONSUMER_KEY:test-key}
   consumer-secret: ${ORANGE_CONSUMER_SECRET:test-secret}
+  api-username: ${ORANGE_API_USERNAME:OMSANDBOXAPI}
+  api-password: ${ORANGE_API_PASSWORD:OMS@NDBOX@PI}
   pay-token-expiry-threshold-minutes: 8
   poller:
     initial-delay-seconds: 120

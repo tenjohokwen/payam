@@ -8,6 +8,7 @@ import com.softropic.payam.common.payment.SubscriberStatus;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.orange.contract.exception.PayTokenExpiredException;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
+import com.softropic.payam.platform.service.PlatformConfigService;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
 import com.softropic.payam.transaction.service.TransactionService;
@@ -49,7 +50,8 @@ class OrangeMoneyPortIT {
     @Autowired TenantService tenantService;
     @Autowired TransactionService transactionService;
     @Autowired JdbcTemplate jdbcTemplate;
-    @Autowired TransactionTemplate transactionTemplate;
+    @Autowired TransactionTemplate   transactionTemplate;
+    @Autowired PlatformConfigService platformConfigService;
 
     private Long tenantId;
 
@@ -70,20 +72,27 @@ class OrangeMoneyPortIT {
 
         tenantId = tenantService.createTenant("orange-test-tenant", ApiKeyEnvironment.PROD).tenant().getId();
 
+        // Seed platform config with PIN
+        platformConfigService.update("ORANGE", "691301143", "2222");
+
         // Seed orange access token WireMock stub
         orangeServer.stubFor(post(urlPathEqualTo("/token"))
+            .withHeader("Authorization", containing("Basic"))
+            .withRequestBody(equalTo("grant_type=client_credentials"))
             .willReturn(okJson("{\"access_token\":\"test-bearer-token\",\"token_type\":\"Bearer\",\"expires_in\":3600}")));
     }
 
     @AfterEach
     void tearDown() {
         orangeServer.resetAll();
-        // Delete in FK-safe order: payment_event_log -> transaction -> tenant -> sec
+        // Delete in FK-safe order: payment_event_log -> transaction -> tenant -> platform_config -> sec
         transactionTemplate.execute(status -> {
             jdbcTemplate.execute("DELETE FROM main.payment_event_log");
             jdbcTemplate.execute("DELETE FROM main.transaction");
             jdbcTemplate.execute("DELETE FROM main.tenant_api_key");
             jdbcTemplate.execute("DELETE FROM main.tenant");
+            jdbcTemplate.execute("DELETE FROM main.platform_config_aud"); // delete audit rows too
+            jdbcTemplate.execute("DELETE FROM main.platform_config");
             jdbcTemplate.execute("DELETE FROM main.sec");
             return null;
         });
@@ -92,6 +101,7 @@ class OrangeMoneyPortIT {
     @Test
     void subscriber_validation_returns_active_for_known_msisdn() {
         orangeServer.stubFor(post(urlPathEqualTo("/infos/subscriber/customer/692954629"))
+            .withHeader("Authorization", equalTo("Bearer test-bearer-token"))
             .willReturn(okJson("{\"data\":{\"firstname\":\"Jean\",\"lastname\":\"Dupont\"},\"message\":\"OK\"}")));
 
         SubscriberStatus status = orangeMoneyPort.validateSubscriber("+237692954629");
@@ -104,6 +114,7 @@ class OrangeMoneyPortIT {
     @Test
     void subscriber_validation_returns_inactive_for_unknown_msisdn() {
         orangeServer.stubFor(post(urlPathEqualTo("/infos/subscriber/customer/692954629"))
+            .withHeader("Authorization", equalTo("Bearer test-bearer-token"))
             .willReturn(okJson("{\"data\":null,\"message\":\"Not found\"}")));
 
         SubscriberStatus status = orangeMoneyPort.validateSubscriber("+237692954629");
@@ -114,10 +125,15 @@ class OrangeMoneyPortIT {
     @Test
     void merchant_payment_initiation_returns_pending_result_with_pay_token() {
         orangeServer.stubFor(post(urlPathEqualTo("/mp/init"))
+            .withHeader("Authorization", equalTo("Bearer test-bearer-token"))
+            .withHeader("X-AUTH-TOKEN", equalTo("T01TQU5EQk9YQVBJOk9NU0BOREJPWEBQSQ=="))
             .willReturn(okJson("{\"data\":{\"payToken\":\"tok-abc-123\"},\"message\":\"OK\"}")));
-        // Note: pay endpoint uses 1.0.1 path — in tests orange.pay-url=${orange.base-url}
-        // so both base and pay URLs resolve to the same WireMock server.
+
         orangeServer.stubFor(post(urlPathMatching("/mp/pay"))
+            .withHeader("Authorization", equalTo("Bearer test-bearer-token"))
+            .withHeader("X-AUTH-TOKEN", equalTo("T01TQU5EQk9YQVBJOk9NU0BOREJPWEBQSQ=="))
+            .withRequestBody(containing("\"pin\":\"2222\""))
+            .withRequestBody(containing("\"payToken\":\"tok-abc-123\""))
             .willReturn(okJson("{\"payToken\":\"tok-abc-123\",\"status\":\"PENDING\",\"txnid\":\"TXN001\"}")));
 
         var tx = transactionService.initiate(tenantId, MobilePaymentProvider.ORANGE,
@@ -140,6 +156,7 @@ class OrangeMoneyPortIT {
     void status_poll_returns_success_for_successfull_response() {
         // Note: "SUCCESSFULL" double-L is correct Orange spelling
         orangeServer.stubFor(get(urlPathMatching("/mp/paymentstatus/.*"))
+            .withHeader("Authorization", equalTo("Bearer test-bearer-token"))
             .willReturn(okJson("{\"status\":\"SUCCESSFULL\",\"payToken\":\"tok-abc-123\"}")));
 
         ProviderResult result = orangeMoneyPort.getTransactionStatus("tok-abc-123");
