@@ -67,12 +67,29 @@
 
 ## Traceability
 
-| Phase | Requirements |
-|-------|-------------|
-| TBD (roadmap) | SCHEMA-01..04 |
-| TBD (roadmap) | CONTRACT-01..04 |
-| TBD (roadmap) | SERVICE-01..06 |
-| TBD (roadmap) | CASHOUT-01..02 |
-| TBD (roadmap) | TEST-01..08 |
-
-*Traceability filled by roadmapper.*
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| SCHEMA-01 | Phase 46 | Pending |
+| SCHEMA-02 | Phase 46 | Pending |
+| SCHEMA-03 | Phase 46 | Pending |
+| SCHEMA-04 | Phase 46 | Pending |
+| CONTRACT-01 | Phase 47 | Pending |
+| CONTRACT-02 | Phase 47 | Pending |
+| CONTRACT-03 | Phase 47 | Pending |
+| CONTRACT-04 | Phase 47 | Pending |
+| SERVICE-01 | Phase 47 | Pending |
+| SERVICE-02 | Phase 47 | Pending |
+| SERVICE-03 | Phase 47 | Pending |
+| SERVICE-04 | Phase 47 | Pending |
+| SERVICE-05 | Phase 47 | Pending |
+| SERVICE-06 | Phase 47 | Pending |
+| TEST-01 | Phase 48 | Pending |
+| TEST-02 | Phase 48 | Pending |
+| TEST-03 | Phase 48 | Pending |
+| TEST-04 | Phase 48 | Pending |
+| TEST-05 | Phase 48 | Pending |
+| TEST-06 | Phase 48 | Pending |
+| TEST-07 | Phase 48 | Pending |
+| TEST-08 | Cross-cutting gate (all phases) | Pending |
+| CASHOUT-01 | Phase 49 | Pending |
+| CASHOUT-02 | Phase 49 | Pending |

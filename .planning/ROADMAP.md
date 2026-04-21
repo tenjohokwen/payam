@@ -10,6 +10,7 @@
 - ✅ **v6 REST API Surface, Notifications & Admin UI** — Phases 30–34 (shipped 2026-04-14) — see [milestones/v6-ROADMAP.md](milestones/v6-ROADMAP.md)
 - ✅ **v7 Backend Hardening & Bug Fixes** — Phases 35–40 (shipped 2026-04-17) — see [milestones/v7-ROADMAP.md](milestones/v7-ROADMAP.md)
 - ✅ **v8 Platform Config PIN** — Phases 41–45 (shipped 2026-04-21) — see [milestones/v8-ROADMAP.md](milestones/v8-ROADMAP.md)
+- 🔄 **v9 Ledger Disbursement Support** — Phases 46–49 (in progress)
 
 ## Phases
 
@@ -104,6 +105,16 @@
 - [x] Phase 43: PIN Frontend (1/1 plans) — completed 2026-04-18
 - [x] Phase 44: PIN Email Notification (2/2 plans) — completed 2026-04-18
 - [x] Phase 45: PIN Add-Provider Fix (1/1 plans) — completed 2026-04-20
+
+</details>
+
+<details open>
+<summary>🔄 v9 Ledger Disbursement Support (Phases 46–49) — IN PROGRESS</summary>
+
+- [ ] **Phase 46: Flyway V25 Schema Migration** - Prerequisite schema changes for disbursement ledger writes
+- [ ] **Phase 47: Contract Types + LedgerService Rewrite** - LedgerFlow/LedgerPosting contracts, LedgerService routing, Transaction.flow entity field, call-site migration
+- [ ] **Phase 48: Test Coverage** - Unit tests, PITest MUT-02 update, LedgerServiceIT integration test, LedgerVerifier helper
+- [ ] **Phase 49: Orange Cashout Wiring** - PaymentCommand feeAmount field, OrangeMoneyPort.initiateCashout() ledger call
 
 </details>
 
@@ -337,6 +348,57 @@ Plans:
   4. `mvn verify` passes with the existing platform config integration tests and any new tests covering first-creation with PIN
 **Plans**: 1 plan
 
+### Phase 46: Flyway V25 Schema Migration
+**Goal**: The database schema supports disbursement ledger writes — V25 migration runs cleanly, all balance invariants are enforced by trigger, and the transaction table tracks flow direction
+**Depends on**: Phase 45
+**Requirements**: SCHEMA-01, SCHEMA-02, SCHEMA-03, SCHEMA-04
+**Success Criteria** (what must be TRUE):
+  1. The V25 migration completes successfully on a database that already has ledger_entry rows from the V23 deferrable unique constraint — no existing rows are rejected
+  2. The V23 `uq_ledger_entry_group_direction` constraint is replaced by a deferrable trigger that asserts `SUM(DEBIT) == SUM(CREDIT)` per entry_group_id at commit time — a single DEBIT insert without a matching CREDIT is caught at commit, not at insert
+  3. A zero-amount `PROVIDER_FEE` entry (amount = 0) inserts without violating the `CHECK (amount >= 0)` constraint — the previous `amount > 0` would have rejected it
+  4. `main.transaction` and `main.transaction_aud` both have a nullable `flow VARCHAR(20)` column after migration — existing transaction rows have `flow = NULL`
+  5. `mvn verify` passes with no migration failures and no regressions in existing ledger or constraint integration tests
+**Plans**: TBD
+
+### Phase 47: Contract Types + LedgerService Rewrite
+**Goal**: Callers express ledger intent through typed `LedgerPosting` values, and `LedgerService` routes them to flow-specific entry builders — the old 4-argument signature is gone
+**Depends on**: Phase 46
+**Requirements**: CONTRACT-01, CONTRACT-02, CONTRACT-03, CONTRACT-04, SERVICE-01, SERVICE-02, SERVICE-03, SERVICE-04, SERVICE-05, SERVICE-06
+**Success Criteria** (what must be TRUE):
+  1. `LedgerFlow.COLLECTION` and `LedgerFlow.DISBURSEMENT` exist as enum values in `transaction/contract`; no caller references account code strings directly
+  2. `LedgerPosting.collection(principal, currency)` and `LedgerPosting.disbursement(principal, fee, currency)` compile and can be instantiated; the compact constructor rejects negative principal, negative fee, null flow, and null currency with an exception
+  3. `LedgerService.postEntry(txId, tenantId, LedgerPosting)` accepts both flow variants — a COLLECTION posting produces 2 ledger entries (DEBIT CUSTOMER_WALLET + CREDIT PROVIDER_CLEARING), a DISBURSEMENT posting produces 3 entries (DEBIT MERCHANT_WALLET gross + CREDIT CUSTOMER_WALLET principal + CREDIT PROVIDER_FEE fee)
+  4. `WebhookTransitionService` compiles and passes its existing integration tests after migrating its call-site to `LedgerPosting.collection(amount, currency)` — the old 4-arg `postEntry` method no longer exists in the codebase
+  5. `Transaction` entity has a nullable `flow` field annotated `@Enumerated(STRING)`; `getEffectiveFlow()` returns `LedgerFlow.COLLECTION` when `flow` is null
+  6. `mvn verify` passes with all existing webhook and ledger tests green
+**Plans**: TBD
+
+### Phase 48: Test Coverage
+**Goal**: Every ledger flow variant is proven correct by unit tests, the PITest mutation threshold is maintained, and a real-database integration test confirms disbursement rows persist without constraint violation
+**Depends on**: Phase 47
+**Requirements**: TEST-01, TEST-02, TEST-03, TEST-04, TEST-05, TEST-06, TEST-07
+**Cross-cutting gate**: TEST-08 (`mvn verify` passes) applies to every phase in this milestone — it is verified here as the final quality gate
+**Success Criteria** (what must be TRUE):
+  1. A unit test verifies that a COLLECTION posting produces exactly 2 entries with the correct account codes and balanced amounts (DEBIT CUSTOMER_WALLET + CREDIT PROVIDER_CLEARING)
+  2. A unit test verifies that a DISBURSEMENT posting with fee > 0 produces exactly 3 entries where gross debit equals principal + fee and entries are balanced; a second unit test verifies fee = 0 produces a zero-amount PROVIDER_FEE credit that still balances
+  3. A unit test verifies that `LedgerPosting` constructor rejects negative principal, negative fee, null currency, and null flow — four distinct rejection cases
+  4. `LedgerBalanceGuardTest` includes a disbursement case and the PITest mutation kill rate for MUT-02 targets remains at or above 90%
+  5. `LedgerServiceIT` persists a disbursement group of 3 rows in a real Testcontainers PostgreSQL instance — no constraint violation, amounts balance, rows are queryable by entry_group_id
+  6. `LedgerVerifier.assertDisbursementLedgerBalanced(txId, principal, fee)` exists as a reusable helper; `assertLedgerBalanced` (collection) is unchanged
+  7. `mvn verify` (unit + integration tests) passes cleanly — this is the final gate confirming all v9 phases are complete
+**Plans**: TBD
+
+### Phase 49: Orange Cashout Wiring
+**Goal**: The Orange Money cashout path records disbursement ledger entries after provider confirmation, using the fee evaluated by `FeeEvaluationService`
+**Depends on**: Phase 47
+**Requirements**: CASHOUT-01, CASHOUT-02
+**Success Criteria** (what must be TRUE):
+  1. `PaymentCommand` has an optional `feeAmount` field (nullable `BigDecimal`); the orchestrator populates it from `FeeEvaluationService` before dispatching to `OrangeMoneyPort` — existing payment command construction sites compile without change
+  2. After `OrangeMoneyPort.initiateCashout()` receives provider confirmation of success, it calls `LedgerService.postEntry()` with `LedgerPosting.disbursement(principal, fee, currency)` inside a `TransactionTemplate` block — `@Transactional` is not used on the method
+  3. A cashout call with `feeAmount = null` (no fee configured) posts a zero-fee disbursement — `LedgerPosting.disbursement(principal, BigDecimal.ZERO, currency)` — without throwing
+  4. `mvn verify` passes with no regressions in existing Orange Money or orchestration tests
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -387,3 +449,7 @@ Plans:
 | 43. PIN Frontend | v8 | 1/1 | Complete | 2026-04-18 |
 | 44. PIN Email Notification | v8 | 2/2 | Complete | 2026-04-18 |
 | 45. PIN Add-Provider Fix | v8 | 1/1 | Complete | 2026-04-20 |
+| 46. Flyway V25 Schema Migration | v9 | 0/TBD | Not started | - |
+| 47. Contract Types + LedgerService Rewrite | v9 | 0/TBD | Not started | - |
+| 48. Test Coverage | v9 | 0/TBD | Not started | - |
+| 49. Orange Cashout Wiring | v9 | 0/TBD | Not started | - |
