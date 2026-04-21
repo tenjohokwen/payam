@@ -91,7 +91,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ### Active
 
-<!-- No active v9 requirements yet — start next milestone with /gsd:new-milestone -->
+<!-- v9 Ledger Disbursement Support — requirements defined 2026-04-21 -->
 
 ### Out of Scope
 
@@ -147,6 +147,19 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 | `updatePin(ciphertext)` called BEFORE `save(newConfig)` in `orElseGet` branch (v8) | JPA flushes at transaction commit; setting the field before save ensures the pin column is included in the INSERT | ✓ Good — required ordering for JPA transient-to-persistent PIN assignment |
 | No `PlatformConfigChangedEvent` from `orElseGet` branch even when PIN set (v8) | PIN-10 semantics: first-time row creation does not count as a "change event" | ✓ Good — consistent with PIN-10 fire rules; matches audit's explicit exclusion |
 
+## Current Milestone: v9 Ledger Disbursement Support
+
+**Goal:** Extend the double-entry ledger to support disbursement/cashout flows — merchant wallet debited the gross amount, customer credited the principal, provider retains the fee.
+
+**Target features:**
+- `LedgerFlow` enum (COLLECTION / DISBURSEMENT) in `transaction/contract`
+- `LedgerPosting` record — callers express intent, not account codes
+- `LedgerService` rewrite routing to flow-specific entry builders
+- Update existing collection call-sites to `LedgerPosting.collection()`
+- `Transaction.flow` column (Flyway V25) for reconciliation without inferring intent from account codes
+- Wire `LedgerPosting.disbursement()` into Orange cashout orchestration path
+- Unit + integration tests; `mvn verify` must pass after every phase commit
+
 ## Shipped Milestone: v8 Platform Config PIN ✅
 
 **Shipped:** 2026-04-21 — 5 phases (41–45), 8 plans
@@ -170,7 +183,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 This document evolves at phase transitions and milestone boundaries.
 
-*Last updated: 2026-04-21 after v8 milestone
+*Last updated: 2026-04-21 — Milestone v9 started
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason

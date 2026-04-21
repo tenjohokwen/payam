@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v8
-milestone_name: Platform Config PIN
-status: complete
-stopped_at: v8 milestone archived
+milestone: v9
+milestone_name: Ledger Disbursement Support
+status: in_progress
+stopped_at: defining requirements
 last_updated: "2026-04-21T00:00:00.000Z"
 last_activity: 2026-04-21
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 8
-  completed_plans: 8
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-04-21 — Milestone v8 complete)
 
 ## Current Position
 
-Phase: v8 complete
-Plan: All plans complete
-Status: Milestone archived — ready for /gsd:new-milestone
-Last activity: 2026-04-21
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-21 — Milestone v9 started
 
 ```
 Progress [████████████████████] 100% — v8 shipped (5/5 phases, 8/8 plans)
@@ -75,4 +75,4 @@ None.
 
 Last session: 2026-04-21
 Stopped at: v8 milestone complete
-Resume: /gsd:new-milestone to start v9
+Resume: /gsd:plan-phase 46 to start Phase 46
