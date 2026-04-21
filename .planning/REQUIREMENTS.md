@@ -10,10 +10,10 @@
 
 ### SCHEMA — Database Migration
 
-- [ ] **SCHEMA-01**: Flyway V25 drops `uq_ledger_entry_group_direction` constraint and replaces it with a deferrable balance-check trigger asserting `SUM(DEBIT) == SUM(CREDIT)` per entry group at commit
-- [ ] **SCHEMA-02**: Flyway V25 includes a pre-flight DO block that verifies no unbalanced entry groups exist before dropping the V23 constraint
-- [ ] **SCHEMA-03**: Flyway V25 relaxes `CHECK (amount > 0)` on `ledger_entry.amount` to `CHECK (amount >= 0)` to allow zero-amount `PROVIDER_FEE` entries in zero-fee disbursements
-- [ ] **SCHEMA-04**: Flyway V25 adds nullable `flow VARCHAR(20)` column to `main.transaction` and `main.transaction_aud` (Envers AUD parity)
+- [x] **SCHEMA-01**: Flyway V25 drops `uq_ledger_entry_group_direction` constraint and replaces it with a deferrable balance-check trigger asserting `SUM(DEBIT) == SUM(CREDIT)` per entry group at commit
+- [x] **SCHEMA-02**: Flyway V25 includes a pre-flight DO block that verifies no unbalanced entry groups exist before dropping the V23 constraint
+- [x] **SCHEMA-03**: Flyway V25 relaxes `CHECK (amount > 0)` on `ledger_entry.amount` to `CHECK (amount >= 0)` to allow zero-amount `PROVIDER_FEE` entries in zero-fee disbursements
+- [x] **SCHEMA-04**: Flyway V25 adds nullable `flow VARCHAR(20)` column to `main.transaction` and `main.transaction_aud` (Envers AUD parity)
 
 ### CONTRACT — New Types in `transaction/contract`
 
@@ -69,10 +69,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCHEMA-01 | Phase 46 | Pending |
-| SCHEMA-02 | Phase 46 | Pending |
-| SCHEMA-03 | Phase 46 | Pending |
-| SCHEMA-04 | Phase 46 | Pending |
+| SCHEMA-01 | Phase 46 | Complete |
+| SCHEMA-02 | Phase 46 | Complete |
+| SCHEMA-03 | Phase 46 | Complete |
+| SCHEMA-04 | Phase 46 | Complete |
 | CONTRACT-01 | Phase 47 | Pending |
 | CONTRACT-02 | Phase 47 | Pending |
 | CONTRACT-03 | Phase 47 | Pending |

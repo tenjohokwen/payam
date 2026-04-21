@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v9
-milestone_name: Ledger Disbursement Support
-status: in_progress
-stopped_at: roadmap created — ready to plan Phase 46
-last_updated: "2026-04-21T00:00:00.000Z"
+milestone: v1.0.2
+milestone_name: milestone
+status: verifying
+stopped_at: Completed 46-01-PLAN.md (Flyway V25 schema migration)
+last_updated: "2026-04-21T20:20:35.405Z"
 last_activity: 2026-04-21
 progress:
-  total_phases: 4
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 20
+  completed_phases: 12
+  total_plans: 29
+  completed_plans: 29
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-21 — Milestone v9 active)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** v9 Ledger Disbursement Support — extending the double-entry ledger to support disbursement/cashout flows
+**Current focus:** Phase 46 — flyway-v25-schema-migration
 
 ## Current Position
 
-Phase: 46 (not started)
-Plan: —
-Status: Roadmap created — ready to plan Phase 46
-Last activity: 2026-04-21 — v9 roadmap written (4 phases, Phases 46–49)
+Phase: 46 (flyway-v25-schema-migration) — EXECUTING
+Plan: 1 of 1
+Status: Phase complete — ready for verification
+Last activity: 2026-04-21
 
 ```
 Progress [                    ] 0% — v9 in progress (0/4 phases, 0/0 plans)
@@ -64,6 +64,7 @@ Key context carried forward from v8 (for v9 implementation):
 - `pinCryptopher` @Bean backed by `PayamPlatformProperties.pinEncryptionSecret` / `PLATFORM_PIN_ENCRYPTION_SECRET` (v8 context)
 - `@EventListener` on PlatformConfigEmailListener (not @TransactionalEventListener) — MailManager handles AFTER_COMMIT (v8 context, pattern to follow)
 - Dead method `updatePlatformConfig(provider, platformMsisdn)` in admin.api.js — not called, low-risk TD-01 (v8 deferred)
+- [Phase 46]: CONSTRAINT TRIGGER fires JpaSystemException (not DataIntegrityViolationException) via TransactionTemplate — JpaSystemException added to isInstanceOfAny in LedgerConstraintIT
 
 ### Roadmap Evolution
 
@@ -80,6 +81,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-21
-Stopped at: v9 roadmap created
+Last session: 2026-04-21T20:20:35.398Z
+Stopped at: Completed 46-01-PLAN.md (Flyway V25 schema migration)
 Resume: /gsd:plan-phase 46 to start Phase 46 (Flyway V25 Schema Migration)
