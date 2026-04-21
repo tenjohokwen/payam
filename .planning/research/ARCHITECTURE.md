@@ -1,290 +1,463 @@
-# Architecture Research — v6
+# Architecture Patterns
 
-**Researched:** 2026-04-07
-**Confidence:** HIGH — all findings drawn directly from codebase inspection
-
----
-
-## REST Controller Integration
-
-### Where New Endpoints Live
-
-The controller shell already exists: `TenantAdminResource` at `com.softropic.payam.tenant.api` with base path `/v1/admin/tenants`. It currently has three endpoints — `POST /` (create), `POST /{tenantId}/keys/{keyId}/rotate`, and `DELETE /{tenantId}/keys/{keyId}`. All six `TenantService` operations not yet exposed as HTTP simply extend this same class and module location.
-
-**Module:** `tenant/api/TenantAdminResource.java` — the only file that needs HTTP additions.
-
-The existing controller is already:
-- Annotated `@RestController @RequestMapping("/v1/admin/tenants")`
-- `@PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)` per method (ROLE_ADMIN or ROLE_LTD_ADMIN)
-- Inside the `/v1/admin/**` exclusion in `TenantSecurityConfig`, so it rides the JWT chain — not the API-key chain
-- `AdminTransactionResource` and `AdminMetricsResource` in `admin/api/` follow the identical pattern, confirming this is the right location for admin-facing endpoints
-
-**What to add to `TenantAdminResource`:**
-
-| Method | Path | Service call | Notes |
-|--------|------|--------------|-------|
-| PATCH | `/{tenantRef}/name` | `TenantService.updateName()` | `204 No Content` |
-| PATCH | `/{tenantRef}/email` | `TenantService.updateEmail()` | `204 No Content` |
-| PATCH | `/{tenantRef}/webhook-url` | `TenantService.updateWebhookUrl()` | `204 No Content` |
-| POST | `/{tenantRef}/suspend` | `TenantService.suspend()` | `204 No Content` |
-| POST | `/{tenantRef}/reactivate` | `TenantService.reactivate()` | Returns `ApiKeyDto` with rawKey (one-time) |
-| POST | `/{tenantRef}/webhook-secret/regenerate` | `TenantService.regenerateWebhookSecret()` | Returns raw secret in response body |
-| GET | `/` | new `TenantQueryService.findAll()` | TENT-05: paginated list |
-| GET | `/{tenantRef}` | new `TenantQueryService.findByRef()` | TENT-06: detail view |
-
-For TENT-05/06 list and detail: `TenantService` has no read operations yet. Two options: (a) add `findAll()` / `findByTenantRef()` directly to `TenantService`, or (b) add a thin `TenantQueryService` in `tenant/service/`. Given the codebase pattern (`AdminTransactionQueryService` exists separately for read operations), option (b) is preferable — separates reads from write transactions.
-
-**New contract DTOs needed** (in `tenant/contract/`):
-- `TenantDetailDto` — extends `TenantDto` fields plus email, webhookUrl, keyPrefix, list of `ApiKeyDto` (without rawKey)
-- `UpdateNameRequest`, `UpdateEmailRequest`, `UpdateWebhookUrlRequest` — simple `@NotBlank`-annotated records
-- `WebhookSecretDto` — wraps the returned raw secret for the regenerate endpoint
-
-**No new module, no new package for controllers.** Everything lands in the existing `tenant` module.
+**Project:** Payam v9 — Ledger Disbursement Support
+**Researched:** 2026-04-21
+**Confidence:** HIGH — analysis based on direct codebase inspection
 
 ---
 
-## TENT-09 Auth Enforcement
+## Recommended Architecture
 
-### Current Filter Behavior
+The v9 change is a targeted vertical slice through the existing `transaction/contract -> service`
+and `orange/service` layers. No new modules, no new tables — only a new nullable column on
+`main.transaction` and a constraint replacement on `main.ledger_entry`.
 
-`ApiKeyAuthenticationFilter.doFilterInternal()` calls `ApiKeyService.authenticate(rawKey)` which runs:
+Full call chain after the change:
 
-```java
-keyRepository.findValidKeyByHash(hash, graceDeadline)
+```
+WebhookTransitionService (COLLECTION)
+          |
+          v (after SUCCESS confirmed)
+    LedgerService.postEntry(txId, tenantId, LedgerPosting.collection(amount, currency))
+          |
+          v
+    [DEBIT CUSTOMER_WALLET, CREDIT PROVIDER_CLEARING]  — 2 rows
+
+OrangeMoneyPort.initiateCashout (DISBURSEMENT)
+          |
+          v (after provider confirms SUCCESS)
+    LedgerService.postEntry(txId, tenantId, LedgerPosting.disbursement(principal, fee, currency))
+          |
+          v
+    [DEBIT MERCHANT_WALLET (gross), CREDIT CUSTOMER_WALLET (principal), CREDIT PROVIDER_FEE (fee)]  — 3 rows
+
+          |
+          v (both flows converge here)
+    LedgerEntryRepository.saveAll(entries)
+          |
+          v
+    main.ledger_entry  (append-only; balanced by V25 constraint trigger)
 ```
 
-The JPQL query checks `k.keyStatus = 'ACTIVE' OR (k.keyStatus = 'ROTATED' AND k.rotatedAt > graceDeadline)` but does NOT check `k.tenant.tenantStatus`. The tenant entity is loaded via `JOIN FETCH k.tenant` — meaning `tenantApiKey.getTenant()` is already populated before the `@Transactional` authenticate() transaction closes.
+`Transaction.flow` (Flyway V25) sits on `main.transaction` so reconciliation queries can
+filter by flow without inferring intent from account codes.
 
-### Exact Change Required
+---
 
-**File:** `ApiKeyAuthenticationFilter.doFilterInternal()` — the check goes after the `authenticate()` call succeeds, before `TenantContext.set()`.
+## Component Boundaries
+
+| Component | Layer | Change | Responsibility in v9 |
+|-----------|-------|--------|----------------------|
+| `LedgerFlow` enum | `transaction/contract` | NEW | Two-value enum: COLLECTION, DISBURSEMENT |
+| `LedgerPosting` record | `transaction/contract` | NEW | Intent DTO; callers never reference account codes |
+| `LedgerService` | `transaction/service` | MODIFIED | Add `postEntry(txId, tenantId, LedgerPosting)` overload; route to flow-specific private builders |
+| `WebhookTransitionService` | `webhook/service` | MODIFIED | Update collection call-site from 4-arg to `LedgerPosting.collection()` |
+| `Transaction` entity | `transaction/repo` | MODIFIED | Add `flow` field with `@Enumerated(STRING)`, nullable |
+| Flyway V25 | `db/migration` | NEW | Add `flow` column; drop old unique constraint; add balance-check trigger |
+| `OrangeMoneyPort.initiateCashout()` | `orange/service` | MODIFIED | Replace stub; inject `LedgerService`; call `LedgerPosting.disbursement()` after provider confirms success |
+| `LedgerServiceIT` | test | MODIFIED | Update existing 4-arg test calls; add disbursement-specific IT cases |
+
+No new modules. No new packages. No changes to `PaymentOrchestrator` for the collection path.
+
+---
+
+## Data Flow
+
+### Collection (existing call-site updated)
+
+```
+WebhookTransitionService.applyFinalTransition()          @Transactional(REQUIRES_NEW)
+  -> ledgerService.postEntry(txId, tenantId,
+         LedgerPosting.collection(amount, currency))
+       -> 2 rows: DEBIT CUSTOMER_WALLET, CREDIT PROVIDER_CLEARING
+       -> saveAll within the same REQUIRES_NEW transaction
+```
+
+The collection path today passes 4 raw args. After v9 the call becomes `LedgerPosting.collection(...)`.
+No behavioral change — the same 2 rows result.
+
+### Disbursement (new)
+
+```
+OrangeMoneyPort.initiateCashout(cmd)         NOT @Transactional (rule: no DB conn during HTTP)
+  -> orangeMoneyClient.cashout(token, request)    // provider HTTP call
+  -> on HTTP 200 / confirmed success:
+       transactionTemplate.execute(() -> {
+         ledgerService.postEntry(txId, tenantId,
+             LedgerPosting.disbursement(cmd.amount(), resolvedFee, cmd.currency()))
+       })
+       -> 3 rows: DEBIT MERCHANT_WALLET (gross),
+                  CREDIT CUSTOMER_WALLET (principal),
+                  CREDIT PROVIDER_FEE (fee)
+       -> saveAll inside TransactionTemplate boundary
+```
+
+`resolvedFee` is read from `cmd` or from `transaction.getFeeAmount()` which `FeeEvaluationService`
+already computed and persisted at orchestration time.
+
+---
+
+## Constraint Conflict Resolution — The Core Problem
+
+### What V23 installed
+
+```sql
+UNIQUE (entry_group_id, direction) DEFERRABLE INITIALLY DEFERRED
+```
+
+This means at most one DEBIT and one CREDIT row per `entry_group_id`. A disbursement group has
+one DEBIT and **two** CREDITs (`CUSTOMER_WALLET` + `PROVIDER_FEE`). Even deferred, the uniqueness
+constraint fires at commit on the two CREDIT rows sharing the same group id and direction value —
+and it fails.
+
+### Why partial unique index is wrong
+
+Replacing the constraint with `UNIQUE (entry_group_id, direction) WHERE direction = 'DEBIT'`
+protects only debits and allows unlimited CREDITs per group. Unbalanced writes would go
+undetected. That is the opposite of what LEDGER-01 requires.
+
+### Correct resolution: replace with a deferred balance-check constraint trigger
+
+Drop the per-direction uniqueness constraint entirely. Replace it with a PostgreSQL
+`CONSTRAINT TRIGGER ... DEFERRABLE INITIALLY DEFERRED` that asserts at commit:
+
+```
+SUM(DEBIT amounts) == SUM(CREDIT amounts)
+```
+
+This is the correct double-entry invariant:
+
+| Flow | DEBIT sum | CREDIT sum | Result |
+|------|-----------|------------|--------|
+| COLLECTION | 500 | 500 | pass |
+| DISBURSEMENT (500 + 5 fee) | 505 | 500 + 5 | pass |
+| Missing credit row | 500 | 0 or 200 | fail at commit |
+
+The trigger fires AFTER INSERT on each row but is DEFERRED — it checks at transaction commit, not
+per-row, so partial groups mid-transaction are never falsely rejected.
+
+---
+
+## Flyway V25 Migration (concrete and safe)
+
+```sql
+-- V25: Extend ledger for disbursement flows.
+--
+-- 1. Replace the per-direction uniqueness constraint (V23) with a balance-check trigger.
+--    Rationale: DISBURSEMENT groups have 1 DEBIT + 2 CREDITs; the unique constraint blocks
+--    the second CREDIT even at commit time.
+--
+-- 2. Add Transaction.flow column for reconciliation queries.
+--
+-- This script is idempotent: DROP CONSTRAINT IF EXISTS, ADD COLUMN IF NOT EXISTS,
+-- CREATE OR REPLACE FUNCTION, DROP TRIGGER IF EXISTS.
+
+-- Step 1: Drop V23 uniqueness constraint.
+ALTER TABLE main.ledger_entry
+    DROP CONSTRAINT IF EXISTS uq_ledger_entry_group_direction;
+
+-- Step 2: Add flow column to transaction (nullable — existing rows are implicitly COLLECTION).
+ALTER TABLE main.transaction
+    ADD COLUMN IF NOT EXISTS flow VARCHAR(20);
+
+-- Step 3: Add flow column to transaction_aud (Envers parity — Transaction is @Audited).
+--   transaction_aud was created in V20. Without this column Hibernate throws a schema
+--   validation error on startup when flow is mapped as an @Audited field.
+ALTER TABLE main.transaction_aud
+    ADD COLUMN IF NOT EXISTS flow VARCHAR(20);
+
+-- Step 4: Create balance-check function.
+CREATE OR REPLACE FUNCTION main.check_ledger_group_balance()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+    debit_sum  NUMERIC;
+    credit_sum NUMERIC;
+BEGIN
+    SELECT COALESCE(SUM(amount), 0) INTO debit_sum
+      FROM main.ledger_entry
+     WHERE entry_group_id = NEW.entry_group_id
+       AND direction = 'DEBIT';
+
+    SELECT COALESCE(SUM(amount), 0) INTO credit_sum
+      FROM main.ledger_entry
+     WHERE entry_group_id = NEW.entry_group_id
+       AND direction = 'CREDIT';
+
+    -- Only fail when both sides are non-zero (group fully written) and do not balance.
+    -- A partial group (one side still zero) is valid mid-transaction.
+    IF debit_sum > 0 AND credit_sum > 0 AND debit_sum <> credit_sum THEN
+        RAISE EXCEPTION 'LEDGER-01 balance violation: group % debits=% credits=%',
+            NEW.entry_group_id, debit_sum, credit_sum;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+-- Step 5: Attach trigger — deferred so it checks at commit, not per-row insert.
+DROP TRIGGER IF EXISTS trg_ledger_balance_check ON main.ledger_entry;
+
+CREATE CONSTRAINT TRIGGER trg_ledger_balance_check
+    AFTER INSERT ON main.ledger_entry
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION main.check_ledger_group_balance();
+```
+
+### Why no pre-flight DO $$ guard (unlike V23)
+
+V23 needed a guard because it was ADDING a uniqueness constraint that would fail on existing
+violations. V25 is DROPPING a constraint and ADDING a trigger. The DROP is idempotent; the
+trigger's balance check tolerates any pre-existing data (it only fires on new inserts). No
+pre-flight scan is needed.
+
+### Backward compatibility
+
+The `flow` column is nullable. Existing `Transaction` rows remain null. Application code
+and reporting queries treat null as COLLECTION:
+
+```sql
+-- Reconciliation query — null-safe
+COALESCE(t.flow, 'COLLECTION') AS effective_flow
+FROM main.transaction t
+```
+
+Hibernate entity reads null as `null`; callers use a null-safe getter:
 
 ```java
-// After: tenantApiKey = apiKeyService.authenticate(rawKey);
-// Add:
-if (tenantApiKey.getTenant().getTenantStatus() != TenantStatus.ACTIVE) {
-    log.warn("API key rejected — tenant suspended",
-        kv("operation", "api_key_auth"),
-        kv("keyPrefix", rawKey.contains("_") ? rawKey.substring(0, rawKey.indexOf("_")) : "[unknown]"),
-        kv("status", "TENANT_SUSPENDED"));
-    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Tenant account suspended");
-    return;
+public LedgerFlow getEffectiveFlow() {
+    return flow != null ? flow : LedgerFlow.COLLECTION;
 }
 ```
 
-This approach:
-- Does not change the `ApiKeyService.authenticate()` transaction or the JPQL query — the tenant is already JOIN FETCHed so no extra DB round-trip
-- Does not break the existing `authenticate()` contract (it still returns a valid key or throws)
-- Keeps the filter as the single enforcement point for both key status and tenant status
-- Logs consistently with the existing `kv("operation", "api_key_auth")` pattern
-
-**Alternative rejected:** Adding the tenant status check inside the JPQL query. That would make `authenticate()` ambiguous — the caller cannot distinguish "bad key" from "suspended tenant" without inspecting the result. Keeping the check in the filter preserves the service method's single responsibility.
-
-**Import needed:** `TenantStatus` from `com.softropic.payam.tenant.contract.TenantStatus`.
-
 ---
 
-## Email Event Architecture
+## Integration Point: Disbursement Ledger Call
 
-### Existing Pattern (confirmed from codebase)
+### Do not add it to PaymentOrchestrator.initiate()
 
-There are two established patterns in the codebase:
+`initiate()` handles collection only. It is already complex (fraud scoring, fee evaluation,
+idempotency, provider dispatch, state machine). Disbursement has different semantics: no payToken,
+different entry direction, fee flows out not in. Branching inside `initiate()` would make ledger
+call placement ambiguous and the method harder to follow.
 
-**Pattern A — `PlatformConfigService` (service publishes, listener transforms):**
-1. `@Transactional` service method calls `eventPublisher.publishEvent(new PlatformConfigChangedEvent(...))`
-2. `PlatformConfigEmailListener` listens with `@EventListener @Transactional` (plain, not `@TransactionalEventListener`)
-3. The listener builds an `Envelope` and calls `publisher.publishEvent(envelope)`
-4. `MailManager.sendEmailFromTemplate()` is annotated `@TransactionalEventListener(AFTER_COMMIT)` — it fires after the outer DB transaction commits
+### Wire it inside OrangeMoneyPort.initiateCashout()
 
-**Pattern B — `AccountChangeEmailListener`:** Same two-stage pattern. Domain event fires in transaction → Listener transforms → Envelope event → MailManager fires AFTER_COMMIT.
+Symmetrically to how the collection ledger is called from
+`WebhookTransitionService.applyFinalTransition()` — the entity that receives confirmed outcome
+from the provider owns the ledger call.
 
-**Key decision from PROJECT.md:** Use `@EventListener` on the domain listener (not `@TransactionalEventListener`) because `MailManager` handles AFTER_COMMIT on the Envelope event. Double-wrapping would break delivery.
-
-### How to Wire NOTIF-01..06
-
-Six new domain events go in `tenant/contract/event/` (matching the platform pattern: `PlatformConfigChangedEvent` lives in `platform/contract/event/`):
-
-| Event record | Published by | NOTIF |
-|---|---|---|
-| `ApiKeyGeneratedEvent(tenantRef, tenantName, tenantEmail, environment, keyPrefix)` | `TenantService.createTenant()` and `TenantService.reactivate()` | NOTIF-01 |
-| `ApiKeyRotatedEvent(tenantRef, tenantName, tenantEmail, environment, keyPrefix)` | `ApiKeyService.rotate()` | NOTIF-02 |
-| `ApiKeyRevokedEvent(tenantRef, tenantName, tenantEmail, environment, keyPrefix)` | `ApiKeyService.revoke()` | NOTIF-03 |
-| `TenantStatusChangedEvent(tenantRef, tenantName, tenantEmail, newStatus)` | `TenantService.suspend()` and `TenantService.reactivate()` | NOTIF-04 |
-| `WebhookUrlChangedEvent(tenantRef, tenantName, tenantEmail, newWebhookUrl)` | `TenantService.updateWebhookUrl()` | NOTIF-05 |
-| `TenantEmailChangedEvent(tenantRef, tenantName, oldEmail, newEmail)` | `TenantService.updateEmail()` | NOTIF-06 |
-
-`ApiKeyService.revoke()` (NOTIF-03) currently has no `ApplicationEventPublisher` dependency — it will need one injected. Both `TenantService` and `ApiKeyService` are `@Transactional` so events published inside their methods will be deferred correctly by `MailManager`'s AFTER_COMMIT listener.
-
-One new listener class handles all six: `TenantLifecycleEmailListener` in `email/infrastructure/listener/`. It takes `@EventListener` methods for each event type, builds an `Envelope` for the appropriate template, and calls `publisher.publishEvent(envelope)`.
-
-**New `EmailTemplate` entries needed** (in `email/contract/EmailTemplate.java`):
-```
-TENANT_API_KEY_GENERATED("email.tenant.key_generated.title"),
-TENANT_API_KEY_ROTATED("email.tenant.key_rotated.title"),
-TENANT_API_KEY_REVOKED("email.tenant.key_revoked.title"),
-TENANT_STATUS_CHANGED("email.tenant.status_changed.title"),
-TENANT_WEBHOOK_URL_CHANGED("email.tenant.webhook_url_changed.title"),
-TENANT_EMAIL_CHANGED("email.tenant.email_changed.title"),
-```
-
-**Thymeleaf templates** go in `src/main/resources/templates/` following the existing naming convention.
-
-**Recipient construction:** The tenant `email` field (added in V18 migration, `Tenant.getEmail()`) is the notification address. If `email` is null, the listener must skip sending rather than throw. Guard: `if (event.tenantEmail() == null || event.tenantEmail().isBlank()) return;`
-
-**Note on `TenantService.reactivate()`:** This method both changes tenant status (NOTIF-04) and generates a new key (NOTIF-01). Both events should be published from `reactivate()` so the tenant receives both notifications.
-
-### Summary of Modified vs New Files for Email
-- `TenantService.java` — MODIFIED: inject `ApplicationEventPublisher`, add publish calls in `createTenant()`, `updateEmail()`, `updateWebhookUrl()`, `suspend()`, `reactivate()`
-- `ApiKeyService.java` — MODIFIED: inject `ApplicationEventPublisher`, add publish in `rotate()` and `revoke()`
-- `EmailTemplate.java` — MODIFIED: add 6 new enum constants
-- NEW: `tenant/contract/event/` package with 6 event records
-- NEW: `email/infrastructure/listener/TenantLifecycleEmailListener.java`
-- NEW: 6 Thymeleaf `.html` templates
-
----
-
-## One-Time Key Display (AKEY-07) — Data Flow
-
-### Where the Raw Key Lives
-
-The raw key is **never stored**. In `ApiKeyService.generateAndStore()`:
+Inject `LedgerService` into `OrangeMoneyPort`:
 
 ```java
-String rawKey = generateSecureKey(prefix);  // PREFIX_UUID, in-memory only
-String hash   = DigestUtils.sha256Hex(rawKey);
-// Only hash persisted in TenantApiKey.keyHash
-keyRepository.save(entity);
-return new ApiKeyAndRawKey(saved, rawKey);  // rawKey returned to caller in-memory only
+// Constructor — add to the existing 8-arg constructor
+private final LedgerService ledgerService;
 ```
 
-`TenantAdminResource` already returns it:
-- `createTenant()` returns `TenantCreationResponse(tenantDto, ApiKeyDto(id, prefix, env, rawKey))`
-- `rotateKey()` returns `ApiKeyDto(id, prefix, env, rawKey)`
+Inside `initiateCashout()` after the provider confirms success:
 
-`ApiKeyDto.rawKey` is documented `// NON-NULL only on creation/rotation — never stored, shown once`
+```java
+// OUTSIDE the provider HTTP call — use TransactionTemplate exactly as persistPayToken() does
+transactionTemplate.execute(status -> {
+    BigDecimal fee = resolveFee(cmd);    // from cmd or from Transaction.feeAmount
+    ledgerService.postEntry(
+        cmd.transactionId(),
+        cmd.tenantId(),
+        LedgerPosting.disbursement(cmd.amount(), fee, cmd.currency())
+    );
+    return null;
+});
+```
 
-### Backend: Already Correct
+This keeps the pattern consistent: HTTP never inside `@Transactional`; DB writes via
+`TransactionTemplate` after the HTTP call returns.
 
-The backend one-time display is **already implemented correctly**. No backend changes needed for AKEY-07. The raw key is returned in the HTTP response exactly once and is only held in memory within the request/response cycle. The hash in DB cannot be reversed.
+### resolvefee — sourcing the fee for disbursement
 
-### Frontend: AKEY-07 is a UI Concern Only
+`FeeEvaluationService` already computes and persists `transaction.feeAmount` at
+orchestration time (Phase 38 / OPS-04). The `PaymentCommand` record does not currently
+carry `feeAmount` directly — it carries `amount` but not fee.
 
-1. Admin calls `POST /v1/admin/tenants` or `POST /v1/admin/tenants/{id}/keys/{keyId}/rotate`
-2. Response contains `rawKey` in `ApiKeyDto`
-3. Vue component opens a `QDialog` with the raw key displayed
-4. Dialog shows a "I have copied this key" checkbox or confirmation button — dismissal blocked until confirmed
-5. On dismissal, `rawKey` is discarded from component state — never cached in Pinia store
+Two options:
 
-**Component location:** `src/frontend/src/components/tenant/ApiKeyRevealDialog.vue` — reusable by both creation and rotation flows.
+1. Load fee from `TransactionRepository` inside `initiateCashout()` using `cmd.transactionId()` —
+   one additional DB read inside the `TransactionTemplate` block. Clean but adds a query.
 
-**Store rule:** The Pinia tenant store must NOT persist `rawKey`. Store the returned `ApiKeyDto` with `rawKey` set to `null` after the dialog closes.
+2. Extend `PaymentCommand` with an optional `feeAmount` field populated by the orchestrator before
+   dispatch. This avoids the extra query and is the better long-term design.
+
+**Recommendation:** extend `PaymentCommand` with `feeAmount` (nullable `BigDecimal`). The
+orchestrator populates it from `FeeEvaluationService.evaluateFee()` before calling `initiateCashout()`,
+exactly as it already does for `transaction.feeAmount`. This keeps `initiateCashout()` DB-interaction-free
+for the fee lookup.
 
 ---
 
-## WebhookSecret Reveal (WSEC-02) — Data Flow
+## Patterns to Follow
 
-### Current Storage: Plaintext
+### Pattern 1: Intent-based ledger posting
 
-Confirmed from V8 migration and `Tenant.java`:
-- Column: `main.tenant.webhook_secret VARCHAR(255)` — no hash suffix, no salt column
-- `TenantService.regenerateWebhookSecret()` stores `UUID.randomUUID().toString()` directly via `tenant.setWebhookSecret(newSecret)`
+Callers pass `LedgerPosting` (flow + amounts). `LedgerService` owns all account code constants.
 
-**The `webhookSecret` is stored plaintext in the DB.** This is intentional: the outbound webhook delivery system needs the raw secret to compute `HMAC-SHA256(payload, secret)` for the `X-Signature` header. Hashing would prevent signing.
+```java
+// contract — caller-facing API
+public record LedgerPosting(LedgerFlow flow, BigDecimal principal, BigDecimal fee, String currency) {
+    public static LedgerPosting collection(BigDecimal principal, String currency) {
+        return new LedgerPosting(LedgerFlow.COLLECTION, principal, BigDecimal.ZERO, currency);
+    }
+    public static LedgerPosting disbursement(BigDecimal principal, BigDecimal fee, String currency) {
+        return new LedgerPosting(LedgerFlow.DISBURSEMENT, principal, fee, currency);
+    }
+}
 
-### WSEC-02 Reveal Flow
-
-Because the secret is plaintext in DB, reveal requires no decryption:
-
-**Backend — add reveal endpoint to `TenantAdminResource`:**
-
+// service — account codes private constants; switch on flow
+private List<LedgerEntry> entries(String txId, Long tenantId, String groupId, Instant now, LedgerPosting p) {
+    return switch (p.flow()) {
+        case COLLECTION   -> collectionEntries(txId, tenantId, groupId, now, p);
+        case DISBURSEMENT -> disbursementEntries(txId, tenantId, groupId, now, p);
+    };
+}
 ```
-GET /v1/admin/tenants/{tenantRef}/webhook-secret
-@PreAuthorize(SecurityConstants.HAS_ADMIN_ROLE)
-Returns: WebhookSecretDto { String webhookSecret }
+
+### Pattern 2: Nullable flow column with COLLECTION default
+
+Add nullable, treat null as COLLECTION in all application and SQL code. No backfill needed.
+
+```java
+@Enumerated(EnumType.STRING)
+@Column(name = "flow", nullable = true)
+private LedgerFlow flow;
 ```
 
-The service (or query service) reads `tenant.getWebhookSecret()` and returns it. The `TenantDetailDto` returned by `GET /{tenantRef}` must NOT include `webhookSecret` — only the dedicated reveal endpoint exposes it, following least-disclosure.
+### Pattern 3: Envers audit table parity
 
-**Frontend:**
-1. `TenantDetailPage.vue` shows a masked field `•••••••••` with an eye icon
-2. On eye icon click, call `GET /v1/admin/tenants/{tenantRef}/webhook-secret`
-3. Display the returned secret in the field temporarily
-4. Do NOT cache the secret in the Pinia store — read on demand each time
+`Transaction` is `@Audited`. Adding `flow` without `@NotAudited` means Envers will try to
+write it to `transaction_aud`. V25 must add the column to `transaction_aud` to avoid a
+Hibernate schema validation failure. This is the same pattern used in v8 (`platform_config_aud`
+corrected in V24 with `ADD COLUMN IF NOT EXISTS`).
 
-**Security note:** Existing `@PreAuthorize(HAS_ADMIN_ROLE)` guard is sufficient for v6. No additional rate-limiting or token-gating needed beyond what the JWT chain already provides.
+### Pattern 4: TransactionTemplate for post-HTTP DB writes
 
-**Future consideration (out of v6 scope):** If webhook secret moves to a hashed+separate signing key model, both the reveal endpoint and `regenerateWebhookSecret()` would need updates. Current plaintext design is appropriate for single-server deployment.
+Established rule (PROJECT.md Key Decisions): no `@Transactional` on methods that make provider
+HTTP calls. The ledger write goes inside `TransactionTemplate.execute()` after the HTTP call
+returns — not wrapping it.
+
+### Pattern 5: Backward-compatible LedgerService method signature
+
+Keep the old 4-arg `postEntry(String, Long, BigDecimal, String)` as a deprecated delegate for
+one release, then remove after all callers migrated. Avoids a big-bang refactor if other callers
+are added by concurrent work.
+
+```java
+/** @deprecated Use {@link #postEntry(String, Long, LedgerPosting)} */
+@Deprecated
+@Transactional
+public void postEntry(String transactionId, Long tenantId, BigDecimal amount, String currency) {
+    postEntry(transactionId, tenantId, LedgerPosting.collection(amount, currency));
+}
+```
+
+In v9, the only production call-site (`WebhookTransitionService`) is migrated in the same
+milestone, so the deprecated delegate can be removed at the end of v9.
 
 ---
 
-## Suggested Build Order
+## Anti-Patterns to Avoid
 
-Dependencies drive the order. Auth enforcement (TENT-09) must land before testing any new endpoints. Email event infrastructure must exist (publish calls + listener) before the email flow can be tested end-to-end. UI depends on all REST endpoints being stable.
+### Anti-Pattern 1: flow column NOT NULL without backfill
 
-### Phase 1 — TENT-09 Auth Enforcement
-**Modified:** `ApiKeyAuthenticationFilter.java` only  
-**Why first:** Zero new classes. Immediate security correctness. Every subsequent test of tenant suspension relies on this being in place.
+Adding `flow VARCHAR(20) NOT NULL` fails on any table with existing rows. Always `NULLABLE` first.
+The V25 script uses `ADD COLUMN IF NOT EXISTS flow VARCHAR(20)` with no NOT NULL constraint.
 
-### Phase 2 — REST Controller Expansion (all 8 new endpoints)
-**Modified:** `TenantAdminResource.java`  
-**New:** `TenantQueryService.java`, `TenantDetailDto.java`, `WebhookSecretDto.java`, 3 update request records  
-**Includes:** TENT-05 list, TENT-06 detail, all 6 write operations, WSEC-02 reveal endpoint  
-**Why second:** Provides the HTTP surface that both email integration tests and the UI depend on.
+### Anti-Pattern 2: Leaking account codes to callers
 
-### Phase 3 — Email Event Infrastructure
-**Modified:** `TenantService.java`, `ApiKeyService.java`, `EmailTemplate.java`  
-**New:** `tenant/contract/event/` (6 records), `TenantLifecycleEmailListener.java`, 6 Thymeleaf templates  
-**Why third:** Service publish calls can only be added once the event types exist. The listener can be added independently of UI. Tests for NOTIF-01..06 can run without UI.
+Any class that references `"MERCHANT_WALLET"`, `"PROVIDER_FEE"`, or `"CUSTOMER_WALLET"` outside
+`LedgerService` creates coupling that will require shotgun surgery on future account structure
+changes. All account code logic stays inside `LedgerService` as private constants.
 
-### Phase 4 — Admin UI
-**New:** `TenantListPage.vue`, `TenantDetailPage.vue`, `ApiKeyRevealDialog.vue`, `tenant.api.js`, `tenant.store.js`  
-**Modified:** `router/routes.js` (add `admin/tenants` and `admin/tenants/:tenantRef`)  
-**Why fourth:** Depends on all REST endpoints being stable. AKEY-07 modal is part of TenantDetailPage. WSEC-02 eye-icon is in TenantDetailPage.
+### Anti-Pattern 3: Partial unique index instead of balance trigger
 
-### Dependency Graph
+Replacing `UNIQUE(entry_group_id, direction)` with a direction-conditional partial index
+protects only one side of the ledger and allows unbounded unbalanced writes on the other.
+Use the balance-check trigger (V25) instead.
 
-```
-Phase 1: TENT-09 (filter change — 1 file)
-    |
-Phase 2: REST endpoints (TenantAdminResource + TenantQueryService + DTOs)
-    |                    |
-Phase 3: Email events    Phase 4: Admin UI
-(can proceed in         (can proceed in
- parallel after Phase 2)  parallel after Phase 2)
-```
+### Anti-Pattern 4: @Transactional on initiateCashout()
 
-### Flyway V22
+The project rule is explicit: do not hold a DB connection during provider HTTP. The ledger
+write must be in a `TransactionTemplate` block that executes after the HTTP call returns,
+not wrapping it.
 
-Based on current schema inspection, no new columns are required for v6. The existing schema already has: `tenant_status`, `webhook_secret`, `email`, `key_prefix`, `webhook_url`. V22 is not needed unless a gap is discovered during implementation.
+### Anti-Pattern 5: Adding disbursement branching inside PaymentOrchestrator.initiate()
+
+The orchestrator is not `@Transactional` and manages complex control flow (fraud, fees,
+idempotency, state machine). Ledger calls belong at the service that confirms the outcome,
+not in the top-level orchestrator.
+
+---
+
+## Build Order (Dependency-Respecting)
+
+| Step | Artifact | Depends On | Notes |
+|------|----------|------------|-------|
+| 1 | `LedgerFlow` enum | Nothing | Pure enum; compiles standalone |
+| 2 | `LedgerPosting` record | `LedgerFlow` | Contract record; no Spring deps |
+| 3 | Flyway V25 | Running DB | DDL only; safe before Java changes (backward-compatible schema) |
+| 4 | `Transaction.flow` field + `getEffectiveFlow()` | V25 (schema) + `LedgerFlow` (type) | Entity change |
+| 5 | `LedgerService` new overload + private builders | `LedgerPosting`, `LedgerFlow` | Old 4-arg deprecated here |
+| 6 | `WebhookTransitionService` collection call-site migration | Step 5 | One call-site; remove 4-arg usage |
+| 7 | `PaymentCommand` gain optional `feeAmount` field | Nothing | Extends existing record |
+| 8 | `OrangeMoneyPort.initiateCashout()` implementation | Steps 5, 7 | Replaces UnsupportedOperationException stub |
+| 9 | Unit tests: `LedgerServiceTest` | Steps 1-5 | COLLECTION + DISBURSEMENT builder coverage |
+| 10 | Updated `LedgerServiceIT` | Steps 5-6 | Remove 4-arg calls; add flow-specific IT assertions |
+| 11 | `OrangeMoneyPortIT` for disbursement path | Steps 5-8 | WireMock stub for cashout; assert 3 ledger rows |
+
+Steps 1-2 compile without touching any infrastructure. Step 3 is safe to run before the
+Java changes — the nullable column and removed constraint are backward-compatible with
+existing application code already deployed. Steps 9-11 run only after all prior steps compile.
+
+---
+
+## Scalability Considerations
+
+| Concern | Collection (v1-v8) | After v9 (disbursement) |
+|---------|-------------------|------------------------|
+| Rows per transaction in ledger_entry | 2 | 2 (collection) or 3 (disbursement) |
+| Constraint check cost | Deferred unique lookup O(1) | Deferred balance trigger: 2 aggregate queries per INSERT — negligible at Cameroon volumes |
+| Reconciliation query | Must infer flow from account_code | Filter on `transaction.flow` directly |
+| Index coverage | `idx_ledger_transaction_id`, `idx_ledger_entry_group_id` | Unchanged; both cover all query patterns |
+| Envers audit volume | 1 revision per tx state change | +1 column in transaction_aud; no volume change |
+
+No new indexes needed for v9. If `flow` column becomes a high-frequency filter in reporting
+queries, add `CREATE INDEX idx_transaction_flow ON main.transaction(flow)` in a later migration.
 
 ---
 
 ## New vs Modified — Complete Map
 
-| File | Status | Phase |
-|------|--------|-------|
-| `tenant/config/ApiKeyAuthenticationFilter.java` | MODIFIED — add tenant status check after authenticate() | 1 |
-| `tenant/api/TenantAdminResource.java` | MODIFIED — add 8 new endpoint methods | 2 |
-| `tenant/service/TenantQueryService.java` | NEW — findAll(), findByRef() read operations | 2 |
-| `tenant/contract/TenantDetailDto.java` | NEW | 2 |
-| `tenant/contract/WebhookSecretDto.java` | NEW | 2 |
-| `tenant/contract/UpdateNameRequest.java` | NEW | 2 |
-| `tenant/contract/UpdateEmailRequest.java` | NEW | 2 |
-| `tenant/contract/UpdateWebhookUrlRequest.java` | NEW | 2 |
-| `tenant/contract/event/ApiKeyGeneratedEvent.java` | NEW | 3 |
-| `tenant/contract/event/ApiKeyRotatedEvent.java` | NEW | 3 |
-| `tenant/contract/event/ApiKeyRevokedEvent.java` | NEW | 3 |
-| `tenant/contract/event/TenantStatusChangedEvent.java` | NEW | 3 |
-| `tenant/contract/event/WebhookUrlChangedEvent.java` | NEW | 3 |
-| `tenant/contract/event/TenantEmailChangedEvent.java` | NEW | 3 |
-| `tenant/service/TenantService.java` | MODIFIED — inject publisher, add 5 publish calls | 3 |
-| `tenant/service/ApiKeyService.java` | MODIFIED — inject publisher, add 2 publish calls | 3 |
-| `email/contract/EmailTemplate.java` | MODIFIED — add 6 enum constants | 3 |
-| `email/infrastructure/listener/TenantLifecycleEmailListener.java` | NEW | 3 |
-| `resources/templates/tenant-key-generated.html` (and 5 siblings) | NEW (6 files) | 3 |
-| `frontend/src/api/tenant.api.js` | NEW | 4 |
-| `frontend/src/pages/admin/TenantListPage.vue` | NEW | 4 |
-| `frontend/src/pages/admin/TenantDetailPage.vue` | NEW | 4 |
-| `frontend/src/components/tenant/ApiKeyRevealDialog.vue` | NEW | 4 |
-| `frontend/src/stores/tenant.store.js` | NEW | 4 |
-| `frontend/src/router/routes.js` | MODIFIED — add 2 admin tenant routes | 4 |
+| File | Status | Build Step |
+|------|--------|------------|
+| `transaction/contract/LedgerFlow.java` | NEW | 1 |
+| `transaction/contract/LedgerPosting.java` | NEW | 2 |
+| `db/migration/V25__ledger_disbursement.sql` | NEW | 3 |
+| `transaction/repo/Transaction.java` | MODIFIED — add `flow` field + `getEffectiveFlow()` | 4 |
+| `transaction/service/LedgerService.java` | MODIFIED — new overload, private builders, deprecate 4-arg | 5 |
+| `webhook/service/WebhookTransitionService.java` | MODIFIED — update collection call-site | 6 |
+| `common/payment/PaymentCommand.java` | MODIFIED — add optional `feeAmount` field | 7 |
+| `orange/service/OrangeMoneyPort.java` | MODIFIED — implement `initiateCashout()`, inject `LedgerService` | 8 |
+| `transaction/LedgerServiceIT.java` | MODIFIED — update 4-arg calls; add disbursement cases | 10 |
+| `orange/OrangeMoneyPortIT.java` (or new) | NEW/MODIFIED — disbursement ledger integration test | 11 |
+
+---
+
+## Sources
+
+- Direct inspection: `transaction/service/LedgerService.java` (current 4-arg postEntry signature)
+- Direct inspection: `transaction/repo/LedgerEntry.java` (@Immutable, @Tsid, column layout)
+- Direct inspection: `transaction/repo/Transaction.java` (@Audited, @NotAudited precedents, existing fields)
+- Direct inspection: `db/migration/V23__ledger_group_constraint.sql` (constraint being replaced + rationale)
+- Direct inspection: `db/migration/V3__transaction_schema.sql`, `V4__ledger_schema.sql` (base schema)
+- Direct inspection: `webhook/service/WebhookTransitionService.java` (sole production ledger call-site)
+- Direct inspection: `orange/service/OrangeMoneyPort.java` (disbursement stub, TransactionTemplate usage pattern)
+- Direct inspection: `payment/service/PaymentOrchestrator.java` (no-@Transactional rule, TransactionTemplate usage)
+- Direct inspection: `transaction/LedgerServiceIT.java` (existing test structure; 4-arg calls to migrate)
+- Direct inspection: `orange/infrastructure/OrangeMoneyClient.java` (cashout HTTP method exists)
+- PROJECT.md Key Decisions: no @Transactional on orchestrator; TransactionTemplate pattern; Flyway migration patterns
+- requirements/payam-ledger.md: LedgerFlow/LedgerPosting spec; open questions on zero-fee and account code separation
