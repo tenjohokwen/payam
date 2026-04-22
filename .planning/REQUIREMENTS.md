@@ -24,11 +24,11 @@
 
 ### SERVICE — `LedgerService` Rewrite
 
-- [ ] **SERVICE-01**: `LedgerService.postEntry(txId, tenantId, LedgerPosting)` routes via `switch (posting.flow())` to flow-specific private entry builders; old 4-arg signature removed
-- [ ] **SERVICE-02**: COLLECTION entry builder produces exactly 2 entries: DEBIT `CUSTOMER_WALLET` (principal) + CREDIT `PROVIDER_CLEARING` (principal)
-- [ ] **SERVICE-03**: DISBURSEMENT entry builder produces exactly 3 entries: DEBIT `MERCHANT_WALLET` (gross = principal + fee) + CREDIT `CUSTOMER_WALLET` (principal) + CREDIT `PROVIDER_FEE` (fee)
-- [ ] **SERVICE-04**: All account code strings (`CUSTOMER_WALLET`, `PROVIDER_CLEARING`, `MERCHANT_WALLET`, `PROVIDER_FEE`) are private constants inside `LedgerService`; no caller references them directly
-- [ ] **SERVICE-05**: `WebhookTransitionService` collection call-site migrated from 4-arg `postEntry` to `LedgerPosting.collection(amount, currency)`; 4-arg method deleted
+- [x] **SERVICE-01**: `LedgerService.postEntry(txId, tenantId, LedgerPosting)` routes via `switch (posting.flow())` to flow-specific private entry builders; old 4-arg signature removed
+- [x] **SERVICE-02**: COLLECTION entry builder produces exactly 2 entries: DEBIT `CUSTOMER_WALLET` (principal) + CREDIT `PROVIDER_CLEARING` (principal)
+- [x] **SERVICE-03**: DISBURSEMENT entry builder produces exactly 3 entries: DEBIT `MERCHANT_WALLET` (gross = principal + fee) + CREDIT `CUSTOMER_WALLET` (principal) + CREDIT `PROVIDER_FEE` (fee)
+- [x] **SERVICE-04**: All account code strings (`CUSTOMER_WALLET`, `PROVIDER_CLEARING`, `MERCHANT_WALLET`, `PROVIDER_FEE`) are private constants inside `LedgerService`; no caller references them directly
+- [x] **SERVICE-05**: `WebhookTransitionService` collection call-site migrated from 4-arg `postEntry` to `LedgerPosting.collection(amount, currency)`; 4-arg method deleted
 - [ ] **SERVICE-06**: `Transaction` entity gains nullable `flow` field with `@Enumerated(STRING)`; `getEffectiveFlow()` returns `LedgerFlow.COLLECTION` when `flow` is null
 
 ### CASHOUT — Orange Disbursement Wiring
@@ -77,11 +77,11 @@
 | CONTRACT-02 | Phase 47 | Complete |
 | CONTRACT-03 | Phase 47 | Complete |
 | CONTRACT-04 | Phase 47 | Complete |
-| SERVICE-01 | Phase 47 | Pending |
-| SERVICE-02 | Phase 47 | Pending |
-| SERVICE-03 | Phase 47 | Pending |
-| SERVICE-04 | Phase 47 | Pending |
-| SERVICE-05 | Phase 47 | Pending |
+| SERVICE-01 | Phase 47 | Complete |
+| SERVICE-02 | Phase 47 | Complete |
+| SERVICE-03 | Phase 47 | Complete |
+| SERVICE-04 | Phase 47 | Complete |
+| SERVICE-05 | Phase 47 | Complete |
 | SERVICE-06 | Phase 47 | Pending |
 | TEST-01 | Phase 48 | Pending |
 | TEST-02 | Phase 48 | Pending |

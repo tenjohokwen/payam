@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 47-contract-types-ledgerservice-rewrite/47-01-PLAN.md
-last_updated: "2026-04-22T08:15:48.530Z"
+stopped_at: Completed 47-02-PLAN.md
+last_updated: "2026-04-22T08:25:16.457Z"
 last_activity: 2026-04-22
 progress:
   total_phases: 20
   completed_phases: 12
   total_plans: 32
-  completed_plans: 30
+  completed_plans: 31
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-04-21 — Milestone v9 active)
 ## Current Position
 
 Phase: 47 (contract-types-ledgerservice-rewrite) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-22
 
@@ -66,6 +66,7 @@ Key context carried forward from v8 (for v9 implementation):
 - Dead method `updatePlatformConfig(provider, platformMsisdn)` in admin.api.js — not called, low-risk TD-01 (v8 deferred)
 - [Phase 46]: CONSTRAINT TRIGGER fires JpaSystemException (not DataIntegrityViolationException) via TransactionTemplate — JpaSystemException added to isInstanceOfAny in LedgerConstraintIT
 - [Phase 47-contract-types-ledgerservice-rewrite]: LedgerPosting uses compareTo(ZERO) not equals() for BigDecimal validation to handle scale-insensitive zero comparison
+- [Phase 47-contract-types-ledgerservice-rewrite]: Tasks 1+2 committed atomically — old 4-arg postEntry deleted (not deprecated), build only compiles when all call sites migrated simultaneously
 
 ### Roadmap Evolution
 
@@ -82,6 +83,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-22T08:15:48.522Z
-Stopped at: Completed 47-contract-types-ledgerservice-rewrite/47-01-PLAN.md
+Last session: 2026-04-22T08:25:16.449Z
+Stopped at: Completed 47-02-PLAN.md
 Resume: /gsd:plan-phase 46 to start Phase 46 (Flyway V25 Schema Migration)
