@@ -204,6 +204,12 @@ public class PaymentOrchestrator {
                 .map(r -> r.getId())
                 .orElse(null);
 
+        // CASHOUT-01: propagate evaluated fee onto the command so downstream ports
+        // (initiateCashout in Plan 02) observe the authoritative fee value.
+        // Capture deviceFingerprint before rebind — lambda requires effectively-final variable.
+        String deviceFingerprint = cmd.deviceFingerprint();
+        cmd = cmd.withFeeAmount(fee);
+
         // Capture fee values for use in PaymentResponse
         BigDecimal[] capturedFee = {fee};
         Long[] capturedFeeRuleId = {feeRuleIdVal};
@@ -212,7 +218,7 @@ public class PaymentOrchestrator {
         transactionTemplate.execute(status -> {
             Transaction locked = transactionRepository.findByTransactionIdForUpdate(tx.getTransactionId()).orElseThrow();
             locked.setRiskScore(fraud.riskScore());
-            locked.setDeviceFingerprint(cmd.deviceFingerprint());
+            locked.setDeviceFingerprint(deviceFingerprint);
             locked.setFeeAmount(fee);
             if (feeRuleIdVal != null) {
                 locked.setFeeRuleId(feeRuleIdVal);
