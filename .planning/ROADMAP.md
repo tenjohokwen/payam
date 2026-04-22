@@ -401,7 +401,10 @@ Plans:
   2. After `OrangeMoneyPort.initiateCashout()` receives provider confirmation of success, it calls `LedgerService.postEntry()` with `LedgerPosting.disbursement(principal, fee, currency)` inside a `TransactionTemplate` block — `@Transactional` is not used on the method
   3. A cashout call with `feeAmount = null` (no fee configured) posts a zero-fee disbursement — `LedgerPosting.disbursement(principal, BigDecimal.ZERO, currency)` — without throwing
   4. `mvn verify` passes with no regressions in existing Orange Money or orchestration tests
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 49-01-PLAN.md — PaymentCommand feeAmount field + 13-arg compat constructor + withFeeAmount helper + PaymentOrchestrator fee wiring (CASHOUT-01)
+- [ ] 49-02-PLAN.md — OrangeMoneyPort.initiateCashout implementation (LedgerService DI + provider call + disbursement ledger posting in TransactionTemplate) + integration tests replacing stub test (CASHOUT-02)
 
 ## Progress
 
@@ -456,4 +459,4 @@ Plans:
 | 46. Flyway V25 Schema Migration | v9 | 1/1 | Complete    | 2026-04-21 |
 | 47. Contract Types + LedgerService Rewrite | v9 | 2/3 | Complete    | 2026-04-22 |
 | 48. Test Coverage | v9 | 2/2 | Complete    | 2026-04-22 |
-| 49. Orange Cashout Wiring | v9 | 0/TBD | Not started | - |
+| 49. Orange Cashout Wiring | v9 | 0/2 | Planned | - |
