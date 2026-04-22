@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 48-01-PLAN.md — LedgerService DISBURSEMENT unit tests (TEST-02, TEST-03, TEST-05)
-last_updated: "2026-04-22T09:39:53.605Z"
+stopped_at: Completed 48-02-PLAN.md
+last_updated: "2026-04-22T13:38:44.262Z"
 last_activity: 2026-04-22
 progress:
   total_phases: 20
-  completed_phases: 13
+  completed_phases: 14
   total_plans: 34
-  completed_plans: 33
+  completed_plans: 34
 ---
 
 # Project State
@@ -69,6 +69,8 @@ Key context carried forward from v8 (for v9 implementation):
 - [Phase 47-contract-types-ledgerservice-rewrite]: Tasks 1+2 committed atomically — old 4-arg postEntry deleted (not deprecated), build only compiles when all call sites migrated simultaneously
 - [Phase 47-contract-types-ledgerservice-rewrite]: No @Builder.Default on Transaction.flow — null preserved for pre-v9 rows; COLLECTION fallback belongs in getEffectiveFlow() accessor
 - [Phase 48]: Tests added to LedgerBalanceGuardTest in com.softropic.payam.domain package (PITest targetTests glob requirement); compareTo/isEqualByComparingTo for BigDecimal (not equals)
+- [Phase 48]: LedgerVerifierTest uses mock(JdbcTemplate.class) without Spring context — assertion logic verification only; consistent with plan spec
+- [Phase 48]: Pre-existing LedgerConstraintIT.flowColumn_existsAndIsNullable failure (VARCHAR(20) vs 255) — from Phase 46, out of scope for Phase 48; needs fix in future phase
 
 ### Roadmap Evolution
 
@@ -85,6 +87,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-22T09:39:53.598Z
-Stopped at: Completed 48-01-PLAN.md — LedgerService DISBURSEMENT unit tests (TEST-02, TEST-03, TEST-05)
+Last session: 2026-04-22T13:38:44.251Z
+Stopped at: Completed 48-02-PLAN.md
 Resume: /gsd:plan-phase 46 to start Phase 46 (Flyway V25 Schema Migration)

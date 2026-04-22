@@ -43,9 +43,9 @@
 - [x] **TEST-03**: Unit test: DISBURSEMENT flow with fee = 0 → exactly 3 entries including a zero-amount `PROVIDER_FEE` credit, balanced
 - [x] **TEST-04**: Unit test: `LedgerPosting` compact constructor rejects negative principal, negative fee, null currency, null flow
 - [x] **TEST-05**: `LedgerBalanceGuardTest` updated with a disbursement case to maintain PITest MUT-02 mutation kill rate (≥ 90%)
-- [ ] **TEST-06**: `LedgerServiceIT` integration test: disbursement group of 3 rows persisted in real PostgreSQL via Testcontainers; no constraint violation; amounts balanced
-- [ ] **TEST-07**: `LedgerVerifier.assertDisbursementLedgerBalanced(txId, principal, fee)` added as a reusable E2E helper; existing `assertLedgerBalanced` collection method unchanged
-- [ ] **TEST-08**: `mvn verify` (unit + integration tests) passes after every phase commit
+- [x] **TEST-06**: `LedgerServiceIT` integration test: disbursement group of 3 rows persisted in real PostgreSQL via Testcontainers; no constraint violation; amounts balanced
+- [x] **TEST-07**: `LedgerVerifier.assertDisbursementLedgerBalanced(txId, principal, fee)` added as a reusable E2E helper; existing `assertLedgerBalanced` collection method unchanged
+- [x] **TEST-08**: `mvn verify` (unit + integration tests) passes after every phase commit
 
 ---
 
@@ -88,8 +88,8 @@
 | TEST-03 | Phase 48 | Complete |
 | TEST-04 | Phase 48 | Complete |
 | TEST-05 | Phase 48 | Complete |
-| TEST-06 | Phase 48 | Pending |
-| TEST-07 | Phase 48 | Pending |
-| TEST-08 | Cross-cutting gate (all phases) | Pending |
+| TEST-06 | Phase 48 | Complete |
+| TEST-07 | Phase 48 | Complete |
+| TEST-08 | Cross-cutting gate (all phases) | Complete |
 | CASHOUT-01 | Phase 49 | Pending |
 | CASHOUT-02 | Phase 49 | Pending |
