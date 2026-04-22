@@ -154,4 +154,82 @@ class LedgerServiceIT {
         // credit - debit == 0 for a balanced entry
         assertThat(BigDecimal.ZERO.compareTo(creditSum.subtract(debitSum))).isEqualTo(0);
     }
+
+    // -------------------------------------------------------------------------
+    // Test 3 (TEST-06): DISBURSEMENT persists 3 balanced rows in real Postgres.
+    //   DEBIT  MERCHANT_WALLET  1050.00
+    //   CREDIT CUSTOMER_WALLET  1000.00
+    //   CREDIT PROVIDER_FEE       50.00
+    // V25 balance-check trigger accepts the balanced group at commit.
+    // -------------------------------------------------------------------------
+    @Test
+    void postEntry_disbursement_persistsThreeBalancedRows() {
+        BigDecimal principal = new BigDecimal("1000.00");
+        BigDecimal fee       = new BigDecimal("50.00");
+        BigDecimal gross     = principal.add(fee); // 1050.00
+
+        ledgerService.postEntry(transactionId, tenantId,
+            LedgerPosting.disbursement(principal, fee, "XAF"));
+
+        List<LedgerEntry> entries = ledgerEntryRepository.findByTransactionId(transactionId);
+
+        assertThat(entries)
+            .as("DISBURSEMENT must persist exactly 3 rows (V25 trigger accepted balanced group)")
+            .hasSize(3);
+
+        LedgerEntry debit = entries.stream()
+            .filter(e -> e.getDirection() == LedgerDirection.DEBIT)
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("No DEBIT entry found"));
+
+        List<LedgerEntry> credits = entries.stream()
+            .filter(e -> e.getDirection() == LedgerDirection.CREDIT)
+            .toList();
+
+        assertThat(credits)
+            .as("DISBURSEMENT must have exactly 2 CREDIT rows")
+            .hasSize(2);
+
+        // DEBIT side — MERCHANT_WALLET, gross = principal + fee
+        assertThat(debit.getAccountCode())
+            .as("DEBIT account code must be MERCHANT_WALLET")
+            .isEqualTo("MERCHANT_WALLET");
+        assertThat(debit.getAmount())
+            .as("DEBIT amount must equal principal + fee")
+            .isEqualByComparingTo(gross);
+
+        // All 3 rows share one entry_group_id — V25 trigger groups by this.
+        String groupId = debit.getEntryGroupId();
+        assertThat(groupId).isNotNull();
+        assertThat(credits)
+            .as("All DISBURSEMENT rows must share one entry_group_id")
+            .allMatch(e -> groupId.equals(e.getEntryGroupId()));
+
+        // CREDIT side — one CUSTOMER_WALLET = principal, one PROVIDER_FEE = fee
+        assertThat(credits)
+            .as("one CREDIT must be CUSTOMER_WALLET with amount = principal")
+            .anyMatch(e -> "CUSTOMER_WALLET".equals(e.getAccountCode())
+                && e.getAmount().compareTo(principal) == 0);
+        assertThat(credits)
+            .as("one CREDIT must be PROVIDER_FEE with amount = fee")
+            .anyMatch(e -> "PROVIDER_FEE".equals(e.getAccountCode())
+                && e.getAmount().compareTo(fee) == 0);
+
+        // Balance invariant — sum(CREDIT) == sum(DEBIT)
+        BigDecimal debitSum = entries.stream()
+            .filter(e -> e.getDirection() == LedgerDirection.DEBIT)
+            .map(LedgerEntry::getAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal creditSum = credits.stream()
+            .map(LedgerEntry::getAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        assertThat(creditSum)
+            .as("sum(CREDIT) must equal sum(DEBIT) — balanced by V25 trigger")
+            .isEqualByComparingTo(debitSum);
+
+        // Currency preserved on all 3 rows
+        assertThat(entries)
+            .as("all rows must have currency XAF")
+            .allMatch(e -> "XAF".equals(e.getCurrency()));
+    }
 }
