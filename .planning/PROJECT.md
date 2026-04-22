@@ -90,6 +90,9 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ `PlatformConfigEmailListener` renders conditional MSISDN/PIN change rows + admin username + timestamp in email; PIN value never leaks — v8 (Phase 44): PIN-11
 
 - ✓ Flyway V25 schema migration: drop `uq_ledger_entry_group_direction` unique constraint, add deferrable `check_ledger_balance` constraint trigger (SUM DEBIT == SUM CREDIT per entry group at commit), relax `amount >= 0` for zero-fee entries, add nullable `flow VARCHAR(20)` to `main.transaction` and `main.transaction_aud` — v9 (Phase 46): SCHEMA-01, SCHEMA-02, SCHEMA-03, SCHEMA-04
+- ✓ `LedgerFlow` enum (COLLECTION/DISBURSEMENT) + `LedgerPosting` record (flow, principal, fee, currency; compact constructor uses `compareTo(ZERO)` for scale-safe validation; two static factories) — v9 (Phase 47): CONTRACT-01, CONTRACT-02, CONTRACT-03, CONTRACT-04
+- ✓ `LedgerService.postEntry(txId, tenantId, LedgerPosting)` routes via `switch(posting.flow())` to COLLECTION (2-entry) and DISBURSEMENT (3-entry) private builders; old 4-arg signature deleted; 4 account-code strings are private constants — all call sites migrated atomically — v9 (Phase 47): SERVICE-01, SERVICE-02, SERVICE-03, SERVICE-04, SERVICE-05
+- ✓ `Transaction.flow` nullable field `@Enumerated(EnumType.STRING)` mapping V25 `flow VARCHAR(20)` column; `getEffectiveFlow()` null-coalesces to `LedgerFlow.COLLECTION` for pre-v9 rows — v9 (Phase 47): SERVICE-06
 
 ### Active
 
@@ -185,7 +188,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 This document evolves at phase transitions and milestone boundaries.
 
-*Last updated: 2026-04-21 — Milestone v9 started
+*Last updated: 2026-04-22 — Phase 47 complete
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
