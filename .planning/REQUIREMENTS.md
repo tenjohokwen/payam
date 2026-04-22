@@ -17,10 +17,10 @@
 
 ### CONTRACT — New Types in `transaction/contract`
 
-- [ ] **CONTRACT-01**: `LedgerFlow` enum added with values `COLLECTION` and `DISBURSEMENT`
-- [ ] **CONTRACT-02**: `LedgerPosting` record added with fields `flow`, `principal`, `fee`, `currency`; compact constructor validates `principal > 0`, `fee >= 0`, non-null `flow` and `currency`
-- [ ] **CONTRACT-03**: `LedgerPosting.collection(principal, currency)` factory creates a COLLECTION posting with `fee = BigDecimal.ZERO`
-- [ ] **CONTRACT-04**: `LedgerPosting.disbursement(principal, fee, currency)` factory creates a DISBURSEMENT posting
+- [x] **CONTRACT-01**: `LedgerFlow` enum added with values `COLLECTION` and `DISBURSEMENT`
+- [x] **CONTRACT-02**: `LedgerPosting` record added with fields `flow`, `principal`, `fee`, `currency`; compact constructor validates `principal > 0`, `fee >= 0`, non-null `flow` and `currency`
+- [x] **CONTRACT-03**: `LedgerPosting.collection(principal, currency)` factory creates a COLLECTION posting with `fee = BigDecimal.ZERO`
+- [x] **CONTRACT-04**: `LedgerPosting.disbursement(principal, fee, currency)` factory creates a DISBURSEMENT posting
 
 ### SERVICE — `LedgerService` Rewrite
 
@@ -73,10 +73,10 @@
 | SCHEMA-02 | Phase 46 | Complete |
 | SCHEMA-03 | Phase 46 | Complete |
 | SCHEMA-04 | Phase 46 | Complete |
-| CONTRACT-01 | Phase 47 | Pending |
-| CONTRACT-02 | Phase 47 | Pending |
-| CONTRACT-03 | Phase 47 | Pending |
-| CONTRACT-04 | Phase 47 | Pending |
+| CONTRACT-01 | Phase 47 | Complete |
+| CONTRACT-02 | Phase 47 | Complete |
+| CONTRACT-03 | Phase 47 | Complete |
+| CONTRACT-04 | Phase 47 | Complete |
 | SERVICE-01 | Phase 47 | Pending |
 | SERVICE-02 | Phase 47 | Pending |
 | SERVICE-03 | Phase 47 | Pending |

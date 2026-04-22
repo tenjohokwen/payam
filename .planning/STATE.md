@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 46-01-PLAN.md (Flyway V25 schema migration)
-last_updated: "2026-04-21T20:47:58.985Z"
-last_activity: 2026-04-21
+status: executing
+stopped_at: Completed 47-contract-types-ledgerservice-rewrite/47-01-PLAN.md
+last_updated: "2026-04-22T08:15:48.530Z"
+last_activity: 2026-04-22
 progress:
   total_phases: 20
   completed_phases: 12
-  total_plans: 29
-  completed_plans: 29
+  total_plans: 32
+  completed_plans: 30
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-21 — Milestone v9 active)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 46 — flyway-v25-schema-migration
+**Current focus:** Phase 47 — contract-types-ledgerservice-rewrite
 
 ## Current Position
 
-Phase: 47
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-21
+Phase: 47 (contract-types-ledgerservice-rewrite) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-04-22
 
 ```
 Progress [                    ] 0% — v9 in progress (0/4 phases, 0/0 plans)
@@ -65,6 +65,7 @@ Key context carried forward from v8 (for v9 implementation):
 - `@EventListener` on PlatformConfigEmailListener (not @TransactionalEventListener) — MailManager handles AFTER_COMMIT (v8 context, pattern to follow)
 - Dead method `updatePlatformConfig(provider, platformMsisdn)` in admin.api.js — not called, low-risk TD-01 (v8 deferred)
 - [Phase 46]: CONSTRAINT TRIGGER fires JpaSystemException (not DataIntegrityViolationException) via TransactionTemplate — JpaSystemException added to isInstanceOfAny in LedgerConstraintIT
+- [Phase 47-contract-types-ledgerservice-rewrite]: LedgerPosting uses compareTo(ZERO) not equals() for BigDecimal validation to handle scale-insensitive zero comparison
 
 ### Roadmap Evolution
 
@@ -81,6 +82,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-21T20:20:35.398Z
-Stopped at: Completed 46-01-PLAN.md (Flyway V25 schema migration)
+Last session: 2026-04-22T08:15:48.522Z
+Stopped at: Completed 47-contract-types-ledgerservice-rewrite/47-01-PLAN.md
 Resume: /gsd:plan-phase 46 to start Phase 46 (Flyway V25 Schema Migration)
