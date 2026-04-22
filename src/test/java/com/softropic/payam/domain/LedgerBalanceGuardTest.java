@@ -1,6 +1,7 @@
 package com.softropic.payam.domain;
 
 import com.softropic.payam.transaction.contract.LedgerDirection;
+import com.softropic.payam.transaction.contract.LedgerPosting;
 import com.softropic.payam.transaction.repo.LedgerEntry;
 import com.softropic.payam.transaction.repo.LedgerEntryRepository;
 import com.softropic.payam.transaction.service.LedgerService;
@@ -34,7 +35,7 @@ class LedgerBalanceGuardTest {
         LedgerService service = new LedgerService(repo);
 
         BigDecimal amount = new BigDecimal("1000.00");
-        service.postEntry("txn-ledger-001", 1L, amount, "XAF");
+        service.postEntry("txn-ledger-001", 1L, LedgerPosting.collection(amount, "XAF"));
 
         ArgumentCaptor<List<LedgerEntry>> captor = ArgumentCaptor.forClass(List.class);
         verify(repo).saveAll(captor.capture());

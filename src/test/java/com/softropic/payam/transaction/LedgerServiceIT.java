@@ -5,6 +5,7 @@ import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
 import com.softropic.payam.transaction.contract.LedgerDirection;
+import com.softropic.payam.transaction.contract.LedgerPosting;
 import com.softropic.payam.transaction.repo.LedgerEntry;
 import com.softropic.payam.transaction.repo.LedgerEntryRepository;
 import com.softropic.payam.transaction.repo.Transaction;
@@ -110,7 +111,7 @@ class LedgerServiceIT {
     // -------------------------------------------------------------------------
     @Test
     void postEntry_insertsTwoRows_debitAndCredit() {
-        ledgerService.postEntry(transactionId, tenantId, new BigDecimal("500.00"), "XAF");
+        ledgerService.postEntry(transactionId, tenantId, LedgerPosting.collection(new BigDecimal("500.00"), "XAF"));
 
         List<LedgerEntry> entries = ledgerEntryRepository.findByTransactionId(transactionId);
 
@@ -136,7 +137,7 @@ class LedgerServiceIT {
     // -------------------------------------------------------------------------
     @Test
     void postEntry_balancedCheck() {
-        ledgerService.postEntry(transactionId, tenantId, new BigDecimal("500.00"), "XAF");
+        ledgerService.postEntry(transactionId, tenantId, LedgerPosting.collection(new BigDecimal("500.00"), "XAF"));
 
         List<LedgerEntry> entries = ledgerEntryRepository.findByTransactionId(transactionId);
 

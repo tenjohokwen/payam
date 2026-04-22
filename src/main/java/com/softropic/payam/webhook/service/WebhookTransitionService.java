@@ -4,6 +4,7 @@ import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.mtn.service.MtnStatusMapper;
 import com.softropic.payam.orange.service.OrangeStatusMapper;
+import com.softropic.payam.transaction.contract.LedgerPosting;
 import com.softropic.payam.transaction.contract.TransactionEventType;
 import com.softropic.payam.transaction.contract.TransactionStatus;
 import com.softropic.payam.transaction.repo.Transaction;
@@ -97,8 +98,7 @@ public class WebhookTransitionService {
             ledgerService.postEntry(
                 tx.getTransactionId(),
                 tx.getTenantId(),
-                tx.getAmount(),
-                tx.getCurrency()
+                LedgerPosting.collection(tx.getAmount(), tx.getCurrency())
             );
         }
 
