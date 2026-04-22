@@ -93,6 +93,9 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ `LedgerFlow` enum (COLLECTION/DISBURSEMENT) + `LedgerPosting` record (flow, principal, fee, currency; compact constructor uses `compareTo(ZERO)` for scale-safe validation; two static factories) — v9 (Phase 47): CONTRACT-01, CONTRACT-02, CONTRACT-03, CONTRACT-04
 - ✓ `LedgerService.postEntry(txId, tenantId, LedgerPosting)` routes via `switch(posting.flow())` to COLLECTION (2-entry) and DISBURSEMENT (3-entry) private builders; old 4-arg signature deleted; 4 account-code strings are private constants — all call sites migrated atomically — v9 (Phase 47): SERVICE-01, SERVICE-02, SERVICE-03, SERVICE-04, SERVICE-05
 - ✓ `Transaction.flow` nullable field `@Enumerated(EnumType.STRING)` mapping V25 `flow VARCHAR(20)` column; `getEffectiveFlow()` null-coalesces to `LedgerFlow.COLLECTION` for pre-v9 rows — v9 (Phase 47): SERVICE-06
+- ✓ `LedgerBalanceGuardTest`: 2 new `@Test` methods for DISBURSEMENT (`fee > 0` and `fee == 0`) in `com.softropic.payam.domain` package — PITest mutation kill rate 100% (4/4) on LedgerService — v9 (Phase 48): TEST-01, TEST-02, TEST-03, TEST-04, TEST-05
+- ✓ `LedgerServiceIT.postEntry_disbursement_persistsThreeBalancedRows`: Testcontainers + real PostgreSQL integration test; V25 balance-check trigger accepts DISBURSEMENT group at commit; shared `entry_group_id` across all 3 rows — v9 (Phase 48): TEST-06
+- ✓ `LedgerVerifier.assertDisbursementLedgerBalanced(txId, principal, fee)`: reusable E2E helper for Phase 49 downstream tests; 5 unit tests in `LedgerVerifierTest`; existing `assertLedgerBalanced` untouched — v9 (Phase 48): TEST-07
 
 ### Active
 
