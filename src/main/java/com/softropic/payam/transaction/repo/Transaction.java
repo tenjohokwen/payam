@@ -2,6 +2,7 @@ package com.softropic.payam.transaction.repo;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.common.persistence.AbstractAuditingEntity;
+import com.softropic.payam.transaction.contract.LedgerFlow;
 import com.softropic.payam.transaction.contract.TransactionStatus;
 
 import org.hibernate.envers.Audited;
@@ -115,11 +116,35 @@ public class Transaction extends AbstractAuditingEntity {
     private Long feeRuleId;
 
     /**
+     * Ledger flow classification for this transaction.
+     *
+     * Nullable by design — rows created before Phase 47 / V25 have NULL flow.
+     * Use {@link #getEffectiveFlow()} to read; it treats null as {@link LedgerFlow#COLLECTION}.
+     *
+     * NOT @NotAudited: V25 added the `flow` column to both main.transaction AND
+     * main.transaction_aud, so Envers must audit it naturally.
+     * NOT @Builder.Default: null must be preserved for pre-v9 rows; the COLLECTION
+     * fallback belongs in the accessor, not in the builder default.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "flow")
+    private LedgerFlow flow;
+
+    /**
      * Apply a state transition. Delegates to the state machine guard in TransactionStatus.
      * Throws IllegalStateTransitionException if the transition is not allowed.
      */
     public void applyTransition(TransactionStatus next) {
         this.txStatus = this.txStatus.transitionTo(next);
+    }
+
+    /**
+     * Returns the effective ledger flow.
+     * For legacy rows (flow == null), returns {@link LedgerFlow#COLLECTION} — the
+     * pre-v9 behavior was collection-only, so that is the correct interpretation.
+     */
+    public LedgerFlow getEffectiveFlow() {
+        return flow != null ? flow : LedgerFlow.COLLECTION;
     }
 
     public void setProviderRef(String providerRef) {
