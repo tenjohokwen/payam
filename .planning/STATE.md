@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 47-03-PLAN.md — Transaction.flow field + getEffectiveFlow() + TransactionFlowTest
-last_updated: "2026-04-22T08:43:17.604Z"
+stopped_at: Completed 48-01-PLAN.md — LedgerService DISBURSEMENT unit tests (TEST-02, TEST-03, TEST-05)
+last_updated: "2026-04-22T09:39:53.605Z"
 last_activity: 2026-04-22
 progress:
   total_phases: 20
   completed_phases: 13
-  total_plans: 32
-  completed_plans: 32
+  total_plans: 34
+  completed_plans: 33
 ---
 
 # Project State
@@ -68,6 +68,7 @@ Key context carried forward from v8 (for v9 implementation):
 - [Phase 47-contract-types-ledgerservice-rewrite]: LedgerPosting uses compareTo(ZERO) not equals() for BigDecimal validation to handle scale-insensitive zero comparison
 - [Phase 47-contract-types-ledgerservice-rewrite]: Tasks 1+2 committed atomically — old 4-arg postEntry deleted (not deprecated), build only compiles when all call sites migrated simultaneously
 - [Phase 47-contract-types-ledgerservice-rewrite]: No @Builder.Default on Transaction.flow — null preserved for pre-v9 rows; COLLECTION fallback belongs in getEffectiveFlow() accessor
+- [Phase 48]: Tests added to LedgerBalanceGuardTest in com.softropic.payam.domain package (PITest targetTests glob requirement); compareTo/isEqualByComparingTo for BigDecimal (not equals)
 
 ### Roadmap Evolution
 
@@ -84,6 +85,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-22T08:38:40.230Z
-Stopped at: Completed 47-03-PLAN.md — Transaction.flow field + getEffectiveFlow() + TransactionFlowTest
+Last session: 2026-04-22T09:39:53.598Z
+Stopped at: Completed 48-01-PLAN.md — LedgerService DISBURSEMENT unit tests (TEST-02, TEST-03, TEST-05)
 Resume: /gsd:plan-phase 46 to start Phase 46 (Flyway V25 Schema Migration)

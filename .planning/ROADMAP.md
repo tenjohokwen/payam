@@ -455,5 +455,5 @@ Plans:
 | 45. PIN Add-Provider Fix | v8 | 1/1 | Complete | 2026-04-20 |
 | 46. Flyway V25 Schema Migration | v9 | 1/1 | Complete    | 2026-04-21 |
 | 47. Contract Types + LedgerService Rewrite | v9 | 2/3 | Complete    | 2026-04-22 |
-| 48. Test Coverage | v9 | 0/TBD | Not started | - |
+| 48. Test Coverage | v9 | 1/2 | In Progress|  |
 | 49. Orange Cashout Wiring | v9 | 0/TBD | Not started | - |
