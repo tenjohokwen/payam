@@ -375,7 +375,7 @@ Plans:
 Plans:
 - [x] 47-01-PLAN.md — LedgerFlow enum + LedgerPosting record (CONTRACT-01..04) with unit tests
 - [x] 47-02-PLAN.md — LedgerService rewrite (switch-routed, private account-code constants) + migrate 3 call sites (SERVICE-01..05)
-- [ ] 47-03-PLAN.md — Transaction.flow field + getEffectiveFlow() + mvn verify phase gate (SERVICE-06)
+- [x] 47-03-PLAN.md — Transaction.flow field + getEffectiveFlow() + mvn verify phase gate (SERVICE-06)
 
 ### Phase 48: Test Coverage
 **Goal**: Every ledger flow variant is proven correct by unit tests, the PITest mutation threshold is maintained, and a real-database integration test confirms disbursement rows persist without constraint violation
