@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 48-02-PLAN.md
-last_updated: "2026-04-22T19:28:14.816Z"
+stopped_at: Completed 49-orange-cashout-wiring/49-01-PLAN.md
+last_updated: "2026-04-22T20:14:12.318Z"
 last_activity: 2026-04-22
 progress:
   total_phases: 20
   completed_phases: 14
-  total_plans: 34
-  completed_plans: 34
+  total_plans: 36
+  completed_plans: 35
 ---
 
 # Project State
@@ -20,13 +20,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-21 — Milestone v9 active)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 47 — contract-types-ledgerservice-rewrite
+**Current focus:** Phase 49 — orange-cashout-wiring
 
 ## Current Position
 
-Phase: 49
-Plan: Not started
-Status: Ready to execute
+Phase: 49 (orange-cashout-wiring) — EXECUTING
+Plan: 1 of 2
+Status: Executing Phase 49
 Last activity: 2026-04-22
 
 ```
@@ -71,6 +71,7 @@ Key context carried forward from v8 (for v9 implementation):
 - [Phase 48]: Tests added to LedgerBalanceGuardTest in com.softropic.payam.domain package (PITest targetTests glob requirement); compareTo/isEqualByComparingTo for BigDecimal (not equals)
 - [Phase 48]: LedgerVerifierTest uses mock(JdbcTemplate.class) without Spring context — assertion logic verification only; consistent with plan spec
 - [Phase 48]: Pre-existing LedgerConstraintIT.flowColumn_existsAndIsNullable failure (VARCHAR(20) vs 255) — from Phase 46, out of scope for Phase 48; needs fix in future phase
+- [Phase 49-orange-cashout-wiring]: 13-arg compat constructor delegates to 14-arg canonical with feeAmount=null — preserves backward compat for all existing PaymentCommand call sites
 
 ### Roadmap Evolution
 
@@ -87,6 +88,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-22T13:38:44.251Z
-Stopped at: Completed 48-02-PLAN.md
-Resume: /gsd:plan-phase 46 to start Phase 46 (Flyway V25 Schema Migration)
+Last session: 2026-04-22T20:14:12.311Z
+Stopped at: Completed 49-orange-cashout-wiring/49-01-PLAN.md
+Resume: /gsd:execute-phase 49 to continue with Plan 02
