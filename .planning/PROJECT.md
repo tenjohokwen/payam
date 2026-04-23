@@ -96,10 +96,12 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ `LedgerBalanceGuardTest`: 2 new `@Test` methods for DISBURSEMENT (`fee > 0` and `fee == 0`) in `com.softropic.payam.domain` package — PITest mutation kill rate 100% (4/4) on LedgerService — v9 (Phase 48): TEST-01, TEST-02, TEST-03, TEST-04, TEST-05
 - ✓ `LedgerServiceIT.postEntry_disbursement_persistsThreeBalancedRows`: Testcontainers + real PostgreSQL integration test; V25 balance-check trigger accepts DISBURSEMENT group at commit; shared `entry_group_id` across all 3 rows — v9 (Phase 48): TEST-06
 - ✓ `LedgerVerifier.assertDisbursementLedgerBalanced(txId, principal, fee)`: reusable E2E helper for Phase 49 downstream tests; 5 unit tests in `LedgerVerifierTest`; existing `assertLedgerBalanced` untouched — v9 (Phase 48): TEST-07
+- ✓ `PaymentCommand` gains 14th nullable `BigDecimal feeAmount` component; backward-compat 13-arg constructor delegates to canonical with `feeAmount=null`; `withFeeAmount(BigDecimal)` wither method; `PaymentOrchestrator.initiate()` enriches in-flight command via `cmd = cmd.withFeeAmount(fee)` before port dispatch — v9 (Phase 49): CASHOUT-01
+- ✓ `OrangeMoneyPort.initiateCashout()` calls `orangeMoneyClient.cashout()`, guards on `is2xxSuccessful()`, posts `LedgerPosting.disbursement(principal, fee, currency)` via `transactionTemplate.execute` (no `@Transactional` on method); null `feeAmount` falls back to `BigDecimal.ZERO` — `OrangeMoneyPortIT`: 8/8 tests green — v9 (Phase 49): CASHOUT-02
 
 ### Active
 
-<!-- v9 Ledger Disbursement Support — requirements defined 2026-04-21 -->
+<!-- v9 Ledger Disbursement Support — COMPLETE 2026-04-23 -->
 
 ### Out of Scope
 
@@ -155,18 +157,11 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 | `updatePin(ciphertext)` called BEFORE `save(newConfig)` in `orElseGet` branch (v8) | JPA flushes at transaction commit; setting the field before save ensures the pin column is included in the INSERT | ✓ Good — required ordering for JPA transient-to-persistent PIN assignment |
 | No `PlatformConfigChangedEvent` from `orElseGet` branch even when PIN set (v8) | PIN-10 semantics: first-time row creation does not count as a "change event" | ✓ Good — consistent with PIN-10 fire rules; matches audit's explicit exclusion |
 
-## Current Milestone: v9 Ledger Disbursement Support
+## Shipped Milestone: v9 Ledger Disbursement Support ✅
 
-**Goal:** Extend the double-entry ledger to support disbursement/cashout flows — merchant wallet debited the gross amount, customer credited the principal, provider retains the fee.
+**Shipped:** 2026-04-23 — 4 phases (46–49), 8 plans
 
-**Target features:**
-- `LedgerFlow` enum (COLLECTION / DISBURSEMENT) in `transaction/contract`
-- `LedgerPosting` record — callers express intent, not account codes
-- `LedgerService` rewrite routing to flow-specific entry builders
-- Update existing collection call-sites to `LedgerPosting.collection()`
-- `Transaction.flow` column (Flyway V25) for reconciliation without inferring intent from account codes
-- Wire `LedgerPosting.disbursement()` into Orange cashout orchestration path
-- Unit + integration tests; `mvn verify` must pass after every phase commit
+**Delivered:** Full disbursement/cashout ledger support — `LedgerFlow` enum + `LedgerPosting` record in `transaction/contract`; `LedgerService` routes to COLLECTION (2-entry) and DISBURSEMENT (3-entry) builders; Flyway V25 schema migration; `Transaction.flow` column; `OrangeMoneyPort.initiateCashout` wired with real provider call + balanced 3-row ledger entry; `PaymentCommand.feeAmount` propagated from `FeeEvaluationService` through orchestrator to port. All 16 requirements (SCHEMA-01..04, CONTRACT-01..04, SERVICE-01..06, TEST-01..08, CASHOUT-01..02) satisfied.
 
 ## Shipped Milestone: v8 Platform Config PIN ✅
 
@@ -176,8 +171,8 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ## Current State
 
-**Shipped:** v8 (2026-04-21) — 45 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5 + 5 v6 + 6 v7 + 5 v8), 98 plans
-**Next:** v9 — TBD (start with `/gsd:new-milestone`)
+**Shipped:** v9 (2026-04-23) — 49 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5 + 5 v6 + 6 v7 + 5 v8 + 4 v9), 106 plans
+**Next:** v10 — TBD (start with `/gsd:new-milestone`)
 **Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar + Hibernate Envers + Cryptopher/Jasypt AES256
 **Observability:** Full Loki-queryable structured logging + Spring Boot Actuator health with live provider MSISDN validation + CB state
 **Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage + 22 tenant/key integration tests + PIN integration tests (PlatformConfigAdminResourceIT: 12 tests)
