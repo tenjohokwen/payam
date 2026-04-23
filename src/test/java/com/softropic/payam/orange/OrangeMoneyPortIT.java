@@ -11,6 +11,9 @@ import com.softropic.payam.orange.service.OrangeMoneyPort;
 import com.softropic.payam.platform.service.PlatformConfigService;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
+import com.softropic.payam.transaction.contract.LedgerDirection;
+import com.softropic.payam.transaction.repo.LedgerEntry;
+import com.softropic.payam.transaction.repo.LedgerEntryRepository;
 import com.softropic.payam.transaction.service.TransactionService;
 
 import org.junit.jupiter.api.AfterEach;
@@ -30,6 +33,7 @@ import org.wiremock.spring.InjectWireMock;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,6 +56,7 @@ class OrangeMoneyPortIT {
     @Autowired JdbcTemplate jdbcTemplate;
     @Autowired TransactionTemplate   transactionTemplate;
     @Autowired PlatformConfigService platformConfigService;
+    @Autowired LedgerEntryRepository ledgerEntryRepository;
 
     private Long tenantId;
 
@@ -87,6 +92,7 @@ class OrangeMoneyPortIT {
         orangeServer.resetAll();
         // Delete in FK-safe order: payment_event_log -> transaction -> tenant -> platform_config -> sec
         transactionTemplate.execute(status -> {
+            jdbcTemplate.execute("DELETE FROM main.ledger_entry");
             jdbcTemplate.execute("DELETE FROM main.payment_event_log");
             jdbcTemplate.execute("DELETE FROM main.transaction");
             jdbcTemplate.execute("DELETE FROM main.tenant_api_key");
@@ -177,22 +183,95 @@ class OrangeMoneyPortIT {
     }
 
     @Test
-    void initiateCashout_throws_UnsupportedOperationException() {
-        // ROADMAP SC-3 deviation: cashout is stubbed pending sandbox field verification.
-        // This test documents the deviation explicitly — remove when cashout is implemented.
-        var tx = transactionService.initiate(tenantId, MobilePaymentProvider.ORANGE,
-            BigDecimal.valueOf(500), "XAF", "CASHOUT-001");
+    void cashout_success_posts_disbursement_ledger() {
+        // CASHOUT-02: success path — WireMock returns 200, ledger gets 3 balanced disbursement rows.
+        orangeServer.stubFor(post(urlPathEqualTo("/cashout"))
+            .withHeader("Authorization", equalTo("Bearer test-bearer-token"))
+            .willReturn(okJson("{\"status\":\"SUCCESS\"}")));
 
+        var tx = transactionService.initiate(tenantId, MobilePaymentProvider.ORANGE,
+            BigDecimal.valueOf(500), "XAF", "CASHOUT-OK-001");
+
+        // 14-arg canonical constructor — explicit feeAmount = 50
         PaymentCommand cmd = new PaymentCommand(
             tx.getTransactionId(), tx.getTraceId(), tenantId,
             "+237692954629", BigDecimal.valueOf(500), "XAF",
-            "CASHOUT-001", "IDEM-003", MobilePaymentProvider.ORANGE,
-            null, null, null, null  // last null = description
+            "CASHOUT-OK-001", "IDEM-CASHOUT-001", MobilePaymentProvider.ORANGE,
+            null, null, null, null,                    // 13th = description
+            BigDecimal.valueOf(50)                      // 14th = feeAmount
         );
 
-        assertThatThrownBy(() -> orangeMoneyPort.initiateCashout(cmd))
-            .isInstanceOf(UnsupportedOperationException.class)
-            .hasMessageContaining("sandbox verification");
+        ProviderResult result = orangeMoneyPort.initiateCashout(cmd);
+
+        assertThat(result.pending()).isFalse();
+        assertThat(result.rawStatus()).isEqualTo("CASHOUT_SUCCESS");
+
+        List<LedgerEntry> entries = ledgerEntryRepository.findByTransactionId(tx.getTransactionId());
+        assertThat(entries).hasSize(3);
+
+        LedgerEntry debit = entries.stream()
+            .filter(e -> e.getDirection() == LedgerDirection.DEBIT)
+            .findFirst().orElseThrow();
+        assertThat(debit.getAccountCode()).isEqualTo("MERCHANT_WALLET");
+        assertThat(debit.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(550));  // gross = principal + fee
+        assertThat(debit.getCurrency()).isEqualTo("XAF");
+
+        LedgerEntry customerCredit = entries.stream()
+            .filter(e -> e.getDirection() == LedgerDirection.CREDIT && "CUSTOMER_WALLET".equals(e.getAccountCode()))
+            .findFirst().orElseThrow();
+        assertThat(customerCredit.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(500));
+
+        LedgerEntry feeCredit = entries.stream()
+            .filter(e -> e.getDirection() == LedgerDirection.CREDIT && "PROVIDER_FEE".equals(e.getAccountCode()))
+            .findFirst().orElseThrow();
+        assertThat(feeCredit.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(50));
+
+        // All three rows share the same entryGroupId
+        assertThat(entries.stream().map(LedgerEntry::getEntryGroupId).distinct().count()).isEqualTo(1L);
+    }
+
+    @Test
+    void cashout_with_null_fee_posts_zero_fee_disbursement() {
+        // CASHOUT-02: null-fee path — 13-arg compat constructor means feeAmount=null => BigDecimal.ZERO fee.
+        orangeServer.stubFor(post(urlPathEqualTo("/cashout"))
+            .withHeader("Authorization", equalTo("Bearer test-bearer-token"))
+            .willReturn(okJson("{\"status\":\"SUCCESS\"}")));
+
+        var tx = transactionService.initiate(tenantId, MobilePaymentProvider.ORANGE,
+            BigDecimal.valueOf(500), "XAF", "CASHOUT-NULLFEE-001");
+
+        // 13-arg compat constructor — feeAmount is implicitly null
+        PaymentCommand cmd = new PaymentCommand(
+            tx.getTransactionId(), tx.getTraceId(), tenantId,
+            "+237692954629", BigDecimal.valueOf(500), "XAF",
+            "CASHOUT-NULLFEE-001", "IDEM-CASHOUT-002", MobilePaymentProvider.ORANGE,
+            null, null, null, null  // 13th = description (no 14th feeAmount — compat ctor)
+        );
+
+        ProviderResult result = orangeMoneyPort.initiateCashout(cmd);
+
+        assertThat(result.pending()).isFalse();
+        assertThat(result.rawStatus()).isEqualTo("CASHOUT_SUCCESS");
+
+        List<LedgerEntry> entries = ledgerEntryRepository.findByTransactionId(tx.getTransactionId());
+        assertThat(entries).hasSize(3);
+
+        LedgerEntry debit = entries.stream()
+            .filter(e -> e.getDirection() == LedgerDirection.DEBIT)
+            .findFirst().orElseThrow();
+        assertThat(debit.getAccountCode()).isEqualTo("MERCHANT_WALLET");
+        assertThat(debit.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(500));  // gross = principal + 0
+
+        LedgerEntry feeCredit = entries.stream()
+            .filter(e -> e.getDirection() == LedgerDirection.CREDIT && "PROVIDER_FEE".equals(e.getAccountCode()))
+            .findFirst().orElseThrow();
+        // Use compareTo, not equals — BigDecimal.ZERO and BigDecimal("0.00") compare equal by value but not by .equals()
+        assertThat(feeCredit.getAmount().compareTo(BigDecimal.ZERO)).isEqualTo(0);
+
+        LedgerEntry customerCredit = entries.stream()
+            .filter(e -> e.getDirection() == LedgerDirection.CREDIT && "CUSTOMER_WALLET".equals(e.getAccountCode()))
+            .findFirst().orElseThrow();
+        assertThat(customerCredit.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(500));
     }
 
     @Test
