@@ -6,6 +6,7 @@ import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.common.payment.SubscriberStatus;
 import com.softropic.payam.orange.config.OrangeMoneyConfig;
 import com.softropic.payam.orange.contract.OrangeWebhookPayload;
+import com.softropic.payam.orange.contract.dto.CashoutRequest;
 import com.softropic.payam.orange.contract.dto.InitTransactionResponse;
 import com.softropic.payam.orange.contract.dto.PayRequest;
 import com.softropic.payam.orange.contract.dto.PayResponse;
@@ -13,21 +14,26 @@ import com.softropic.payam.orange.contract.dto.SubscriberInfoResponse;
 import com.softropic.payam.orange.contract.exception.PayTokenExpiredException;
 import com.softropic.payam.orange.infrastructure.OrangeMoneyClient;
 import com.softropic.payam.platform.service.PlatformConfigService;
+import com.softropic.payam.transaction.contract.LedgerPosting;
 import com.softropic.payam.transaction.contract.TransactionEventType;
 import com.softropic.payam.transaction.contract.TransactionStatus;
 import com.softropic.payam.transaction.repo.TransactionRepository;
 import com.softropic.payam.transaction.service.EventLogService;
+import com.softropic.payam.transaction.service.LedgerService;
 import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -47,6 +53,7 @@ public class OrangeMoneyPort implements MobileMoneyPort {
     private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate transactionTemplate;
     private final PlatformConfigService platformConfigService;
+    private final LedgerService ledgerService;
 
     public OrangeMoneyPort(OrangeMoneyClient orangeMoneyClient,
                            OrangeTokenService orangeTokenService,
@@ -55,7 +62,8 @@ public class OrangeMoneyPort implements MobileMoneyPort {
                            OrangeMoneyConfig config,
                            ApplicationEventPublisher eventPublisher,
                            TransactionTemplate transactionTemplate,
-                           PlatformConfigService platformConfigService) {
+                           PlatformConfigService platformConfigService,
+                           LedgerService ledgerService) {
         this.orangeMoneyClient = orangeMoneyClient;
         this.orangeTokenService = orangeTokenService;
         this.transactionRepository = transactionRepository;
@@ -64,6 +72,7 @@ public class OrangeMoneyPort implements MobileMoneyPort {
         this.eventPublisher = eventPublisher;
         this.transactionTemplate = transactionTemplate;
         this.platformConfigService = platformConfigService;
+        this.ledgerService = ledgerService;
     }
 
     /**
@@ -139,17 +148,49 @@ public class OrangeMoneyPort implements MobileMoneyPort {
     }
 
     /**
-     * Initiate a cashout transaction.
+     * Initiate a cashout transaction (CASHOUT-02).
      *
-     * ROADMAP deviation (SC-3): Cashout field mapping requires sandbox verification with live
-     * Orange credentials. Stub retained intentionally — Phase 3 covers MP flow only.
-     * C2C and cashout will be implemented in a future phase once sandbox access is confirmed.
+     * Flow: get bearer token -> POST /cashout via OrangeMoneyClient -> on 2xx success,
+     * post a disbursement ledger entry (DEBIT MERCHANT_WALLET gross + CREDIT CUSTOMER_WALLET
+     * principal + CREDIT PROVIDER_FEE fee) inside a TransactionTemplate.execute block.
      *
-     * Note: No @CircuitBreaker/@Retry — this method unconditionally throws; circuit-breaking
-     * a stub adds no value and prevents tests from asserting the expected exception.
+     * IMPORTANT: This method is NOT @Transactional. The outbound HTTP call must run
+     * outside any DB transaction (same rule as initiateMerchantPayment). Only the
+     * ledger write is wrapped in a TransactionTemplate.execute block so LedgerService's
+     * @Transactional propagation runs inside a real transaction.
+     *
+     * Null fee handling: when cmd.feeAmount() is null (no fee configured), the
+     * disbursement posts with BigDecimal.ZERO fee, producing a zero-amount
+     * PROVIDER_FEE credit row that still balances the group (V25 trigger allows
+     * amount >= 0 and sums to zero on each direction because principal == gross).
      */
     public ProviderResult initiateCashout(PaymentCommand cmd) {
-        throw new UnsupportedOperationException("Cashout field mapping requires sandbox verification — stub for now");
+        String token = orangeTokenService.getAccessToken();
+        String nationalMsisdn = stripCountryCode(cmd.msisdn());
+        String merchantKey = platformConfigService.findByProvider("ORANGE").platformMsisdn();
+
+        CashoutRequest request = new CashoutRequest();
+        request.setMerchantKey(merchantKey);
+        request.setAmount(cmd.amount().toPlainString());
+        request.setCurrency(cmd.currency());
+        request.setReference(cmd.externalReference() != null ? cmd.externalReference() : cmd.transactionId());
+        request.setMsisdn(nationalMsisdn);
+
+        ResponseEntity<Map> response = orangeMoneyClient.cashout(token, request);
+
+        if (response.getStatusCode().is2xxSuccessful()) {
+            BigDecimal fee = cmd.feeAmount() != null ? cmd.feeAmount() : BigDecimal.ZERO;
+            transactionTemplate.execute(status -> {
+                ledgerService.postEntry(
+                    cmd.transactionId(),
+                    cmd.tenantId(),
+                    LedgerPosting.disbursement(cmd.amount(), fee, cmd.currency())
+                );
+                return null;
+            });
+            return ProviderResult.success(null, "CASHOUT_SUCCESS");
+        }
+        return ProviderResult.pending(null, "CASHOUT_PENDING");
     }
 
     /**
