@@ -34,7 +34,7 @@
 ### CASHOUT — Orange Disbursement Wiring
 
 - [x] **CASHOUT-01**: `PaymentCommand` record gains optional `feeAmount` field (nullable `BigDecimal`); orchestrator populates it from `FeeEvaluationService` before dispatching to `OrangeMoneyPort`
-- [ ] **CASHOUT-02**: `OrangeMoneyPort.initiateCashout()` calls `LedgerService.postEntry()` with `LedgerPosting.disbursement(principal, fee, currency)` after provider confirms success, inside a `TransactionTemplate` block (no `@Transactional` on the method)
+- [x] **CASHOUT-02**: `OrangeMoneyPort.initiateCashout()` calls `LedgerService.postEntry()` with `LedgerPosting.disbursement(principal, fee, currency)` after provider confirms success, inside a `TransactionTemplate` block (no `@Transactional` on the method)
 
 ### TEST — Test Coverage
 
@@ -92,4 +92,4 @@
 | TEST-07 | Phase 48 | Complete |
 | TEST-08 | Cross-cutting gate (all phases) | Complete |
 | CASHOUT-01 | Phase 49 | Complete |
-| CASHOUT-02 | Phase 49 | Pending |
+| CASHOUT-02 | Phase 49 | Complete |
