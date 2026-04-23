@@ -10,7 +10,7 @@
 - ✅ **v6 REST API Surface, Notifications & Admin UI** — Phases 30–34 (shipped 2026-04-14) — see [milestones/v6-ROADMAP.md](milestones/v6-ROADMAP.md)
 - ✅ **v7 Backend Hardening & Bug Fixes** — Phases 35–40 (shipped 2026-04-17) — see [milestones/v7-ROADMAP.md](milestones/v7-ROADMAP.md)
 - ✅ **v8 Platform Config PIN** — Phases 41–45 (shipped 2026-04-21) — see [milestones/v8-ROADMAP.md](milestones/v8-ROADMAP.md)
-- 🔄 **v9 Ledger Disbursement Support** — Phases 46–49 (in progress)
+- ✅ **v9 Ledger Disbursement Support** — Phases 46–49 (shipped 2026-04-22)
 
 ## Phases
 
@@ -109,12 +109,12 @@
 </details>
 
 <details open>
-<summary>🔄 v9 Ledger Disbursement Support (Phases 46–49) — IN PROGRESS</summary>
+<summary>✅ v9 Ledger Disbursement Support (Phases 46–49) — SHIPPED 2026-04-22</summary>
 
-- [ ] **Phase 46: Flyway V25 Schema Migration** - Prerequisite schema changes for disbursement ledger writes
-- [ ] **Phase 47: Contract Types + LedgerService Rewrite** - LedgerFlow/LedgerPosting contracts, LedgerService routing, Transaction.flow entity field, call-site migration
-- [ ] **Phase 48: Test Coverage** - Unit tests, PITest MUT-02 update, LedgerServiceIT integration test, LedgerVerifier helper
-- [ ] **Phase 49: Orange Cashout Wiring** - PaymentCommand feeAmount field, OrangeMoneyPort.initiateCashout() ledger call
+- [x] **Phase 46: Flyway V25 Schema Migration** - Prerequisite schema changes for disbursement ledger writes — completed 2026-04-22
+- [x] **Phase 47: Contract Types + LedgerService Rewrite** - LedgerFlow/LedgerPosting contracts, LedgerService routing, Transaction.flow entity field, call-site migration — completed 2026-04-22
+- [x] **Phase 48: Test Coverage** - Unit tests, PITest MUT-02 update, LedgerServiceIT integration test, LedgerVerifier helper — completed 2026-04-22
+- [x] **Phase 49: Orange Cashout Wiring** - PaymentCommand feeAmount field, OrangeMoneyPort.initiateCashout() ledger call — completed 2026-04-22 (2/2 plans)
 
 </details>
 
