@@ -155,6 +155,47 @@
 
 ---
 
+## Milestone: v9 — Ledger Disbursement Support
+
+**Shipped:** 2026-04-23
+**Phases:** 4 (46–49) | **Plans:** 8
+
+### What Was Built
+- Flyway V25: deferrable PL/pgSQL CONSTRAINT TRIGGER for SUM(DEBIT)==SUM(CREDIT), `amount >= 0` relaxation, `flow VARCHAR(20)` column on `transaction` + `transaction_aud`
+- `LedgerFlow` enum + `LedgerPosting` Java 17 record with compact-constructor validation (`compareTo` for scale-insensitive BigDecimal) and two static factories
+- `LedgerService.postEntry` rewritten with exhaustive switch routing: COLLECTION → 2 entries, DISBURSEMENT → 3 entries; old 4-arg signature atomically deleted with all call site migrations
+- Full disbursement test coverage: unit tests for fee>0 and fee=0, 100% PITest kill rate, `LedgerServiceIT` with real Testcontainers PostgreSQL, `LedgerVerifier` E2E helper
+- `PaymentCommand.feeAmount` 14th nullable field + orchestrator fee enrichment; `OrangeMoneyPort.initiateCashout()` wired with real HTTP call and `TransactionTemplate`-scoped ledger write
+
+### What Worked
+- **Deferrable trigger over unique constraint:** The V23 DEFERRABLE INITIALLY DEFERRED unique constraint couldn't allow zero-amount PROVIDER_FEE entries. A trigger-based approach (SUM balance per group at commit) is both more expressive and more correct for multi-entry groups. V25 migration cleanly replaced it.
+- **Atomic commit for signature deletion:** Committing the LedgerService rewrite + all call site migrations as one atomic unit (Tasks 1+2 together) was the right approach — the build only compiles when both are in place. The plan correctly called this out.
+- **No `@Builder.Default` on nullable JPA field:** Explicitly not adding a default preserved `null` for pre-v9 rows and pushed the null-coalescing logic to `getEffectiveFlow()` accessor where it belongs. Clean separation of storage representation vs domain interpretation.
+- **Zero-fee fallback to `BigDecimal.ZERO`:** Having `initiateCashout()` always call `LedgerPosting.disbursement(principal, fee, currency)` with a ZERO fallback (rather than conditional branching) means the 3-entry balanced group is always produced. V25's `amount >= 0` makes this safe.
+- **4-phase sequencing:** Schema → contracts → service + tests → cashout wiring was a clean dependency chain. Each phase was independently verifiable.
+
+### What Was Inefficient
+- **gsd-tools CLI pulled wrong phases for MILESTONES.md:** The `milestone complete` command extracted accomplishments from all phases visible in ROADMAP.md (30+) instead of just v9 phases (46-49), producing a garbage accomplishments list. Needed manual correction. Root cause: CLI uses ROADMAP.md phase count without scoping to the milestone range.
+- **v9-ROADMAP.md archive contained full ROADMAP.md content:** The archive file had all 462 lines of the ROADMAP instead of just v9 phase details. Required full rewrite of the archive. Same root cause as MILESTONES.md issue.
+- **Phase 47 progress table showed 2/3 plans complete:** The progress table wasn't updated when plan 47-03 was added. Stale tables at milestone time.
+
+### Patterns Established
+- **`compareTo(BigDecimal.ZERO)` is the canonical zero check.** `BigDecimal.equals()` compares scale — `new BigDecimal("0.00").equals(BigDecimal.ZERO)` is false. Use `compareTo` in all domain validation code.
+- **No `@Builder.Default` on nullable JPA fields for pre-existing rows.** If a column is intentionally null for historical rows, don't default it in the builder. Push the null interpretation to an accessor method.
+- **CONSTRAINT TRIGGER vs unique constraint for multi-row ledger invariants.** A deferrable unique constraint on `(group_id, direction)` only enforces one debit + one credit. A trigger checking `SUM(DEBIT)==SUM(CREDIT)` per group supports arbitrary entry counts (2-entry collection, 3-entry disbursement) while preserving the balance guarantee.
+- **Always use `TransactionTemplate` for port methods that mix HTTP I/O with DB writes.** Consistent with `PaymentOrchestrator` pattern — no `@Transactional` on the method itself, `TransactionTemplate.execute()` scopes exactly the DB operation.
+
+### Key Lessons
+1. **gsd-tools `milestone complete` CLI scopes to the wrong phase range.** After running the CLI, always verify MILESTONES.md and the archive files contain only the current milestone's phases. Manual correction is fast once you know to expect it.
+2. **V25-style trigger is better than V23-style constraint for any ledger with variable entry counts.** The trigger approach is more future-proof — if a flow ever needs 4 entries, no schema change is required. Unique constraint on direction would require rethinking at that point.
+3. **Atomic deletion of old API signatures forces clean cut-over.** The 4-arg `postEntry` was deleted (not deprecated) in the same commit as all call site migrations. This surfaced any missed call sites as compile errors rather than runtime surprises.
+
+### Cost Observations
+- Sessions: ~2 (2026-04-21 → 2026-04-23)
+- Notable: 3 days for schema migration + contract types + service rewrite + full test coverage + cashout wiring — tight scope (20 requirements) enabled fast execution
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -169,6 +210,7 @@
 | v6 | 5 | 12 | REST API surface + email notifications + Admin UI; 14 tenant + 3 email IT tests |
 | v7 | 6 | 16 | Backend hardening — idempotency, reconciliation, webhook, fraud ordering, concurrency, resilience |
 | v8 | 5 | 8 | Provider credential management — AES256 PIN storage, masked UI, email notification; audit-driven gap closure |
+| v9 | 4 | 8 | Disbursement ledger — V25 trigger migration, LedgerPosting contract types, LedgerService routing, OrangeMoneyPort cashout wiring |
 
 ### Cumulative Quality
 
@@ -182,6 +224,7 @@
 | v6 | 3 integration test classes | TenantAdminResourceIT (14), TenantLifecycleEmailIT (3), E2E+IT |
 | v7 | 8 integration test classes | IDEM-01/02 race tests, RECON-01/02, WEBHOOK-01/02/03, TXN-01, OPS-02, AKEY-09 409, LEDGER-01 |
 | v8 | 1 integration test class (extended) | PlatformConfigAdminResourceIT (+7 tests for PIN-03/04/05/09), PlatformConfigServiceTest (+4 units) |
+| v9 | 3 test classes (new + extended) | LedgerBalanceGuardTest (+2 disbursement cases), LedgerServiceIT (+1 3-entry IT), LedgerVerifierTest (+5 units); 100% PITest on LedgerService |
 
 ### Top Lessons (Verified Across Milestones)
 

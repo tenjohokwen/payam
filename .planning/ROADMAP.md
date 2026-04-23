@@ -10,7 +10,7 @@
 - ✅ **v6 REST API Surface, Notifications & Admin UI** — Phases 30–34 (shipped 2026-04-14) — see [milestones/v6-ROADMAP.md](milestones/v6-ROADMAP.md)
 - ✅ **v7 Backend Hardening & Bug Fixes** — Phases 35–40 (shipped 2026-04-17) — see [milestones/v7-ROADMAP.md](milestones/v7-ROADMAP.md)
 - ✅ **v8 Platform Config PIN** — Phases 41–45 (shipped 2026-04-21) — see [milestones/v8-ROADMAP.md](milestones/v8-ROADMAP.md)
-- ✅ **v9 Ledger Disbursement Support** — Phases 46–49 (shipped 2026-04-22)
+- ✅ **v9 Ledger Disbursement Support** — Phases 46–49 (shipped 2026-04-23) — see [milestones/v9-ROADMAP.md](milestones/v9-ROADMAP.md)
 
 ## Phases
 
@@ -108,13 +108,13 @@
 
 </details>
 
-<details open>
-<summary>✅ v9 Ledger Disbursement Support (Phases 46–49) — SHIPPED 2026-04-22</summary>
+<details>
+<summary>✅ v9 Ledger Disbursement Support (Phases 46–49) — SHIPPED 2026-04-23</summary>
 
-- [x] **Phase 46: Flyway V25 Schema Migration** - Prerequisite schema changes for disbursement ledger writes — completed 2026-04-22
-- [x] **Phase 47: Contract Types + LedgerService Rewrite** - LedgerFlow/LedgerPosting contracts, LedgerService routing, Transaction.flow entity field, call-site migration — completed 2026-04-22
-- [x] **Phase 48: Test Coverage** - Unit tests, PITest MUT-02 update, LedgerServiceIT integration test, LedgerVerifier helper — completed 2026-04-22
-- [x] **Phase 49: Orange Cashout Wiring** - PaymentCommand feeAmount field, OrangeMoneyPort.initiateCashout() ledger call — completed 2026-04-22 (2/2 plans)
+- [x] Phase 46: Flyway V25 Schema Migration (1/1 plans) — completed 2026-04-21
+- [x] Phase 47: Contract Types + LedgerService Rewrite (3/3 plans) — completed 2026-04-22
+- [x] Phase 48: Test Coverage (2/2 plans) — completed 2026-04-22
+- [x] Phase 49: Orange Cashout Wiring (2/2 plans) — completed 2026-04-23
 
 </details>
 
@@ -457,6 +457,6 @@ Plans:
 | 44. PIN Email Notification | v8 | 2/2 | Complete | 2026-04-18 |
 | 45. PIN Add-Provider Fix | v8 | 1/1 | Complete | 2026-04-20 |
 | 46. Flyway V25 Schema Migration | v9 | 1/1 | Complete    | 2026-04-21 |
-| 47. Contract Types + LedgerService Rewrite | v9 | 2/3 | Complete    | 2026-04-22 |
-| 48. Test Coverage | v9 | 2/2 | Complete    | 2026-04-22 |
-| 49. Orange Cashout Wiring | v9 | 0/2 | Complete    | 2026-04-23 |
+| 47. Contract Types + LedgerService Rewrite | v9 | 3/3 | Complete | 2026-04-22 |
+| 48. Test Coverage | v9 | 2/2 | Complete | 2026-04-22 |
+| 49. Orange Cashout Wiring | v9 | 2/2 | Complete | 2026-04-23 |

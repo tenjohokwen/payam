@@ -1,3 +1,12 @@
+# Requirements Archive: v9 Ledger Disbursement Support
+
+**Archived:** 2026-04-23
+**Status:** SHIPPED
+
+For current requirements, see `.planning/REQUIREMENTS.md`.
+
+---
+
 # Requirements — v9 Ledger Disbursement Support
 
 **Milestone:** v9

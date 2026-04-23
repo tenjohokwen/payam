@@ -156,6 +156,11 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 | `platform_config_aud` created in V24 (not V20) (v8) | V20 already shipped; `CREATE TABLE IF NOT EXISTS` in V24 corrects the Envers gap idempotently | ✓ Good — idempotent CREATE TABLE IF NOT EXISTS pattern for retroactive Envers table creation |
 | `updatePin(ciphertext)` called BEFORE `save(newConfig)` in `orElseGet` branch (v8) | JPA flushes at transaction commit; setting the field before save ensures the pin column is included in the INSERT | ✓ Good — required ordering for JPA transient-to-persistent PIN assignment |
 | No `PlatformConfigChangedEvent` from `orElseGet` branch even when PIN set (v8) | PIN-10 semantics: first-time row creation does not count as a "change event" | ✓ Good — consistent with PIN-10 fire rules; matches audit's explicit exclusion |
+| `compareTo(BigDecimal.ZERO)` for LedgerPosting zero checks (v9) | `.equals()` is scale-sensitive — `new BigDecimal("0.00").equals(ZERO)` is false; `compareTo` is the correct idiom | ✓ Good — established pattern for all BigDecimal zero comparisons in domain code |
+| Atomic commit for LedgerService rewrite + all call sites (v9) | Build only compiles when new 3-arg signature and all 3 migrated call sites are committed together — partial commits would break CI | ✓ Good — required approach for any method signature change with immediate deletion of the old signature |
+| No `@Builder.Default` on `Transaction.flow` nullable field (v9) | Pre-v9 rows must remain `null` in DB; `@Builder.Default` would set COLLECTION on new builder calls masking the null — fallback belongs in `getEffectiveFlow()` only | ✓ Good — correct nullable JPA field pattern; null-coalescing in accessor is the right isolation |
+| No `@Transactional` on `OrangeMoneyPort.initiateCashout()` (v9) | Consistent with `PaymentOrchestrator.initiate()` pattern — holding DB connection during provider HTTP exhausts pool; `TransactionTemplate` scopes DB work precisely | ✓ Good — established pattern for any port method that mixes HTTP I/O with discrete DB writes |
+| Null `feeAmount` falls back to `BigDecimal.ZERO` in `initiateCashout()` (v9) | PROVIDER_FEE entry is always written (zero-amount allowed by V25 `amount >= 0`); prevents conditional branching in ledger posting for zero-fee providers | ✓ Good — zero-fee disbursement always produces a balanced 3-entry group |
 
 ## Shipped Milestone: v9 Ledger Disbursement Support ✅
 
@@ -181,12 +186,11 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - `TenantProvisioningIT.tearDown()` does not clean audit tables — rows accumulate across test runs (non-critical)
 - Dead `updatePlatformConfig(provider, platformMsisdn)` method in `admin.api.js` (TD-01) — no longer called after v8; risk of misuse by future devs
 - `@EventListener` (synchronous) on `PlatformConfigEmailListener` — failure rolls back config update; matches project pattern but `@TransactionalEventListener` would be safer (TD-02, low risk)
+- `LedgerConstraintIT.flowColumn_existsAndIsNullable` asserts `character_maximum_length = 20` but PostgreSQL stores `VARCHAR(20)` as `character varying` with length 20; test may show 255 vs 20 mismatch in some environments (TD-03, low risk)
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
-
-*Last updated: 2026-04-22 — Phase 47 complete
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
@@ -202,4 +206,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-21 after v8 milestone
+*Last updated: 2026-04-23 after v9 milestone*

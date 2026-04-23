@@ -1,26 +1,26 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0.2
-milestone_name: milestone
-status: executing
-stopped_at: Completed 49-orange-cashout-wiring/49-01-PLAN.md
-last_updated: "2026-04-23T11:37:13.250Z"
+milestone: v9
+milestone_name: Ledger Disbursement Support
+status: complete
+stopped_at: v9 milestone archived
+last_updated: "2026-04-23T00:00:00.000Z"
 last_activity: 2026-04-23
 progress:
-  total_phases: 20
-  completed_phases: 15
-  total_plans: 36
-  completed_plans: 36
+  total_phases: 4
+  completed_phases: 4
+  total_plans: 8
+  completed_plans: 8
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-21 — Milestone v9 active)
+See: .planning/PROJECT.md (updated 2026-04-23 — v9 milestone complete)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 49 — orange-cashout-wiring
+**Current focus:** Planning v10 — start with `/gsd:new-milestone`
 
 ## Current Position
 
@@ -30,16 +30,16 @@ Status: Executing Phase 49
 Last activity: 2026-04-23
 
 ```
-Progress [                    ] 0% — v9 in progress (0/4 phases, 0/0 plans)
+Progress [████████████████████] 100% — v9 complete (4/4 phases, 8/8 plans)
 ```
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 98 (across v1–v8)
-- Average duration: —
-- Total execution time: —
+- Total plans completed: 106 (across v1–v9)
+- v9 duration: 3 days (2026-04-21 → 2026-04-23)
+- v9 files changed: 95 files, 9,412 insertions, 1,295 deletions
 
 ## Accumulated Context
 
@@ -47,36 +47,18 @@ Progress [                    ] 0% — v9 in progress (0/4 phases, 0/0 plans)
 
 Decisions are logged in PROJECT.md Key Decisions table.
 
-Key context carried forward from v8 (for v9 implementation):
+Key context carried forward for v10:
 
-- Last Flyway migration: V24 (platform_config_aud + nullable pin column). Next migration is **V25**.
-- V23 added `uq_ledger_entry_group_direction` deferrable unique constraint on `ledger_entry(entry_group_id, direction)` — V25 must drop this constraint and replace it with a balance-check trigger
-- V25 pre-flight DO block required: verify no unbalanced entry groups exist before dropping V23 constraint
-- `CHECK (amount > 0)` on `ledger_entry.amount` must be relaxed to `CHECK (amount >= 0)` in V25 to allow zero-fee PROVIDER_FEE entries
-- `main.transaction` and `main.transaction_aud` need nullable `flow VARCHAR(20)` column in V25
-- `LedgerFlow` enum and `LedgerPosting` record go in `transaction/contract` package — follow established contract layer pattern
-- `LedgerService.postEntry()` new 3-arg signature: `(txId, tenantId, LedgerPosting)` — old 4-arg signature deleted after `WebhookTransitionService` migrated
-- Account code strings (`CUSTOMER_WALLET`, `PROVIDER_CLEARING`, `MERCHANT_WALLET`, `PROVIDER_FEE`) are private constants inside `LedgerService` — no external references
-- `OrangeMoneyPort.initiateCashout()` currently stubs `UnsupportedOperationException` — CASHOUT-02 wires real ledger call post-confirmation inside `TransactionTemplate` (no `@Transactional` on method, consistent with `PaymentOrchestrator` pattern)
-- `PaymentCommand` gains optional nullable `feeAmount` field — existing construction sites unaffected (field is nullable)
-- TEST-08 (`mvn verify` passes) is a cross-cutting gate — must be verified after every phase commit, not a standalone phase
-- PlatformConfig entity now has `pin` (nullable VARCHAR(500) ciphertext) + `updatePin(ciphertext)` method (v8 context, no v9 changes needed)
-- `pinCryptopher` @Bean backed by `PayamPlatformProperties.pinEncryptionSecret` / `PLATFORM_PIN_ENCRYPTION_SECRET` (v8 context)
-- `@EventListener` on PlatformConfigEmailListener (not @TransactionalEventListener) — MailManager handles AFTER_COMMIT (v8 context, pattern to follow)
-- Dead method `updatePlatformConfig(provider, platformMsisdn)` in admin.api.js — not called, low-risk TD-01 (v8 deferred)
-- [Phase 46]: CONSTRAINT TRIGGER fires JpaSystemException (not DataIntegrityViolationException) via TransactionTemplate — JpaSystemException added to isInstanceOfAny in LedgerConstraintIT
-- [Phase 47-contract-types-ledgerservice-rewrite]: LedgerPosting uses compareTo(ZERO) not equals() for BigDecimal validation to handle scale-insensitive zero comparison
-- [Phase 47-contract-types-ledgerservice-rewrite]: Tasks 1+2 committed atomically — old 4-arg postEntry deleted (not deprecated), build only compiles when all call sites migrated simultaneously
-- [Phase 47-contract-types-ledgerservice-rewrite]: No @Builder.Default on Transaction.flow — null preserved for pre-v9 rows; COLLECTION fallback belongs in getEffectiveFlow() accessor
-- [Phase 48]: Tests added to LedgerBalanceGuardTest in com.softropic.payam.domain package (PITest targetTests glob requirement); compareTo/isEqualByComparingTo for BigDecimal (not equals)
-- [Phase 48]: LedgerVerifierTest uses mock(JdbcTemplate.class) without Spring context — assertion logic verification only; consistent with plan spec
-- [Phase 48]: Pre-existing LedgerConstraintIT.flowColumn_existsAndIsNullable failure (VARCHAR(20) vs 255) — from Phase 46, out of scope for Phase 48; needs fix in future phase
-- [Phase 49-orange-cashout-wiring]: 13-arg compat constructor delegates to 14-arg canonical with feeAmount=null — preserves backward compat for all existing PaymentCommand call sites
+- Last Flyway migration: **V25** (balance-check CONSTRAINT TRIGGER, `amount >= 0`, `flow VARCHAR(20)` on transaction/transaction_aud)
+- `LedgerService.postEntry(txId, tenantId, LedgerPosting)` is the current API — 3-arg, switch-routed; 4-arg signature gone
+- `OrangeMoneyPort.initiateCashout()` fully wired; MTN disbursement still deferred
+- Dead method `updatePlatformConfig(provider, platformMsisdn)` in `admin.api.js` (TD-01)
+- `@EventListener` (synchronous) on `PlatformConfigEmailListener` — matches project pattern (TD-02)
+- `LedgerConstraintIT.flowColumn_existsAndIsNullable` VARCHAR(20) vs 255 assertion mismatch (TD-03)
 
 ### Roadmap Evolution
 
-- v8 complete (2026-04-21): Phases 41–45 (5 phases, 8 plans) archived
-- v9 roadmap created (2026-04-21): Phases 46–49 (4 phases)
+- v9 complete (2026-04-23): Phases 46–49 (4 phases, 8 plans) archived
 
 ### Pending Todos
 
@@ -88,6 +70,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-22T20:14:12.311Z
-Stopped at: Completed 49-orange-cashout-wiring/49-01-PLAN.md
-Resume: /gsd:execute-phase 49 to continue with Plan 02
+Last session: 2026-04-23
+Stopped at: v9 milestone complete — archived to .planning/milestones/v9-ROADMAP.md
+Resume: /gsd:new-milestone to start v10

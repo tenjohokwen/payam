@@ -1,5 +1,28 @@
 # Project Milestones: Payam
 
+## v9 Ledger Disbursement Support (Shipped: 2026-04-23)
+
+**Delivered:** Extended the double-entry ledger to support disbursement/cashout flows — `LedgerFlow` enum + `LedgerPosting` record in `transaction/contract`; `LedgerService` routes to COLLECTION (2-entry) and DISBURSEMENT (3-entry) builders; `OrangeMoneyPort.initiateCashout` wired with real HTTP call + 3-row balanced ledger entry via `TransactionTemplate`.
+
+**Phases completed:** 46–49 (4 phases, 8 plans)
+
+**Stats:**
+- 95 files changed, 9,412 insertions, 1,295 deletions
+- 3 days (2026-04-21 → 2026-04-23)
+
+**Key accomplishments:**
+
+- Flyway V25: drops V23 unique constraint, adds deferrable PL/pgSQL CONSTRAINT TRIGGER asserting SUM(DEBIT)==SUM(CREDIT) per entry group at commit; relaxes `amount > 0` to `amount >= 0`; adds nullable `flow VARCHAR(20)` to `main.transaction` + `main.transaction_aud` (Phase 46)
+- `LedgerFlow` enum (COLLECTION/DISBURSEMENT) + `LedgerPosting` Java 17 record with compact-constructor validation using `compareTo(ZERO)` for scale-insensitive BigDecimal checks; two static factories: `collection(principal, currency)` and `disbursement(principal, fee, currency)` (Phase 47)
+- `LedgerService.postEntry(txId, tenantId, LedgerPosting)` rewritten with exhaustive switch routing: COLLECTION → 2 entries (DEBIT CUSTOMER_WALLET + CREDIT PROVIDER_CLEARING); DISBURSEMENT → 3 entries (DEBIT MERCHANT_WALLET gross + CREDIT CUSTOMER_WALLET + CREDIT PROVIDER_FEE); old 4-arg signature deleted; all call sites atomically migrated; `Transaction.flow` nullable JPA field + `getEffectiveFlow()` returns COLLECTION for null pre-v9 rows (Phase 47)
+- Full disbursement test coverage: 2 unit tests in `LedgerBalanceGuardTest` (fee>0 and fee=0), 100% PITest mutation kill rate on `LedgerService`; `LedgerServiceIT.postEntry_disbursement_persistsThreeBalancedRows` in real Testcontainers PostgreSQL with V25 balance-check trigger (Phase 48)
+- `LedgerVerifier.assertDisbursementLedgerBalanced(txId, principal, fee)` reusable E2E helper with 5 unit tests; existing `assertLedgerBalanced` collection helper untouched (Phase 48)
+- `PaymentCommand` gains 14th nullable `feeAmount` field with 13-arg backward-compat constructor + `withFeeAmount` wither; `PaymentOrchestrator` enriches in-flight command from `FeeEvaluationService` before port dispatch; `OrangeMoneyPort.initiateCashout()` calls real POST `/cashout`, posts `LedgerPosting.disbursement` in `TransactionTemplate` block; null fee falls back to `BigDecimal.ZERO`; 8/8 `OrangeMoneyPortIT` tests green (Phase 49)
+
+**Archive:** `.planning/milestones/v9-ROADMAP.md`
+
+---
+
 ## v8 Platform Config PIN (Shipped: 2026-04-21)
 
 **Delivered:** AES256-encrypted PIN field on `PlatformConfig` — admins can store, reveal (masked with 60s auto-expiry), and receive email notification for provider credential changes, with GAP-01 (Add Provider PIN persistence) closed in Phase 45.
