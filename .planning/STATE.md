@@ -1,37 +1,33 @@
 ---
 gsd_state_version: 1.0
-milestone: v9
-milestone_name: Ledger Disbursement Support
-status: complete
-stopped_at: v9 milestone archived
-last_updated: "2026-04-23T00:00:00.000Z"
-last_activity: 2026-04-23
+milestone: v10
+milestone_name: Client Disbursement API
+status: active
+stopped_at: Defining requirements
+last_updated: "2026-04-24T00:00:00.000Z"
+last_activity: 2026-04-24
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-23 — v9 milestone complete)
+See: .planning/PROJECT.md (updated 2026-04-24 — v10 milestone started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Planning v10 — start with `/gsd:new-milestone`
+**Current focus:** v10 — Client Disbursement API
 
 ## Current Position
 
-Phase: 49
-Plan: Not started
-Status: Executing Phase 49
-Last activity: 2026-04-23
-
-```
-Progress [████████████████████] 100% — v9 complete (4/4 phases, 8/8 plans)
-```
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-24 — Milestone v10 started
 
 ## Performance Metrics
 
@@ -59,6 +55,7 @@ Key context carried forward for v10:
 ### Roadmap Evolution
 
 - v9 complete (2026-04-23): Phases 46–49 (4 phases, 8 plans) archived
+- v10 started (2026-04-24): Client Disbursement API
 
 ### Pending Todos
 
@@ -70,6 +67,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-23
-Stopped at: v9 milestone complete — archived to .planning/milestones/v9-ROADMAP.md
-Resume: /gsd:new-milestone to start v10
+Last session: 2026-04-24
+Stopped at: v10 milestone initialized — defining requirements
+Resume: /gsd:plan-phase 50 to begin execution after roadmap is created

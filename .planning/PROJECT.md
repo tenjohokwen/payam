@@ -8,6 +8,21 @@ Payam is a unified, multi-tenant payment API for Cameroon that wraps MTN Mobile 
 
 Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
 
+## Current Milestone: v10 Client Disbursement API
+
+**Goal:** Expose a production-ready `POST /v1/disbursements` endpoint enabling tenants to send payouts to MTN MoMo and Orange subscribers, with full security controls, pre-funded balance gating, and E2E verification.
+
+**Target features:**
+- Public disbursement API (`POST /v1/disbursements` + `GET /v1/disbursements/{id}`)
+- `DisbursementOrchestrator`: idempotency → fraud → balance gate → MSISDN routing → provider call → ledger → 202 response
+- MTN MoMo disbursement: wire existing `MtnMoMoClient.transfer()` through the new orchestrator
+- Orange Money IC2C disbursement: `OrangeMoneyPort.ic2cDisbursement()` calling `/ic2c/pay`
+- Balance gating: atomic `MERCHANT_WALLET` balance check-and-reserve before any provider call
+- Disbursement-specific fraud controls: stricter velocity rules + disbursement fraud signals
+- Inbound callback controllers: MTN + Orange (double-check, IP whitelist, HMAC, replay protection)
+- Outbound webhooks: `disbursement.completed` / `disbursement.failed` events via existing pipeline
+- E2E tests: MTN + Orange happy path, failure + reversal, idempotency race, fraud block, balance insufficient
+
 ## Requirements
 
 ### Validated
@@ -101,7 +116,14 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ### Active
 
-<!-- v9 Ledger Disbursement Support — COMPLETE 2026-04-23 -->
+<!-- v10 Client Disbursement API — started 2026-04-24 -->
+- [ ] DISB-01: Tenant can initiate a disbursement via `POST /v1/disbursements` (MTN + Orange)
+- [ ] DISB-02: Tenant can query disbursement status via `GET /v1/disbursements/{id}`
+- [ ] DISB-03: System validates idempotency key on every disbursement request
+- [ ] DISB-04: System gates disbursement on pre-funded `MERCHANT_WALLET` balance
+- [ ] DISB-05: System applies disbursement-specific fraud scoring and velocity rules
+- [ ] DISB-06: System delivers `disbursement.completed` / `disbursement.failed` outbound webhook
+- [ ] DISB-07: E2E test suite covers disbursement flows for both providers
 
 ### Out of Scope
 
@@ -206,4 +228,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-23 after v9 milestone*
+*Last updated: 2026-04-24 — v10 milestone started*
