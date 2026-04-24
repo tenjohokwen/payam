@@ -71,9 +71,9 @@ public class DailyReconciliationE2ETest extends AbstractPayamE2ETest {
 
         insertTransaction(tenant.tenantId(), "MTN", "SUCCESS", yesterday + "T12:00:00Z");
 
-        when(mtnMoMoPort.getTransactionStatus(anyString()))
+        when(mtnMoMoPort.getCollectionTransactionStatus(anyString()))
             .thenReturn(ProviderResult.success("fin-matched-001", "SUCCESSFUL"));
-        when(orangeMoneyPort.getTransactionStatus(anyString()))
+        when(orangeMoneyPort.getCollectionTransactionStatus(anyString()))
             .thenReturn(ProviderResult.success("fin-orange-001", "SUCCESSFULL")); // Orange double-L
 
         reconciliationService.runForDate(yesterday);
@@ -99,9 +99,9 @@ public class DailyReconciliationE2ETest extends AbstractPayamE2ETest {
 
         // Return rawStatus=null — MtnReportAdapter passes result.rawStatus() as providerStatus.
         // When providerStatus == null, ReconciliationService.compareTransaction() creates MISSING_IN_PROVIDER.
-        when(mtnMoMoPort.getTransactionStatus(anyString()))
+        when(mtnMoMoPort.getCollectionTransactionStatus(anyString()))
             .thenReturn(new ProviderResult(null, null, false, null, null));
-        when(orangeMoneyPort.getTransactionStatus(anyString()))
+        when(orangeMoneyPort.getCollectionTransactionStatus(anyString()))
             .thenReturn(ProviderResult.success("fin-orange-001", "SUCCESSFULL"));
 
         reconciliationService.runForDate(yesterday);
@@ -128,9 +128,9 @@ public class DailyReconciliationE2ETest extends AbstractPayamE2ETest {
 
         // rawStatus="FAILED" → providerStatus="FAILED". Payam SUCCESS vs provider FAILED
         // are both terminal and do not match → STATUS_MISMATCH.
-        when(mtnMoMoPort.getTransactionStatus(anyString()))
+        when(mtnMoMoPort.getCollectionTransactionStatus(anyString()))
             .thenReturn(ProviderResult.success("fin-mismatch-001", "FAILED"));
-        when(orangeMoneyPort.getTransactionStatus(anyString()))
+        when(orangeMoneyPort.getCollectionTransactionStatus(anyString()))
             .thenReturn(ProviderResult.success("fin-orange-001", "SUCCESSFULL"));
 
         reconciliationService.runForDate(yesterday);
@@ -170,9 +170,9 @@ public class DailyReconciliationE2ETest extends AbstractPayamE2ETest {
         // Seed at 23:30 UTC = 00:30 WAT next day. Must fall in YESTERDAY's window.
         insertTransaction(tenant.tenantId(), "MTN", "SUCCESS", yesterday + "T23:30:00Z");
 
-        when(mtnMoMoPort.getTransactionStatus(anyString()))
+        when(mtnMoMoPort.getCollectionTransactionStatus(anyString()))
             .thenReturn(ProviderResult.success("fin-wat-001", "SUCCESSFUL"));
-        when(orangeMoneyPort.getTransactionStatus(anyString()))
+        when(orangeMoneyPort.getCollectionTransactionStatus(anyString()))
             .thenReturn(ProviderResult.success("fin-orange-001", "SUCCESSFULL"));
 
         reconciliationService.runForDate(yesterday);

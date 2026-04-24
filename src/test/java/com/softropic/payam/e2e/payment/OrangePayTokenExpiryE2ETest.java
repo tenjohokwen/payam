@@ -261,8 +261,7 @@ public class OrangePayTokenExpiryE2ETest extends AbstractFailureFlowTest {
             .isEqualTo("\"pay_token_expired\"");
 
         // Assert: the Orange status endpoint was never called.
-        // The expiry guard exits before reaching getTransactionStatus() — a call would mean
-        // the guard did not fire, which is a correctness bug.
+        // The expiry guard exits before reaching status methods — a call would mean        // the guard did not fire, which is a correctness bug.
         orangeServer.verify(0, getRequestedFor(urlPathMatching("/mp/paymentstatus/.*")));
 
         // Assert: no ledger entries — FAILED from poller expiry never posts to ledger.

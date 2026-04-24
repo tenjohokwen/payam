@@ -167,7 +167,9 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
         }
 
         try {
-            var result = orangeMoneyPort.getTransactionStatus(tx.getPayToken());
+            var result = tx.getEffectiveFlow() == com.softropic.payam.transaction.contract.LedgerFlow.COLLECTION
+                ? orangeMoneyPort.getCollectionTransactionStatus(tx.getPayToken())
+                : orangeMoneyPort.getDisbursementTransactionStatus(tx.getPayToken());
             if (!result.pending()) {
                 Transaction locked = transactionRepository.findByTransactionIdForUpdate(tx.getTransactionId())
                     .orElseThrow();

@@ -57,7 +57,8 @@ deactivate OrangePort
 ## Triggering Mechanisms
 - **`initiateMerchantPayment(cmd)`**: Triggered by the `PaymentOrchestrator` when a payment is routed to Orange.
 - **`processWebhook(payload, notifToken)`**: Triggered by the `OrangeWebhookController` when Orange sends an asynchronous update.
-- **`getTransactionStatus(providerRef)`**: Triggered by the status poller if we don't receive a callback within a certain time.
+- **`getCollectionTransactionStatus(providerRef)`**: Triggered by the status poller if we don't receive a collection callback within a certain time.
+- **`getDisbursementTransactionStatus(providerRef)`**: Triggered by the status poller for disbursement transactions.
 - **`validateSubscriber(msisdn)`**: Checks if a phone number is an active Orange Money subscriber.
 
 ## Junior Dev Tips

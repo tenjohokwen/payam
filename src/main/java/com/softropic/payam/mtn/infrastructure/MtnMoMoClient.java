@@ -5,6 +5,7 @@ import com.softropic.payam.common.client.RestRequestInterceptor;
 import com.softropic.payam.mtn.config.MtnMoMoConfig;
 import com.softropic.payam.mtn.contract.dto.AccountBalanceResponse;
 import com.softropic.payam.mtn.contract.dto.AccountHolderInfoResponse;
+import com.softropic.payam.mtn.contract.dto.TransferStatusResponse;
 import com.softropic.payam.mtn.contract.dto.DisbursementRequest;
 import com.softropic.payam.mtn.contract.dto.MtnTokenResponse;
 import com.softropic.payam.mtn.contract.dto.RequestToPayRequest;
@@ -232,6 +233,31 @@ public class MtnMoMoClient extends AbstractClient {
             throw new MtnApiException("disburse failed — referenceId: " + referenceId
                     + ", status: " + response.getStatusCode());
         }
+    }
+
+    /**
+     * GET /disbursement/v1_0/transfer/{referenceId}
+     */
+    public TransferStatusResponse getTransferStatus(String referenceId, String bearerToken) {
+        String url = config.getDisbursementBaseUrl() + "/v1_0/transfer/" + referenceId;
+
+        HttpHeaders headers = mtnHeaders(bearerToken, null, config.getDisbursementSubscriptionKey());
+
+        long start = System.currentTimeMillis();
+        ResponseEntity<TransferStatusResponse> response = makeHttpRequest(
+                url, HttpMethod.GET, null, TransferStatusResponse.class, headers);
+        // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
+        log.info("Provider HTTP call",
+                kv("externalService", "MTN_MOMO"),
+                kv("operation", "getTransferStatus"),
+                kv("externalLatencyMs", System.currentTimeMillis() - start),
+                kv("status", response.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new MtnApiException("getTransferStatus failed — referenceId: " + referenceId
+                    + ", status: " + response.getStatusCode());
+        }
+        return response.getBody();
     }
 
     /**

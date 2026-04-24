@@ -40,7 +40,7 @@ import static org.mockito.Mockito.when;
  * Verifies that:
  * 1. runForDate() produces 2 ReconciliationReport rows (MTN + Orange) for seeded transactions
  * 2. Matched transactions do not produce discrepancy rows
- * 3. When OrangeMoneyPort.getTransactionStatus() throws, all Orange transactions are flagged UNCONFIRMED
+ * 3. When OrangeMoneyPort.getCollectionTransactionStatus() throws, all Orange transactions are flagged UNCONFIRMED
  *
  * The Quartz scheduler is prevented from auto-firing during tests by configuring a
  * far-future start delay via spring.quartz.properties — reconciliationService.runForDate()
@@ -164,11 +164,11 @@ class ReconciliationJobIT {
     @Test
     void runForDate_producesReportsWithCorrectCounts_whenProviderReturnsMatch() {
         // MTN mock: return success status matching Payam SUCCESS
-        when(mtnMoMoPort.getTransactionStatus(anyString()))
+        when(mtnMoMoPort.getCollectionTransactionStatus(anyString()))
             .thenReturn(ProviderResult.success("ref", "SUCCESSFUL"));
 
         // Orange mock: return success status matching Payam SUCCESS
-        when(orangeMoneyPort.getTransactionStatus(anyString()))
+        when(orangeMoneyPort.getCollectionTransactionStatus(anyString()))
             .thenReturn(ProviderResult.success("ref", "SUCCESSFULL"));
 
         reconciliationService.runForDate(YESTERDAY);
@@ -194,11 +194,11 @@ class ReconciliationJobIT {
     @Test
     void runForDate_createsUnconfirmedDiscrepancy_whenOrangePortThrows() {
         // MTN mock: normal success
-        when(mtnMoMoPort.getTransactionStatus(anyString()))
+        when(mtnMoMoPort.getCollectionTransactionStatus(anyString()))
             .thenReturn(ProviderResult.success("ref", "SUCCESSFUL"));
 
         // Orange mock: throw RuntimeException to simulate API unreachable
-        when(orangeMoneyPort.getTransactionStatus(anyString()))
+        when(orangeMoneyPort.getCollectionTransactionStatus(anyString()))
             .thenThrow(new RuntimeException("Orange API unreachable"));
 
         reconciliationService.runForDate(YESTERDAY);
@@ -226,9 +226,9 @@ class ReconciliationJobIT {
     @Test
     void runForDate_processesLargeDataset_withPagedFetch() {
         // Seed 1000 additional MTN transactions (plus the 1 already seeded in @BeforeEach = 1001 total MTN)
-        when(mtnMoMoPort.getTransactionStatus(anyString()))
+        when(mtnMoMoPort.getCollectionTransactionStatus(anyString()))
             .thenReturn(ProviderResult.success("ref", "SUCCESSFUL"));
-        when(orangeMoneyPort.getTransactionStatus(anyString()))
+        when(orangeMoneyPort.getCollectionTransactionStatus(anyString()))
             .thenReturn(ProviderResult.success("ref", "SUCCESSFULL"));
 
         long baseId = (System.nanoTime() + 100L) & Long.MAX_VALUE;

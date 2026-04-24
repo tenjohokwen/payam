@@ -48,14 +48,32 @@ public class CacheVerifier {
     }
 
     /**
-     * Asserts the MTN OAuth2 token is cached in Redis.
-     * Key: "mtn:token:cm" (from MtnTokenService.TOKEN_KEY)
+     * Asserts the MTN OAuth2 token for Collection is cached in Redis.
+     * Key: "mtn:token:coll"
+     */
+    public void assertMtnCollectionTokenCached() {
+        String key = "mtn:token:coll";
+        assertThat(redis.hasKey(key))
+            .as("Redis key '%s' (MTN Collection OAuth2 token) must be present", key)
+            .isEqualTo(Boolean.TRUE);
+    }
+
+    /**
+     * Asserts the MTN OAuth2 token for Disbursement is cached in Redis.
+     * Key: "mtn:token:disb"
+     */
+    public void assertMtnDisbursementTokenCached() {
+        String key = "mtn:token:disb";
+        assertThat(redis.hasKey(key))
+            .as("Redis key '%s' (MTN Disbursement OAuth2 token) must be present", key)
+            .isEqualTo(Boolean.TRUE);
+    }
+
+    /**
+     * Legacy method for backward compatibility.
      */
     public void assertMtnTokenCached() {
-        String key = "mtn:token:cm";
-        assertThat(redis.hasKey(key))
-            .as("Redis key '%s' (MTN OAuth2 token) must be present", key)
-            .isEqualTo(Boolean.TRUE);
+        assertMtnCollectionTokenCached();
     }
 
     /**

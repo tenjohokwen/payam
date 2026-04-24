@@ -315,6 +315,7 @@ tr:hover td { background: var(--surface2); }
   <a href="#l3-tx-statemachine" class="l2">State Machine</a>
   <a href="#l3-tx-idempotency" class="l2">Idempotency</a>
   <a href="#l3-tx-ledger" class="l2">Ledger</a>
+  <a href="#l3-tx-disbursement" class="l2">Disbursement Flow</a>
   <a href="#l3-tx-eventlog" class="l2">Event Log (Hash Chain)</a>
   <a href="#l3-orange" class="l1">Orange Money Adapter</a>
   <a href="#l3-mtn" class="l1">MTN MoMo Adapter</a>
@@ -476,7 +477,7 @@ graph TD
       <tr><td><code>admin</code></td><td>Transaction investigation, metrics dashboard, audit trail</td><td><code>AdminTransactionResource</code>, <code>AdminTransactionQueryService</code></td></tr>
       <tr><td><code>email</code></td><td>Transactional email with circuit breaker and retry scheduler</td><td><code>MailManager</code>, <code>EmailRetryScheduler</code></td></tr>
       <tr><td><code>platform</code></td><td>Provider MSISDN configuration, health status</td><td><code>PlatformConfigService</code></td></tr>
-      <tr><td><code>common</code></td><td>Shared: <code>MobileMoneyPort</code> interface, <code>PaymentCommand</code>, validation, auditing base</td><td><code>MobileMoneyPort</code>, <code>AbstractAuditingEntity</code></td></tr>
+      <tr><td><code>common</code></td><td>Shared: <code>MobileMoneyPort</code> interface (collection/disbursement), <code>PaymentCommand</code>, validation, auditing base</td><td><code>MobileMoneyPort</code>, <code>AbstractAuditingEntity</code></td></tr>
       <tr><td><code>config</code></td><td>Application wiring: DataSource, async, observability</td><td><code>DataSourceConfig</code>, <code>ObservabilityConfig</code></td></tr>
       <tr><td><code>ops</code> / <code>health</code></td><td>Operational endpoints, custom health indicators</td><td>Actuator at <code>:8367/manage/</code></td></tr>
     </tbody>
@@ -649,7 +650,7 @@ sequenceDiagram
     Port-->>CB: HTTP 200 ACK
 
     Note over DCH: @TransactionalEventListener(AFTER_COMMIT)
-    DCH->>Prov: GET /status/{payToken}  (double-check)
+    DCH->>Prov: GET /status/{payToken} (specialized)
     Prov-->>DCH: SUCCESSFUL | FAILED | PENDING
     alt terminal status
         DCH->>WTS: applyFinalTransition() [REQUIRES_NEW]
@@ -790,12 +791,33 @@ stateDiagram-v2
   </table>
   <p>Both rows share the same <code>entryGroupId</code>. The ledger is reconciled daily against provider reports
   by <code>ReconciliationService</code>.</p>
-  <div class="callout warn">
-    <strong>INFERRED — Fee posting</strong>
-    Whether a third ledger entry for fee revenue is posted at settlement is
-    <span class="inferred">INFERRED</span> to be handled separately; fee storage on the transaction record was confirmed
-    but a corresponding ledger credit to a fee account was not explicitly verified.
-  </div>
+</section>
+
+<section id="l3-tx-disbursement">
+  <h2>Disbursement Flow</h2>
+  <p>Payam supports outbound disbursements (payouts/transfers) via <code>MobileMoneyPort.initiateDisbursement()</code>.
+  Unlike collections, disbursements involve moving money from a merchant/platform wallet to a customer wallet.</p>
+
+  <h4>Ledger Entries (Disbursement)</h4>
+  <p>A successful disbursement produces three <code>LedgerEntry</code> rows in a single atomic transaction:</p>
+  <table>
+    <thead><tr><th>Entry</th><th>Account</th><th>Type</th><th>Amount</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>MERCHANT_WALLET</code></td><td>DEBIT</td><td>principal + fee</td></tr>
+      <tr><td>2</td><td><code>CUSTOMER_WALLET</code></td><td>CREDIT</td><td>principal</td></tr>
+      <tr><td>3</td><td><code>PROVIDER_FEE</code></td><td>CREDIT</td><td>fee</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Specialized Status Methods</h4>
+  <p>To handle providers with different endpoints for collection and disbursement (e.g., MTN MoMo), 
+  the <code>MobileMoneyPort</code> interface provides specialized status methods:</p>
+  <ul>
+    <li><code>getCollectionTransactionStatus(providerRef)</code></li>
+    <li><code>getDisbursementTransactionStatus(providerRef)</code></li>
+  </ul>
+  <p>This allows pollers, webhook handlers, and reconciliation adapters to query the correct provider API
+  based on the transaction's <code>LedgerFlow</code>.</p>
 </section>
 
 <section id="l3-tx-eventlog">
@@ -865,6 +887,11 @@ stateDiagram-v2
     The body structure accepted by Payam is <span class="inferred">INFERRED</span> from the adapter code
     and may differ slightly from the live MTN MoMo API specification.
   </div>
+
+  <h4>Token management</h4>
+  <p>MTN requires separate OAuth2 bearer tokens for Collection and Disbursement products.
+  <code>MtnTokenService</code> independently caches these tokens in Redis (keys: <code>mtn:token:coll</code>, 
+  <code>mtn:token:disb</code>) to avoid cross-product interference.</p>
 
   <h4>Polling fallback</h4>
   <p>If no callback arrives within a configured window, a Quartz poller job queries

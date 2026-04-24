@@ -2,6 +2,7 @@ package com.softropic.payam.reconciliation.port;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
+import com.softropic.payam.transaction.repo.Transaction;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +15,7 @@ import java.time.LocalDate;
 /**
  * ProviderReportPort implementation for Orange Money.
  *
- * Uses OrangeMoneyPort.getTransactionStatus() which calls OrangeMoneyClient.getPaymentStatus.
+ * Uses OrangeMoneyPort status methods which call OrangeMoneyClient.getPaymentStatus.
  * PayResponse carries fields: payToken, status, txnid, message, inittxnmessage, inittxnstatus.
  *
  * IMPORTANT: PayResponse has no createtime field — WAT guard (OrangeTimeUtil.parseOrangeTimestamp)
@@ -42,11 +43,14 @@ public class OrangeReportAdapter implements ProviderReportPort {
     }
 
     @Override
-    public ProviderTransactionRecord fetchProviderRecord(String providerRef, LocalDate reportDate) {
+    public ProviderTransactionRecord fetchProviderRecord(Transaction tx, LocalDate reportDate) {
+        String providerRef = tx.getProviderRef();
         try {
             // PayResponse has no createtime field — WAT guard not applicable here;
             // P5.1 is satisfied by OrangeWebhookPayload handler (separate code path)
-            var result = orangeMoneyPort.getTransactionStatus(providerRef);
+            var result = tx.getEffectiveFlow() == com.softropic.payam.transaction.contract.LedgerFlow.COLLECTION
+                ? orangeMoneyPort.getCollectionTransactionStatus(providerRef)
+                : orangeMoneyPort.getDisbursementTransactionStatus(providerRef);
             // Orange status API does not return amount in PayResponse; providerAmount stays null
             return new ProviderTransactionRecord(providerRef, result.rawStatus(), null, false);
         } catch (Exception e) {

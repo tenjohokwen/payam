@@ -165,7 +165,7 @@ class OrangeMoneyPortIT {
             .withHeader("Authorization", equalTo("Bearer test-bearer-token"))
             .willReturn(okJson("{\"status\":\"SUCCESSFULL\",\"payToken\":\"tok-abc-123\"}")));
 
-        ProviderResult result = orangeMoneyPort.getTransactionStatus("tok-abc-123");
+        ProviderResult result = orangeMoneyPort.getCollectionTransactionStatus("tok-abc-123");
 
         assertThat(result.pending()).isFalse();
         assertThat(result.rawStatus()).isEqualTo("SUCCESSFULL");
@@ -201,10 +201,10 @@ class OrangeMoneyPortIT {
             BigDecimal.valueOf(50)                      // 14th = feeAmount
         );
 
-        ProviderResult result = orangeMoneyPort.initiateCashout(cmd);
+        ProviderResult result = orangeMoneyPort.initiateDisbursement(cmd);
 
         assertThat(result.pending()).isFalse();
-        assertThat(result.rawStatus()).isEqualTo("CASHOUT_SUCCESS");
+        assertThat(result.rawStatus()).isEqualTo("DISBURSEMENT_SUCCESS");
 
         List<LedgerEntry> entries = ledgerEntryRepository.findByTransactionId(tx.getTransactionId());
         assertThat(entries).hasSize(3);
@@ -248,10 +248,10 @@ class OrangeMoneyPortIT {
             null, null, null, null  // 13th = description (no 14th feeAmount — compat ctor)
         );
 
-        ProviderResult result = orangeMoneyPort.initiateCashout(cmd);
+        ProviderResult result = orangeMoneyPort.initiateDisbursement(cmd);
 
         assertThat(result.pending()).isFalse();
-        assertThat(result.rawStatus()).isEqualTo("CASHOUT_SUCCESS");
+        assertThat(result.rawStatus()).isEqualTo("DISBURSEMENT_SUCCESS");
 
         List<LedgerEntry> entries = ledgerEntryRepository.findByTransactionId(tx.getTransactionId());
         assertThat(entries).hasSize(3);

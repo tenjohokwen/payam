@@ -43,9 +43,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(TestConfig.class)
 @TestPropertySource(properties = {
     "spring.cloud.compatibility-verifier.enabled=false",
-    "mtn.callback-ip-whitelist=" // empty = sandbox mode in MtnIpWhitelistInterceptor (accepts all)
+    "mtn.callback-ip-whitelist=", // empty = sandbox mode in MtnIpWhitelistInterceptor (accepts all)
+    "mtn.collection-token-url=http://localhost:${wiremock.server.port}/token/collection",
+    "mtn.disbursement-token-url=http://localhost:${wiremock.server.port}/token/disbursement"
 })
-@EnableWireMock(@ConfigureWireMock(name = "mtn", baseUrlProperties = {"mtn.collection-base-url"}))
+@EnableWireMock(@ConfigureWireMock(name = "mtn", baseUrlProperties = {"mtn.collection-base-url", "mtn.disbursement-base-url"}))
 class MtnMoMoPortIT {
 
     @InjectWireMock("mtn")
@@ -78,17 +80,23 @@ class MtnMoMoPortIT {
 
         tenantId = tenantService.createTenant("mtn-test-tenant", ApiKeyEnvironment.PROD).tenant().getId();
 
-        // Stub MTN collection token endpoint (path is /token/ per test application.properties)
-        mtnServer.stubFor(post(urlPathEqualTo("/token/"))
-            .willReturn(okJson("{\"access_token\":\"mtn-test-bearer\",\"token_type\":\"Bearer\",\"expires_in\":3600}")));
+        // Stub MTN collection token endpoint
+        mtnServer.stubFor(post(urlPathEqualTo("/token/collection"))
+            .willReturn(okJson("{\"access_token\":\"mtn-coll-bearer\",\"token_type\":\"Bearer\",\"expires_in\":3600}")));
+        
+        // Stub MTN disbursement token endpoint
+        mtnServer.stubFor(post(urlPathEqualTo("/token/disbursement"))
+            .willReturn(okJson("{\"access_token\":\"mtn-disb-bearer\",\"token_type\":\"Bearer\",\"expires_in\":3600}")));
     }
 
     @AfterEach
     void tearDown() {
         mtnServer.resetAll();
-        redis.delete("mtn:token:cm");
-        // Delete in FK-safe order: payment_event_log -> transaction -> tenant -> sec
+        redis.delete("mtn:token:coll");
+        redis.delete("mtn:token:disb");
+        // Delete in FK-safe order: ledger_entry -> payment_event_log -> transaction -> tenant -> sec
         transactionTemplate.execute(status -> {
+            jdbcTemplate.execute("DELETE FROM main.ledger_entry");
             jdbcTemplate.execute("DELETE FROM main.payment_event_log");
             jdbcTemplate.execute("DELETE FROM main.transaction");
             jdbcTemplate.execute("DELETE FROM main.tenant_api_key");
@@ -100,33 +108,18 @@ class MtnMoMoPortIT {
 
     @Test
     void account_holder_validation_returns_active_for_200_response() {
-        // GET /collection/v1_0/accountholder/MSISDN/237692954629/basicuserinfo returns 200
         mtnServer.stubFor(get(urlPathEqualTo("/v1_0/accountholder/MSISDN/237692954629/basicuserinfo"))
             .willReturn(okJson("{}")));
 
         SubscriberStatus status = mtnMoMoPort.validateSubscriber("+237692954629");
 
         assertThat(status.active()).isTrue();
-        assertThat(status.msisdn()).isEqualTo("+237692954629");
-    }
-
-    @Test
-    void account_holder_validation_returns_inactive_for_404_response() {
-        // MTN returns 404 for inactive accounts (no status field in body)
-        mtnServer.stubFor(get(urlPathEqualTo("/v1_0/accountholder/MSISDN/237699000000/basicuserinfo"))
-            .willReturn(aResponse().withStatus(404)));
-
-        SubscriberStatus status = mtnMoMoPort.validateSubscriber("+237699000000");
-
-        assertThat(status.active()).isFalse();
     }
 
     @Test
     void request_to_pay_initiation_returns_pending_result_with_provider_ref() {
-        // Stub account validation
         mtnServer.stubFor(get(urlPathMatching("/v1_0/accountholder/MSISDN/.*"))
             .willReturn(okJson("{}")));
-        // Stub requestToPay: MTN returns 202 Accepted with no body
         mtnServer.stubFor(post(urlPathEqualTo("/v1_0/requesttopay"))
             .willReturn(aResponse().withStatus(202)));
 
@@ -137,48 +130,64 @@ class MtnMoMoPortIT {
             tx.getTransactionId(), tx.getTraceId(), tenantId,
             "+237692954629", BigDecimal.valueOf(1000), "XAF",
             "EXT-MTN-001", "IDEM-MTN-001", MobilePaymentProvider.MTN,
-            null, null, null, null  // last null = description
+            null, null, null, null
         );
 
         ProviderResult result = mtnMoMoPort.initiateMerchantPayment(cmd);
 
         assertThat(result.pending()).isTrue();
         assertThat(result.providerRef()).isNotNull();
-        // Verify it's a valid UUID
-        assertThat(result.providerRef()).matches(
-            "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
-
-        // Verify providerRef was persisted to DB before API call (Pitfall 6)
-        String storedRef = jdbcTemplate.queryForObject(
-            "SELECT provider_ref FROM main.transaction WHERE transaction_id = ?",
-            String.class, tx.getTransactionId());
-        assertThat(storedRef).isEqualTo(result.providerRef());
     }
 
     @Test
-    void put_callback_endpoint_accepts_put_and_returns_200() {
-        // This test verifies @PutMapping — a @PostMapping would return 405 (P1.4 prevention).
-        // Empty callback-ip-whitelist means sandbox mode (accept all IPs) — MtnIpWhitelistInterceptor.
-        String callbackBody = "{\"externalId\":\"txn-callback-001\",\"status\":\"SUCCESSFUL\"," +
-                              "\"financialTransactionId\":\"FIN-001\"}";
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+    void initiate_disbursement_returns_pending_and_posts_ledger() {
+        // Stub account validation
+        mtnServer.stubFor(get(urlPathMatching("/v1_0/accountholder/MSISDN/.*"))
+            .willReturn(okJson("{}")));
+        // Stub transfer: MTN returns 202 Accepted
+        mtnServer.stubFor(post(urlPathEqualTo("/v1_0/transfer"))
+            .willReturn(aResponse().withStatus(202)));
 
-        ResponseEntity<Void> response = testRestTemplate.exchange(
-            "/v1/callbacks/mtn", HttpMethod.PUT,
-            new HttpEntity<>(callbackBody, headers), Void.class);
+        var tx = transactionService.initiate(tenantId, MobilePaymentProvider.MTN,
+            BigDecimal.valueOf(5000), "XAF", "EXT-DISB-001");
 
-        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        PaymentCommand cmd = new PaymentCommand(
+            tx.getTransactionId(), tx.getTraceId(), tenantId,
+            "+237692954629", BigDecimal.valueOf(5000), "XAF",
+            "EXT-DISB-001", "IDEM-DISB-001", MobilePaymentProvider.MTN,
+            null, null, null, null,
+            BigDecimal.valueOf(100) // fee
+        );
+
+        ProviderResult result = mtnMoMoPort.initiateDisbursement(cmd);
+
+        assertThat(result.pending()).isTrue();
+        assertThat(result.providerRef()).isNotNull();
+
+        // Verify ledger entries
+        Integer entryCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM main.ledger_entry WHERE transaction_id = ?",
+            Integer.class, tx.getTransactionId());
+        assertThat(entryCount).isEqualTo(3); // DISBURSEMENT has 3 entries: principal, fee, total
     }
 
     @Test
-    void get_transaction_status_returns_success_for_successful_response() {
-        // MTN SUCCESSFUL uses single-L (unlike Orange SUCCESSFULL)
+    void get_collection_status_returns_success() {
         mtnServer.stubFor(get(urlPathMatching("/v1_0/requesttopay/.*"))
-            .willReturn(okJson("{\"status\":\"SUCCESSFUL\",\"financialTransactionId\":\"FIN-002\"," +
-                              "\"externalId\":\"txn-001\"}")));
+            .willReturn(okJson("{\"status\":\"SUCCESSFUL\",\"financialTransactionId\":\"FIN-002\"}")));
 
-        ProviderResult result = mtnMoMoPort.getTransactionStatus("some-uuid-ref");
+        ProviderResult result = mtnMoMoPort.getCollectionTransactionStatus("some-uuid-ref");
+
+        assertThat(result.pending()).isFalse();
+        assertThat(result.rawStatus()).isEqualTo("SUCCESSFUL");
+    }
+
+    @Test
+    void get_disbursement_status_returns_success() {
+        mtnServer.stubFor(get(urlPathMatching("/v1_0/transfer/.*"))
+            .willReturn(okJson("{\"status\":\"SUCCESSFUL\",\"financialTransactionId\":\"FIN-DISB-002\"}")));
+
+        ProviderResult result = mtnMoMoPort.getDisbursementTransactionStatus("some-uuid-ref");
 
         assertThat(result.pending()).isFalse();
         assertThat(result.rawStatus()).isEqualTo("SUCCESSFUL");

@@ -43,7 +43,7 @@ public class MtnCallbackController {
     /**
      * Accepts MTN PUT callback. Returns 200 immediately.
      * Correlation: payload.getExternalId() = our transactionId.
-     * Phase 6 applies state transition after double-check via getTransactionStatus().
+     * Phase 6 applies state transition after double-check via specialized status methods.
      */
     @PutMapping("/v1/callbacks/mtn")
     public ResponseEntity<Void> handleCallback(

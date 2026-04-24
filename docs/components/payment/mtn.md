@@ -55,7 +55,8 @@ deactivate MtnPort
 ## Triggering Mechanisms
 - **`initiateMerchantPayment(cmd)`**: Triggered by the `PaymentOrchestrator` when a payment is routed to MTN.
 - **`processCallback(payload)`**: Triggered by the `MtnCallbackController` when MTN sends an asynchronous update to our system.
-- **`getTransactionStatus(providerRef)`**: Triggered by the status poller if we don't receive a callback within a certain time.
+- **`getCollectionTransactionStatus(providerRef)`**: Triggered by the status poller if we don't receive a collection callback within a certain time.
+- **`getDisbursementTransactionStatus(providerRef)`**: Triggered by the status poller for disbursement transactions.
 - **`validateSubscriber(msisdn)`**: Used by the platform to check if a phone number is a valid MTN account before trying to charge it.
 
 ## Junior Dev Tips

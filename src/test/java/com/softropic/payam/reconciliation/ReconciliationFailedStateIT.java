@@ -114,9 +114,9 @@ class ReconciliationFailedStateIT {
     void runForDate_transitionsReportToFailed_whenDiscrepancyPersistenceThrows() {
         // Provider returns FAILED status -> comparing against tx SUCCESS produces a STATUS_MISMATCH discrepancy
         // which then triggers saveAll -> mock throws -> runner propagates -> runForDate catches -> markFailed commits.
-        when(mtnMoMoPort.getTransactionStatus(anyString()))
+        when(mtnMoMoPort.getCollectionTransactionStatus(anyString()))
             .thenReturn(ProviderResult.success("ref", "FAILED"));
-        when(orangeMoneyPort.getTransactionStatus(anyString()))
+        when(orangeMoneyPort.getCollectionTransactionStatus(anyString()))
             .thenReturn(ProviderResult.success("ref", "FAILED_DELIVERY"));
         when(discrepancyRepository.saveAll(anyIterable()))
             .thenThrow(new RuntimeException("forced discrepancy persistence failure"));

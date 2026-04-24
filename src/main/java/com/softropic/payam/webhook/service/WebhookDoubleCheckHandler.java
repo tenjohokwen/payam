@@ -53,9 +53,13 @@ public class WebhookDoubleCheckHandler {
         ProviderResult result;
         try {
             if (event.provider() == MobilePaymentProvider.ORANGE) {
-                result = orangeMoneyPort.getTransactionStatus(event.providerRef());
+                result = event.flow() == com.softropic.payam.transaction.contract.LedgerFlow.COLLECTION
+                    ? orangeMoneyPort.getCollectionTransactionStatus(event.providerRef())
+                    : orangeMoneyPort.getDisbursementTransactionStatus(event.providerRef());
             } else {
-                result = mtnMoMoPort.getTransactionStatus(event.providerRef());
+                result = event.flow() == com.softropic.payam.transaction.contract.LedgerFlow.COLLECTION
+                    ? mtnMoMoPort.getCollectionTransactionStatus(event.providerRef())
+                    : mtnMoMoPort.getDisbursementTransactionStatus(event.providerRef());
             }
         } catch (CallNotPermittedException e) {
             // Circuit open — leave transaction in PROCESSING; poller will retry

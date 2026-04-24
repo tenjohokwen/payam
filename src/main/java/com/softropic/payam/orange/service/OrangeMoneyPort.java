@@ -118,13 +118,13 @@ public class OrangeMoneyPort implements MobileMoneyPort {
     }
 
     /**
-     * Implements MobileMoneyPort.getTransactionStatus.
+     * Implements MobileMoneyPort.getCollectionTransactionStatus.
      * Uses @Lock(PESSIMISTIC_WRITE) to prevent concurrent webhook+poller race (P1.2).
      */
     @Override
     @Transactional
     @CircuitBreaker(name = "orange")
-    public ProviderResult getTransactionStatus(String providerRef) {
+    public ProviderResult getCollectionTransactionStatus(String providerRef) {
         String token = orangeTokenService.getAccessToken();
         PayResponse status = orangeMoneyClient.getPaymentStatus(token, providerRef);
         String rawStatus = status.getStatus();
@@ -133,6 +133,17 @@ public class OrangeMoneyPort implements MobileMoneyPort {
         return pending
             ? ProviderResult.pending(providerRef, rawStatus)
             : ProviderResult.success(providerRef, rawStatus);
+    }
+
+    /**
+     * Implements MobileMoneyPort.getDisbursementTransactionStatus.
+     * Orange uses the same endpoint/logic for both products.
+     */
+    @Override
+    @Transactional
+    @CircuitBreaker(name = "orange")
+    public ProviderResult getDisbursementTransactionStatus(String providerRef) {
+        return getCollectionTransactionStatus(providerRef);
     }
 
     /**
@@ -164,7 +175,10 @@ public class OrangeMoneyPort implements MobileMoneyPort {
      * PROVIDER_FEE credit row that still balances the group (V25 trigger allows
      * amount >= 0 and sums to zero on each direction because principal == gross).
      */
-    public ProviderResult initiateCashout(PaymentCommand cmd) {
+    @Override
+    @CircuitBreaker(name = "orange")
+    @Retry(name = "orange")
+    public ProviderResult initiateDisbursement(PaymentCommand cmd) {
         String token = orangeTokenService.getAccessToken();
         String nationalMsisdn = stripCountryCode(cmd.msisdn());
         String merchantKey = platformConfigService.findByProvider("ORANGE").platformMsisdn();
@@ -176,7 +190,7 @@ public class OrangeMoneyPort implements MobileMoneyPort {
         request.setReference(cmd.externalReference() != null ? cmd.externalReference() : cmd.transactionId());
         request.setMsisdn(nationalMsisdn);
 
-        ResponseEntity<Map> response = orangeMoneyClient.cashout(token, request);
+        ResponseEntity<Map> response = orangeMoneyClient.disburse(token, request);
 
         if (response.getStatusCode().is2xxSuccessful()) {
             BigDecimal fee = cmd.feeAmount() != null ? cmd.feeAmount() : BigDecimal.ZERO;
@@ -188,9 +202,9 @@ public class OrangeMoneyPort implements MobileMoneyPort {
                 );
                 return null;
             });
-            return ProviderResult.success(null, "CASHOUT_SUCCESS");
+            return ProviderResult.success(null, "DISBURSEMENT_SUCCESS");
         }
-        return ProviderResult.pending(null, "CASHOUT_PENDING");
+        return ProviderResult.pending(null, "DISBURSEMENT_PENDING");
     }
 
     /**
@@ -233,17 +247,18 @@ public class OrangeMoneyPort implements MobileMoneyPort {
                 kv("transactionId", txId),
                 kv("externalReference", tx.getExternalReference()),
                 kv("providerStatus", payload.getStatus()));
+            com.softropic.payam.transaction.contract.LedgerFlow flow = tx.getEffectiveFlow();
             // Publish inside a transaction boundary so @TransactionalEventListener(AFTER_COMMIT) fires
             transactionTemplate.execute(status -> {
                 eventPublisher.publishEvent(new WebhookReceivedEvent(
                     txId,
                     com.softropic.payam.common.payment.MobilePaymentProvider.ORANGE,
                     payload.getPayToken(),
-                    traceId
+                    traceId,
+                    flow
                 ));
                 return null;
-            });
-        }, () -> log.warn("Orange webhook: no transaction found",
+            });        }, () -> log.warn("Orange webhook: no transaction found",
             kv("operation", "webhook_received"),
             kv("provider", "ORANGE"),
             kv("status", "TRANSACTION_NOT_FOUND")));

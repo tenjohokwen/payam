@@ -1,6 +1,11 @@
 package com.softropic.payam.mtn.contract.exception;
 
-public class MtnApiException extends RuntimeException {
+import com.softropic.payam.common.exception.ApplicationException;
+
+public class MtnApiException extends ApplicationException {
     public MtnApiException(String message) { super(message); }
-    public MtnApiException(String message, Throwable cause) { super(message, cause); }
+    public MtnApiException(String message, Throwable cause) {
+        super(message);
+        this.initCause(cause);
+    }
 }

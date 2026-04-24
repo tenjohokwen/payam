@@ -151,7 +151,7 @@ public class ReconciliationProviderRunner {
         List<ReconciliationDiscrepancy> pageDiscrepancies = new ArrayList<>();
         int matched = 0;
         for (Transaction tx : transactions) {
-            ProviderTransactionRecord record = port.fetchProviderRecord(tx.getProviderRef(), reportDate);
+            ProviderTransactionRecord record = port.fetchProviderRecord(tx, reportDate);
             ReconciliationDiscrepancy d = compareTransaction(tx, record, reportId, reportDate, provider);
             if (d != null) {
                 pageDiscrepancies.add(d);

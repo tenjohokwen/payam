@@ -127,7 +127,7 @@ public class Transaction extends AbstractAuditingEntity {
      * fallback belongs in the accessor, not in the builder default.
      */
     @Enumerated(EnumType.STRING)
-    @Column(name = "flow")
+    @Column(name = "flow", length = 20)
     private LedgerFlow flow;
 
     /**

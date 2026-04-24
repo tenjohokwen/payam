@@ -14,13 +14,13 @@ import java.time.LocalDate;
 public interface ProviderReportPort {
 
     /**
-     * Fetch the provider's view of one transaction identified by providerRef.
+     * Fetch the provider's view of one transaction.
      *
-     * @param providerRef The provider reference stored on the Payam transaction
+     * @param tx          The Payam transaction
      * @param reportDate  The date being reconciled (for context/logging)
      * @return A record with the provider's status and amount, or unconfirmed=true if unreachable
      */
-    ProviderTransactionRecord fetchProviderRecord(String providerRef, LocalDate reportDate);
+    ProviderTransactionRecord fetchProviderRecord(com.softropic.payam.transaction.repo.Transaction tx, LocalDate reportDate);
 
     /**
      * The provider this port implementation handles.

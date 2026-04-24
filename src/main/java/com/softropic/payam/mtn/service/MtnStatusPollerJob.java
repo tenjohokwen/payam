@@ -150,7 +150,9 @@ public class MtnStatusPollerJob extends QuartzJobBean {
         }
 
         try {
-            var result = mtnMoMoPort.getTransactionStatus(tx.getProviderRef());
+            var result = tx.getEffectiveFlow() == com.softropic.payam.transaction.contract.LedgerFlow.COLLECTION
+                ? mtnMoMoPort.getCollectionTransactionStatus(tx.getProviderRef())
+                : mtnMoMoPort.getDisbursementTransactionStatus(tx.getProviderRef());
             if (!result.pending()) {
                 Transaction locked = transactionRepository.findByTransactionIdForUpdate(tx.getTransactionId())
                     .orElseThrow();

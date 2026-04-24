@@ -1,6 +1,7 @@
 package com.softropic.payam.webhook.contract;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.transaction.contract.LedgerFlow;
 
 /**
  * Internal Spring event published after an inbound webhook dedup check passes.
@@ -10,10 +11,12 @@ import com.softropic.payam.common.payment.MobilePaymentProvider;
  * provider      — ORANGE or MTN (determines which port to call for double-check)
  * providerRef   — Orange: payToken; MTN: providerRef (referenceId UUID)
  * traceId       — propagated to EventLogService.append()
+ * flow          — COLLECTION or DISBURSEMENT (determines which status method to call)
  */
 public record WebhookReceivedEvent(
     String transactionId,
     MobilePaymentProvider provider,
     String providerRef,
-    String traceId
+    String traceId,
+    LedgerFlow flow
 ) {}

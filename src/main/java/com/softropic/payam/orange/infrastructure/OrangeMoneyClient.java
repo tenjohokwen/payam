@@ -159,15 +159,15 @@ public class OrangeMoneyClient extends AbstractClient {
         return response.getBody();
     }
 
-    /** POST /cashout */
-    public ResponseEntity<Map> cashout(String bearerToken, CashoutRequest request) {
+    /** POST /cashout (renamed to disburse for domain consistency) */
+    public ResponseEntity<Map> disburse(String bearerToken, CashoutRequest request) {
         String url = buildClientURL("/cashout");
         long start = System.currentTimeMillis();
         ResponseEntity<Map> result = makeHttpRequest(url, HttpMethod.POST, request, Map.class, bearerHeaders(bearerToken));
         // LOG-BUS-06: structured latency event (co-exists with RestRequestInterceptor log)
         log.info("Provider HTTP call",
                 kv("externalService", "ORANGE_MONEY"),
-                kv("operation", "cashout"),
+                kv("operation", "disburse"),
                 kv("externalLatencyMs", System.currentTimeMillis() - start),
                 kv("status", result.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILED"));
         return result;

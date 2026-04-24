@@ -6,13 +6,20 @@ import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.common.payment.SubscriberStatus;
 import com.softropic.payam.mtn.config.MtnMoMoConfig;
 import com.softropic.payam.mtn.contract.MtnCallbackPayload;
+import com.softropic.payam.mtn.contract.dto.DisbursementRequest;
 import com.softropic.payam.mtn.contract.dto.RequestToPayRequest;
+import com.softropic.payam.mtn.contract.dto.TransferStatusResponse;
 import com.softropic.payam.mtn.contract.exception.MtnAccountInactiveException;
+import com.softropic.payam.mtn.contract.exception.MtnApiException;
 import com.softropic.payam.mtn.infrastructure.MtnMoMoClient;
+import com.softropic.payam.transaction.contract.LedgerPosting;
 import com.softropic.payam.transaction.contract.TransactionEventType;
 import com.softropic.payam.transaction.contract.TransactionStatus;
 import com.softropic.payam.transaction.repo.TransactionRepository;
 import com.softropic.payam.transaction.service.EventLogService;
+import com.softropic.payam.transaction.service.LedgerService;
+
+import java.math.BigDecimal;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -46,6 +53,7 @@ public class MtnMoMoPort implements MobileMoneyPort {
     private final StringRedisTemplate redis;
     private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate transactionTemplate;
+    private final LedgerService ledgerService;
 
     public MtnMoMoPort(MtnMoMoClient mtnMoMoClient,
                        MtnTokenService mtnTokenService,
@@ -54,7 +62,8 @@ public class MtnMoMoPort implements MobileMoneyPort {
                        MtnMoMoConfig config,
                        StringRedisTemplate redis,
                        ApplicationEventPublisher eventPublisher,
-                       TransactionTemplate transactionTemplate) {
+                       TransactionTemplate transactionTemplate,
+                       LedgerService ledgerService) {
         this.mtnMoMoClient = mtnMoMoClient;
         this.mtnTokenService = mtnTokenService;
         this.transactionRepository = transactionRepository;
@@ -63,6 +72,7 @@ public class MtnMoMoPort implements MobileMoneyPort {
         this.redis = redis;
         this.eventPublisher = eventPublisher;
         this.transactionTemplate = transactionTemplate;
+        this.ledgerService = ledgerService;
     }
 
     /**
@@ -81,7 +91,7 @@ public class MtnMoMoPort implements MobileMoneyPort {
     @CircuitBreaker(name = "mtn")
     @Retry(name = "mtn")
     public ProviderResult initiateMerchantPayment(PaymentCommand cmd) {
-        String token = mtnTokenService.getAccessToken();
+        String token = mtnTokenService.getCollectionToken();
 
         // Step 1: Validate account holder
         try {
@@ -121,16 +131,87 @@ public class MtnMoMoPort implements MobileMoneyPort {
         return ProviderResult.pending(referenceId, "PENDING");
     }
 
+    @Override
+    @CircuitBreaker(name = "mtn")
+    @Retry(name = "mtn")
+    public ProviderResult initiateDisbursement(PaymentCommand cmd) {
+        String token = mtnTokenService.getDisbursementToken();
+
+        // Step 1: Validate account holder
+        try {
+            mtnMoMoClient.validateAccountHolder(stripPlus(cmd.msisdn()), token);
+        } catch (MtnAccountInactiveException e) {
+            throw e;
+        }
+
+        // Step 2: Generate referenceId (merchant-generated UUID for MTN)
+        String referenceId = UUID.randomUUID().toString();
+
+        // Step 3: Persist referenceId BEFORE API call (Pitfall 6 — crash-safe providerRef)
+        persistProviderRef(cmd.transactionId(), referenceId);
+
+        // Step 4: Build and send DisbursementRequest
+        DisbursementRequest request = new DisbursementRequest();
+        request.setAmount(cmd.amount().toPlainString());
+        request.setCurrency(cmd.currency());
+        request.setExternalId(cmd.transactionId());
+        request.setPayee(new DisbursementRequest.Party("MSISDN", stripPlus(cmd.msisdn())));
+        request.setPayerMessage("Disbursement via Payam");
+        request.setPayeeNote(cmd.externalReference() != null ? cmd.externalReference() : cmd.transactionId());
+
+        // Step 5: Call disburse — returns void on 202
+        mtnMoMoClient.disburse(referenceId, request, token);
+
+        // Step 6: Post ledger entry
+        BigDecimal fee = cmd.feeAmount() != null ? cmd.feeAmount() : BigDecimal.ZERO;
+        transactionTemplate.execute(status -> {
+            ledgerService.postEntry(
+                cmd.transactionId(),
+                cmd.tenantId(),
+                LedgerPosting.disbursement(cmd.amount(), fee, cmd.currency())
+            );
+            return null;
+        });
+
+        // Step 7: Append event log (INITIATED -> PROCESSING)
+        eventLogService.append(
+            cmd.transactionId(), cmd.traceId(), cmd.externalReference(),
+            TransactionEventType.PAYMENT_INITIATED,
+            TransactionStatus.INITIATED, TransactionStatus.PROCESSING,
+            "MTN_ADAPTER", null
+        );
+
+        return ProviderResult.pending(referenceId, "PENDING");
+    }
+
     /**
-     * Implements MobileMoneyPort.getTransactionStatus.
+     * Implements MobileMoneyPort.getCollectionTransactionStatus.
      * Polls /collection/v1_0/requesttopay/{referenceId} and returns ProviderResult.
      */
     @Override
     @Transactional
     @CircuitBreaker(name = "mtn")
-    public ProviderResult getTransactionStatus(String providerRef) {
-        String token = mtnTokenService.getAccessToken();
+    public ProviderResult getCollectionTransactionStatus(String providerRef) {
+        String token = mtnTokenService.getCollectionToken();
         var response = mtnMoMoClient.getRequestToPayStatus(providerRef, token);
+        String rawStatus = response.getStatus();
+        TransactionStatus internal = MtnStatusMapper.toInternal(rawStatus);
+        boolean pending = internal == TransactionStatus.PROCESSING;
+        return pending
+            ? ProviderResult.pending(providerRef, rawStatus)
+            : ProviderResult.success(providerRef, rawStatus);
+    }
+
+    /**
+     * Implements MobileMoneyPort.getDisbursementTransactionStatus.
+     * Polls /disbursement/v1_0/transfer/{referenceId} and returns ProviderResult.
+     */
+    @Override
+    @Transactional
+    @CircuitBreaker(name = "mtn")
+    public ProviderResult getDisbursementTransactionStatus(String providerRef) {
+        String token = mtnTokenService.getDisbursementToken();
+        var response = mtnMoMoClient.getTransferStatus(providerRef, token);
         String rawStatus = response.getStatus();
         TransactionStatus internal = MtnStatusMapper.toInternal(rawStatus);
         boolean pending = internal == TransactionStatus.PROCESSING;
@@ -146,7 +227,7 @@ public class MtnMoMoPort implements MobileMoneyPort {
      */
     @Override
     public SubscriberStatus validateSubscriber(String msisdn) {
-        String token = mtnTokenService.getAccessToken();
+        String token = mtnTokenService.getCollectionToken();
         try {
             mtnMoMoClient.validateAccountHolder(stripPlus(msisdn), token);
             return new SubscriberStatus(true, msisdn, "ACTIVE");
@@ -158,7 +239,7 @@ public class MtnMoMoPort implements MobileMoneyPort {
     /**
      * Public method for MtnCallbackController — NOT part of MobileMoneyPort interface.
      * Logs the callback and stores financialTransactionId for reconciliation.
-     * Phase 6 wires full state-transition via double-check getTransactionStatus().
+     * Phase 6 wires full state-transition via double-check status.
      */
     public void processCallback(MtnCallbackPayload payload) {
         // Dedup: one callback per (externalId, status) terminal event
@@ -190,13 +271,15 @@ public class MtnMoMoPort implements MobileMoneyPort {
             String providerRef = tx.getProviderRef(); // referenceId UUID stored by initiateMerchantPayment
             String txId = tx.getTransactionId();
             String traceId = tx.getTraceId();
+            com.softropic.payam.transaction.contract.LedgerFlow flow = tx.getEffectiveFlow();
             // Publish inside a transaction boundary so @TransactionalEventListener(AFTER_COMMIT) fires
             transactionTemplate.execute(status -> {
                 eventPublisher.publishEvent(new WebhookReceivedEvent(
                     txId,
                     com.softropic.payam.common.payment.MobilePaymentProvider.MTN,
                     providerRef,
-                    traceId
+                    traceId,
+                    flow
                 ));
                 return null;
             });
