@@ -11,6 +11,7 @@
 - ✅ **v7 Backend Hardening & Bug Fixes** — Phases 35–40 (shipped 2026-04-17) — see [milestones/v7-ROADMAP.md](milestones/v7-ROADMAP.md)
 - ✅ **v8 Platform Config PIN** — Phases 41–45 (shipped 2026-04-21) — see [milestones/v8-ROADMAP.md](milestones/v8-ROADMAP.md)
 - ✅ **v9 Ledger Disbursement Support** — Phases 46–49 (shipped 2026-04-23) — see [milestones/v9-ROADMAP.md](milestones/v9-ROADMAP.md)
+- 🚧 **v10 Client Disbursement API** — Phases 50–53 (in progress)
 
 ## Phases
 
@@ -117,6 +118,15 @@
 - [x] Phase 49: Orange Cashout Wiring (2/2 plans) — completed 2026-04-23
 
 </details>
+
+### v10 Client Disbursement API (In Progress)
+
+**Milestone Goal:** Expose a production-ready `POST /v1/disbursements` endpoint enabling tenants to send payouts to MTN MoMo and Orange Money subscribers, with full security controls, pre-funded balance gating, and E2E verification.
+
+- [ ] **Phase 50: Schema & Balance Infrastructure** — Flyway V26, Disbursement entity, WalletBalance entity with pessimistic locking, DisbursementStatus enum
+- [ ] **Phase 51: Orchestrator & Public API** — DisbursementOrchestrator, DisbursementResource (POST+GET+LIST), step-up confirmation flow, MTN and Orange provider port wiring
+- [ ] **Phase 52: Callbacks & Outbound Webhooks** — MTN and Orange disbursement callback controllers, DisbursementCompletedEvent, outbound webhook delivery
+- [ ] **Phase 53: E2E Test Suite** — Both provider happy paths, balance gate + concurrency race, fraud block, idempotency race, step-up confirmation, callback replay
 
 ## Phase Details
 
@@ -403,8 +413,56 @@ Plans:
   4. `mvn verify` passes with no regressions in existing Orange Money or orchestration tests
 **Plans**: 2 plans
 Plans:
-- [ ] 49-01-PLAN.md — PaymentCommand feeAmount field + 13-arg compat constructor + withFeeAmount helper + PaymentOrchestrator fee wiring (CASHOUT-01)
-- [ ] 49-02-PLAN.md — OrangeMoneyPort.initiateCashout implementation (LedgerService DI + provider call + disbursement ledger posting in TransactionTemplate) + integration tests replacing stub test (CASHOUT-02)
+- [x] 49-01-PLAN.md — PaymentCommand feeAmount field + 13-arg compat constructor + withFeeAmount helper + PaymentOrchestrator fee wiring (CASHOUT-01)
+- [x] 49-02-PLAN.md — OrangeMoneyPort.initiateCashout implementation (LedgerService DI + provider call + disbursement ledger posting in TransactionTemplate) + integration tests replacing stub test (CASHOUT-02)
+
+### Phase 50: Schema & Balance Infrastructure
+**Goal**: The database schema supports disbursements and the wallet balance gate enforces atomic reservation under concurrent load
+**Depends on**: Phase 49
+**Requirements**: BAL-01, BAL-02, BAL-03
+**Success Criteria** (what must be TRUE):
+  1. Flyway V26 runs cleanly and creates `main.disbursement`, `main.disbursement_aud`, and `main.merchant_wallet_balance` tables without error on a database that already has V25 applied
+  2. `WalletBalanceService.checkAndReserve()` uses `SELECT FOR UPDATE` (pessimistic write lock) — under 20 concurrent requests with only enough balance for 1, exactly 1 succeeds and 19 receive `422 INSUFFICIENT_BALANCE` with no overdraft
+  3. `WalletBalanceService.release()` restores the full reserved amount to the wallet when called for a `FAILED` disbursement — the wallet balance is identical before reservation and after release
+  4. `DisbursementStatus` enum includes `INITIATED`, `PENDING_CONFIRMATION`, `PROCESSING`, `SUCCESS`, `FAILED`, and `EXPIRED` values; `EXPIRED` is included in any illegal-transition guard to prevent unintended transitions out of terminal state
+  5. `mvn verify` passes including `WalletBalanceConcurrencyIT` and any schema migration integration tests
+**Plans**: TBD
+
+### Phase 51: Orchestrator & Public API
+**Goal**: Tenants can initiate and query disbursements through a production-ready API that enforces idempotency, fraud controls, step-up confirmation, and routes to the correct provider
+**Depends on**: Phase 50
+**Requirements**: DISB-01, DISB-02, DISB-03, DISB-04, PROV-01, PROV-02, PROV-03, SEC-01, SEC-02, SEC-03, SEC-04
+**Success Criteria** (what must be TRUE):
+  1. Tenant sends `POST /v1/disbursements` with a valid body and receives `202 Accepted` with a `disbursementId` and `status: PROCESSING`; the disbursement is routed to MTN or Orange based on MSISDN prefix; recipient account is validated as active before the provider call is made
+  2. A disbursement with amount > 500,000 XAF returns `202 Accepted` with `status: PENDING_CONFIRMATION`; tenant must call `POST /v1/disbursements/{id}/confirm` to trigger the provider transfer; an unconfirmed disbursement in `PENDING_CONFIRMATION` transitions to `EXPIRED` after 15 minutes with no provider call
+  3. Tenant can list disbursements via `GET /v1/disbursements` (paginated, filterable by status and date range) and query a single disbursement via `GET /v1/disbursements/{id}`; a second tenant's disbursement ID returns `404 Not Found`
+  4. A duplicate `POST /v1/disbursements` with the same `Idempotency-Key` header within 24 hours returns the cached response without calling the provider; the idempotency key is stored under the `idempotency:dsb:<tenantId>:<key>` Redis namespace
+  5. A disbursement that exceeds velocity limits (> 20/minute or > 200/hour per tenant, or > 10/day to same MSISDN) returns `429` or `422 DAILY_LIMIT_EXCEEDED` respectively; a disbursement triggering fraud score > 80 (new recipient +15, amount outlier +30, known-fraud MSISDN +80) is blocked with `FRAUD_BLOCK` before any provider call
+**Plans**: TBD
+
+### Phase 52: Callbacks & Outbound Webhooks
+**Goal**: Provider callbacks complete the async disbursement lifecycle and terminal state transitions trigger signed outbound webhook delivery to tenants
+**Depends on**: Phase 51
+**Requirements**: SEC-05, SEC-06
+**Success Criteria** (what must be TRUE):
+  1. MTN callbacks arrive at `/v1/callbacks/mtn/disbursement/{ref}` and Orange callbacks arrive at `/v1/callbacks/orange/disbursement`; neither path overlaps with the existing collection callback paths
+  2. Each callback controller validates the request against: IP whitelist, signature/token verification, Redis replay deduplication on `providerReferenceId` (namespace `callbacks:dsb:<providerRefId>`), and a double-check against the provider status API before committing any state transition
+  3. A replayed callback (same `providerReferenceId` received twice) is silently deduplicated — the second arrival does not trigger a second state transition, balance action, or webhook delivery
+  4. When a disbursement reaches `SUCCESS` or `FAILED`, an outbound webhook is delivered to the tenant's configured URL with event `disbursement.completed` or `disbursement.failed`, signed with `X-Payam-Signature` (HMAC-SHA256); a non-2xx response from the tenant URL triggers exponential backoff with a maximum of 5 retries
+  5. `mvn verify` passes including any callback controller integration tests
+**Plans**: TBD
+
+### Phase 53: E2E Test Suite
+**Goal**: The disbursement system is machine-verified correct across both providers, all security controls, and financial-safety edge cases
+**Depends on**: Phase 52
+**Requirements**: TEST-01, TEST-02, TEST-03, TEST-04
+**Success Criteria** (what must be TRUE):
+  1. MTN disbursement E2E: happy path (initiate → PROCESSING → callback SUCCESS → SUCCESS with `LedgerVerifier.assertDisbursementLedgerBalanced`), callback FAILED → FAILED with balance released, MTN callback replay (second identical callback ignored with no second state transition)
+  2. Orange disbursement E2E: happy path (initiate → PROCESSING → callback → SUCCESS), insufficient balance returns `422 INSUFFICIENT_BALANCE` without calling the provider, Orange callback replay protection confirmed
+  3. Step-up confirmation E2E: large disbursement (> 500,000 XAF) returns `PENDING_CONFIRMATION`, confirm endpoint triggers provider call and transitions to `PROCESSING`, unconfirmed disbursement expires to `EXPIRED` after 15-minute Quartz tick with no provider call
+  4. Concurrency race: 20 simultaneous disbursements against the same `MERCHANT_WALLET` with balance covering exactly 1 — exactly 1 succeeds (`PROCESSING`), 19 return `422 INSUFFICIENT_BALANCE` with zero overdraft confirmed by wallet balance query
+  5. Fraud block E2E: a disbursement triggering fraud score > 80 returns `FRAUD_BLOCK` with zero provider calls made (confirmed via WireMock request count); idempotency race (20 concurrent threads with same key) produces exactly 1 disbursement row
+**Plans**: TBD
 
 ## Progress
 
@@ -456,7 +514,11 @@ Plans:
 | 43. PIN Frontend | v8 | 1/1 | Complete | 2026-04-18 |
 | 44. PIN Email Notification | v8 | 2/2 | Complete | 2026-04-18 |
 | 45. PIN Add-Provider Fix | v8 | 1/1 | Complete | 2026-04-20 |
-| 46. Flyway V25 Schema Migration | v9 | 1/1 | Complete    | 2026-04-21 |
+| 46. Flyway V25 Schema Migration | v9 | 1/1 | Complete | 2026-04-21 |
 | 47. Contract Types + LedgerService Rewrite | v9 | 3/3 | Complete | 2026-04-22 |
 | 48. Test Coverage | v9 | 2/2 | Complete | 2026-04-22 |
 | 49. Orange Cashout Wiring | v9 | 2/2 | Complete | 2026-04-23 |
+| 50. Schema & Balance Infrastructure | v10 | 0/TBD | Not started | - |
+| 51. Orchestrator & Public API | v10 | 0/TBD | Not started | - |
+| 52. Callbacks & Outbound Webhooks | v10 | 0/TBD | Not started | - |
+| 53. E2E Test Suite | v10 | 0/TBD | Not started | - |
