@@ -1,194 +1,282 @@
-# Technology Stack — v9 Ledger Disbursement Support
+# Technology Stack — v10 Client Disbursement API
 
 **Project:** Payam — unified multi-tenant mobile money API for Cameroon
-**Researched:** 2026-04-21
-**Scope:** Additions and changes needed for disbursement/cashout ledger flows only. Existing stack is not re-evaluated.
-**Overall confidence:** HIGH — all findings verified directly against codebase.
+**Researched:** 2026-04-24
+**Scope:** Stack additions and changes needed for the NEW `POST /v1/disbursements` endpoint. Existing stack capabilities are not re-evaluated.
+**Overall confidence:** HIGH — all findings verified directly against codebase (pom.xml, migration files, service classes, provider ports).
 
 ---
 
 ## Summary Verdict
 
-**No new library dependencies are required.** All capability needed for v9 — BigDecimal arithmetic, JPA persistence, enum columns, Flyway migrations — is already present in the stack.
+**No new library dependencies are required.** Every capability needed for v10 — pessimistic locking, BigDecimal arithmetic, Redis atomic operations, Bucket4j velocity checks, Spring Data JPA, Flyway migrations, Testcontainers, WireMock — is already in `pom.xml`.
 
-The only deliverables are:
-1. Two new Java types in `transaction/contract` (`LedgerFlow` enum, `LedgerPosting` record)
-2. A rewritten `LedgerService` (pure logic change, no new imports beyond the new contract types)
-3. One Flyway migration (V25) covering two DDL statements
-4. One call-site update in `WebhookTransitionService`
-5. New wiring in the Orange cashout path
-
-The single most important finding is a **schema conflict** between the existing V23 constraint and the disbursement entry shape that must be resolved in V25.
+The deliverables are entirely new Java classes and one Flyway migration. The critical architectural decision is how to implement concurrency-safe balance reservation; this is solved by the existing `SELECT ... FOR UPDATE` + `TransactionTemplate` pattern already proven in the codebase, applied to a new `merchant_wallet_balance` table.
 
 ---
 
-## Critical Schema Conflict: V23 Constraint vs Disbursement
+## Recommended Stack
 
-### What the constraint does
+### Core Framework — No Changes
 
-V23 (`V23__ledger_group_constraint.sql`) added:
+| Technology | Version in pom.xml | Purpose | Status |
+|------------|--------------------|---------|--------|
+| Spring Boot | 3.5.11 | Web, Data JPA, Security, Actuator | No change |
+| Spring Data JPA | managed by Boot 3.5 | `DisbursementRepository`, `WalletBalanceRepository` | No change |
+| Spring Security | managed by Boot 3.5 | `ApiKeyAuthenticationFilter`, tenant isolation | No change |
+| Resilience4j | managed by `spring-cloud-starter-circuitbreaker-resilience4j` | `@CircuitBreaker` + `@Retry` on provider ports | No change |
+| Spring Modulith (via `@TransactionalEventListener`) | managed by Boot 3.5 | Webhook delivery decoupling | No change |
+| Flyway | managed by Boot 3.5 | V26 migration for new tables | Next migration is V26 (V25 already shipped) |
+
+### Database — No Version Changes
+
+| Technology | Version | Purpose | v10 change |
+|------------|---------|---------|------------|
+| PostgreSQL | 14+ (via Testcontainers) | Primary store | One new table: `merchant_wallet_balance` |
+| Flyway migration | V26 | `disbursement` table + `merchant_wallet_balance` table | New |
+| Hibernate Envers | 6.6.14.Final | Audit trail | `Disbursement` entity needs `@Audited`; new `disbursement_aud` table in V26 |
+
+### Cache / Atomic Operations — No Version Changes
+
+| Technology | Version | Purpose | v10 change |
+|------------|---------|---------|------------|
+| Redis (via `spring-boot-starter-data-redis`) | managed by Boot 3.5 | Idempotency NX, velocity buckets | Reuse `IdempotencyService.checkAndReserve()` and `store()` as-is |
+| Bucket4j | 8.10.1 | Velocity windows | Add new disbursement-specific rules to `fraud_rule` table; `VelocityCheckService` is unchanged |
+
+### New Libraries — Zero
+
+No library needs to be added. The table below documents what was evaluated and rejected.
+
+---
+
+## New Java Types Required (No New Dependencies)
+
+These are code deliverables, not stack additions. Listed here because they affect module structure.
+
+### New module: `disbursement/`
+
+Following the established `contract → repo → service → api → config` layering (same as `payment/`):
+
+```
+disbursement/
+  contract/
+    DisbursementRequest.java          (Jakarta validation: @NotBlank, @Pattern, @DecimalMin)
+    DisbursementResponse.java         (record)
+    DisbursementStatus.java           (enum: PROCESSING, SUCCESS, FAILED, EXPIRED)
+    DisbursementError.java            (enum parallel to OrchestratorError)
+  repo/
+    Disbursement.java                 (@Entity, @Audited, extends AbstractAuditingEntity)
+    DisbursementRepository.java       (JpaRepository + findByTransactionIdForUpdate)
+    WalletBalance.java                (@Entity — NOT @Audited — balance row with @Version)
+    WalletBalanceRepository.java      (findByTenantIdForUpdate)
+  service/
+    DisbursementOrchestrator.java     (mirrors PaymentOrchestrator; no @Transactional on method)
+    WalletBalanceService.java         (checkAndReserve, release, finalise)
+  api/
+    DisbursementResource.java         (POST /v1/disbursements, GET /v1/disbursements/{id})
+    MtnDisbursementCallbackController.java
+    OrangeDisbursementCallbackController.java
+  config/
+    DisbursementConfig.java           (if any config binding is needed)
+```
+
+### Changes to existing types
+
+| Type | Change | Why |
+|------|--------|-----|
+| `TransactionEventType` | Add `DISBURSEMENT_INITIATED`, `BALANCE_RESERVED`, `BALANCE_RESERVATION_FAILED`, `BALANCE_RELEASED` | New event types for event log |
+| `TransactionStatus` | Add `EXPIRED` terminal state | Disbursement polling timeout path |
+| `AbstractPayamE2ETest` | Add `@ConfigureWireMock` binding for MTN disbursement base URL | Separate WireMock instance needed for `/disbursement/v1_0/transfer` stubs |
+
+---
+
+## Critical Pattern: Concurrency-Safe Balance Reservation
+
+This is the most important architectural decision for v10. No new library is needed because the existing codebase already has all the primitives.
+
+### Recommended pattern: `SELECT ... FOR UPDATE` via `TransactionTemplate`
+
+The `merchant_wallet_balance` table holds one row per tenant. The balance gate works as follows:
+
+```
+WalletBalanceService.checkAndReserve(tenantId, grossAmount):
+  transactionTemplate.execute(status -> {
+      WalletBalance balance = walletBalanceRepository.findByTenantIdForUpdate(tenantId)
+                                                      .orElseThrow(InsufficientBalanceException::new);
+      if (balance.getAvailable().compareTo(grossAmount) < 0) {
+          throw new InsufficientBalanceException(balance.getAvailable(), grossAmount);
+      }
+      balance.reserve(grossAmount);          // deducts from available, increments reserved
+      walletBalanceRepository.save(balance);
+      return null;
+  });
+```
+
+`findByTenantIdForUpdate` uses `@Lock(LockModeType.PESSIMISTIC_WRITE)` — the same pattern as `TransactionRepository.findByTransactionIdForUpdate()` used throughout the existing codebase. The pessimistic write lock serialises concurrent disbursements against the same `tenantId` row. The `TransactionTemplate` ensures the lock is held only for the duration of the check-and-reserve, not across provider I/O.
+
+On disbursement FAILED or EXPIRED: `WalletBalanceService.release(tenantId, grossAmount)` reverses the reservation in a separate `TransactionTemplate.execute` block (same pattern as `applyFailed()` in `PaymentOrchestrator`).
+
+On disbursement SUCCESS: `WalletBalanceService.finalise(tenantId, grossAmount)` moves the reserved amount to the committed debit column (or simply clears it, depending on the balance model chosen).
+
+**Why not optimistic locking (`@Version`)?** Optimistic locking is correct for low-contention writes (API key rotation) but wrong for a financial balance gate. A disbursement burst from a tenant with a low balance will produce `ObjectOptimisticLockingFailureException` on most threads, requiring the caller to retry — adding complexity and latency. Pessimistic `SELECT FOR UPDATE` is the correct primitive for a serialised balance check in PostgreSQL and is already the project's established pattern for contested rows.
+
+**Why not a database sequence / counter?** A counter cannot represent a fractional balance with a fee calculation in one atomic step. `SELECT FOR UPDATE` on a `NUMERIC(20,2)` available column is the correct model.
+
+**Confidence:** HIGH — pattern read directly from `TransactionRepository.findByTransactionIdForUpdate` + `TransactionTemplate` usage in `MtnMoMoPort`, `OrangeMoneyPort`, and `PaymentOrchestrator`.
+
+---
+
+## V26 Migration: New Tables
+
+Next migration number is V26 (V25 shipped in v9 as of 2026-04-23).
 
 ```sql
-ALTER TABLE main.ledger_entry
-    ADD CONSTRAINT uq_ledger_entry_group_direction
-    UNIQUE (entry_group_id, direction)
-    DEFERRABLE INITIALLY DEFERRED;
+-- V26: Disbursement API schema
+
+-- 1. Disbursement entity table
+CREATE TABLE main.disbursement (
+    id                   BIGINT       PRIMARY KEY,
+    disbursement_id      VARCHAR(36)  NOT NULL UNIQUE,
+    trace_id             VARCHAR(255) NOT NULL,
+    tenant_id            BIGINT       NOT NULL REFERENCES main.tenant(id),
+    status               VARCHAR(20)  NOT NULL DEFAULT 'INITIATED',
+    provider             VARCHAR(20)  NOT NULL,
+    recipient_msisdn     VARCHAR(20)  NOT NULL,
+    amount               NUMERIC(20,2) NOT NULL,
+    fee_amount           NUMERIC(20,2),
+    fee_rule_id          BIGINT,
+    currency             CHAR(3)      NOT NULL,
+    reference            VARCHAR(50)  NOT NULL,
+    description          VARCHAR(140),
+    metadata             JSONB,
+    provider_ref         VARCHAR(255),
+    provider_tx_id       VARCHAR(255),
+    risk_score           INTEGER,
+    created_by           VARCHAR(50),
+    created_date         TIMESTAMP,
+    last_modified_by     VARCHAR(50),
+    last_modified_date   TIMESTAMP,
+    CONSTRAINT chk_disbursement_amount_positive CHECK (amount > 0)
+);
+
+CREATE INDEX idx_disbursement_tenant_id       ON main.disbursement(tenant_id);
+CREATE INDEX idx_disbursement_disbursement_id ON main.disbursement(disbursement_id);
+CREATE INDEX idx_disbursement_reference       ON main.disbursement(tenant_id, reference);
+CREATE INDEX idx_disbursement_status          ON main.disbursement(status) WHERE status NOT IN ('SUCCESS','FAILED','EXPIRED');
+
+-- Envers audit table for disbursement
+CREATE TABLE main.disbursement_aud (
+    id                   BIGINT      NOT NULL,
+    rev                  INTEGER     NOT NULL REFERENCES main.revinfo(rev),
+    revtype              SMALLINT,
+    disbursement_id      VARCHAR(36),
+    trace_id             VARCHAR(255),
+    tenant_id            BIGINT,
+    status               VARCHAR(20),
+    provider             VARCHAR(20),
+    recipient_msisdn     VARCHAR(20),
+    amount               NUMERIC(20,2),
+    fee_amount           NUMERIC(20,2),
+    fee_rule_id          BIGINT,
+    currency             CHAR(3),
+    reference            VARCHAR(50),
+    description          VARCHAR(140),
+    provider_ref         VARCHAR(255),
+    provider_tx_id       VARCHAR(255),
+    created_by           VARCHAR(50),
+    created_date         TIMESTAMP,
+    last_modified_by     VARCHAR(50),
+    last_modified_date   TIMESTAMP,
+    PRIMARY KEY (id, rev)
+);
+
+-- 2. Merchant wallet balance table (one row per tenant)
+CREATE TABLE main.merchant_wallet_balance (
+    id                   BIGINT       PRIMARY KEY,
+    tenant_id            BIGINT       NOT NULL UNIQUE REFERENCES main.tenant(id),
+    available            NUMERIC(20,2) NOT NULL DEFAULT 0 CHECK (available >= 0),
+    reserved             NUMERIC(20,2) NOT NULL DEFAULT 0 CHECK (reserved >= 0),
+    currency             CHAR(3)      NOT NULL DEFAULT 'XAF',
+    version              BIGINT       NOT NULL DEFAULT 0,
+    last_modified_date   TIMESTAMP
+);
 ```
 
-This limits each entry group to exactly one DEBIT and one CREDIT row. It was correct for the existing two-entry collection pattern.
+### Key schema decisions
 
-### Why it conflicts
+**Separate `Disbursement` entity (not reusing `Transaction`):** The requirements doc (section 14, question 2) explicitly recommends a separate entity. Querying disbursements does not require filtering `flow = 'DISBURSEMENT'` on a shared table, callback controllers look up records by `disbursementId` directly, and the `Disbursement.reference` uniqueness constraint is simpler on a dedicated table.
 
-A disbursement group per the spec has three entries:
-- `DEBIT  MERCHANT_WALLET  gross` (principal + fee)
-- `CREDIT CUSTOMER_WALLET  principal`
-- `CREDIT PROVIDER_FEE     fee`
+**`merchant_wallet_balance.version` for optimistic locking fallback:** The `available` balance is read and mutated under `SELECT FOR UPDATE` (pessimistic), but adding `@Version` provides an extra safety net at the JPA layer if code paths ever bypass the for-update lock. This mirrors the `TenantApiKey.@Version` pattern added in v7.
 
-Two rows share `direction = 'CREDIT'` within the same `entry_group_id`. PostgreSQL evaluates the DEFERRABLE constraint at transaction commit. Even though it is deferred, it still enforces the uniqueness predicate — it just does so at commit rather than per-insert. Two rows with `(same entry_group_id, 'CREDIT')` will violate the constraint and the transaction will roll back.
+**`metadata JSONB`:** Matches the project's existing JSONB usage (see `PaymentEventLog.metadata` in V3). Stored as-is; max 2 KB enforced at the validation layer.
 
-### Resolution
+**`provider_tx_id`:** Holds the MTN `financialTransactionId` or Orange `txnid` — equivalent to `mtn_financial_tx_id` on `Transaction`. Not `@NotAudited` because the disbursement Envers table is created in V26 with the column present from the start.
 
-Drop the constraint in V25. The double-entry balance invariant is enforced at the application layer by `LedgerService` (debits = credits per group) and is covered by unit tests. The V23 constraint was belt-and-suspenders; dropping it does not weaken the domain invariant.
-
-A deferred trigger alternative (summing amounts per group at commit) would provide equivalent DB-level enforcement but adds operational complexity and is not standard in this codebase. Do not add a trigger.
-
-**Confidence:** HIGH — constraint text read directly from V23 migration; disbursement entry shape read directly from `requirements/payam-ledger.md`.
+**Partial index on `status`:** Filters out terminal rows. The poller job and in-flight dashboard queries only care about non-terminal disbursements. Confidence: HIGH (same rationale as existing `idx_transaction_status` usage in reconciliation queries).
 
 ---
 
-## V25 Migration: Complete DDL
+## Testing — No New Libraries
 
-Two statements. Both are safe on production PostgreSQL 14+.
+All test libraries required for v10 are already present in `pom.xml`.
 
-```sql
--- V25: Ledger disbursement support
---
--- (1) Drop the V23 unique constraint that prevents multi-credit entry groups.
---     Disbursement requires two CREDIT rows per group (CUSTOMER_WALLET + PROVIDER_FEE).
---     Balance invariant (debits = credits per group) is enforced at application layer.
-ALTER TABLE main.ledger_entry
-    DROP CONSTRAINT IF EXISTS uq_ledger_entry_group_direction;
+| Library | Version | Use in v10 |
+|---------|---------|------------|
+| Testcontainers (`postgresql`, `junit-jupiter`) | managed by Boot 3.5 | `WalletBalanceIT`, `DisbursementOrchestratorIT` |
+| WireMock Spring Boot | 4.0.9 | MTN disbursement endpoint stubs (`/disbursement/v1_0/transfer`) |
+| Awaitility | 4.2.0 | Async callback timing in E2E tests |
+| AssertJ | 3.24.2 | Assertion style already in use |
+| Mockito | managed by Boot 3.5 | `DisbursementOrchestratorTest` (unit, no Spring context) |
+| PITest | 1.15.3 (mutation profile) | Extend `targetClasses` to include `DisbursementOrchestrator` or `WalletBalanceService` |
 
--- (2) Add flow column to transaction table.
---     All existing rows default to COLLECTION — correct, no disbursements existed before v9.
---     PostgreSQL 11+: ADD COLUMN with a constant DEFAULT is a metadata-only operation.
---     No table rewrite, no full scan, ACCESS EXCLUSIVE held only for schema catalog update.
-ALTER TABLE main.transaction
-    ADD COLUMN IF NOT EXISTS flow VARCHAR(20) NOT NULL DEFAULT 'COLLECTION';
-```
+### New WireMock server requirement
 
-### `ADD COLUMN` lock behaviour
+`AbstractPayamE2ETest` currently binds a single `mtn` WireMock server to `mtn.collection-base-url`. The disbursement E2E tests need `/disbursement/v1_0/transfer` stubs. MTN uses a different base URL for the Disbursement product (`mtn.disbursement-base-url`). Add a second `@ConfigureWireMock(name = "mtn-disbursement", baseUrlProperties = {"mtn.disbursement-base-url"})` to the E2E base class (or to a new `AbstractDisbursementE2ETest` that extends it).
 
-`ADD COLUMN ... DEFAULT 'literal'` (constant, not a function call) acquires `ACCESS EXCLUSIVE` briefly for the catalog update, then releases. No row-level lock, no table rewrite. Safe on any table size with PostgreSQL 11+. Confirmed by PostgreSQL official documentation: https://www.postgresql.org/docs/current/ddl-alter.html
-
-This is **not** the same as `DEFAULT gen_random_uuid()` (which triggers a full rewrite). `'COLLECTION'` is a constant — metadata-only path.
-
-### `IF EXISTS` / `IF NOT EXISTS` guards
-
-Both `DROP CONSTRAINT IF EXISTS` and `ADD COLUMN IF NOT EXISTS` make the migration idempotent. Safe to re-run in CI/CD environments. The pre-flight DO block pattern from V23 is not required here — a missing constraint is not a data integrity issue, and `IF NOT EXISTS` on the ADD COLUMN handles re-runs cleanly.
-
-### Why `VARCHAR(20)` not a `CHECK` constraint
-
-A CHECK constraint coupling the column to the current enum values (`CHECK (flow IN ('COLLECTION', 'DISBURSEMENT'))`) requires a schema migration every time a flow type is added. The `@Enumerated(EnumType.STRING)` on the entity enforces valid values at write time. `VARCHAR(20)` is the established pattern in this project (see `tx_status VARCHAR(20)` in V3, `direction VARCHAR(6)` in V4).
-
-### No index on `flow` in V25
-
-`flow` is a low-cardinality column (two values). A partial or full index on it adds write overhead for negligible read gain at current transaction volume. Add a partial index in a future migration if reconciliation queries filter heavily by flow.
-
-### Flyway transactional lock mode
-
-The project uses default Flyway settings (`flyway.postgresql.transactional.lock=true`). Both V25 statements run safely inside a transaction. Neither requires `CREATE INDEX CONCURRENTLY` or any other statement that mandates `flyway.postgresql.transactional.lock=false`.
+**Confidence:** HIGH — read from `AbstractPayamE2ETest.java` directly; current `@ConfigureWireMock` only covers `mtn.collection-base-url`.
 
 ---
 
-## New Java Types Required
+## Alternatives Considered
 
-### `LedgerFlow` enum
-
-**Package:** `com.softropic.payam.transaction.contract`
-**No new dependencies** — plain Java enum, same pattern as `LedgerDirection` already in that package.
-
-```java
-public enum LedgerFlow {
-    COLLECTION,
-    DISBURSEMENT
-}
-```
-
-### `LedgerPosting` record
-
-**Package:** `com.softropic.payam.transaction.contract`
-**No new dependencies** — Java 16+ record, uses `BigDecimal` and `Objects` (already present everywhere).
-
-The compact constructor validates: positive principal, non-negative fee, non-null flow and currency. Factory methods `collection()` and `disbursement()` are the public API; callers never construct the record directly.
-
-### `flow` field on `Transaction` entity
-
-Add `@Enumerated(EnumType.STRING) LedgerFlow flow` to `Transaction.java`.
-
-Mark `@NotAudited` — the established pattern for columns added after V14 that are not in the Envers `transaction_aud` table (see `feeAmount` and `feeRuleId` with identical `@NotAudited` annotations). V25 adds the column to `main.transaction` only; the Envers AUD table does not change unless audit of the `flow` field is explicitly required (it is not in v9 spec).
-
-If a `setFlow()` setter is needed for the Orange cashout path: the `Transaction` entity already uses explicit setters for mutable fields (e.g. `setProviderRef`, `setFeeAmount`). Follow the same pattern.
-
----
-
-## Libraries Considered and Rejected
-
-### JSR-354 / Moneta (`org.javamoney:moneta:1.4.2`)
-
-**Verdict: Do not add.**
-
-XAF (Central African CFA franc) has no decimal subunit — amounts are whole numbers. The existing schema uses `NUMERIC(20, 2)` and `BigDecimal` uniformly across 45 phases and every entity, DTO, and provider response parser. The disbursement calculation is two lines: `principal.add(fee)` for gross. Introducing `MonetaryAmount` at this boundary would require conversion wrappers at the entity layer, every DTO, and every provider response parser — high churn for zero domain benefit.
-
-**Confidence:** HIGH
-
-### Joda-Money (`org.joda:joda-money`)
-
-**Verdict: Do not add.** Same reasoning as JSR-354. Additionally, the `java.money` standard largely subsumes Joda-Money; recommending Joda-Money in 2026 would be a regression.
-
-### Double-entry accounting libraries (e.g. `pgledger`, `ledger4j`, open-source accounting frameworks)
-
-**Verdict: Do not add.** The `requirements/payam-ledger.md` spec is a complete, self-contained implementation with two entry builders under 50 lines. No library adds value when the domain model is fully specified. Introducing a library would add an external dependency lifecycle cost without solving any unsolved problem.
-
-### Hibernate Envers (already present)
-
-No changes to Envers configuration needed. The `Transaction` entity is already `@Audited`; the new `flow` field uses `@NotAudited` (same pattern as `feeAmount`).
-
----
-
-## Integration Points with Existing Stack
-
-| Existing Component | v9 Integration | Notes |
-|--------------------|---------------|-------|
-| `LedgerService.postEntry(txId, tenantId, amount, currency)` | Replace signature with `postEntry(txId, tenantId, LedgerPosting)` | Single active caller: `WebhookTransitionService` line 97 |
-| `WebhookTransitionService` | Update collection call-site to `LedgerPosting.collection(tx.getAmount(), tx.getCurrency())` | Line 97 — semantically identical, no behaviour change |
-| `Transaction` entity | Add `LedgerFlow flow` field with `@NotAudited` | Matches `feeAmount` / `feeRuleId` pattern |
-| `V23__ledger_group_constraint.sql` | V25 must drop `uq_ledger_entry_group_direction` | See critical finding above — disbursement writes 2 CREDITs per group |
-| `LedgerEntryRepository` | No changes — `findByTransactionId` and `findByEntryGroupId` work with 3-row groups | Spring Data derives queries from field names; 3-row group is just a larger result set |
-| `FeeEvaluationService` | No changes — `transaction.getFeeAmount()` already on `Transaction` entity | Fee flows into `LedgerPosting.disbursement(principal, fee, currency)` |
-| Orange cashout path | Wire `LedgerPosting.disbursement()` when cashout reaches SUCCESS state | Parallel to collection wiring in `WebhookTransitionService` |
-| `V24__platform_config_pin.sql` | V25 is next — no gap in migration numbering | V24 is confirmed latest shipped migration |
+| Category | Recommended | Alternative | Why Not |
+|----------|-------------|-------------|---------|
+| Balance reservation | `SELECT FOR UPDATE` via `TransactionTemplate` | Optimistic `@Version` retry loop | Optimistic locking on a hot financial balance causes retry cascades under load; pessimistic lock is the correct primitive for serialised balance gates |
+| Separate `Disbursement` entity | Separate `main.disbursement` table | Add `flow` filter to existing `main.transaction` | Requirements doc explicitly recommends separate entity; callback controllers require clean lookup by disbursementId without cross-table joins |
+| Disbursement velocity rules | New rows in `main.fraud_rule` DB table | New config properties | `FraudRuleCache` already loads rules from DB; adding rows is zero-code, admin-configurable without redeploy |
+| Orange IC2C endpoint | `OrangeMoneyPort.ic2cDisbursement()` | Reuse existing `initiateDisbursement` (cashout path) | IC2C (`/ic2c/pay`) is a different endpoint from cashout (`/cashout`); they have different request shapes and auth headers (`X-AUTH-TOKEN`); separate method is correct |
+| Balance floor check | 10,000 XAF platform-wide minimum config | Hard-coded minimum | Requirements doc question 4 recommends configurable floor; store in platform config or a new tenant config row |
+| `EXPIRED` status | Add to `TransactionStatus` enum | Reuse `FAILED` for timed-out disbursements | The state machine doc distinguishes EXPIRED (ops investigation required) from FAILED (deterministic failure); the distinction matters for reconciliation and alerting |
 
 ---
 
 ## What Does Not Change
 
-- `pom.xml` — no dependency additions
-- `LedgerEntry` entity — immutable, append-only; a disbursement group returns 3 rows instead of 2, which is not a schema change
-- `LedgerEntryRepository` — no new queries needed for v9
-- `FeeEvaluationService` — fee computation unchanged
-- `TransactionStatus` state machine — unaffected
-- Flyway version numbering — V25 is next (V24 is the latest shipped migration)
+- `pom.xml` — zero new dependencies
+- `LedgerService` — already handles DISBURSEMENT flow via `LedgerPosting.disbursement()`; no changes needed
+- `IdempotencyService` — reuse as-is; disbursements use the same Redis NX + PostgreSQL upsert pattern
+- `FeeEvaluationService` — fee computation unchanged; disbursements consume the same fee rules as collections
+- `FraudScoringService` — reuse `evaluate(PaymentCommand)` as-is; new disbursement-specific signals are added as rows in `fraud_rule`, not code
+- `VelocityCheckService` — reuse as-is; new velocity buckets for disbursements are loaded from the same DB rules table
+- `WebhookDeliveryService` — reuse as-is; `disbursement.completed` and `disbursement.failed` are new event type strings, not new code paths
+- `MtnMoMoPort.initiateDisbursement()` — already implemented; wired into the new `DisbursementOrchestrator`
+- `OrangeMoneyPort.initiateDisbursement()` — reuses the cashout path; the IC2C endpoint differs only in URL and auth; a new `ic2cDisbursement()` method is added to `OrangeMoneyPort`
+- Flyway migration numbering — V26 is next (V25 shipped 2026-04-23)
+- Hibernate Envers configuration — unchanged; V26 creates `disbursement_aud` directly, same pattern as `V24__platform_config_pin.sql` created `platform_config_aud`
 
 ---
 
 ## Sources
 
-- V23 migration (constraint text): `src/main/resources/db/migration/V23__ledger_group_constraint.sql` — read directly
-- `LedgerEntry` entity: `src/main/java/com/softropic/payam/transaction/repo/LedgerEntry.java` — read directly
-- `LedgerService` current implementation: `src/main/java/com/softropic/payam/transaction/service/LedgerService.java` — read directly
-- `Transaction` entity (NotAudited pattern): `src/main/java/com/softropic/payam/transaction/repo/Transaction.java` — read directly
-- `WebhookTransitionService` call-site (line 97): `src/main/java/com/softropic/payam/webhook/service/WebhookTransitionService.java` — read directly
-- V3 transaction schema (VARCHAR(20) convention): `src/main/resources/db/migration/V3__transaction_schema.sql` — read directly
-- Disbursement entry shape: `requirements/payam-ledger.md` — read directly
-- PostgreSQL ADD COLUMN with constant DEFAULT (metadata-only, no table rewrite, PostgreSQL 11+): https://www.postgresql.org/docs/current/ddl-alter.html
+- `pom.xml` — read directly; all library versions confirmed
+- `src/main/resources/db/migration/` — all 27 migrations listed; last is V25 (2026-04-23)
+- `PaymentOrchestrator.java` — pattern for no-`@Transactional` orchestrator, `TransactionTemplate`, fraud + fee ordering
+- `MtnMoMoPort.java` — `initiateDisbursement()` exists, uses `fetchDisbursementToken()`
+- `OrangeMoneyPort.java` — `initiateDisbursement()` exists (cashout path); IC2C differs
+- `TransactionRepository.findByTransactionIdForUpdate` — confirmed pessimistic lock pattern
+- `VelocityCheckService.java` — Bucket4j `LettuceBasedProxyManager` pattern confirmed
+- `IdempotencyService.java` — Redis NX + PostgreSQL upsert pattern confirmed
+- `AbstractPayamE2ETest.java` — WireMock server binding read directly; single MTN server confirmed
+- `transaction/contract/TransactionEventType.java` — existing event types enumerated
+- `transaction/contract/TransactionStatus.java` — existing states; EXPIRED not present
+- `requirements/disbursement-request.md` — read directly for API contract, state machine, entity/field requirements
