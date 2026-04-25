@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -64,8 +65,8 @@ class DisbursementIdempotencyServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Stub the chained call so redis.opsForValue() returns our mock
-        when(redis.opsForValue()).thenReturn(valueOps);
+        // Lenient: not all tests trigger opsForValue() (e.g. store_postgresFailure_neverTouchesRedis)
+        lenient().when(redis.opsForValue()).thenReturn(valueOps);
     }
 
     // -------------------------------------------------------------------------
@@ -189,8 +190,7 @@ class DisbursementIdempotencyServiceTest {
 
     @Test
     void store_redisFailure_doesNotThrow() {
-        // Given: Postgres succeeds, Redis throws on set
-        when(valueOps.setIfAbsent(anyString(), anyString(), any())).thenReturn(Boolean.TRUE); // not called in store
+        // Given: Postgres succeeds, Redis throws on set (setIfAbsent is not called in store())
         doThrow(new RuntimeException("Redis down")).when(valueOps).set(anyString(), anyString(), any(Duration.class));
 
         // When/Then: method completes normally (no exception propagated)
