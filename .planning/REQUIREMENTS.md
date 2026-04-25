@@ -14,7 +14,7 @@
 - [x] **DISB-01**: Tenant can initiate a disbursement via `POST /v1/disbursements` with fields: `recipientMsisdn`, `amount`, `currency`, `reference` (required) and `description`, `metadata` (optional); receives `202 Accepted` with `disbursementId` and `status: PROCESSING` (or `PENDING_CONFIRMATION` for amounts > 500,000 XAF)
 - [x] **DISB-02**: Tenant can query disbursement status via `GET /v1/disbursements/{disbursementId}`; response is tenant-scoped (another tenant's ID returns `404 Not Found`)
 - [x] **DISB-03**: Tenant can list their disbursements via `GET /v1/disbursements` with pagination and filters (status, date range); results are tenant-scoped
-- [ ] **DISB-04**: Tenant can confirm a large disbursement (amount > 500,000 XAF) via `POST /v1/disbursements/{disbursementId}/confirm`; only disbursements in `PENDING_CONFIRMATION` status can be confirmed; confirmation triggers the provider transfer
+- [x] **DISB-04**: Tenant can confirm a large disbursement (amount > 500,000 XAF) via `POST /v1/disbursements/{disbursementId}/confirm`; only disbursements in `PENDING_CONFIRMATION` status can be confirmed; confirmation triggers the provider transfer
 
 ### BAL — Balance Management
 
@@ -24,9 +24,9 @@
 
 ### PROV — Provider Integration
 
-- [ ] **PROV-01**: System routes disbursement to MTN MoMo via `MtnMoMoPort.disbursementTransfer()` (wrapping existing `MtnMoMoClient.transfer()`) based on recipient MSISDN prefix; uses a separate OAuth2 disbursement token; polls `GET /disbursement/v1_0/transfer/{id}` as fallback if callback not received within 5 minutes
-- [ ] **PROV-02**: System routes disbursement to Orange Money via `OrangeMoneyPort.ic2cDisbursement()` calling `/ic2c/pay` based on recipient MSISDN prefix; polls `GET /ic2c/paystatus/{payToken}` as fallback if callback not received within 5 minutes
-- [ ] **PROV-03**: System validates recipient account holder is active via `MobileMoneyPort.validateAccountHolder()` before initiating the provider transfer; returns `422 RECIPIENT_NOT_FOUND` if inactive
+- [x] **PROV-01**: System routes disbursement to MTN MoMo via `MtnMoMoPort.disbursementTransfer()` (wrapping existing `MtnMoMoClient.transfer()`) based on recipient MSISDN prefix; uses a separate OAuth2 disbursement token; polls `GET /disbursement/v1_0/transfer/{id}` as fallback if callback not received within 5 minutes (routing + recipient validation delivered Phase 51; 5-min poller delivered Phase 52)
+- [x] **PROV-02**: System routes disbursement to Orange Money via `OrangeMoneyPort.ic2cDisbursement()` calling `/ic2c/pay` based on recipient MSISDN prefix; polls `GET /ic2c/paystatus/{payToken}` as fallback if callback not received within 5 minutes (routing + recipient validation delivered Phase 51; 5-min poller delivered Phase 52)
+- [x] **PROV-03**: System validates recipient account holder is active via `MobileMoneyPort.validateAccountHolder()` before initiating the provider transfer; returns `422 RECIPIENT_NOT_FOUND` if inactive
 
 ### SEC — Security, Fraud & Approval Controls
 

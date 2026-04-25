@@ -124,7 +124,7 @@
 **Milestone Goal:** Expose a production-ready `POST /v1/disbursements` endpoint enabling tenants to send payouts to MTN MoMo and Orange Money subscribers, with full security controls, pre-funded balance gating, and E2E verification.
 
 - [x] **Phase 50: Schema & Balance Infrastructure** — Flyway V26, Disbursement entity, WalletBalance entity with pessimistic locking, DisbursementStatus enum (completed 2026-04-25)
-- [ ] **Phase 51: Orchestrator & Public API** — DisbursementOrchestrator, DisbursementResource (POST+GET+LIST), step-up confirmation flow, MTN and Orange provider port wiring
+- [x] **Phase 51: Orchestrator & Public API** — DisbursementOrchestrator, DisbursementResource (POST+GET+LIST), step-up confirmation flow, MTN and Orange provider port wiring (completed 2026-04-25)
 - [ ] **Phase 52: Callbacks & Outbound Webhooks** — MTN and Orange disbursement callback controllers, DisbursementCompletedEvent, outbound webhook delivery
 - [ ] **Phase 53: E2E Test Suite** — Both provider happy paths, balance gate + concurrency race, fraud block, idempotency race, step-up confirmation, callback replay
 
@@ -526,6 +526,6 @@ Plans:
 | 48. Test Coverage | v9 | 2/2 | Complete | 2026-04-22 |
 | 49. Orange Cashout Wiring | v9 | 2/2 | Complete | 2026-04-23 |
 | 50. Schema & Balance Infrastructure | v10 | 1/2 | Complete    | 2026-04-25 |
-| 51. Orchestrator & Public API | v10 | 2/4 | In Progress|  |
+| 51. Orchestrator & Public API | v10 | 2/4 | Complete    | 2026-04-25 |
 | 52. Callbacks & Outbound Webhooks | v10 | 0/TBD | Not started | - |
 | 53. E2E Test Suite | v10 | 0/TBD | Not started | - |
