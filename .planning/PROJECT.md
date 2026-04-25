@@ -125,6 +125,11 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - [ ] DISB-06: System delivers `disbursement.completed` / `disbursement.failed` outbound webhook
 - [ ] DISB-07: E2E test suite covers disbursement flows for both providers
 
+#### Phase 50 complete — Validated in Phase 50: BAL-01, BAL-02, BAL-03
+- ✓ Flyway V28: `main.disbursement`, `main.disbursement_aud`, `main.merchant_wallet_balance`, `main.merchant_wallet_balance_aud` with named constraints — v10 (Phase 50)
+- ✓ `DisbursementStatus` enum (INITIATED → PENDING_CONFIRMATION → PROCESSING → SUCCESS | FAILED | EXPIRED); EXPIRED terminal state (BAL-03); 14 state machine unit tests — v10 (Phase 50)
+- ✓ `WalletBalanceService.checkAndReserve()` + `release()` with PESSIMISTIC_WRITE lock; guard-before-mutate; 20-thread concurrency IT proves no overdraft (1 success, 19 InsufficientBalanceException, final balance = 0) — v10 (Phase 50)
+
 ### Out of Scope
 
 - ML/anomaly-detection fraud models — deferred to future; rule-based engine ships first
@@ -228,4 +233,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-24 — v10 milestone started*
+*Last updated: 2026-04-25 — Phase 50 complete (BAL-01, BAL-02, BAL-03 verified)*
