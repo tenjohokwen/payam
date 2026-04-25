@@ -26,6 +26,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -36,8 +38,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class DisbursementOrchestratorTest {
 
     private static final Long TENANT_ID = 1L;
@@ -84,44 +88,47 @@ class DisbursementOrchestratorTest {
 
     @BeforeEach
     void setUpDefaults() {
+        // Use lenient stubs for defaults that not every test triggers.
+        // Tests that DO need these will hit the stub; tests that don't won't fail.
+
         // Default: idempotency key is new (not a replay)
-        when(idempotencyService.checkAndReserve(any(), any())).thenReturn(Optional.empty());
+        lenient().when(idempotencyService.checkAndReserve(any(), any())).thenReturn(Optional.empty());
 
         // Default: MTN MSISDN routes to MTN; Orange MSISDN routes to Orange
-        when(msisdnRouter.resolve(eq(MTN_MSISDN))).thenReturn(MobilePaymentProvider.MTN);
-        when(msisdnRouter.resolve(eq(ORANGE_MSISDN))).thenReturn(MobilePaymentProvider.ORANGE);
+        lenient().when(msisdnRouter.resolve(eq(MTN_MSISDN))).thenReturn(MobilePaymentProvider.MTN);
+        lenient().when(msisdnRouter.resolve(eq(ORANGE_MSISDN))).thenReturn(MobilePaymentProvider.ORANGE);
 
         // Default: fraud allows through
-        when(fraudService.evaluate(any(), any(), any())).thenReturn(FraudDecision.allow(0));
+        lenient().when(fraudService.evaluate(any(), any(), any())).thenReturn(FraudDecision.allow(0));
 
         // Default: fee is 50
-        when(feeService.evaluateFee(any(), any())).thenReturn(FEE);
+        lenient().when(feeService.evaluateFee(any(), any())).thenReturn(FEE);
 
         // Default: MTN subscriber active
-        when(mtnPort.validateSubscriber(any())).thenReturn(new SubscriberStatus(true, MTN_MSISDN, "ACTIVE"));
+        lenient().when(mtnPort.validateSubscriber(any())).thenReturn(new SubscriberStatus(true, MTN_MSISDN, "ACTIVE"));
 
         // Default: Orange subscriber active
-        when(orangePort.validateSubscriber(any())).thenReturn(new SubscriberStatus(true, ORANGE_MSISDN, "ACTIVE"));
+        lenient().when(orangePort.validateSubscriber(any())).thenReturn(new SubscriberStatus(true, ORANGE_MSISDN, "ACTIVE"));
 
         // Default: MTN initiateDisbursement returns pending
-        when(mtnPort.initiateDisbursement(any())).thenReturn(ProviderResult.pending("MTN-REF-1", "PENDING"));
+        lenient().when(mtnPort.initiateDisbursement(any())).thenReturn(ProviderResult.pending("MTN-REF-1", "PENDING"));
 
         // Default: Orange initiateDisbursement returns success
-        when(orangePort.initiateDisbursement(any())).thenReturn(ProviderResult.success("ORANGE-REF-1", "SUCCESS"));
+        lenient().when(orangePort.initiateDisbursement(any())).thenReturn(ProviderResult.success("ORANGE-REF-1", "SUCCESS"));
 
         // Default: dsbService.create returns a mocked disbursement
         Disbursement defaultDsb = mockDisbursement(DSB_ID, DisbursementStatus.INITIATED, SMALL_AMOUNT, SMALL_AMOUNT.add(FEE));
-        when(dsbService.create(any(), any(), any(), any(), any())).thenReturn(defaultDsb);
+        lenient().when(dsbService.create(any(), any(), any(), any(), any())).thenReturn(defaultDsb);
 
         // Default: TransactionTemplate executes the lambda inline
-        when(transactionTemplate.execute(any())).thenAnswer(inv -> {
+        lenient().when(transactionTemplate.execute(any())).thenAnswer(inv -> {
             TransactionCallback<?> callback = inv.getArgument(0);
             return callback.doInTransaction(null);
         });
 
-        // Default: disbursementRepository.findByDisbursementIdForUpdate returns an empty dsb (for transition)
+        // Default: disbursementRepository.findByDisbursementIdForUpdate returns a mockable dsb (for transition)
         Disbursement lockedDsb = mock(Disbursement.class);
-        when(disbursementRepository.findByDisbursementIdForUpdate(any())).thenReturn(Optional.of(lockedDsb));
+        lenient().when(disbursementRepository.findByDisbursementIdForUpdate(any())).thenReturn(Optional.of(lockedDsb));
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
