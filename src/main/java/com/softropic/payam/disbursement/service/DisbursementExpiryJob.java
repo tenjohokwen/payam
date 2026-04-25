@@ -18,7 +18,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 
 /**
@@ -75,9 +74,9 @@ public class DisbursementExpiryJob extends QuartzJobBean {
     }
 
     private void run() {
-        Instant threshold = Instant.now().minus(EXPIRY_AGE);
+        long ageMinutes = EXPIRY_AGE.toMinutes();
         List<Disbursement> candidates = disbursementRepository
-                .findByDisbursementStatusAndCreatedDateBefore(DisbursementStatus.PENDING_CONFIRMATION, threshold);
+                .findExpiredCandidates(DisbursementStatus.PENDING_CONFIRMATION.name(), ageMinutes);
 
         // Bound the batch
         if (candidates.size() > BATCH_SIZE) {
@@ -86,7 +85,7 @@ public class DisbursementExpiryJob extends QuartzJobBean {
 
         log.info("Disbursement expiry scan",
                 kv("operation", "dsb_expiry_scan"),
-                kv("threshold", threshold.toString()),
+                kv("ageMinutes", ageMinutes),
                 kv("candidateCount", candidates.size()));
 
         int expired = 0;

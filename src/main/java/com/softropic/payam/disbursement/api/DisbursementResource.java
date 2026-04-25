@@ -119,8 +119,13 @@ public class DisbursementResource {
         int safePage = Math.max(0, page);
         Pageable pageable = PageRequest.of(safePage, safeSize);
 
+        // Pass all optional filters as nullable Strings to avoid PostgreSQL "could not determine
+        // data type" errors when null Instant/enum params are bound in native prepared statements.
+        String statusName = status != null ? status.name() : null;
+        String fromStr = from != null ? from.toString() : null;
+        String toStr = to != null ? to.toString() : null;
         Page<Disbursement> rows = disbursementRepository
-                .findForTenant(principal.getTenantId(), status, from, to, pageable);
+                .findForTenant(principal.getTenantId(), statusName, fromStr, toStr, pageable);
 
         Page<DisbursementListItem> mapped = rows.map(this::toListItem);
         return ResponseEntity.ok(mapped);

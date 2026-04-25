@@ -11,7 +11,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,12 +48,24 @@ public interface DisbursementRepository extends JpaRepository<Disbursement, Long
     Optional<Disbursement> findByDisbursementIdForUpdate(@Param("disbursementId") String disbursementId);
 
     /**
-     * Find disbursements in a given status created before a given instant.
-     * Used by Plan 05's expiry job to find PENDING_CONFIRMATION rows that have aged past the
-     * 15-minute confirmation window (SEC-04 expiry).
+     * Find disbursements in a given status whose created_date is older than the given
+     * number of minutes (computed entirely in PostgreSQL via NOW() to avoid JVM timezone
+     * and JDBC Instant-binding issues against the TIMESTAMP WITHOUT TIME ZONE column).
+     *
+     * <p>Background: the {@code disbursement.created_date} column is {@code TIMESTAMP} (no tz).
+     * Hibernate 6 maps {@code Instant} as {@code TIMESTAMP WITH TIME ZONE}. Comparing
+     * {@code TIMESTAMPTZ} against {@code TIMESTAMP} via a prepared-statement parameter causes
+     * silent timezone-offset skew depending on the PostgreSQL session timezone. Keeping the
+     * threshold expression inside SQL eliminates the binding entirely and is safe on any JVM tz.
+     *
+     * <p>The {@code ageMinutes} parameter is a simple long — no timezone conversion.
      */
-    List<Disbursement> findByDisbursementStatusAndCreatedDateBefore(
-            DisbursementStatus status, Instant before);
+    @Query(value = "SELECT * FROM main.disbursement d " +
+                   "WHERE d.disbursement_status = :status " +
+                   "AND d.created_date < NOW() - CAST(:ageMinutes || ' minutes' AS INTERVAL)",
+           nativeQuery = true)
+    List<Disbursement> findExpiredCandidates(
+            @Param("status") String status, @Param("ageMinutes") long ageMinutes);
 
     /**
      * Tenant-scoped lookup by disbursementId. Used by confirm() and the REST GET endpoint.
@@ -64,16 +75,34 @@ public interface DisbursementRepository extends JpaRepository<Disbursement, Long
 
     /**
      * Pageable tenant-scoped query for the REST GET /v1/disbursements list endpoint (Plan 04).
-     * All filter params are optional — null values are ignored by the IS NULL OR clause.
+     * All filter params are optional — pass null to skip filtering.
+     *
+     * <p>Uses a native query with status and date params typed as String/varchar to avoid the
+     * PostgreSQL "could not determine data type of parameter $N" error. PostgreSQL cannot infer
+     * the column type when Hibernate binds a null {@code Instant} or null enum value in a
+     * prepared statement — the driver needs a concrete type hint. Passing all optional filters
+     * as {@code String} (ISO-8601 for dates, enum name for status) lets PostgreSQL cast
+     * unambiguously while NULL checking works on plain varchars.
+     *
+     * <p>Callers must format date params as {@code Instant.toString()} (UTC ISO-8601) or null.
+     * The CAST expression converts the ISO-8601 string to TIMESTAMPTZ for comparison against the
+     * TIMESTAMP column; PostgreSQL handles the implicit timezone strip at session UTC.
      */
-    @Query("SELECT d FROM Disbursement d WHERE d.tenantId = :tenantId " +
-           "AND (:status IS NULL OR d.disbursementStatus = :status) " +
-           "AND (:from IS NULL OR d.createdDate >= :from) " +
-           "AND (:to IS NULL OR d.createdDate <= :to) " +
-           "ORDER BY d.createdDate DESC")
+    @Query(value = "SELECT * FROM main.disbursement d " +
+                   "WHERE d.tenant_id = :tenantId " +
+                   "AND (:status IS NULL OR d.disbursement_status = CAST(:status AS VARCHAR)) " +
+                   "AND (:fromStr IS NULL OR d.created_date >= CAST(CAST(:fromStr AS TIMESTAMPTZ) AS TIMESTAMP)) " +
+                   "AND (:toStr IS NULL OR d.created_date <= CAST(CAST(:toStr AS TIMESTAMPTZ) AS TIMESTAMP)) " +
+                   "ORDER BY d.created_date DESC",
+           countQuery = "SELECT COUNT(*) FROM main.disbursement d " +
+                        "WHERE d.tenant_id = :tenantId " +
+                        "AND (:status IS NULL OR d.disbursement_status = CAST(:status AS VARCHAR)) " +
+                        "AND (:fromStr IS NULL OR d.created_date >= CAST(CAST(:fromStr AS TIMESTAMPTZ) AS TIMESTAMP)) " +
+                        "AND (:toStr IS NULL OR d.created_date <= CAST(CAST(:toStr AS TIMESTAMPTZ) AS TIMESTAMP))",
+           nativeQuery = true)
     Page<Disbursement> findForTenant(@Param("tenantId") Long tenantId,
-                                     @Param("status") DisbursementStatus status,
-                                     @Param("from") Instant from,
-                                     @Param("to") Instant to,
+                                     @Param("status") String status,
+                                     @Param("fromStr") String fromStr,
+                                     @Param("toStr") String toStr,
                                      Pageable pageable);
 }
