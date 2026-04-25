@@ -34,8 +34,8 @@
 - [x] **SEC-02**: System applies disbursement-specific velocity limits: > 20 disbursements/minute per tenant returns `429`; > 200 disbursements/hour per tenant returns `429`; > 10 disbursements to same MSISDN/day returns `422 DAILY_LIMIT_EXCEEDED`
 - [x] **SEC-03**: System applies disbursement-specific fraud score signals on top of the existing `FraudScoringService`: new recipient MSISDN (+15), amount > 3× tenant median payout (+30), recipient on known-fraud list (+80); score > 80 blocks with `FRAUD_BLOCK`
 - [x] **SEC-04**: System requires a two-step flow for disbursements > 500,000 XAF: `POST /v1/disbursements` returns `202` with `status: PENDING_CONFIRMATION`; tenant must call `POST /v1/disbursements/{id}/confirm` to proceed to the provider; disbursement expires automatically after 15 minutes if unconfirmed
-- [ ] **SEC-05**: System validates inbound provider callbacks (MTN + Orange disbursement paths) via IP whitelist, HMAC/token signature verification, double-check against provider status API, and Redis replay deduplication on `providerReferenceId`; callbacks arrive at distinct paths (`/v1/callbacks/mtn/disbursement/{ref}`, `/v1/callbacks/orange/disbursement`)
-- [ ] **SEC-06**: System delivers outbound webhooks to the tenant's configured URL for terminal disbursement states with events `disbursement.completed` and `disbursement.failed`; payload is signed with `X-Payam-Signature` (HMAC-SHA256); non-2xx triggers exponential backoff with max 5 retries
+- [x] **SEC-05**: System validates inbound provider callbacks (MTN + Orange disbursement paths) via IP whitelist, HMAC/token signature verification, double-check against provider status API, and Redis replay deduplication on `providerReferenceId`; callbacks arrive at distinct paths (`/v1/callbacks/mtn/disbursement/{ref}`, `/v1/callbacks/orange/disbursement`)
+- [x] **SEC-06**: System delivers outbound webhooks to the tenant's configured URL for terminal disbursement states with events `disbursement.completed` and `disbursement.failed`; payload is signed with `X-Payam-Signature` (HMAC-SHA256); non-2xx triggers exponential backoff with max 5 retries
 
 ### TEST — E2E Test Coverage
 

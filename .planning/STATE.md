@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 51-04-PLAN.md
-last_updated: "2026-04-25T17:21:03.728Z"
+stopped_at: Completed 52-01-PLAN.md
+last_updated: "2026-04-25T21:25:00Z"
 last_activity: 2026-04-25
 progress:
   total_phases: 24
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-04-24 — v10 roadmap created)
 ## Current Position
 
 Phase: 52
-Plan: Not started
-Status: Executing Phase 51 — plans 01+02 complete
+Plan: 01 complete — resume at Plan 02
+Status: Executing Phase 52 — plan 01 complete
 Last activity: 2026-04-25
 
 Progress: [░░░░░░░░░░] 0% (0/4 phases complete)
@@ -46,6 +46,12 @@ Progress: [░░░░░░░░░░] 0% (0/4 phases complete)
 
 Decisions are logged in PROJECT.md Key Decisions table.
 
+**52-01 decisions:**
+
+- Null-safe legacy fallback in `attemptDeliveryInternal`: pre-V30 rows fall back to `eventType.contains("SUCCESS")` — avoids breaking in-flight retries during zero-downtime deploy
+- `OutboundWebhookPayload.of()` factory is additive — original record constructor preserved for existing test code
+- V30 backfill UPDATE derives from `event_type LIKE '%SUCCESS%'` for collection-era rows — consistent history serialization
+
 **51-02 decisions:**
 
 - Block threshold strictly > 80 (score == 80 allows through per SEC-03 spec) — blocklist alone doesn't block; combined signal does
@@ -55,7 +61,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 Key context carried forward for v10:
 
-- Last Flyway migration: **V25** — next is **V26** (disbursement + merchant_wallet_balance tables)
+- Last Flyway migration: **V30** (transaction_status column on webhook_delivery_log + V29 poll_attempts on disbursement)
 - `LedgerService.postEntry(txId, tenantId, LedgerPosting)` is the current API — 3-arg, switch-routed
 - `OrangeMoneyPort.initiateCashout()` calls `/cashout` (v9 path) — Phase 51 must verify whether this is `/ic2c/pay` or a different endpoint before wiring ic2cDisbursement
 - `MtnMoMoPort.initiateDisbursement()` and `fetchDisbursementToken()` exist — wire via `disbursementTransfer()` wrapper
@@ -81,6 +87,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-25T16:14:47.161Z
-Stopped at: Completed 51-04-PLAN.md
-Resume: /gsd:plan-phase 50
+Last session: 2026-04-25T21:25:00Z
+Stopped at: Completed 52-01-PLAN.md
+Resume: Execute 52-02-PLAN.md (callbacks + outbound trigger)
