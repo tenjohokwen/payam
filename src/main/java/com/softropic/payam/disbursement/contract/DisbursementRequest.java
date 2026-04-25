@@ -67,8 +67,12 @@ public record DisbursementRequest(
          * Used to deduplicate concurrent or retried disbursement requests within 24 hours.
          * Not part of the JSON request body — the controller binds it from the header and
          * sets this field before passing the record to the orchestrator.
+         *
+         * <p>No {@code @NotBlank} here: the HTTP layer enforces header presence via
+         * {@code @RequestHeader("Idempotency-Key")} (returns 400 if missing). Adding
+         * {@code @NotBlank} would cause {@code @Valid} on the raw JSON body to fail before
+         * the controller can inject the header value into the reconstructed record.
          */
-        @NotBlank
         String idempotencyKey
 
 ) {}

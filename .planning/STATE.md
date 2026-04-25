@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 51-02-PLAN.md
-last_updated: "2026-04-25T10:40:00.000Z"
-last_activity: 2026-04-25 -- Phase 51 Wave 1 complete (plans 01+02)
+stopped_at: Completed 51-04-PLAN.md
+last_updated: "2026-04-25T16:14:47.168Z"
+last_activity: 2026-04-25 -- Wave 1 complete
 progress:
   total_phases: 24
   completed_phases: 11
-  total_plans: 34
-  completed_plans: 31
+  total_plans: 32
+  completed_plans: 32
   percent: 0
 ---
 
@@ -47,6 +47,7 @@ Progress: [░░░░░░░░░░] 0% (0/4 phases complete)
 Decisions are logged in PROJECT.md Key Decisions table.
 
 **51-02 decisions:**
+
 - Block threshold strictly > 80 (score == 80 allows through per SEC-03 spec) — blocklist alone doesn't block; combined signal does
 - Outlier signal skipped for tenants with <10 SUCCESS rows — fail-open for new tenants
 - DisbursementIdempotencyService created in 51-02 (Rule-3 deviation) to unblock compilation; uses idempotency:dsb: namespace confirmed distinct from collection path
@@ -66,6 +67,8 @@ Key context carried forward for v10:
 - [Phase 50-schema-balance-infrastructure]: PESSIMISTIC_WRITE lock over optimistic-only for WalletBalanceService: optimistic retry allows second drain after first succeeds — defeats BAL-01 invariant
 - [Phase 50-schema-balance-infrastructure]: release() throws IllegalStateException on missing wallet (programmer bug contract) vs InsufficientBalanceException on missing wallet in checkAndReserve (tenant cannot disburse)
 - [Phase 51]: DisbursementIdempotencyService shares IdempotencyKeyRepository with IdempotencyService; no schema split needed — Redis namespace isolation (idempotency:dsb: vs idempotency:) prevents key collisions
+- [Phase 51-04]: findForTenant uses native SQL (not JPQL) to avoid PostgreSQL null enum type inference errors
+- [Phase 51-04]: findExpiredCandidates uses NOW() - INTERVAL DB-side to avoid Hibernate 6 Instant->TIMESTAMPTZ vs TIMESTAMP column skew
 
 ### Pending Todos
 
@@ -78,6 +81,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-25T10:38:56.841Z
-Stopped at: Completed 51-01-PLAN.md
+Last session: 2026-04-25T16:14:47.161Z
+Stopped at: Completed 51-04-PLAN.md
 Resume: /gsd:plan-phase 50
