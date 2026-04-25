@@ -20,7 +20,10 @@ public class MtnWebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(mtnIpWhitelistInterceptor)
-                .addPathPatterns("/v1/callbacks/mtn");
-        // Registered ONLY for the MTN callback path — does not touch JWT or other endpoints
+                .addPathPatterns("/v1/callbacks/mtn",
+                                 "/v1/callbacks/mtn/disbursement/*");
+        // Phase 52 (SEC-05): the disbursement callback path must enforce the same IP whitelist
+        // as the collection path. Pattern /v1/callbacks/mtn/disbursement/* matches the
+        // {ref} path variable in MtnDisbursementCallbackController.
     }
 }

@@ -20,7 +20,9 @@ public class OrangeWebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(interceptor)
-                .addPathPatterns("/v1/callbacks/orange");
-        // Registered ONLY for the Orange callback path — does not touch JWT or other endpoints
+                .addPathPatterns("/v1/callbacks/orange",
+                                 "/v1/callbacks/orange/disbursement");
+        // Phase 52 (SEC-05): disbursement callback path enforces the same Orange IP whitelist
+        // as the collection path.
     }
 }
