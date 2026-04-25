@@ -130,6 +130,15 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ `DisbursementStatus` enum (INITIATED → PENDING_CONFIRMATION → PROCESSING → SUCCESS | FAILED | EXPIRED); EXPIRED terminal state (BAL-03); 14 state machine unit tests — v10 (Phase 50)
 - ✓ `WalletBalanceService.checkAndReserve()` + `release()` with PESSIMISTIC_WRITE lock; guard-before-mutate; 20-thread concurrency IT proves no overdraft (1 success, 19 InsufficientBalanceException, final balance = 0) — v10 (Phase 50)
 
+#### Phase 51 complete — Validated in Phase 51: DISB-01, DISB-02, DISB-03, DISB-04, PROV-01, PROV-02, PROV-03, SEC-01, SEC-02, SEC-03, SEC-04
+- ✓ `DisbursementIdempotencyService` using `idempotency:dsb:<tenantId>:<key>` Redis namespace; Postgres-first ordering; shares `IdempotencyKeyRepository` with collection path — v10 (Phase 51): SEC-01
+- ✓ `DisbursementVelocityService`: Bucket4j-on-Redis, 3 gates (20/min per tenant, 200/hr per tenant, 10/day per MSISDN); `VelocityExceededException` + `DailyLimitExceededException` — v10 (Phase 51): SEC-02
+- ✓ `DisbursementFraudEvaluationService`: 3 signals (new recipient +15, amount outlier +30, blocklist +80); blocks at score > 80; fail-open for tenants with <10 SUCCESS rows — v10 (Phase 51): SEC-03
+- ✓ `DisbursementOrchestrator`: 11-step initiate() + confirm() + releaseAndFail(); TransactionTemplate (no class-level @Transactional); MTN + Orange ports wired; PESSIMISTIC_WRITE re-lock on confirm — v10 (Phase 51): DISB-01, DISB-04, PROV-01, PROV-02, PROV-03
+- ✓ `DisbursementResource`: 4 REST endpoints (POST initiate, GET by id, GET list, POST confirm); 202 for PROCESSING/PENDING_CONFIRMATION; tenant-scoped 404 — v10 (Phase 51): DISB-02, DISB-03
+- ✓ `DisbursementExpiryJob` (Quartz, 60s): ages PENDING_CONFIRMATION → EXPIRED after 15 min; PESSIMISTIC_WRITE re-check; no wallet balance touch (BAL-03 safe) — v10 (Phase 51): SEC-04
+- Note: PROV-01/PROV-02 5-minute callback polling fallback deferred to Phase 52 (requires Quartz job + disbursement-specific poller wiring)
+
 ### Out of Scope
 
 - ML/anomaly-detection fraud models — deferred to future; rule-based engine ships first
