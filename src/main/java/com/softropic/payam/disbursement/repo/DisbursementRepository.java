@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -105,4 +106,32 @@ public interface DisbursementRepository extends JpaRepository<Disbursement, Long
                                      @Param("fromStr") String fromStr,
                                      @Param("toStr") String toStr,
                                      Pageable pageable);
+
+    /**
+     * Find PROCESSING disbursements for the given provider whose last_modified_date is older
+     * than the cutoff Instant. Uses FOR UPDATE SKIP LOCKED so two cluster nodes never claim
+     * the same rows. Mirrors TransactionRepository.findProcessingTransactionsSkipLocked.
+     *
+     * <p>Caller is DisbursementStatusPollerJob. Status param is a String to avoid
+     * PostgreSQL "could not determine data type" errors on enum binding (see findForTenant).
+     */
+    @Query(value = "SELECT * FROM main.disbursement d " +
+                   "WHERE d.disbursement_status = :status " +
+                   "AND d.provider = :provider " +
+                   "AND d.last_modified_date < :cutoff " +
+                   "ORDER BY d.last_modified_date ASC " +
+                   "LIMIT :batchSize " +
+                   "FOR UPDATE SKIP LOCKED",
+           nativeQuery = true)
+    List<Disbursement> findProcessingDisbursementsForPolling(
+            @Param("status") String status,
+            @Param("provider") String provider,
+            @Param("cutoff") Instant cutoff,
+            @Param("batchSize") int batchSize);
+
+    /** Lookup by providerRef — used by MtnDisbursementCallbackController for MTN callbacks. */
+    Optional<Disbursement> findByProviderRef(String providerRef);
+
+    /** Lookup by tenant-supplied reference — used by OrangeDisbursementCallbackController. */
+    Optional<Disbursement> findByReference(String reference);
 }

@@ -73,6 +73,15 @@ public class Disbursement extends AbstractAuditingEntity {
     @Column(columnDefinition = "TEXT")
     private String metadata;
 
+    @Column(name = "poll_attempts", nullable = false)
+    @Builder.Default
+    private Integer pollAttempts = 0;
+
+    /** Increment poll_attempts; null-safe (treats null as 0). Used by DisbursementStatusPollerJob. */
+    public void incrementPollAttempts() {
+        this.pollAttempts = (this.pollAttempts == null ? 0 : this.pollAttempts) + 1;
+    }
+
     /** Apply a state transition via DisbursementStatus guard — throws IllegalStateTransitionException on illegal next. */
     public void applyTransition(DisbursementStatus next) {
         this.disbursementStatus = this.disbursementStatus.transitionTo(next);
