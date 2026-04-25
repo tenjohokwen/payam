@@ -116,6 +116,7 @@ public class WebhookDeliveryService {
             // by the Quartz job until the inline first attempt sets nextRetryAt on failure.
             .build();
         entry.setFeeAmount(feeAmount != null ? feeAmount : BigDecimal.ZERO);
+        entry.setTransactionStatus(status);
         repo.save(entry);
 
         // Attempt delivery immediately — self-invocation bypasses Spring proxy but joins the
@@ -219,14 +220,17 @@ public class WebhookDeliveryService {
      * On failure (non-2xx or exception): schedules exponential-backoff retry.
      */
     private void attemptDeliveryInternal(WebhookDeliveryLog delivery, Tenant tenant) {
-        OutboundWebhookPayload payload = new OutboundWebhookPayload(
+        OutboundWebhookPayload payload = OutboundWebhookPayload.of(
             delivery.getTransactionId(),
-            delivery.getEventType().contains("SUCCESS") ? "SUCCESS" : "FAILED",
+            delivery.getTransactionStatus() != null
+                ? delivery.getTransactionStatus()
+                : (delivery.getEventType() != null && delivery.getEventType().contains("SUCCESS")
+                    ? TransactionStatus.SUCCESS
+                    : TransactionStatus.FAILED),
             delivery.getEventType(),
             Instant.now().toString(),
             delivery.getExternalReference(),
-            delivery.getFeeAmount() != null ? delivery.getFeeAmount() : BigDecimal.ZERO
-        );
+            delivery.getFeeAmount() != null ? delivery.getFeeAmount() : BigDecimal.ZERO);
 
         String payloadJson;
         try {

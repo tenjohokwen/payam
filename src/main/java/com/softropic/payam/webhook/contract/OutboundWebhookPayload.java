@@ -1,5 +1,7 @@
 package com.softropic.payam.webhook.contract;
 
+import com.softropic.payam.transaction.contract.TransactionStatus;
+
 import java.math.BigDecimal;
 
 /**
@@ -18,4 +20,23 @@ public record OutboundWebhookPayload(
     String timestamp,         // ISO-8601 UTC
     String externalReference, // echoed back to tenant — their own reference from payment creation
     BigDecimal feeAmount      // applied fee; BigDecimal.ZERO when no rule matched
-) {}
+) {
+    /**
+     * Build a payload deriving the wire-level status from an authoritative TransactionStatus
+     * enum value. SEC-06: collection event types (PROVIDER_SUCCESS/FAILED) and disbursement
+     * event types (DISBURSEMENT_COMPLETED/FAILED) BOTH map correctly without string contains-checks.
+     *
+     * Mapping: SUCCESS -> "SUCCESS"; everything else -> "FAILED".
+     */
+    public static OutboundWebhookPayload of(String transactionId,
+                                             TransactionStatus status,
+                                             String eventType,
+                                             String timestamp,
+                                             String externalReference,
+                                             BigDecimal feeAmount) {
+        String wire = status == TransactionStatus.SUCCESS ? "SUCCESS" : "FAILED";
+        return new OutboundWebhookPayload(
+            transactionId, wire, eventType, timestamp, externalReference,
+            feeAmount != null ? feeAmount : BigDecimal.ZERO);
+    }
+}
