@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 50-02-PLAN.md
-last_updated: "2026-04-25T05:28:41.250Z"
+stopped_at: Completed 51-01-PLAN.md
+last_updated: "2026-04-25T10:38:56.850Z"
 last_activity: 2026-04-25
 progress:
   total_phases: 24
-  completed_phases: 12
-  total_plans: 30
-  completed_plans: 30
+  completed_phases: 11
+  total_plans: 32
+  completed_plans: 31
   percent: 0
 ---
 
@@ -59,6 +59,7 @@ Key context carried forward for v10:
 - [Phase 50-schema-balance-infrastructure]: disbursement_status column name avoids AbstractAuditingEntity.status collision; reserved_amount on both disbursement + wallet tables for per-row precision + operational visibility
 - [Phase 50-schema-balance-infrastructure]: PESSIMISTIC_WRITE lock over optimistic-only for WalletBalanceService: optimistic retry allows second drain after first succeeds — defeats BAL-01 invariant
 - [Phase 50-schema-balance-infrastructure]: release() throws IllegalStateException on missing wallet (programmer bug contract) vs InsufficientBalanceException on missing wallet in checkAndReserve (tenant cannot disburse)
+- [Phase 51]: DisbursementIdempotencyService shares IdempotencyKeyRepository with IdempotencyService; no schema split needed — Redis namespace isolation (idempotency:dsb: vs idempotency:) prevents key collisions
 
 ### Pending Todos
 
@@ -71,6 +72,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-25T05:21:18.999Z
-Stopped at: Completed 50-02-PLAN.md
+Last session: 2026-04-25T10:38:56.841Z
+Stopped at: Completed 51-01-PLAN.md
 Resume: /gsd:plan-phase 50

@@ -442,7 +442,7 @@ Plans:
   4. A duplicate `POST /v1/disbursements` with the same `Idempotency-Key` header within 24 hours returns the cached response without calling the provider; the idempotency key is stored under the `idempotency:dsb:<tenantId>:<key>` Redis namespace
   5. A disbursement that exceeds velocity limits (> 20/minute or > 200/hour per tenant, or > 10/day to same MSISDN) returns `429` or `422 DAILY_LIMIT_EXCEEDED` respectively; a disbursement triggering fraud score > 80 (new recipient +15, amount outlier +30, known-fraud MSISDN +80) is blocked with `FRAUD_BLOCK` before any provider call
 **Plans**: 4 plans
-- [ ] 51-01-PLAN.md — DTOs, error codes, dsb-namespaced idempotency service (SEC-01)
+- [x] 51-01-PLAN.md — DTOs, error codes, dsb-namespaced idempotency service (SEC-01)
 - [ ] 51-02-PLAN.md — DisbursementVelocityService + DisbursementFraudEvaluationService (SEC-02, SEC-03)
 - [ ] 51-03-PLAN.md — DisbursementOrchestrator (initiate + confirm) + repo extensions (DISB-01, DISB-04, PROV-01-03, SEC-04 entry)
 - [ ] 51-04-PLAN.md — DisbursementResource + DisbursementExpiryJob (DISB-02, DISB-03, SEC-04 expiry)
@@ -526,6 +526,6 @@ Plans:
 | 48. Test Coverage | v9 | 2/2 | Complete | 2026-04-22 |
 | 49. Orange Cashout Wiring | v9 | 2/2 | Complete | 2026-04-23 |
 | 50. Schema & Balance Infrastructure | v10 | 1/2 | Complete    | 2026-04-25 |
-| 51. Orchestrator & Public API | v10 | 0/TBD | Not started | - |
+| 51. Orchestrator & Public API | v10 | 1/4 | In Progress|  |
 | 52. Callbacks & Outbound Webhooks | v10 | 0/TBD | Not started | - |
 | 53. E2E Test Suite | v10 | 0/TBD | Not started | - |

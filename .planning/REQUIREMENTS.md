@@ -11,7 +11,7 @@
 
 ### DISB — Disbursement API Surface
 
-- [ ] **DISB-01**: Tenant can initiate a disbursement via `POST /v1/disbursements` with fields: `recipientMsisdn`, `amount`, `currency`, `reference` (required) and `description`, `metadata` (optional); receives `202 Accepted` with `disbursementId` and `status: PROCESSING` (or `PENDING_CONFIRMATION` for amounts > 500,000 XAF)
+- [x] **DISB-01**: Tenant can initiate a disbursement via `POST /v1/disbursements` with fields: `recipientMsisdn`, `amount`, `currency`, `reference` (required) and `description`, `metadata` (optional); receives `202 Accepted` with `disbursementId` and `status: PROCESSING` (or `PENDING_CONFIRMATION` for amounts > 500,000 XAF)
 - [ ] **DISB-02**: Tenant can query disbursement status via `GET /v1/disbursements/{disbursementId}`; response is tenant-scoped (another tenant's ID returns `404 Not Found`)
 - [ ] **DISB-03**: Tenant can list their disbursements via `GET /v1/disbursements` with pagination and filters (status, date range); results are tenant-scoped
 - [ ] **DISB-04**: Tenant can confirm a large disbursement (amount > 500,000 XAF) via `POST /v1/disbursements/{disbursementId}/confirm`; only disbursements in `PENDING_CONFIRMATION` status can be confirmed; confirmation triggers the provider transfer
@@ -30,7 +30,7 @@
 
 ### SEC — Security, Fraud & Approval Controls
 
-- [ ] **SEC-01**: System enforces `Idempotency-Key` header on every `POST /v1/disbursements` request using a distinct Redis namespace (`idempotency:dsb:<tenantId>:<key>`); duplicate requests within 24-hour TTL return the cached response without calling the provider
+- [x] **SEC-01**: System enforces `Idempotency-Key` header on every `POST /v1/disbursements` request using a distinct Redis namespace (`idempotency:dsb:<tenantId>:<key>`); duplicate requests within 24-hour TTL return the cached response without calling the provider
 - [ ] **SEC-02**: System applies disbursement-specific velocity limits: > 20 disbursements/minute per tenant returns `429`; > 200 disbursements/hour per tenant returns `429`; > 10 disbursements to same MSISDN/day returns `422 DAILY_LIMIT_EXCEEDED`
 - [ ] **SEC-03**: System applies disbursement-specific fraud score signals on top of the existing `FraudScoringService`: new recipient MSISDN (+15), amount > 3× tenant median payout (+30), recipient on known-fraud list (+80); score > 80 blocks with `FRAUD_BLOCK`
 - [ ] **SEC-04**: System requires a two-step flow for disbursements > 500,000 XAF: `POST /v1/disbursements` returns `202` with `status: PENDING_CONFIRMATION`; tenant must call `POST /v1/disbursements/{id}/confirm` to proceed to the provider; disbursement expires automatically after 15 minutes if unconfirmed
