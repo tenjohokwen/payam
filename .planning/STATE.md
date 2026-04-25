@@ -1,16 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v10
-milestone_name: Client Disbursement API
-status: active
-stopped_at: Roadmap created — ready to plan Phase 50
-last_updated: "2026-04-24T00:00:00.000Z"
-last_activity: 2026-04-24
+milestone: v1.0.2
+milestone_name: milestone
+status: executing
+stopped_at: Completed 50-01-PLAN.md
+last_updated: "2026-04-25T04:02:36.647Z"
+last_activity: 2026-04-25
 progress:
-  total_phases: 4
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 24
+  completed_phases: 11
+  total_plans: 30
+  completed_plans: 29
+  percent: 0
 ---
 
 # Project State
@@ -20,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-24 — v10 roadmap created)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** v10 — Client Disbursement API (Phase 50 ready to plan)
+**Current focus:** Phase 50 — schema-balance-infrastructure
 
 ## Current Position
 
-Phase: 50 of 53 (Schema & Balance Infrastructure)
-Plan: —
-Status: Ready to plan
-Last activity: 2026-04-24 — v10 roadmap created (4 phases: 50–53)
+Phase: 50 (schema-balance-infrastructure) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-04-25
 
 Progress: [░░░░░░░░░░] 0% (0/4 phases complete)
 
@@ -55,6 +56,7 @@ Key context carried forward for v10:
 - Idempotency namespace for disbursements: `idempotency:dsb:<tenantId>:<key>` (distinct from collections)
 - E2E base class (`AbstractPayamE2ETest`) needs a second WireMock server for `mtn.disbursement-base-url` before any disbursement E2E tests are written
 - `WalletBalance` must use `@Lock(PESSIMISTIC_WRITE)` — optimistic retry allows second drain after first succeeds
+- [Phase 50-schema-balance-infrastructure]: disbursement_status column name avoids AbstractAuditingEntity.status collision; reserved_amount on both disbursement + wallet tables for per-row precision + operational visibility
 
 ### Pending Todos
 
@@ -67,6 +69,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-24
-Stopped at: v10 roadmap created — 4 phases (50–53), 20 requirements mapped
+Last session: 2026-04-25T04:02:36.640Z
+Stopped at: Completed 50-01-PLAN.md
 Resume: /gsd:plan-phase 50
