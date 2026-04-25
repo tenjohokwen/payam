@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 51-01-PLAN.md
-last_updated: "2026-04-25T10:38:56.850Z"
-last_activity: 2026-04-25 -- Phase 51 Wave 1 complete
+stopped_at: Completed 51-02-PLAN.md
+last_updated: "2026-04-25T10:40:00.000Z"
+last_activity: 2026-04-25 -- Phase 51 Wave 1 complete (plans 01+02)
 progress:
   total_phases: 24
   completed_phases: 11
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-24 — v10 roadmap created)
 ## Current Position
 
 Phase: 51 (orchestrator-public-api) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 51
-Last activity: 2026-04-25 -- Phase 51 execution started
+Plan: Wave 1 complete (01+02), Wave 2 pending
+Status: Executing Phase 51 — plans 01+02 complete
+Last activity: 2026-04-25 -- Wave 1 complete
 
 Progress: [░░░░░░░░░░] 0% (0/4 phases complete)
 
@@ -45,6 +45,12 @@ Progress: [░░░░░░░░░░] 0% (0/4 phases complete)
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
+
+**51-02 decisions:**
+- Block threshold strictly > 80 (score == 80 allows through per SEC-03 spec) — blocklist alone doesn't block; combined signal does
+- Outlier signal skipped for tenants with <10 SUCCESS rows — fail-open for new tenants
+- DisbursementIdempotencyService created in 51-02 (Rule-3 deviation) to unblock compilation; uses idempotency:dsb: namespace confirmed distinct from collection path
+- Median computed from repository ORDER BY ASC — no in-service sorting needed
 
 Key context carried forward for v10:
 
