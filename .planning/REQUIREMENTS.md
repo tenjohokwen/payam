@@ -18,8 +18,8 @@
 
 ### BAL — Balance Management
 
-- [ ] **BAL-01**: System checks `MERCHANT_WALLET` balance covers `principal + fee` before any provider call, using a pessimistic write lock (`SELECT FOR UPDATE`) to prevent concurrent overdraft; returns `422 INSUFFICIENT_BALANCE` if balance is insufficient
-- [ ] **BAL-02**: System releases the reserved balance back to `MERCHANT_WALLET` when a disbursement reaches `FAILED` terminal state
+- [x] **BAL-01**: System checks `MERCHANT_WALLET` balance covers `principal + fee` before any provider call, using a pessimistic write lock (`SELECT FOR UPDATE`) to prevent concurrent overdraft; returns `422 INSUFFICIENT_BALANCE` if balance is insufficient
+- [x] **BAL-02**: System releases the reserved balance back to `MERCHANT_WALLET` when a disbursement reaches `FAILED` terminal state
 - [ ] **BAL-03**: System sets disbursement status to `EXPIRED` (not `FAILED`) when the provider accepted the transfer but a subsequent internal error (e.g., ledger write failure) prevents clean state update; reserved balance is held pending manual ops resolution; an ops alert is triggered
 
 ### PROV — Provider Integration

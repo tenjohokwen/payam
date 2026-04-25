@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
-status: executing
-stopped_at: Completed 50-01-PLAN.md
-last_updated: "2026-04-25T04:02:36.647Z"
+status: verifying
+stopped_at: Completed 50-02-PLAN.md
+last_updated: "2026-04-25T05:21:19.013Z"
 last_activity: 2026-04-25
 progress:
   total_phases: 24
   completed_phases: 11
-  total_plans: 30
-  completed_plans: 29
+  total_plans: 28
+  completed_plans: 30
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-24 — v10 roadmap created)
 
 Phase: 50 (schema-balance-infrastructure) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-25
 
 Progress: [░░░░░░░░░░] 0% (0/4 phases complete)
@@ -57,6 +57,8 @@ Key context carried forward for v10:
 - E2E base class (`AbstractPayamE2ETest`) needs a second WireMock server for `mtn.disbursement-base-url` before any disbursement E2E tests are written
 - `WalletBalance` must use `@Lock(PESSIMISTIC_WRITE)` — optimistic retry allows second drain after first succeeds
 - [Phase 50-schema-balance-infrastructure]: disbursement_status column name avoids AbstractAuditingEntity.status collision; reserved_amount on both disbursement + wallet tables for per-row precision + operational visibility
+- [Phase 50-schema-balance-infrastructure]: PESSIMISTIC_WRITE lock over optimistic-only for WalletBalanceService: optimistic retry allows second drain after first succeeds — defeats BAL-01 invariant
+- [Phase 50-schema-balance-infrastructure]: release() throws IllegalStateException on missing wallet (programmer bug contract) vs InsufficientBalanceException on missing wallet in checkAndReserve (tenant cannot disburse)
 
 ### Pending Todos
 
@@ -69,6 +71,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-25T04:02:36.640Z
-Stopped at: Completed 50-01-PLAN.md
+Last session: 2026-04-25T05:21:18.999Z
+Stopped at: Completed 50-02-PLAN.md
 Resume: /gsd:plan-phase 50
