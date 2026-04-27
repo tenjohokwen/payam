@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 52-02-PLAN.md
-last_updated: "2026-04-25T23:00:00Z"
-last_activity: 2026-04-25
+stopped_at: Completed 52-03-PLAN.md
+last_updated: "2026-04-27T07:55:00Z"
+last_activity: 2026-04-27
 progress:
   total_phases: 24
   completed_phases: 13
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-24 — v10 roadmap created)
 ## Current Position
 
 Phase: 52
-Plan: 02 complete — resume at Plan 03
-Status: Executing Phase 52 — plan 02 complete
-Last activity: 2026-04-25
+Plan: 03 complete — resume at Plan 04
+Status: Executing Phase 52 — plan 03 complete
+Last activity: 2026-04-27
 
 Progress: [░░░░░░░░░░] 0% (0/4 phases complete)
 
@@ -45,6 +45,11 @@ Progress: [░░░░░░░░░░] 0% (0/4 phases complete)
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
+
+**52-03 decisions:**
+
+- Disbursement callback controllers do NOT inject `StringRedisTemplate` — dedup centralized in port layer (`callbacks:dsb:` Redis namespace), unlike `OrangeCallbackController` (collection) which deduplicates in the controller
+- Javadoc on both controllers explains NOT @Transactional rationale inline — keeps non-obvious pitfall visible to future maintainers
 
 **52-02 decisions:**
 
@@ -95,6 +100,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-25T23:00:00Z
-Stopped at: Completed 52-02-PLAN.md
-Resume: Execute 52-03-PLAN.md (callback controllers)
+Last session: 2026-04-27T07:55:00Z
+Stopped at: Completed 52-03-PLAN.md
+Resume: Execute 52-04-PLAN.md (outbound webhook delivery)
