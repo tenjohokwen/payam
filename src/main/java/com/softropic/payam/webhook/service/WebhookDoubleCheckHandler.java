@@ -2,6 +2,7 @@ package com.softropic.payam.webhook.service;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.common.payment.ProviderResult;
+import com.softropic.payam.disbursement.service.DisbursementCallbackTransitionService;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
 import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
@@ -23,13 +24,16 @@ public class WebhookDoubleCheckHandler {
     private final OrangeMoneyPort orangeMoneyPort;
     private final MtnMoMoPort mtnMoMoPort;
     private final WebhookTransitionService webhookTransitionService;
+    private final DisbursementCallbackTransitionService disbursementCallbackTransitionService;
 
     public WebhookDoubleCheckHandler(OrangeMoneyPort orangeMoneyPort,
                                      MtnMoMoPort mtnMoMoPort,
-                                     WebhookTransitionService webhookTransitionService) {
+                                     WebhookTransitionService webhookTransitionService,
+                                     DisbursementCallbackTransitionService disbursementCallbackTransitionService) {
         this.orangeMoneyPort = orangeMoneyPort;
         this.mtnMoMoPort = mtnMoMoPort;
         this.webhookTransitionService = webhookTransitionService;
+        this.disbursementCallbackTransitionService = disbursementCallbackTransitionService;
     }
 
     /**
@@ -86,8 +90,16 @@ public class WebhookDoubleCheckHandler {
             return;
         }
 
-        // Step 3: Final status confirmed — apply state transition with PESSIMISTIC_WRITE lock
-        // Delegated to WebhookTransitionService (separate bean) so @Transactional is effective
-        webhookTransitionService.applyFinalTransition(event, result);
+        // Step 3: Final status confirmed — apply state transition with PESSIMISTIC_WRITE lock.
+        // Route by flow: DISBURSEMENT goes to DisbursementCallbackTransitionService (BAL-02
+        // wallet release on FAILED happens inside that bean's REQUIRES_NEW transaction);
+        // COLLECTION continues to WebhookTransitionService (ledger posting on SUCCESS happens
+        // inside its REQUIRES_NEW transaction). Both beans are separate from this handler so
+        // @Transactional is honoured by Spring AOP (self-invocation would bypass the proxy).
+        if (event.flow() == com.softropic.payam.transaction.contract.LedgerFlow.DISBURSEMENT) {
+            disbursementCallbackTransitionService.applyDisbursementTransition(event, result);
+        } else {
+            webhookTransitionService.applyFinalTransition(event, result);
+        }
     }
 }
