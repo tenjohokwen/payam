@@ -283,9 +283,13 @@ class DisbursementWebhookDeliveryIT {
 
         // Delivery should have failed and retry scheduled
         assertThat(log.getDelivered()).isFalse();
-        assertThat(log.getAttemptCount()).isEqualTo(1);
-        assertThat(log.getNextRetryAt()).isNotNull();
-        assertThat(log.getNextRetryAt()).isAfter(Instant.now());
+        // Verify attemptCount incremented (first attempt)
+        Integer attemptCount = log.getAttemptCount();
+        assertThat(attemptCount).isEqualTo(1);
+        // Verify nextRetryAt is set in the future (exponential back-off)
+        Instant nextRetryAt = log.getNextRetryAt();
+        assertThat(nextRetryAt).isNotNull();
+        assertThat(nextRetryAt).isAfter(Instant.now());
 
         // Tenant URL was hit exactly once (the inline first attempt)
         tenantWebhookServer.verify(1, postRequestedFor(urlEqualTo("/wh")));

@@ -76,7 +76,7 @@ Key context carried forward for v10:
 
 - Last Flyway migration: **V30** (transaction_status column on webhook_delivery_log + V29 poll_attempts on disbursement)
 - `LedgerService.postEntry(txId, tenantId, LedgerPosting)` is the current API — 3-arg, switch-routed
-- `OrangeMoneyPort.initiateCashout()` calls `/cashout` (v9 path) — Phase 51 must verify whether this is `/ic2c/pay` or a different endpoint before wiring ic2cDisbursement
+- `OrangeMoneyClient.cashout()` calls `/cashout` (v9 path) — Phase 51 must verify whether this is `/ic2c/pay` or a different endpoint before wiring ic2cDisbursement
 - `MtnMoMoPort.initiateDisbursement()` and `fetchDisbursementToken()` exist — wire via `disbursementTransfer()` wrapper
 - No `@Transactional` on orchestrator methods that make HTTP calls — use `TransactionTemplate` (established pattern)
 - Idempotency namespace for disbursements: `idempotency:dsb:<tenantId>:<key>` (distinct from collections)
