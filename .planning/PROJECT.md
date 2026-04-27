@@ -130,6 +130,14 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - ✓ `DisbursementStatus` enum (INITIATED → PENDING_CONFIRMATION → PROCESSING → SUCCESS | FAILED | EXPIRED); EXPIRED terminal state (BAL-03); 14 state machine unit tests — v10 (Phase 50)
 - ✓ `WalletBalanceService.checkAndReserve()` + `release()` with PESSIMISTIC_WRITE lock; guard-before-mutate; 20-thread concurrency IT proves no overdraft (1 success, 19 InsufficientBalanceException, final balance = 0) — v10 (Phase 50)
 
+#### Phase 52 complete — Validated in Phase 52: SEC-05, SEC-06
+- ✓ V29 Flyway: `poll_attempts INTEGER NOT NULL DEFAULT 0` on `main.disbursement`; V30: `transaction_status VARCHAR(20)` on `main.webhook_delivery_log` with backfill — v10 (Phase 52)
+- ✓ `MtnDisbursementCallbackController` (PUT `/v1/callbacks/mtn/disbursement/{ref}`) + `OrangeDisbursementCallbackController` (POST `/v1/callbacks/orange/disbursement`); both IP-whitelisted, always return 200 OK, swallow exceptions; dedup on `callbacks:dsb:<providerRef>:<status>` Redis namespace — v10 (Phase 52): SEC-05
+- ✓ `DisbursementCallbackTransitionService.applyDisbursementTransition()` with `@Transactional(REQUIRES_NEW)` + `PESSIMISTIC_WRITE` lock; atomic wallet release on FAILED; idempotent replay guard (silent return on terminal → terminal attempt) — v10 (Phase 52): SEC-05
+- ✓ `OutboundWebhookPayload.of()` factory derives status from `TransactionStatus` enum (replaces `eventType.contains("SUCCESS")`); `DISBURSEMENT_COMPLETED`/`DISBURSEMENT_FAILED` map correctly — v10 (Phase 52): SEC-06
+- ✓ `WebhookDoubleCheckHandler` routes `LedgerFlow.DISBURSEMENT` events to `DisbursementCallbackTransitionService`; `COLLECTION` branch unchanged — v10 (Phase 52)
+- ✓ 12 integration tests: `MtnDisbursementCallbackControllerIT` + `OrangeDisbursementCallbackControllerIT` (SEC-05 E2E, replay dedup), `DisbursementWebhookDeliveryIT` (SEC-06 HMAC delivery + retry scheduling) — v10 (Phase 52)
+
 #### Phase 51 complete — Validated in Phase 51: DISB-01, DISB-02, DISB-03, DISB-04, PROV-01, PROV-02, PROV-03, SEC-01, SEC-02, SEC-03, SEC-04
 - ✓ `DisbursementIdempotencyService` using `idempotency:dsb:<tenantId>:<key>` Redis namespace; Postgres-first ordering; shares `IdempotencyKeyRepository` with collection path — v10 (Phase 51): SEC-01
 - ✓ `DisbursementVelocityService`: Bucket4j-on-Redis, 3 gates (20/min per tenant, 200/hr per tenant, 10/day per MSISDN); `VelocityExceededException` + `DailyLimitExceededException` — v10 (Phase 51): SEC-02
@@ -242,4 +250,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-25 — Phase 50 complete (BAL-01, BAL-02, BAL-03 verified)*
+*Last updated: 2026-04-27 — Phase 52 complete (SEC-05, SEC-06 verified)*
