@@ -527,5 +527,5 @@ Plans:
 | 49. Orange Cashout Wiring | v9 | 2/2 | Complete | 2026-04-23 |
 | 50. Schema & Balance Infrastructure | v10 | 1/2 | Complete    | 2026-04-25 |
 | 51. Orchestrator & Public API | v10 | 2/4 | Complete    | 2026-04-25 |
-| 52. Callbacks & Outbound Webhooks | v10 | 4/4 | Complete   | 2026-04-27 |
+| 52. Callbacks & Outbound Webhooks | v10 | 4/4 | Complete    | 2026-04-27 |
 | 53. E2E Test Suite | v10 | 0/TBD | Not started | - |
