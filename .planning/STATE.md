@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 52-01-PLAN.md
-last_updated: "2026-04-25T21:25:00Z"
+stopped_at: Completed 52-02-PLAN.md
+last_updated: "2026-04-25T23:00:00Z"
 last_activity: 2026-04-25
 progress:
   total_phases: 24
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-04-24 — v10 roadmap created)
 ## Current Position
 
 Phase: 52
-Plan: 01 complete — resume at Plan 02
-Status: Executing Phase 52 — plan 01 complete
+Plan: 02 complete — resume at Plan 03
+Status: Executing Phase 52 — plan 02 complete
 Last activity: 2026-04-25
 
 Progress: [░░░░░░░░░░] 0% (0/4 phases complete)
@@ -45,6 +45,14 @@ Progress: [░░░░░░░░░░] 0% (0/4 phases complete)
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
+
+**52-02 decisions:**
+
+- `DisbursementCallbackTransitionService` is a separate bean (not inner handler logic): `@Transactional` self-invocation in `WebhookDoubleCheckHandler` bypasses Spring AOP proxy — same pattern as `WebhookTransitionService` for collection flow
+- Wallet release inside `REQUIRES_NEW` (atomic with state transition): prevents half-committed state where row is FAILED but balance still held
+- Conservative `resolveTarget` default (non-SUCCESS → FAILED): handler already returns early on `result.pending()`, so reaching `resolveTarget` with PROCESSING is defensive only
+- `OrangeMoneyPort` gains `StringRedisTemplate` (was absent before this plan): safe addition — Spring autowires by type, no bean ambiguity
+- `disbursementId` doubles as `traceId` in `WebhookReceivedEvent` for callback paths: no separate traceId propagated through to callbacks
 
 **52-01 decisions:**
 
@@ -87,6 +95,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-25T21:25:00Z
-Stopped at: Completed 52-01-PLAN.md
-Resume: Execute 52-02-PLAN.md (callbacks + outbound trigger)
+Last session: 2026-04-25T23:00:00Z
+Stopped at: Completed 52-02-PLAN.md
+Resume: Execute 52-03-PLAN.md (callback controllers)
