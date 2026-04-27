@@ -4,6 +4,7 @@ import com.softropic.payam.common.payment.MobileMoneyPort;
 import com.softropic.payam.common.payment.PaymentCommand;
 import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.common.payment.SubscriberStatus;
+import com.softropic.payam.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.orange.config.OrangeMoneyConfig;
 import com.softropic.payam.orange.contract.OrangeWebhookPayload;
 import com.softropic.payam.orange.contract.dto.CashoutRequest;
@@ -25,6 +26,7 @@ import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,6 +56,8 @@ public class OrangeMoneyPort implements MobileMoneyPort {
     private final TransactionTemplate transactionTemplate;
     private final PlatformConfigService platformConfigService;
     private final LedgerService ledgerService;
+    private final StringRedisTemplate redis;
+    private final DisbursementRepository disbursementRepository;
 
     public OrangeMoneyPort(OrangeMoneyClient orangeMoneyClient,
                            OrangeTokenService orangeTokenService,
@@ -63,7 +67,9 @@ public class OrangeMoneyPort implements MobileMoneyPort {
                            ApplicationEventPublisher eventPublisher,
                            TransactionTemplate transactionTemplate,
                            PlatformConfigService platformConfigService,
-                           LedgerService ledgerService) {
+                           LedgerService ledgerService,
+                           StringRedisTemplate redis,
+                           DisbursementRepository disbursementRepository) {
         this.orangeMoneyClient = orangeMoneyClient;
         this.orangeTokenService = orangeTokenService;
         this.transactionRepository = transactionRepository;
@@ -73,6 +79,8 @@ public class OrangeMoneyPort implements MobileMoneyPort {
         this.transactionTemplate = transactionTemplate;
         this.platformConfigService = platformConfigService;
         this.ledgerService = ledgerService;
+        this.redis = redis;
+        this.disbursementRepository = disbursementRepository;
     }
 
     /**
@@ -264,6 +272,78 @@ public class OrangeMoneyPort implements MobileMoneyPort {
             kv("status", "TRANSACTION_NOT_FOUND")));
 
         return payload.getPayToken();
+    }
+
+    /**
+     * Orange disbursement callback handler — Phase 52 (SEC-05).
+     * Called by OrangeDisbursementCallbackController. Performs Redis replay dedup on the
+     * "callbacks:dsb:" namespace (segregated from collection "webhook:orange:" namespace),
+     * looks up the Disbursement by providerRef (Orange payToken), and publishes
+     * WebhookReceivedEvent with flow=DISBURSEMENT.
+     *
+     * <p>Correlation strategy (Open Question 3 in 52-RESEARCH): try findByProviderRef(payToken)
+     * first; if not found, try findByReference(txnid) — covers both possible Orange disbursement
+     * callback shapes until sandbox confirms which field carries the merchant correlation.
+     */
+    public String processDisbursementCallback(OrangeWebhookPayload payload, String notifToken) {
+        String payToken = payload.getPayToken() != null ? payload.getPayToken() : "";
+        String status = payload.getStatus() != null ? payload.getStatus() : "UNKNOWN";
+
+        // Dedup namespace: callbacks:dsb:<payToken>:<status>
+        String dedupKey = "callbacks:dsb:" + payToken + ":" + status;
+        Boolean wasAbsent = redis.opsForValue().setIfAbsent(dedupKey, "SEEN", Duration.ofHours(24));
+        if (Boolean.FALSE.equals(wasAbsent)) {
+            log.info("Orange disbursement callback duplicate suppressed",
+                kv("operation", "webhook_received"),
+                kv("provider", "ORANGE"),
+                kv("flow", "DISBURSEMENT"),
+                kv("payToken", payToken),
+                kv("status", "DUPLICATE"));
+            return payToken;
+        }
+
+        // Validate notifToken correlation
+        if (notifToken != null && !notifToken.equals(payload.getNotifToken())) {
+            log.warn("Orange disbursement notifToken mismatch",
+                kv("operation", "webhook_received"),
+                kv("provider", "ORANGE"),
+                kv("flow", "DISBURSEMENT"),
+                kv("mismatch", true));
+        }
+
+        log.info("Disbursement webhook received",
+            kv("operation", "webhook_received"),
+            kv("provider", "ORANGE"),
+            kv("flow", "DISBURSEMENT"),
+            kv("payToken", payToken),
+            kv("providerStatus", status));
+
+        // Look up Disbursement by providerRef (Orange payToken) first; fall back to merchant reference
+        java.util.Optional<com.softropic.payam.disbursement.repo.Disbursement> dsbOpt =
+            disbursementRepository.findByProviderRef(payToken);
+        if (dsbOpt.isEmpty() && payload.getTxnid() != null) {
+            dsbOpt = disbursementRepository.findByReference(payload.getTxnid());
+        }
+        dsbOpt.ifPresentOrElse(dsb -> {
+            String dsbId = dsb.getDisbursementId();
+            transactionTemplate.execute(s -> {
+                eventPublisher.publishEvent(new WebhookReceivedEvent(
+                    dsbId,
+                    com.softropic.payam.common.payment.MobilePaymentProvider.ORANGE,
+                    payToken,
+                    dsbId,    // traceId — disbursementId doubles as traceId for callbacks
+                    com.softropic.payam.transaction.contract.LedgerFlow.DISBURSEMENT
+                ));
+                return null;
+            });
+        }, () -> log.warn("Orange disbursement callback: no disbursement found",
+            kv("operation", "webhook_received"),
+            kv("provider", "ORANGE"),
+            kv("flow", "DISBURSEMENT"),
+            kv("payToken", payToken),
+            kv("status", "DISBURSEMENT_NOT_FOUND")));
+
+        return payToken;
     }
 
     /**

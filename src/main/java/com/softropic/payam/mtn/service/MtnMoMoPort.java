@@ -5,6 +5,7 @@ import com.softropic.payam.common.payment.PaymentCommand;
 import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.common.payment.SubscriberStatus;
 import com.softropic.payam.mtn.config.MtnMoMoConfig;
+import com.softropic.payam.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.mtn.contract.MtnCallbackPayload;
 import com.softropic.payam.mtn.contract.dto.DisbursementRequest;
 import com.softropic.payam.mtn.contract.dto.RequestToPayRequest;
@@ -54,6 +55,7 @@ public class MtnMoMoPort implements MobileMoneyPort {
     private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate transactionTemplate;
     private final LedgerService ledgerService;
+    private final DisbursementRepository disbursementRepository;
 
     public MtnMoMoPort(MtnMoMoClient mtnMoMoClient,
                        MtnTokenService mtnTokenService,
@@ -63,7 +65,8 @@ public class MtnMoMoPort implements MobileMoneyPort {
                        StringRedisTemplate redis,
                        ApplicationEventPublisher eventPublisher,
                        TransactionTemplate transactionTemplate,
-                       LedgerService ledgerService) {
+                       LedgerService ledgerService,
+                       DisbursementRepository disbursementRepository) {
         this.mtnMoMoClient = mtnMoMoClient;
         this.mtnTokenService = mtnTokenService;
         this.transactionRepository = transactionRepository;
@@ -73,6 +76,7 @@ public class MtnMoMoPort implements MobileMoneyPort {
         this.eventPublisher = eventPublisher;
         this.transactionTemplate = transactionTemplate;
         this.ledgerService = ledgerService;
+        this.disbursementRepository = disbursementRepository;
     }
 
     /**
@@ -284,6 +288,68 @@ public class MtnMoMoPort implements MobileMoneyPort {
                 return null;
             });
         });
+    }
+
+    /**
+     * MTN disbursement callback handler — Phase 52 (SEC-05).
+     * Called by MtnDisbursementCallbackController. Performs Redis replay dedup on the
+     * "callbacks:dsb:" namespace (segregated from collection "webhook:mtn:" namespace),
+     * looks up the Disbursement by providerRef (the {ref} path variable from MTN PUT),
+     * and publishes WebhookReceivedEvent with flow=DISBURSEMENT so WebhookDoubleCheckHandler
+     * routes the double-check to DisbursementCallbackTransitionService.
+     *
+     * <p>Correlation: providerRef is the merchant-generated UUID stored in Disbursement.providerRef
+     * (set during MtnMoMoPort.initiateDisbursement step 3). The callback payload's externalId
+     * field equals the disbursementId (used by upstream callers for additional cross-checks).
+     *
+     * @param payload     MTN callback body
+     * @param providerRef the {ref} path variable — equals Disbursement.providerRef
+     */
+    public void processDisbursementCallback(MtnCallbackPayload payload, String providerRef) {
+        // Dedup namespace: callbacks:dsb:<providerRef>:<status> — distinct from
+        // collection namespace webhook:mtn:<externalId>:<status> (Pitfall 4 in 52-RESEARCH)
+        String status = payload.getStatus() != null ? payload.getStatus() : "UNKNOWN";
+        String dedupKey = "callbacks:dsb:" + providerRef + ":" + status;
+        Boolean wasAbsent = redis.opsForValue().setIfAbsent(dedupKey, "SEEN", Duration.ofHours(24));
+        if (Boolean.FALSE.equals(wasAbsent)) {
+            log.info("MTN disbursement callback duplicate suppressed",
+                kv("operation", "webhook_received"),
+                kv("provider", "MTN"),
+                kv("flow", "DISBURSEMENT"),
+                kv("providerRef", providerRef),
+                kv("status", "DUPLICATE"));
+            return;
+        }
+
+        log.info("Disbursement webhook received",
+            kv("operation", "webhook_received"),
+            kv("provider", "MTN"),
+            kv("flow", "DISBURSEMENT"),
+            kv("providerRef", providerRef),
+            kv("externalId", payload.getExternalId()),
+            kv("providerStatus", payload.getStatus()));
+
+        // Look up Disbursement by providerRef (NOT externalId — for disbursements the path
+        // variable is the source of truth, payload.externalId is the disbursementId echo).
+        disbursementRepository.findByProviderRef(providerRef).ifPresentOrElse(dsb -> {
+            String dsbId = dsb.getDisbursementId();
+            // Publish inside transactionTemplate boundary so @TransactionalEventListener(AFTER_COMMIT) fires
+            transactionTemplate.execute(s -> {
+                eventPublisher.publishEvent(new WebhookReceivedEvent(
+                    dsbId,
+                    com.softropic.payam.common.payment.MobilePaymentProvider.MTN,
+                    providerRef,
+                    dsbId,    // traceId — disbursementId doubles as traceId for callbacks
+                    com.softropic.payam.transaction.contract.LedgerFlow.DISBURSEMENT
+                ));
+                return null;
+            });
+        }, () -> log.warn("MTN disbursement callback: no disbursement found",
+            kv("operation", "webhook_received"),
+            kv("provider", "MTN"),
+            kv("flow", "DISBURSEMENT"),
+            kv("providerRef", providerRef),
+            kv("status", "DISBURSEMENT_NOT_FOUND")));
     }
 
     // ---- private helpers ----
