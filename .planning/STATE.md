@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 52-03-PLAN.md
-last_updated: "2026-04-27T07:55:00Z"
+stopped_at: Completed 52-04-PLAN.md
+last_updated: "2026-04-27T10:58:50.588Z"
 last_activity: 2026-04-27
 progress:
   total_phases: 24
   completed_phases: 13
-  total_plans: 34
-  completed_plans: 34
+  total_plans: 36
+  completed_plans: 38
   percent: 0
 ---
 
@@ -88,6 +88,9 @@ Key context carried forward for v10:
 - [Phase 51]: DisbursementIdempotencyService shares IdempotencyKeyRepository with IdempotencyService; no schema split needed — Redis namespace isolation (idempotency:dsb: vs idempotency:) prevents key collisions
 - [Phase 51-04]: findForTenant uses native SQL (not JPQL) to avoid PostgreSQL null enum type inference errors
 - [Phase 51-04]: findExpiredCandidates uses NOW() - INTERVAL DB-side to avoid Hibernate 6 Instant->TIMESTAMPTZ vs TIMESTAMP column skew
+- [Phase 52-04]: Standalone IT pattern (no AbstractPayamE2ETest): each IT configures own WireMock topology including mtn-disbursement server
+- [Phase 52-04]: JDBC seeding over JPA save in callback ITs: silent JPA failures in transactional test contexts; direct jdbcTemplate.update() is deterministic
+- [Phase 52-04]: walletRepo.findByTenantId() not findById(): BaseEntity id is TSID-generated Long, not the tenantId business key
 
 ### Pending Todos
 
@@ -100,6 +103,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-27T07:55:00Z
-Stopped at: Completed 52-03-PLAN.md
+Last session: 2026-04-27T10:58:50.580Z
+Stopped at: Completed 52-04-PLAN.md
 Resume: Execute 52-04-PLAN.md (outbound webhook delivery)

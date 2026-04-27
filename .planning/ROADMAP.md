@@ -125,7 +125,7 @@
 
 - [x] **Phase 50: Schema & Balance Infrastructure** — Flyway V26, Disbursement entity, WalletBalance entity with pessimistic locking, DisbursementStatus enum (completed 2026-04-25)
 - [x] **Phase 51: Orchestrator & Public API** — DisbursementOrchestrator, DisbursementResource (POST+GET+LIST), step-up confirmation flow, MTN and Orange provider port wiring (completed 2026-04-25)
-- [ ] **Phase 52: Callbacks & Outbound Webhooks** — MTN and Orange disbursement callback controllers, DisbursementCompletedEvent, outbound webhook delivery
+- [x] **Phase 52: Callbacks & Outbound Webhooks** — MTN and Orange disbursement callback controllers, DisbursementCompletedEvent, outbound webhook delivery (completed 2026-04-27)
 - [ ] **Phase 53: E2E Test Suite** — Both provider happy paths, balance gate + concurrency race, fraud block, idempotency race, step-up confirmation, callback replay
 
 ## Phase Details
@@ -527,5 +527,5 @@ Plans:
 | 49. Orange Cashout Wiring | v9 | 2/2 | Complete | 2026-04-23 |
 | 50. Schema & Balance Infrastructure | v10 | 1/2 | Complete    | 2026-04-25 |
 | 51. Orchestrator & Public API | v10 | 2/4 | Complete    | 2026-04-25 |
-| 52. Callbacks & Outbound Webhooks | v10 | 3/4 | In Progress|  |
+| 52. Callbacks & Outbound Webhooks | v10 | 4/4 | Complete   | 2026-04-27 |
 | 53. E2E Test Suite | v10 | 0/TBD | Not started | - |
