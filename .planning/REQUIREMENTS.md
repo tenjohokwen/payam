@@ -39,10 +39,10 @@
 
 ### TEST — E2E Test Coverage
 
-- [ ] **TEST-01**: E2E test suite covers MTN disbursement: happy path (initiate → PROCESSING → callback SUCCESS → SUCCESS), callback FAILED → FAILED with balance release, idempotency race (20 concurrent requests → exactly 1 disbursement row), fraud block (no provider call), and MTN callback replay (second identical callback ignored)
-- [ ] **TEST-02**: E2E test suite covers Orange disbursement: happy path (initiate → PROCESSING → callback → SUCCESS), insufficient balance (422, no provider call), and Orange callback replay protection
-- [ ] **TEST-03**: E2E test covers step-up confirmation flow: large disbursement returns `PENDING_CONFIRMATION`, confirm endpoint triggers provider call, unconfirmed disbursement expires after 15 minutes
-- [ ] **TEST-04**: Concurrency test: 20 simultaneous disbursements against the same MERCHANT_WALLET with balance covering only 1 — exactly 1 succeeds (PROCESSING), 19 return `422 INSUFFICIENT_BALANCE`; no overdraft
+- [x] **TEST-01**: E2E test suite covers MTN disbursement: happy path (initiate → PROCESSING → callback SUCCESS → SUCCESS), callback FAILED → FAILED with balance release, idempotency race (20 concurrent requests → exactly 1 disbursement row), fraud block (no provider call), and MTN callback replay (second identical callback ignored)
+- [x] **TEST-02**: E2E test suite covers Orange disbursement: happy path (initiate → PROCESSING → callback → SUCCESS), insufficient balance (422, no provider call), and Orange callback replay protection
+- [x] **TEST-03**: E2E test covers step-up confirmation flow: large disbursement returns `PENDING_CONFIRMATION`, confirm endpoint triggers provider call, unconfirmed disbursement expires after 15 minutes
+- [x] **TEST-04**: Concurrency test: 20 simultaneous disbursements against the same MERCHANT_WALLET with balance covering only 1 — exactly 1 succeeds (PROCESSING), 19 return `422 INSUFFICIENT_BALANCE`; no overdraft
 
 ---
 

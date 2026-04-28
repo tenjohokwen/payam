@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
-status: executing
-stopped_at: Completed 52-04-PLAN.md
-last_updated: "2026-04-27T12:04:11.569Z"
-last_activity: 2026-04-27
+status: verifying
+stopped_at: Completed 53-e2e-test-suite all 6 plans
+last_updated: "2026-04-28T05:43:28.615Z"
+last_activity: 2026-04-28
 progress:
   total_phases: 24
-  completed_phases: 14
-  total_plans: 38
-  completed_plans: 38
+  completed_phases: 15
+  total_plans: 44
+  completed_plans: 44
   percent: 0
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-24 — v10 roadmap created)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 51 — orchestrator-public-api
+**Current focus:** Phase 53 — e2e-test-suite
 
 ## Current Position
 
-Phase: 53
-Plan: Not started
-Status: Executing Phase 52 — plan 03 complete
-Last activity: 2026-04-27
+Phase: 53 (e2e-test-suite) — EXECUTING
+Plan: 6 of 6
+Status: Phase complete — ready for verification
+Last activity: 2026-04-28
 
 Progress: [░░░░░░░░░░] 0% (0/4 phases complete)
 
@@ -91,6 +91,10 @@ Key context carried forward for v10:
 - [Phase 52-04]: Standalone IT pattern (no AbstractPayamE2ETest): each IT configures own WireMock topology including mtn-disbursement server
 - [Phase 52-04]: JDBC seeding over JPA save in callback ITs: silent JPA failures in transactional test contexts; direct jdbcTemplate.update() is deterministic
 - [Phase 52-04]: walletRepo.findByTenantId() not findById(): BaseEntity id is TSID-generated Long, not the tenantId business key
+- [Phase 53-e2e-test-suite]: Ledger entries written at provider initiation time (not on callback outcome) — assertNoLedgerEntries for FAILED disbursements is incorrect by design
+- [Phase 53-e2e-test-suite]: OrangeMoneyPort.initiateDisbursement() production bug: was returning null providerRef; fixed to extract payToken from cashout response Map for callback correlation
+- [Phase 53-e2e-test-suite]: DisbursementVelocityService per-MSISDN daily bucket (capacity=10): concurrency race test must use unique MSISDN per thread to avoid DAILY_LIMIT_EXCEEDED contaminating INSUFFICIENT_BALANCE count
+- [Phase 53-e2e-test-suite]: DisbursementExpiryJob.executeInternal() cross-package test requires reflection (setAccessible=true) — do NOT make it public for test convenience
 
 ### Pending Todos
 
@@ -103,6 +107,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-27T10:58:50.580Z
-Stopped at: Completed 52-04-PLAN.md
+Last session: 2026-04-28T05:43:28.604Z
+Stopped at: Completed 53-e2e-test-suite all 6 plans
 Resume: Execute 52-04-PLAN.md (outbound webhook delivery)
