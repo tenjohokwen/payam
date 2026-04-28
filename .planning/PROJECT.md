@@ -123,12 +123,20 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - [ ] DISB-04: System gates disbursement on pre-funded `MERCHANT_WALLET` balance
 - [ ] DISB-05: System applies disbursement-specific fraud scoring and velocity rules
 - [ ] DISB-06: System delivers `disbursement.completed` / `disbursement.failed` outbound webhook
-- [ ] DISB-07: E2E test suite covers disbursement flows for both providers
+- [x] DISB-07: E2E test suite covers disbursement flows for both providers — Validated in Phase 53: TEST-01, TEST-02, TEST-03, TEST-04
 
 #### Phase 50 complete — Validated in Phase 50: BAL-01, BAL-02, BAL-03
 - ✓ Flyway V28: `main.disbursement`, `main.disbursement_aud`, `main.merchant_wallet_balance`, `main.merchant_wallet_balance_aud` with named constraints — v10 (Phase 50)
 - ✓ `DisbursementStatus` enum (INITIATED → PENDING_CONFIRMATION → PROCESSING → SUCCESS | FAILED | EXPIRED); EXPIRED terminal state (BAL-03); 14 state machine unit tests — v10 (Phase 50)
 - ✓ `WalletBalanceService.checkAndReserve()` + `release()` with PESSIMISTIC_WRITE lock; guard-before-mutate; 20-thread concurrency IT proves no overdraft (1 success, 19 InsufficientBalanceException, final balance = 0) — v10 (Phase 50)
+
+#### Phase 53 complete — Validated in Phase 53: TEST-01, TEST-02, TEST-03, TEST-04
+- ✓ `MtnDisbursementE2EIT`: full MTN disbursement HTTP lifecycle E2E — initiate→PROCESSING→callback SUCCESS+ledger / FAILED+wallet release / replay dedup — v10 (Phase 53): TEST-01
+- ✓ `OrangeDisbursementE2EIT`: full Orange disbursement HTTP lifecycle E2E — initiate→SUCCESSFULL/insufficient balance(422)/replay dedup; `OrangeMoneyPort.initiateDisbursement()` payToken extraction bug fixed — v10 (Phase 53): TEST-02
+- ✓ `StepUpConfirmationE2EIT`: step-up gate (>500K XAF→PENDING_CONFIRMATION, zero provider calls), confirm dispatch (→PROCESSING, 1 MTN transfer), INVALID_STATE rejection — v10 (Phase 53): TEST-03
+- ✓ `DisbursementExpiryE2EIT`: HTTP-initiated step-up → direct `DisbursementExpiryJob.executeInternal()` → EXPIRED; BAL-03 invariant (wallet held); GET shows EXPIRED — v10 (Phase 53): TEST-03
+- ✓ `DisbursementConcurrencyRaceIT`: 20-thread CyclicBarrier HTTP race, single-spend wallet; exactly 1 PROCESSING + 19 INSUFFICIENT_BALANCE; BAL-01 invariant proven — v10 (Phase 53): TEST-04
+- ✓ `DisbursementFraudBlockE2EIT`: Redis blocklist+new-recipient (score 95>80)→FRAUD_BLOCK (zero rows, zero provider calls); idempotency race (20 threads, same key→exactly 1 row) — v10 (Phase 53): TEST-01, TEST-04
 
 #### Phase 52 complete — Validated in Phase 52: SEC-05, SEC-06
 - ✓ V29 Flyway: `poll_attempts INTEGER NOT NULL DEFAULT 0` on `main.disbursement`; V30: `transaction_status VARCHAR(20)` on `main.webhook_delivery_log` with backfill — v10 (Phase 52)
@@ -250,4 +258,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-27 — Phase 52 complete (SEC-05, SEC-06 verified)*
+*Last updated: 2026-04-28 — Phase 53 complete (TEST-01, TEST-02, TEST-03, TEST-04 verified; DISB-07 closed; OrangeMoneyPort payToken production fix)*
