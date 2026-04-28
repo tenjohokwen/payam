@@ -201,6 +201,17 @@ public class OrangeMoneyPort implements MobileMoneyPort {
         ResponseEntity<Map> response = orangeMoneyClient.disburse(token, request);
 
         if (response.getStatusCode().is2xxSuccessful()) {
+            // Extract payToken from the cashout response body if present.
+            // This is the correlation ID that Orange includes in disbursement callbacks
+            // (OrangeWebhookPayload.payToken). Storing it as providerRef enables
+            // processDisbursementCallback's findByProviderRef(payToken) lookup.
+            String payToken = null;
+            if (response.getBody() != null) {
+                Object pt = response.getBody().get("payToken");
+                if (pt != null) {
+                    payToken = pt.toString();
+                }
+            }
             BigDecimal fee = cmd.feeAmount() != null ? cmd.feeAmount() : BigDecimal.ZERO;
             transactionTemplate.execute(status -> {
                 ledgerService.postEntry(
@@ -210,7 +221,7 @@ public class OrangeMoneyPort implements MobileMoneyPort {
                 );
                 return null;
             });
-            return ProviderResult.success(null, "DISBURSEMENT_SUCCESS");
+            return ProviderResult.success(payToken, "DISBURSEMENT_SUCCESS");
         }
         return ProviderResult.pending(null, "DISBURSEMENT_PENDING");
     }
