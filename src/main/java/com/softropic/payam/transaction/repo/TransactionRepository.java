@@ -21,6 +21,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     Optional<Transaction> findByTransactionId(String transactionId);
 
     /**
+     * Tenant-scoped lookup by external (merchant-supplied) reference.
+     */
+    Optional<Transaction> findByTenantIdAndExternalReference(Long tenantId, String externalReference);
+
+    /**
      * Find transaction by Orange payToken — used by webhook handler (Pitfall 3).
      * payToken is stored in transaction.pay_token after OrangeMoneyPort.persistPayToken().
      */

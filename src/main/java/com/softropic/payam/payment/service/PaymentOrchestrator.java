@@ -353,6 +353,36 @@ public class PaymentOrchestrator {
         return msisdn.substring(msisdn.length() - 4);
     }
 
+    /**
+     * Lookup payment status by internal transaction ID.
+     */
+    public Optional<PaymentResponse> getStatus(Long tenantId, String transactionId) {
+        return transactionRepository.findByTransactionId(transactionId)
+                .filter(tx -> tx.getTenantId().equals(tenantId))
+                .map(this::mapToResponse);
+    }
+
+    /**
+     * Lookup payment status by merchant-supplied external reference.
+     */
+    public Optional<PaymentResponse> getStatusByReference(Long tenantId, String externalReference) {
+        return transactionRepository.findByTenantIdAndExternalReference(tenantId, externalReference)
+                .map(this::mapToResponse);
+    }
+
+    private PaymentResponse mapToResponse(Transaction tx) {
+        String providerRef = tx.getProvider() == MobilePaymentProvider.ORANGE ? tx.getPayToken() : tx.getProviderRef();
+        return new PaymentResponse(
+                tx.getTransactionId(),
+                tx.getTxStatus().name(),
+                providerRef,
+                null,
+                null,
+                tx.getFeeAmount() != null ? tx.getFeeAmount() : BigDecimal.ZERO,
+                tx.getFeeRuleId()
+        );
+    }
+
     private MobileMoneyPort resolvePort(MobilePaymentProvider provider) {
         return switch (provider) {
             case ORANGE -> orangePort;

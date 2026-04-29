@@ -118,7 +118,7 @@ public class MtnMoMoPort implements MobileMoneyPort {
         request.setExternalId(cmd.transactionId());
         request.setPayer(new RequestToPayRequest.Party("MSISDN", stripPlus(cmd.msisdn())));
         request.setPayerMessage("Payment via Payam");
-        request.setPayeeNote(cmd.externalReference() != null ? cmd.externalReference() : cmd.transactionId());
+        request.setPayeeNote(cmd.transactionId());
 
         // Step 5: Call requestToPay — returns void on 202
         mtnMoMoClient.requestToPay(referenceId, request, token);
@@ -161,7 +161,7 @@ public class MtnMoMoPort implements MobileMoneyPort {
         request.setExternalId(cmd.transactionId());
         request.setPayee(new DisbursementRequest.Party("MSISDN", stripPlus(cmd.msisdn())));
         request.setPayerMessage("Disbursement via Payam");
-        request.setPayeeNote(cmd.externalReference() != null ? cmd.externalReference() : cmd.transactionId());
+        request.setPayeeNote(cmd.transactionId());
 
         // Step 5: Call disburse — returns void on 202
         mtnMoMoClient.disburse(referenceId, request, token);

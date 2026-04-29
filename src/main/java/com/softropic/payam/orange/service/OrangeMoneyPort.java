@@ -195,7 +195,7 @@ public class OrangeMoneyPort implements MobileMoneyPort {
         request.setMerchantKey(merchantKey);
         request.setAmount(cmd.amount().toPlainString());
         request.setCurrency(cmd.currency());
-        request.setReference(cmd.externalReference() != null ? cmd.externalReference() : cmd.transactionId());
+        request.setReference(cmd.transactionId());
         request.setMsisdn(nationalMsisdn);
 
         ResponseEntity<Map> response = orangeMoneyClient.disburse(token, request);
@@ -413,7 +413,7 @@ public class OrangeMoneyPort implements MobileMoneyPort {
 
     private PayRequest buildPayRequest(PaymentCommand cmd, String payToken, String nationalMsisdn, String pin) {
         String channelMsisdn = platformConfigService.findByProvider("ORANGE").platformMsisdn();
-        String orderId = cmd.externalReference() != null ? cmd.externalReference() : cmd.transactionId();
+        String orderId = cmd.transactionId();
         String desc = cmd.description() != null ? cmd.description() : "Payment";
         return PayRequest.of(payToken, nationalMsisdn, channelMsisdn,
                 cmd.amount().toPlainString(), orderId, desc, config.getCallbackUrl(), pin);
