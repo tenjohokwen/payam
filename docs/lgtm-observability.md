@@ -5,6 +5,22 @@
 
 ---
 
+## 0. Quick Start
+
+To spin up the observability stack locally, ensure Docker is running and execute:
+
+```bash
+# From the project root
+docker-compose -f docker-compose-lgtm.yaml up -d
+```
+
+- **Grafana:** [http://localhost:3000](http://localhost:3000) (Default datasource: Prometheus)
+- **Prometheus:** [http://localhost:9090](http://localhost:9090)
+- **Loki:** [http://localhost:3100](http://localhost:3100)
+- **Tempo:** [http://localhost:3200](http://localhost:3200)
+
+---
+
 ## 1. Why Observability Matters Here
 
 Payam orchestrates real-money payments across two live provider APIs (Orange Money and MTN MoMo) on behalf of multiple merchant tenants. A payment is not a simple request/response — it spans multiple async hops: the initial provider dispatch, an inbound callback (or status poll), a webhook delivery to the merchant, and a daily reconciliation. Failures at any hop can result in funds collected but not acknowledged, phantom charges, or missed fraud signals.
@@ -22,7 +38,7 @@ The four LGTM pillars serve distinct incident-response needs:
 
 ## 2. Log Queries (LogQL — Loki)
 
-All logs are emitted in structured JSON via `logstash-logback-encoder` (both the console and the Loki appender use `LoggingEventCompositeJsonEncoder`). Every log line sent to Loki includes the **stream labels** `service`, `environment`, `version`, `host`, and `level` (these are indexed and low-cardinality). Business context fields (`traceId`, `transactionId`, `externalReference`, `tenantId`, `provider`, `errorCode`, etc.) are **log body fields** emitted via MDC/key-values — they are not stream labels and must be extracted with `| json` before filtering or aggregating on them.
+All logs are emitted in structured JSON (the console uses `logstash-logback-encoder` while the Loki appender uses the native `Loki4j.JsonLayout`). Both formats ensure that every log line sent to Loki includes the **stream labels** `service`, `environment`, `version`, `host`, and `level` (these are indexed and low-cardinality). Business context fields (`traceId`, `transactionId`, `externalReference`, `tenantId`, `provider`, `errorCode`, etc.) are **log body fields** emitted via MDC/key-values — they are not stream labels and must be extracted with `| json` before filtering or aggregating on them.
 
 ### 2.1 Payment Flow Errors
 

@@ -201,6 +201,10 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        payment.provider.latency: true
+        http.server.requests: true
   observations:
     key-values:
       application: ${spring.application.name}

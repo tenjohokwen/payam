@@ -1,0 +1,99 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: payam-loki-alerts
+    folder: "Payam Alerts"
+    interval: 1m
+    rules:
+      - uid: webhook_permanent_failure
+        title: WebhookPermanentFailure
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: Loki
+            model:
+              expr: 'count_over_time({service="payam", level="error"} |= "FAILED_PERMANENT" [5m])'
+              queryType: range
+              refId: A
+        for: 1m
+        annotations:
+          summary: "Webhook permanently failed — merchant will not receive status update"
+        labels:
+          severity: high
+
+      - uid: reconciliation_discrepancy
+        title: ReconciliationDiscrepancy
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange: { from: 3600, to: 0 }
+            datasourceUid: Loki
+            model:
+              expr: 'count_over_time({service="payam", level="error"} |= "severity=\"HIGH\"" [1h])'
+              queryType: range
+              refId: A
+        for: 1m
+        annotations:
+          summary: "Reconciliation found HIGH-severity discrepancies — review ReconciliationReport"
+        labels:
+          severity: warning
+
+  - orgId: 1
+    name: payam-prometheus-alerts
+    folder: "Payam Alerts"
+    interval: 1m
+    rules:
+      - uid: payment_failure_rate_high
+        title: PaymentFailureRateHigh
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: Prometheus
+            model:
+              expr: '(rate(payment_failed_total[5m]) / (rate(payment_success_total[5m]) + rate(payment_failed_total[5m]))) > 0.05'
+              queryType: range
+              refId: A
+        for: 2m
+        annotations:
+          summary: "Payment failure rate exceeds 5%"
+          runbook: "Check OrchestratorError breakdown in Loki. Verify provider health."
+        labels:
+          severity: critical
+
+      - uid: orange_circuit_breaker_open
+        title: OrangeCircuitBreakerOpen
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: Prometheus
+            model:
+              expr: 'resilience4j_circuitbreaker_state{name="orange", state="open"} == 1'
+              queryType: range
+              refId: A
+        for: 30s
+        annotations:
+          summary: "Orange Money circuit breaker is OPEN"
+          runbook: "Run incident runbook: Provider Down. Check Orange API status page."
+        labels:
+          severity: critical
+
+      - uid: mtn_circuit_breaker_open
+        title: MtnCircuitBreakerOpen
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: Prometheus
+            model:
+              expr: 'resilience4j_circuitbreaker_state{name="mtn", state="open"} == 1'
+              queryType: range
+              refId: A
+        for: 30s
+        annotations:
+          summary: "MTN MoMo circuit breaker is OPEN"
+        labels:
+          severity: critical
