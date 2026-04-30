@@ -139,6 +139,11 @@ email:
 #log configuration
 # default location is directly in the classpath (root of resources folder)
 logging.config: classpath:config/logback-spring.xml
+logging:
+  level:
+    com.softropic.payam: INFO
+    io.github.resilience4j: WARN
+    org.quartz: WARN
 ##logback.access.config: classpath:config/logback-access-spring.xml ##using custom LoggingFilter for access logging because it logs payload
 loki:
   url: ${LOKI_URL:http://localhost:3100}
@@ -193,6 +198,9 @@ management:
   otlp:
     tracing:
       endpoint: "http://localhost:4318/v1/traces"
+  metrics:
+    tags:
+      application: ${spring.application.name}
   observations:
     key-values:
       application: ${spring.application.name}

@@ -22,7 +22,7 @@ The four LGTM pillars serve distinct incident-response needs:
 
 ## 2. Log Queries (LogQL — Loki)
 
-All logs are emitted in structured JSON via `logstash-logback-encoder`. Every log line includes the labels `service=payam`, `environment`, `level`, and MDC fields (`traceId`, `transactionId`, `externalReference`) embedded in the log body.
+All logs are emitted in structured JSON via `logstash-logback-encoder` (both the console and the Loki appender use `LoggingEventCompositeJsonEncoder`). Every log line sent to Loki includes the **stream labels** `service`, `environment`, `version`, `host`, and `level` (these are indexed and low-cardinality). Business context fields (`traceId`, `transactionId`, `externalReference`, `tenantId`, `provider`, `errorCode`, etc.) are **log body fields** emitted via MDC/key-values — they are not stream labels and must be extracted with `| json` before filtering or aggregating on them.
 
 ### 2.1 Payment Flow Errors
 
@@ -206,7 +206,7 @@ sum(rate({service="payam", level="error"} |= "initiate_payment" [1m]))
 **Callback receipt rate per minute by provider**
 ```logql
 sum by (provider) (
-  rate({service="payam"} |= "callback" [1m])
+  rate({service="payam"} |= "callback" | json [1m])
 )
 ```
 
@@ -319,9 +319,21 @@ histogram_quantile(0.95,
 
 ### 3.4 Circuit Breaker State
 
-**Circuit breaker state (0=CLOSED, 1=OPEN, 2=HALF_OPEN)**
+> **How Resilience4J exposes state:** One time series is emitted per state per circuit breaker, each with a `state` label (`closed`, `open`, `half_open`). The value is `1` when the circuit breaker is currently in that state, `0` otherwise. There is no single numeric encoding like 0/1/2.
+
+**All state series for both circuit breakers**
 ```promql
 resilience4j_circuitbreaker_state{name=~"orange|mtn"}
+```
+
+**Check whether Orange circuit is OPEN**
+```promql
+resilience4j_circuitbreaker_state{name="orange", state="open"} == 1
+```
+
+**Check whether MTN circuit is OPEN**
+```promql
+resilience4j_circuitbreaker_state{name="mtn", state="open"} == 1
 ```
 
 **Circuit breaker failure rate (sliding window)**
@@ -336,7 +348,7 @@ increase(resilience4j_circuitbreaker_calls_total{name=~"orange|mtn"}[5m])
 
 **Circuit breaker transitions to OPEN (alert candidate)**
 ```promql
-changes(resilience4j_circuitbreaker_state{name=~"orange|mtn"}[5m]) > 0
+changes(resilience4j_circuitbreaker_state{name=~"orange|mtn", state="open"}[5m]) > 0
 ```
 > Alert when the Orange or MTN circuit opens — indicates sustained provider failures.
 
@@ -373,6 +385,8 @@ rate(http_server_requests_seconds_count{uri="/v1/payments", status="503"}[5m])
 
 ### 3.6 JVM & Infrastructure
 
+> All metrics carry `application="payam"` because `management.metrics.tags.application` is set in `application.yaml`. If you copied this config without that property, drop the `application` label filter.
+
 **JVM heap used**
 ```promql
 jvm_memory_used_bytes{area="heap", application="payam"}
@@ -400,10 +414,11 @@ hikaricp_connections_active / hikaricp_connections_max
 ```
 > Alert when pool utilisation exceeds 0.80 sustained — indicates connection starvation under load.
 
-**Redis connection pool (Jedis/Lettuce active connections)**
+**Redis active connections (Lettuce connection pool)**
 ```promql
-lettuce_command_completion_seconds_count{application="payam"}
+lettuce_connections_active{application="payam"}
 ```
+> Requires `spring.data.redis.lettuce.pool.enabled=true` (enabled automatically when `commons-pool2` is on the classpath). `lettuce_connections_active / lettuce_connections_max` gives pool utilisation.
 
 **Quartz scheduler job execution time**
 ```promql
@@ -448,10 +463,7 @@ All spans are exported to Tempo via OpenTelemetry OTLP (port 4318). Span names f
 { .externalReference = "merchant-ref-here" }
 ```
 
-**By traceId directly** — paste the traceId from the `Transaction` table or from Loki log output into the Tempo search bar, or use:
-```traceql
-{ traceID = "your-trace-id-here" }
-```
+**By traceId directly** — paste the traceId from the `Transaction` table or from Loki log output into Grafana → Explore → Tempo datasource → **"TraceID"** search field. TraceQL cannot filter by trace ID; the Tempo UI search field is the correct tool for this lookup.
 
 ### 4.2 Slow Payment Traces
 
@@ -571,13 +583,21 @@ rate(payment_fraud_blocked_total[5m]) / rate(payment_success_total[5m])
 {service="payam", level="error"}
   | json
   | errorCode="SUBSCRIBER_INACTIVE"
-  | line_format "provider={{.provider}} tenant={{.tenantId}} count={{.__count__}}"
+  | line_format "provider={{.provider}} tenant={{.tenantId}}"
+```
+
+**Count by provider and tenant:**
+```logql
+sum by (provider, tenantId) (
+  count_over_time({service="payam", level="error"} | json | errorCode="SUBSCRIBER_INACTIVE" [5m])
+)
 ```
 
 **Step 5 — Is it a specific tenant flooding bad requests?**
 ```logql
-{service="payam", level="error"} | json | __error__=""
-  | sum by (tenantId) (count_over_time([5m]))
+sum by (tenantId) (
+  count_over_time({service="payam", level="error"} | json | __error__="" [5m])
+)
 ```
 
 ---
@@ -664,11 +684,19 @@ rate(payment_fraud_blocked_total[5m]) / rate(payment_success_total[5m])
 ```
 
 **Step 2 — Which fraud signals are firing most?**
+
+Display recent hits:
 ```logql
 {service="payam"} |= "velocity_limit_exceeded"
   | json
   | line_format "signal={{.fraudSignal}} count={{.observedCount}} window={{.windowSeconds}}s tenant={{.tenantId}}"
-  | sum by (fraudSignal) (count_over_time([10m]))
+```
+
+Count by signal type (use for bar chart):
+```logql
+sum by (fraudSignal) (
+  count_over_time({service="payam"} |= "velocity_limit_exceeded" | json [10m])
+)
 ```
 
 **Step 3 — Is a specific tenant the source?**
@@ -707,11 +735,19 @@ count_over_time(
 ```
 
 **Step 3 — Which merchant URLs are failing?**
+
+Display recent failures:
 ```logql
 {service="payam", level="error"} |= "webhook_delivery"
   | json
   | line_format "url={{.webhookUrl}} httpStatus={{.httpStatusCode}}"
-  | sum by (webhookUrl) (count_over_time([10m]))
+```
+
+Count by URL (use for bar chart):
+```logql
+sum by (webhookUrl) (
+  count_over_time({service="payam", level="error"} |= "webhook_delivery" | json [10m])
+)
 ```
 
 **Step 4 — Is it a single tenant's webhook endpoint being unreachable?**
@@ -768,7 +804,7 @@ count_over_time(
 | Failure Ratio (%) | `rate(payment_failed_total[5m]) / (rate(payment_success_total[5m]) + rate(payment_failed_total[5m])) * 100` | Gauge (red > 5%) |
 | Success vs Failure over time | Both rates | Time series |
 | Provider p95 Latency | `histogram_quantile(0.95, sum by (le, provider) (rate(payment_provider_latency_seconds_bucket[5m])))` | Time series |
-| Circuit Breaker State | `resilience4j_circuitbreaker_state{name=~"orange\|mtn"}` | State timeline (0=OK, 1=OPEN) |
+| Circuit Breaker State | `resilience4j_circuitbreaker_state{name=~"orange\|mtn", state="open"}` | State timeline (1=OPEN) |
 | Callback Received Rate | `rate(callback_received_total[5m])` | Time series |
 | Callback Failure Rate | `rate(callback_failed_total[5m])` | Stat |
 | JVM Heap Utilisation | `jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} * 100` | Gauge |
@@ -781,18 +817,20 @@ count_over_time(
 
 **Purpose:** Deep-dive into individual provider behaviour during an incident.
 
+> **Known gap:** `callback_received_total` and `callback_failed_total` currently have no `provider` tag (see `PaymentMetricsService`). Provider-split callback rate panels use the log query as a workaround until the tag is added to the counters.
+
 **Panels:**
 
 | Panel | Query | Visualization |
 |-------|-------|---------------|
-| Orange Circuit State | `resilience4j_circuitbreaker_state{name="orange"}` | State timeline |
-| MTN Circuit State | `resilience4j_circuitbreaker_state{name="mtn"}` | State timeline |
+| Orange Circuit State | `resilience4j_circuitbreaker_state{name="orange", state="open"}` | State timeline |
+| MTN Circuit State | `resilience4j_circuitbreaker_state{name="mtn", state="open"}` | State timeline |
 | Orange Failure Rate (sliding window) | `resilience4j_circuitbreaker_failure_rate{name="orange"}` | Gauge |
 | MTN Failure Rate (sliding window) | `resilience4j_circuitbreaker_failure_rate{name="mtn"}` | Gauge |
 | Orange p50/p95/p99 Latency | `histogram_quantile(0.95, sum by (le) (rate(payment_provider_latency_seconds_bucket{provider="ORANGE"}[5m])))` | Time series |
 | MTN p50/p95/p99 Latency | Same with `provider="MTN"` | Time series |
-| Orange Callback Rate | `rate(callback_received_total{provider="ORANGE"}[5m])` | Time series |
-| MTN Callback Rate | `rate(callback_received_total{provider="MTN"}[5m])` | Time series |
+| Orange Callback Rate (log-derived) | `sum(rate({service="payam"} \|= "orange-callback" [5m]))` | Time series |
+| MTN Callback Rate (log-derived) | `sum(rate({service="payam"} \|= "mtn-callback" [5m]))` | Time series |
 | Orange Error Logs | `{service="payam", level="error"} \| json \| provider="ORANGE"` | Logs panel |
 | MTN Error Logs | `{service="payam", level="error"} \| json \| provider="MTN"` | Logs panel |
 
@@ -809,7 +847,7 @@ count_over_time(
 | Fraud Block Rate | `rate(payment_fraud_blocked_total[5m])` | Stat |
 | Fraud Block % of Total | `rate(payment_fraud_blocked_total[5m]) / (rate(payment_success_total[5m]) + rate(payment_failed_total[5m]) + rate(payment_fraud_blocked_total[5m])) * 100` | Gauge |
 | Blocks Over Time | `rate(payment_fraud_blocked_total[5m])` | Time series |
-| Top Fraud Signals Firing | `{service="payam"} \|= "velocity_limit_exceeded" \| json \| sum by (fraudSignal) (count_over_time([5m]))` | Bar chart |
+| Top Fraud Signals Firing | `sum by (fraudSignal) (count_over_time({service="payam"} \|= "velocity_limit_exceeded" \| json [5m]))` | Bar chart |
 | Risk Score Distribution | `{service="payam"} \|= "FRAUD_BLOCKED" \| json \| unwrap riskScore \| histogram_over_time([5m])` | Histogram |
 | Blocked Transactions Log | `{service="payam"} \|= "FRAUD_BLOCKED" \| json \| line_format "..."` | Logs panel |
 
@@ -834,11 +872,15 @@ count_over_time(
 
 ## 7. Alerts
 
-All alerts should be configured in Grafana Alerting (or as Prometheus alerting rules). Notifications should route to an on-call Slack channel.
+All alerts should route notifications to an on-call Slack channel.
+
+> **Alert system routing:**
+> - Alerts marked **\[Prometheus\]** use only PromQL — load them via `prometheus.yml` as standard alerting rules or import into Grafana Alerting with a Prometheus datasource.
+> - Alerts marked **\[Loki\]** use LogQL — they must be configured in **Grafana Alerting** with the Loki datasource. They cannot be placed in a Prometheus alerting rules file.
 
 ### 7.1 Critical Alerts (P1 — Immediate Response)
 
-**Payment failure ratio exceeds 5% for 2 minutes**
+**Payment failure ratio exceeds 5% for 2 minutes** `[Prometheus]`
 ```yaml
 alert: PaymentFailureRateHigh
 expr: |
@@ -855,10 +897,10 @@ annotations:
   runbook: "Check OrchestratorError breakdown in Loki. Verify provider health."
 ```
 
-**Orange circuit breaker is OPEN**
+**Orange circuit breaker is OPEN** `[Prometheus]`
 ```yaml
 alert: OrangeCircuitBreakerOpen
-expr: resilience4j_circuitbreaker_state{name="orange"} == 1
+expr: resilience4j_circuitbreaker_state{name="orange", state="open"} == 1
 for: 30s
 labels:
   severity: critical
@@ -867,10 +909,10 @@ annotations:
   runbook: "Run incident runbook: Provider Down. Check Orange API status page."
 ```
 
-**MTN circuit breaker is OPEN**
+**MTN circuit breaker is OPEN** `[Prometheus]`
 ```yaml
 alert: MtnCircuitBreakerOpen
-expr: resilience4j_circuitbreaker_state{name="mtn"} == 1
+expr: resilience4j_circuitbreaker_state{name="mtn", state="open"} == 1
 for: 30s
 labels:
   severity: critical
@@ -878,7 +920,7 @@ annotations:
   summary: "MTN MoMo circuit breaker is OPEN — new payments will fail with 503"
 ```
 
-**Provider latency p99 exceeds 10 seconds**
+**Provider latency p99 exceeds 10 seconds** `[Prometheus]`
 ```yaml
 alert: ProviderLatencyP99Critical
 expr: |
@@ -896,10 +938,13 @@ annotations:
 
 ### 7.2 High Alerts (P2 — Respond Within 30 Minutes)
 
-**Callback receipt rate drops to zero for 5 minutes**
+**Callback receipt rate drops to zero while payments are still being submitted** `[Prometheus]`
 ```yaml
 alert: CallbackRateZero
-expr: rate(callback_received_total[5m]) == 0
+expr: |
+  rate(callback_received_total[5m]) == 0
+  and
+  rate(payment_success_total[5m]) > 0.1
 for: 5m
 labels:
   severity: high
@@ -908,7 +953,7 @@ annotations:
   runbook: "Check IP whitelist config and provider webhook configuration."
 ```
 
-**Provider latency p95 exceeds 5 seconds**
+**Provider latency p95 exceeds 5 seconds** `[Prometheus]`
 ```yaml
 alert: ProviderLatencyP95High
 expr: |
@@ -924,7 +969,7 @@ annotations:
   summary: "{{ $labels.provider }} p95 latency is {{ $value }}s"
 ```
 
-**Database connection pool above 80%**
+**Database connection pool above 80%** `[Prometheus]`
 ```yaml
 alert: DbConnectionPoolHigh
 expr: hikaricp_connections_active / hikaricp_connections_max > 0.80
@@ -935,16 +980,15 @@ annotations:
   summary: "DB connection pool at {{ $value | humanizePercentage }} — starvation risk"
 ```
 
-**Webhook delivery failures (any permanently failed webhooks)**
+**Webhook delivery failures (any permanently failed webhooks)** `[Loki]`
 ```yaml
+# Configure in Grafana Alerting with Loki datasource — not a Prometheus rule
 alert: WebhookPermanentFailure
 expr: |
-  increase(
-    count_over_time(
-      {service="payam", level="error"} |= "FAILED_PERMANENT" [5m]
-    )
+  count_over_time(
+    {service="payam", level="error"} |= "FAILED_PERMANENT" [5m]
   ) > 0
-for: 0m
+for: 1m
 labels:
   severity: high
 annotations:
@@ -953,7 +997,7 @@ annotations:
 
 ### 7.3 Warning Alerts (P3 — Investigate During Business Hours)
 
-**Fraud block rate exceeds 20% of total traffic**
+**Fraud block rate exceeds 20% of total traffic** `[Prometheus]`
 ```yaml
 alert: FraudBlockRateHigh
 expr: |
@@ -968,7 +1012,7 @@ annotations:
   summary: "{{ $value | humanizePercentage }} of payments are being fraud-blocked — check if rules are too aggressive"
 ```
 
-**JVM heap above 85%**
+**JVM heap above 85%** `[Prometheus]`
 ```yaml
 alert: JvmHeapHigh
 expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.85
@@ -979,21 +1023,22 @@ annotations:
   summary: "JVM heap at {{ $value | humanizePercentage }}"
 ```
 
-**Reconciliation job discrepancies detected**
+**Reconciliation job discrepancies detected** `[Loki]`
 ```yaml
+# Configure in Grafana Alerting with Loki datasource — not a Prometheus rule
 alert: ReconciliationDiscrepancy
 expr: |
   count_over_time(
     {service="payam", level="error"} |= "severity=\"HIGH\"" [1h]
   ) > 0
-for: 0m
+for: 1m
 labels:
   severity: warning
 annotations:
   summary: "Reconciliation found HIGH-severity discrepancies — review ReconciliationReport"
 ```
 
-**Callback failure ratio above 10%**
+**Callback failure ratio above 10%** `[Prometheus]`
 ```yaml
 alert: CallbackFailureRatioHigh
 expr: rate(callback_failed_total[5m]) / rate(callback_received_total[5m]) > 0.10
