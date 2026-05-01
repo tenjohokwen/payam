@@ -8,20 +8,19 @@ Payam is a unified, multi-tenant payment API for Cameroon that wraps MTN Mobile 
 
 Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
 
-## Current Milestone: v10 Client Disbursement API
+## Current Milestone: v11 Transaction-Backed Disbursements
 
-**Goal:** Expose a production-ready `POST /v1/disbursements` endpoint enabling tenants to send payouts to MTN MoMo and Orange subscribers, with full security controls, pre-funded balance gating, and E2E verification.
+**Goal:** Replace the pre-funded wallet-balance model with claim-based locking — every disbursement must be explicitly backed by a set of previously successful collection transactions.
 
 **Target features:**
-- Public disbursement API (`POST /v1/disbursements` + `GET /v1/disbursements/{id}`)
-- `DisbursementOrchestrator`: idempotency → fraud → balance gate → MSISDN routing → provider call → ledger → 202 response
-- MTN MoMo disbursement: wire existing `MtnMoMoClient.transfer()` through the new orchestrator
-- Orange Money IC2C disbursement: `OrangeMoneyPort.ic2cDisbursement()` calling `/ic2c/pay`
-- Balance gating: atomic `MERCHANT_WALLET` balance check-and-reserve before any provider call
-- Disbursement-specific fraud controls: stricter velocity rules + disbursement fraud signals
-- Inbound callback controllers: MTN + Orange (double-check, IP whitelist, HMAC, replay protection)
-- Outbound webhooks: `disbursement.completed` / `disbursement.failed` events via existing pipeline
-- E2E tests: MTN + Orange happy path, failure + reversal, idempotency race, fraud block, balance insufficient
+- `transactionIds` field on `DisbursementRequest` — disbursements backed by specific collection transactions
+- New `disbursement_transaction_ref` join table with claim lifecycle (PENDING → CLAIMED | RELEASED)
+- Transaction validation rules (TXN-01..06): tenant ownership, SUCCESS status, COLLECTION flow, no active claim, exact amount equality, deadlock-safe lock ordering
+- New `PENDING_ADMIN_APPROVAL` state for large disbursements with configurable threshold, Ops notification, and timeout expiry
+- No platform fees on disbursements — bypass `FeeEvaluationService`, always return `fee = BigDecimal.ZERO`
+- Idempotency retry recovery for retriable failures — reactivate RELEASED claims, increment `retry_count`
+- Insufficient Funds high-priority alert to Platform Ops (Slack/PagerDuty/Email)
+- V31 migration (claim table, new disbursement columns, wallet table soft-deprecated) + V32 migration (wallet table drop)
 
 ## Requirements
 
@@ -124,6 +123,19 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - [ ] DISB-05: System applies disbursement-specific fraud scoring and velocity rules
 - [ ] DISB-06: System delivers `disbursement.completed` / `disbursement.failed` outbound webhook
 - [x] DISB-07: E2E test suite covers disbursement flows for both providers — Validated in Phase 53: TEST-01, TEST-02, TEST-03, TEST-04
+
+<!-- v11 Transaction-Backed Disbursements — started 2026-05-01 -->
+- [ ] TXN-01: Tenant supplies `transactionIds` in `DisbursementRequest`; system validates each belongs to the requesting tenant, has `txStatus = SUCCESS` and `flow = COLLECTION`
+- [ ] TXN-02: System rejects a disbursement where any transaction has an active claim (`PENDING` or `CLAIMED`), returning `422 TRANSACTION_CLAIMED`
+- [ ] TXN-03: System rejects a disbursement where `disbursement.amount != SUM(disbursableAmount)`, returning `422 AMOUNT_MISMATCH`
+- [ ] TXN-04: System acquires `SELECT FOR UPDATE` locks on validated transactions in ascending `transaction_id` order within a single atomic operation (deadlock-safe)
+- [ ] CLAIM-01: System creates a `DisbursementTransactionRef` claim (PENDING) per transaction atomically with disbursement acceptance; advances to CLAIMED on SUCCESS, RELEASED on FAILED or admin-approval expiry
+- [ ] ADMIN-01: Disbursements exceeding `payam.disbursement.admin-approval-threshold` transition to `PENDING_ADMIN_APPROVAL`; Platform Ops notified; auto-expires after `payam.disbursement.admin-approval-timeout-hours` with claims released
+- [ ] FEE-01: Disbursements never invoke `FeeEvaluationService`; `DisbursementResponse.fee` is always `BigDecimal.ZERO`; any DISBURSEMENT-flow `Transaction` row has `feeAmount = 0` and `feeRuleId = NULL`
+- [ ] IDEM-01: On retriable-failure retry, system reactivates existing RELEASED claims to PENDING (no new rows), increments `retry_count`, and retransitions disbursement to `INITIATED` for provider dispatch
+- [ ] ALERT-01: Provider Insufficient Funds response triggers high-priority alert (Slack/PagerDuty/Email) to Platform Ops naming the affected provider account; disbursement transitions to FAILED, claims released
+- [ ] SCHEMA-01: V31 migration: `disbursement_transaction_ref` table with partial unique index; `admin_note` + `retry_count` added to `disbursement`; `reserved_amount` removed; `merchant_wallet_balance` application-layer retired (not dropped); pre-flight assertion no open PROCESSING/PENDING_CONFIRMATION rows
+- [ ] SCHEMA-02: V32 migration drops `merchant_wallet_balance` after ops confirm all legacy disbursements are terminal
 
 #### Phase 50 complete — Validated in Phase 50: BAL-01, BAL-02, BAL-03
 - ✓ Flyway V28: `main.disbursement`, `main.disbursement_aud`, `main.merchant_wallet_balance`, `main.merchant_wallet_balance_aud` with named constraints — v10 (Phase 50)
@@ -258,4 +270,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-28 — Phase 53 complete (TEST-01, TEST-02, TEST-03, TEST-04 verified; DISB-07 closed; OrangeMoneyPort payToken production fix)*
+*Last updated: 2026-05-01 — Milestone v11 started (Transaction-Backed Disbursements)*
