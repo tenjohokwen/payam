@@ -134,7 +134,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 - [ ] FEE-01: Disbursements never invoke `FeeEvaluationService`; `DisbursementResponse.fee` is always `BigDecimal.ZERO`; any DISBURSEMENT-flow `Transaction` row has `feeAmount = 0` and `feeRuleId = NULL`
 - [ ] IDEM-01: On retriable-failure retry, system reactivates existing RELEASED claims to PENDING (no new rows), increments `retry_count`, and retransitions disbursement to `INITIATED` for provider dispatch
 - [ ] ALERT-01: Provider Insufficient Funds response triggers high-priority alert (Slack/PagerDuty/Email) to Platform Ops naming the affected provider account; disbursement transitions to FAILED, claims released
-- [ ] SCHEMA-01: V31 migration: `disbursement_transaction_ref` table with partial unique index; `admin_note` + `retry_count` added to `disbursement`; `reserved_amount` removed; `merchant_wallet_balance` application-layer retired (not dropped); pre-flight assertion no open PROCESSING/PENDING_CONFIRMATION rows
+- [x] SCHEMA-01: V31 migration: `disbursement_transaction_ref` table with partial unique index; `admin_note` + `retry_count` added to `disbursement`; `reserved_amount` removed; `merchant_wallet_balance` application-layer retired (not dropped); pre-flight assertion no open PROCESSING/PENDING_CONFIRMATION rows — Validated in Phase 54: SCHEMA-01, SCHEMA-02, SCHEMA-03
 - [ ] SCHEMA-02: V32 migration drops `merchant_wallet_balance` after ops confirm all legacy disbursements are terminal
 
 #### Phase 50 complete — Validated in Phase 50: BAL-01, BAL-02, BAL-03
@@ -241,7 +241,8 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 ## Current State
 
 **Shipped:** v9 (2026-04-23) — 49 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5 + 5 v6 + 6 v7 + 5 v8 + 4 v9), 106 plans
-**Next:** v10 — TBD (start with `/gsd:new-milestone`)
+**In progress:** v11 Transaction-Backed Disbursements — Phase 54 complete (2026-05-02); Phase 55 next
+**Next:** `/gsd:plan-phase 55`
 **Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar + Hibernate Envers + Cryptopher/Jasypt AES256
 **Observability:** Full Loki-queryable structured logging + Spring Boot Actuator health with live provider MSISDN validation + CB state
 **Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage + 22 tenant/key integration tests + PIN integration tests (PlatformConfigAdminResourceIT: 12 tests)
@@ -270,4 +271,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-01 — Milestone v11 started (Transaction-Backed Disbursements)*
+*Last updated: 2026-05-02 — Phase 54 complete (V31 schema migration, wallet model retired)*
