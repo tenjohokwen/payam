@@ -84,37 +84,37 @@
 
 | REQ-ID | Phase | Plan | Status |
 |--------|-------|------|--------|
-| TXN-01 | — | — | Pending |
-| TXN-02 | — | — | Pending |
-| TXN-03 | — | — | Pending |
-| TXN-04 | — | — | Pending |
-| TXN-05 | — | — | Pending |
-| TXN-06 | — | — | Pending |
-| CLAIM-01 | — | — | Pending |
-| CLAIM-02 | — | — | Pending |
-| CLAIM-03 | — | — | Pending |
-| CLAIM-04 | — | — | Pending |
-| CLAIM-05 | — | — | Pending |
-| ADMIN-01 | — | — | Pending |
-| ADMIN-02 | — | — | Pending |
-| ADMIN-03 | — | — | Pending |
-| FEE-01 | — | — | Pending |
-| FEE-02 | — | — | Pending |
-| IDEM-01 | — | — | Pending |
-| IDEM-02 | — | — | Pending |
-| IDEM-03 | — | — | Pending |
-| ALERT-01 | — | — | Pending |
-| SCHEMA-01 | — | — | Pending |
-| SCHEMA-02 | — | — | Pending |
-| SCHEMA-03 | — | — | Pending |
-| SCHEMA-04 | — | — | Pending |
+| TXN-01 | Phase 55 | — | Pending |
+| TXN-02 | Phase 55 | — | Pending |
+| TXN-03 | Phase 55 | — | Pending |
+| TXN-04 | Phase 55 | — | Pending |
+| TXN-05 | Phase 55 | — | Pending |
+| TXN-06 | Phase 55 | — | Pending |
+| CLAIM-01 | Phase 56 | — | Pending |
+| CLAIM-02 | Phase 56 | — | Pending |
+| CLAIM-03 | Phase 56 | — | Pending |
+| CLAIM-04 | Phase 56 | — | Pending |
+| CLAIM-05 | Phase 56 | — | Pending |
+| ADMIN-01 | Phase 56 | — | Pending |
+| ADMIN-02 | Phase 56 | — | Pending |
+| ADMIN-03 | Phase 56 | — | Pending |
+| FEE-01 | Phase 55 | — | Pending |
+| FEE-02 | Phase 55 | — | Pending |
+| IDEM-01 | Phase 57 | — | Pending |
+| IDEM-02 | Phase 57 | — | Pending |
+| IDEM-03 | Phase 57 | — | Pending |
+| ALERT-01 | Phase 56 | — | Pending |
+| SCHEMA-01 | Phase 54 | — | Pending |
+| SCHEMA-02 | Phase 54 | — | Pending |
+| SCHEMA-03 | Phase 54 | — | Pending |
+| SCHEMA-04 | Phase 57 | — | Pending |
 
 **Coverage:**
 - v11 requirements: 24 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 24 ⚠️
+- Mapped to phases: 24 ✓
+- Unmapped: 0 ✓
 
 ---
 
 *Requirements defined: 2026-05-02*
-*Last updated: 2026-05-02 after initial definition*
+*Last updated: 2026-05-01 — traceability table populated after roadmap creation*

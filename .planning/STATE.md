@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v11
 milestone_name: Transaction-Backed Disbursements
-status: planning
-stopped_at: Milestone v11 started — defining requirements
+status: roadmapped
+stopped_at: Roadmap created — Phase 54 is next
 last_updated: "2026-05-01T00:00:00.000Z"
 last_activity: 2026-05-01
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-01 — v11 milestone started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Defining requirements for v11 Transaction-Backed Disbursements
+**Current focus:** v11 Transaction-Backed Disbursements — Phase 54 is next (V31 Schema Migration)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 54 (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-05-01 — Milestone v11 started
+Status: Roadmapped — ready to plan Phase 54
+Last activity: 2026-05-01 — v11 roadmap created (5 phases, 24 requirements mapped)
 
-Progress: [░░░░░░░░░░] 0% (0/? phases complete)
+Progress: [░░░░░░░░░░] 0% (0/5 phases complete)
 
 ## Performance Metrics
 
@@ -49,15 +49,27 @@ Decisions are logged in PROJECT.md Key Decisions table.
 **Key carry-forward for v11:**
 
 - Last Flyway migration: **V30** (transaction_status column on webhook_delivery_log)
+- Next available migration number: **V31**
 - `DisbursementStatus` enum currently: INITIATED → PENDING_CONFIRMATION → PROCESSING → SUCCESS | FAILED | EXPIRED
-- New `PENDING_ADMIN_APPROVAL` state must be added to `DisbursementStatus` state machine
+- New `PENDING_ADMIN_APPROVAL` state must be added to `DisbursementStatus` state machine — co-exists with `PENDING_CONFIRMATION` (merchant step-up); they are distinct states
 - `WalletBalanceService` and `MerchantWalletBalance` are being retired — all wallet reservation logic is replaced by claim-based locking in `DisbursementTransactionRef`
-- `disbursement_transaction_ref` partial unique index on `(transaction_id) WHERE ref_status IN ('PENDING', 'CLAIMED')` enforces TXN-04 at DB level
+- `disbursement_transaction_ref` partial unique index on `(transaction_id) WHERE ref_status IN ('PENDING', 'CLAIMED')` enforces TXN-03 at DB level
 - `SELECT FOR UPDATE` on `Transaction` rows must use ascending `transaction_id` (lexicographic) order to prevent deadlocks
 - `DisbursementOrchestrator.initiate()` uses `TransactionTemplate` (no class-level @Transactional) — carry forward this pattern
 - No `FeeEvaluationService` call for disbursements: `fee = BigDecimal.ZERO` always
 - Retry reactivates existing RELEASED `DisbursementTransactionRef` rows (no new inserts) to preserve audit trail
 - V31 migration must include pre-flight assertion: no PROCESSING/PENDING_CONFIRMATION disbursements exist before migration
+- V32 migration drops `merchant_wallet_balance` and `merchant_wallet_balance_aud` — scaffolded in Phase 57, not run until ops confirm all pre-V31 disbursements are terminal
+
+### v11 Phase Map
+
+| Phase | Name | Requirements |
+|-------|------|--------------|
+| 54 | V31 Schema Migration | SCHEMA-01, SCHEMA-02, SCHEMA-03 |
+| 55 | Transaction Validation & Fee Removal | TXN-01, TXN-02, TXN-03, TXN-04, TXN-05, TXN-06, FEE-01, FEE-02 |
+| 56 | Claim Lifecycle & Admin Approval | CLAIM-01, CLAIM-02, CLAIM-03, CLAIM-04, CLAIM-05, ADMIN-01, ADMIN-02, ADMIN-03, ALERT-01 |
+| 57 | Idempotency Retry Recovery & V32 Migration Scaffold | IDEM-01, IDEM-02, IDEM-03, SCHEMA-04 |
+| 58 | Integration & E2E Test Suite | cross-cutting quality gate |
 
 ### Pending Todos
 
@@ -65,4 +77,4 @@ None.
 
 ### Blockers/Concerns
 
-None yet — requirements phase.
+None — roadmap approved, ready for Phase 54 planning.

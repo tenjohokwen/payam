@@ -11,7 +11,8 @@
 - ✅ **v7 Backend Hardening & Bug Fixes** — Phases 35–40 (shipped 2026-04-17) — see [milestones/v7-ROADMAP.md](milestones/v7-ROADMAP.md)
 - ✅ **v8 Platform Config PIN** — Phases 41–45 (shipped 2026-04-21) — see [milestones/v8-ROADMAP.md](milestones/v8-ROADMAP.md)
 - ✅ **v9 Ledger Disbursement Support** — Phases 46–49 (shipped 2026-04-23) — see [milestones/v9-ROADMAP.md](milestones/v9-ROADMAP.md)
-- 🚧 **v10 Client Disbursement API** — Phases 50–53 (in progress)
+- ✅ **v10 Client Disbursement API** — Phases 50–53 (shipped 2026-04-28)
+- 🚧 **v11 Transaction-Backed Disbursements** — Phases 54–58 (in progress)
 
 ## Phases
 
@@ -119,14 +120,25 @@
 
 </details>
 
-### v10 Client Disbursement API (In Progress)
+<details>
+<summary>✅ v10 Client Disbursement API (Phases 50–53) — SHIPPED 2026-04-28</summary>
 
-**Milestone Goal:** Expose a production-ready `POST /v1/disbursements` endpoint enabling tenants to send payouts to MTN MoMo and Orange Money subscribers, with full security controls, pre-funded balance gating, and E2E verification.
-
-- [x] **Phase 50: Schema & Balance Infrastructure** — Flyway V26, Disbursement entity, WalletBalance entity with pessimistic locking, DisbursementStatus enum (completed 2026-04-25)
+- [x] **Phase 50: Schema & Balance Infrastructure** — Flyway V28, Disbursement entity, WalletBalance entity with pessimistic locking, DisbursementStatus enum (completed 2026-04-25)
 - [x] **Phase 51: Orchestrator & Public API** — DisbursementOrchestrator, DisbursementResource (POST+GET+LIST), step-up confirmation flow, MTN and Orange provider port wiring (completed 2026-04-25)
 - [x] **Phase 52: Callbacks & Outbound Webhooks** — MTN and Orange disbursement callback controllers, DisbursementCompletedEvent, outbound webhook delivery (completed 2026-04-27)
 - [x] **Phase 53: E2E Test Suite** — Both provider happy paths, balance gate + concurrency race, fraud block, idempotency race, step-up confirmation, callback replay (completed 2026-04-28)
+
+</details>
+
+### v11 Transaction-Backed Disbursements (In Progress)
+
+**Milestone Goal:** Replace the pre-funded wallet-balance model with claim-based locking — every disbursement must be explicitly backed by a set of previously successful collection transactions.
+
+- [ ] **Phase 54: V31 Schema Migration** — `disbursement_transaction_ref` table, `admin_note` + `retry_count` columns, `reserved_amount` removal, `PENDING_ADMIN_APPROVAL` status, pre-flight assertion, `merchant_wallet_balance` application-layer retirement
+- [ ] **Phase 55: Transaction Validation & Fee Removal** — `transactionIds` field on `DisbursementRequest`, claim validation in `DisbursementOrchestrator` (tenant ownership, status, flow, active-claim check, amount equality, deadlock-safe SELECT FOR UPDATE), `FeeEvaluationService` bypass
+- [ ] **Phase 56: Claim Lifecycle & Admin Approval** — Claim state transitions (PENDING→CLAIMED/RELEASED), `PENDING_ADMIN_APPROVAL` flow, Quartz expiry job for admin-approval timeout, Insufficient Funds high-priority alert
+- [ ] **Phase 57: Idempotency Retry Recovery & V32 Migration Scaffold** — RELEASED claim reactivation on retriable-failure retry, `retry_count` increment, terminal error code caching, V32 migration that drops `merchant_wallet_balance`
+- [ ] **Phase 58: Integration & E2E Test Suite** — Full claim-based disbursement flow E2E coverage for both providers, admin-approval path, retry recovery, insufficient funds alert, concurrency safety
 
 ## Phase Details
 
@@ -478,6 +490,68 @@ Plans:
 - [x] 53-05-PLAN.md — DisbursementConcurrencyRaceIT: 20 simultaneous POSTs against single-spend wallet → exactly 1 PROCESSING + 19 INSUFFICIENT_BALANCE + no overdraft (TEST-04)
 - [x] 53-06-PLAN.md — DisbursementFraudBlockE2EIT: Redis blocklist (NEW_RECIPIENT+BLOCKLIST=95>80) → FRAUD_BLOCK + idempotency race 20 threads same key → exactly 1 disbursement row (TEST-01, TEST-04)
 
+### Phase 54: V31 Schema Migration
+**Goal**: The database schema is ready for claim-based disbursements — the claim table exists, disbursement columns are updated, wallet balance is retired at the application layer, and the migration is safe to run in production
+**Depends on**: Phase 53
+**Requirements**: SCHEMA-01, SCHEMA-02, SCHEMA-03
+**Success Criteria** (what must be TRUE):
+  1. V31 migration creates `main.disbursement_transaction_ref` with a partial unique index on `(transaction_id) WHERE ref_status IN ('PENDING', 'CLAIMED')` — a second INSERT for the same transaction in PENDING or CLAIMED state is rejected at the DB layer
+  2. V31 migration adds `admin_note` (TEXT, nullable) and `retry_count` (INT NOT NULL DEFAULT 0) to `main.disbursement`, and removes `reserved_amount` — migration runs without error on a database that has existing disbursement rows with `reserved_amount = 0`
+  3. V31 migration fails fast (DO $$ RAISE EXCEPTION) if any `disbursement` row has `disbursement_status IN ('PROCESSING', 'PENDING_CONFIRMATION')` at migration time — it never executes the DDL on a live-traffic database
+  4. `DisbursementStatus` enum gains `PENDING_ADMIN_APPROVAL` and all existing state machine transitions remain valid — `PENDING_CONFIRMATION` (merchant step-up) and `PENDING_ADMIN_APPROVAL` (ops approval) are distinct states that co-exist
+  5. All `WalletBalanceService` calls are removed from `DisbursementOrchestrator` and `DisbursementCallbackTransitionService`; `MerchantWalletBalance` entity and repository remain in code but are unreachable from any production call path
+  6. `mvn verify` passes with no migration failures and no regressions in existing disbursement tests
+**Plans**: TBD
+
+### Phase 55: Transaction Validation & Fee Removal
+**Goal**: Every disbursement is backed by validated, lockable collection transactions and platform fees are permanently removed from the disbursement path
+**Depends on**: Phase 54
+**Requirements**: TXN-01, TXN-02, TXN-03, TXN-04, TXN-05, TXN-06, FEE-01, FEE-02
+**Success Criteria** (what must be TRUE):
+  1. `DisbursementRequest` requires a non-empty `transactionIds` list (max 500 UUIDs); a request with an empty list or a transaction belonging to another tenant returns `422 INVALID_TRANSACTION` before any lock is acquired
+  2. A disbursement where any supplied transaction has `txStatus != SUCCESS` or `flow != COLLECTION` returns `422 INVALID_TRANSACTION`; a transaction with `fee_amount IS NULL` (pre-Phase-10 row) is treated as `feeAmount = 0` so the full amount is disbursable
+  3. A disbursement where any supplied transaction already has an active claim (`ref_status IN ('PENDING', 'CLAIMED')`) returns `422 TRANSACTION_CLAIMED`
+  4. A disbursement where `request.amount != SUM(transaction.amount - feeAmount)` across all supplied transactions returns `422 AMOUNT_MISMATCH`
+  5. Claim validation and creation execute atomically via `SELECT FOR UPDATE` on `Transaction` rows ordered by `transaction_id` ascending — no deadlock occurs under concurrent disbursement attempts referencing overlapping transaction sets
+  6. `DisbursementOrchestrator.initiate()` never calls `FeeEvaluationService`; `DisbursementResponse.fee` is always `BigDecimal.ZERO`; any `Transaction` row written for a disbursement payout has `feeAmount = 0` and `feeRuleId = NULL`
+**Plans**: TBD
+
+### Phase 56: Claim Lifecycle & Admin Approval
+**Goal**: Claims transition correctly through their full lifecycle, large disbursements route through admin approval with automatic expiry, and Platform Ops receives a high-priority alert on provider insufficient funds
+**Depends on**: Phase 55
+**Requirements**: CLAIM-01, CLAIM-02, CLAIM-03, CLAIM-04, CLAIM-05, ADMIN-01, ADMIN-02, ADMIN-03, ALERT-01
+**Success Criteria** (what must be TRUE):
+  1. When a disbursement is accepted, one `DisbursementTransactionRef` row in `PENDING` state is created atomically per transaction — the partial unique index prevents duplicate active claims for the same transaction
+  2. When a disbursement reaches `SUCCESS`, all associated claims transition to `CLAIMED`; when it reaches `FAILED` for any reason (including Insufficient Funds), all claims transition to `RELEASED` and those transactions are immediately available for a new disbursement
+  3. When a `PROCESSING` disbursement times out to `EXPIRED` due to an internal error, claims remain in `CLAIMED` — they are held for manual ops reconciliation and are NOT released
+  4. A disbursement with `amount > payam.disbursement.admin-approval-threshold` transitions to `PENDING_ADMIN_APPROVAL` instead of dispatching to the provider; the existing `PENDING_CONFIRMATION` merchant step-up flow is unaffected; Platform Ops receives a best-effort notification
+  5. A `PENDING_ADMIN_APPROVAL` disbursement auto-expires after `payam.disbursement.admin-approval-timeout-hours`; the Quartz job transitions it to `EXPIRED` and releases all associated claims to `RELEASED`
+  6. When a provider returns an Insufficient Funds error, the disbursement transitions to `FAILED`, all claims are released, and a high-priority alert (Slack/PagerDuty/Email) is sent to Platform Ops identifying the affected provider account
+**Plans**: TBD
+
+### Phase 57: Idempotency Retry Recovery & V32 Migration Scaffold
+**Goal**: Tenants can safely retry a transiently-failed disbursement using the same idempotency key, existing claims are reactivated rather than duplicated, and the V32 wallet-drop migration is scaffolded
+**Depends on**: Phase 56
+**Requirements**: IDEM-01, IDEM-02, IDEM-03, SCHEMA-04
+**Success Criteria** (what must be TRUE):
+  1. When a `FAILED` disbursement with a retriable error code (`TIMEOUT`, `SYSTEM_ERROR`, `HTTP_5xx`) is retried with the same `Idempotency-Key`, the system re-validates all original transaction claims; if any claim is already PENDING or CLAIMED, the retry returns `422 TRANSACTION_CLAIMED` rather than reactivating
+  2. On a valid retry, all RELEASED `DisbursementTransactionRef` rows for this disbursement are reactivated to `PENDING` — no new rows are inserted; `retry_count` is incremented; the disbursement transitions from `FAILED` to `INITIATED` and re-enters the provider dispatch flow
+  3. When a `FAILED` disbursement has a terminal error code (`ADMIN_REJECTED`, `INVALID_RECIPIENT`, `INSUFFICIENT_PROVIDER_FUNDS`) and the same `Idempotency-Key` is resent, the cached `FAILED` response is returned immediately — no retry, no claim reactivation
+  4. V32 Flyway migration file is created and drops `main.merchant_wallet_balance` and `main.merchant_wallet_balance_aud`; the migration is runnable in an isolated test environment with no pre-V31 data dependencies
+**Plans**: TBD
+
+### Phase 58: Integration & E2E Test Suite
+**Goal**: The claim-based disbursement system is machine-verified correct — every new flow variant is covered by integration or E2E tests, and `mvn verify` passes cleanly
+**Depends on**: Phase 57
+**Requirements**: (cross-cutting quality gate for all v11 requirements)
+**Success Criteria** (what must be TRUE):
+  1. An E2E test covers the full claim-backed MTN disbursement happy path: supply valid `transactionIds` → claims created PENDING → callback SUCCESS → claims transition to CLAIMED; a second attempt with the same transaction IDs returns `422 TRANSACTION_CLAIMED`
+  2. An E2E test covers the full claim-backed Orange disbursement happy path: supply valid `transactionIds` → PROCESSING → callback → SUCCESS; on FAILED callback, claims release to RELEASED and the same transactions can be used in a new disbursement
+  3. An integration test verifies that a disbursement exceeding the admin-approval threshold transitions to `PENDING_ADMIN_APPROVAL`, claims stay PENDING, and the Quartz expiry job transitions it to `EXPIRED` with claims released
+  4. An integration test verifies idempotency retry recovery: `FAILED` disbursement with retriable code + same idempotency key → claims reactivated to PENDING + `retry_count` incremented + disbursement re-initiated; terminal error codes return cached response without retry
+  5. `mvn verify` passes cleanly — all v11 requirements are satisfied
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -532,7 +606,12 @@ Plans:
 | 47. Contract Types + LedgerService Rewrite | v9 | 3/3 | Complete | 2026-04-22 |
 | 48. Test Coverage | v9 | 2/2 | Complete | 2026-04-22 |
 | 49. Orange Cashout Wiring | v9 | 2/2 | Complete | 2026-04-23 |
-| 50. Schema & Balance Infrastructure | v10 | 1/2 | Complete    | 2026-04-25 |
-| 51. Orchestrator & Public API | v10 | 2/4 | Complete    | 2026-04-25 |
-| 52. Callbacks & Outbound Webhooks | v10 | 4/4 | Complete    | 2026-04-27 |
-| 53. E2E Test Suite | v10 | 6/6 | Complete    | 2026-04-28 |
+| 50. Schema & Balance Infrastructure | v10 | 1/2 | Complete | 2026-04-25 |
+| 51. Orchestrator & Public API | v10 | 2/4 | Complete | 2026-04-25 |
+| 52. Callbacks & Outbound Webhooks | v10 | 4/4 | Complete | 2026-04-27 |
+| 53. E2E Test Suite | v10 | 6/6 | Complete | 2026-04-28 |
+| 54. V31 Schema Migration | v11 | 0/? | Not started | - |
+| 55. Transaction Validation & Fee Removal | v11 | 0/? | Not started | - |
+| 56. Claim Lifecycle & Admin Approval | v11 | 0/? | Not started | - |
+| 57. Idempotency Retry Recovery & V32 Migration Scaffold | v11 | 0/? | Not started | - |
+| 58. Integration & E2E Test Suite | v11 | 0/? | Not started | - |
