@@ -1,58 +1,70 @@
-# Milestone v10 Requirements — Client Disbursement API
+# Milestone v11 Requirements — Transaction-Backed Disbursements
 
-**Milestone:** v10
+**Milestone:** v11
 **Status:** Active
-**Created:** 2026-04-24
-**Source:** `requirements/disbursement-request.md`
+**Defined:** 2026-05-02
+**Source:** `requirements/transaction-backed-disbursements.md`
+**Core Value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
 
 ---
 
-## v10 Requirements
+## v11 Requirements
 
-### DISB — Disbursement API Surface
+### TXN — Transaction Validation & Claim Locking
 
-- [x] **DISB-01**: Tenant can initiate a disbursement via `POST /v1/disbursements` with fields: `recipientMsisdn`, `amount`, `currency`, `reference` (required) and `description`, `metadata` (optional); receives `202 Accepted` with `disbursementId` and `status: PROCESSING` (or `PENDING_CONFIRMATION` for amounts > 500,000 XAF)
-- [x] **DISB-02**: Tenant can query disbursement status via `GET /v1/disbursements/{disbursementId}`; response is tenant-scoped (another tenant's ID returns `404 Not Found`)
-- [x] **DISB-03**: Tenant can list their disbursements via `GET /v1/disbursements` with pagination and filters (status, date range); results are tenant-scoped
-- [x] **DISB-04**: Tenant can confirm a large disbursement (amount > 500,000 XAF) via `POST /v1/disbursements/{disbursementId}/confirm`; only disbursements in `PENDING_CONFIRMATION` status can be confirmed; confirmation triggers the provider transfer
+- [ ] **TXN-01**: Tenant supplies `transactionIds` (non-empty, max 500 UUIDs) in `DisbursementRequest`; system rejects if any transaction does not belong to the requesting tenant, returning `422 INVALID_TRANSACTION`
+- [ ] **TXN-02**: System rejects a disbursement where any supplied transaction has `txStatus != SUCCESS` or `flow != COLLECTION`, returning `422 INVALID_TRANSACTION`
+- [ ] **TXN-03**: System rejects a disbursement where any supplied transaction has an active claim (`ref_status IN ('PENDING', 'CLAIMED')` in `disbursement_transaction_ref`), returning `422 TRANSACTION_CLAIMED`
+- [ ] **TXN-04**: System rejects a disbursement where `disbursement.amount != SUM(disbursableAmount)` across all supplied transactions (`disbursableAmount = transaction.amount - feeAmount`), returning `422 AMOUNT_MISMATCH`
+- [ ] **TXN-05**: System performs claim validation and creation atomically via `SELECT FOR UPDATE` on `Transaction` rows ordered by `transaction_id` ascending (lexicographic) within a single database transaction to prevent deadlocks
+- [ ] **TXN-06**: For pre-Phase-10 collection transactions with `fee_amount IS NULL`, system treats `feeAmount = 0` so the full `transaction.amount` is disbursable
 
-### BAL — Balance Management
+### CLAIM — Claim Lifecycle
 
-- [x] **BAL-01**: System checks `MERCHANT_WALLET` balance covers `principal + fee` before any provider call, using a pessimistic write lock (`SELECT FOR UPDATE`) to prevent concurrent overdraft; returns `422 INSUFFICIENT_BALANCE` if balance is insufficient
-- [x] **BAL-02**: System releases the reserved balance back to `MERCHANT_WALLET` when a disbursement reaches `FAILED` terminal state
-- [x] **BAL-03**: System sets disbursement status to `EXPIRED` (not `FAILED`) when the provider accepted the transfer but a subsequent internal error (e.g., ledger write failure) prevents clean state update; reserved balance is held pending manual ops resolution; an ops alert is triggered
+- [ ] **CLAIM-01**: System creates a `DisbursementTransactionRef` row in `PENDING` state for each supplied transaction when a disbursement is accepted (atomically with disbursement creation, enforced by the partial unique index)
+- [ ] **CLAIM-02**: System transitions all claims from `PENDING` to `CLAIMED` when the disbursement reaches `SUCCESS`
+- [ ] **CLAIM-03**: System transitions all claims to `RELEASED` when the disbursement reaches `FAILED` for any reason, including Insufficient Funds — released transactions are available for future disbursements
+- [ ] **CLAIM-04**: System transitions all claims to `RELEASED` when a `PENDING_ADMIN_APPROVAL` disbursement auto-expires — released transactions are available for future disbursements
+- [ ] **CLAIM-05**: System retains claims in `CLAIMED` state when a `PROCESSING` disbursement transitions to `EXPIRED` due to an internal error — claims remain held pending ops reconciliation with the provider
 
-### PROV — Provider Integration
+### ADMIN — Admin Approval Flow
 
-- [x] **PROV-01**: System routes disbursement to MTN MoMo via `MtnMoMoPort.disbursementTransfer()` (wrapping existing `MtnMoMoClient.transfer()`) based on recipient MSISDN prefix; uses a separate OAuth2 disbursement token; polls `GET /disbursement/v1_0/transfer/{id}` as fallback if callback not received within 5 minutes (routing + recipient validation delivered Phase 51; 5-min poller delivered Phase 52)
-- [x] **PROV-02**: System routes disbursement to Orange Money via `OrangeMoneyPort.ic2cDisbursement()` calling `/ic2c/pay` based on recipient MSISDN prefix; polls `GET /ic2c/paystatus/{payToken}` as fallback if callback not received within 5 minutes (routing + recipient validation delivered Phase 51; 5-min poller delivered Phase 52)
-- [x] **PROV-03**: System validates recipient account holder is active via `MobileMoneyPort.validateAccountHolder()` before initiating the provider transfer; returns `422 RECIPIENT_NOT_FOUND` if inactive
+- [ ] **ADMIN-01**: Disbursements where `amount > payam.disbursement.admin-approval-threshold` (default: 500,000 XAF, configurable) transition to `PENDING_ADMIN_APPROVAL` instead of dispatching to the provider; the existing `PENDING_CONFIRMATION` merchant step-up flow is unchanged and co-exists
+- [ ] **ADMIN-02**: System stores `admin_note` (TEXT, nullable) on the disbursement row on transition to `PENDING_ADMIN_APPROVAL`; the field is never returned in the public merchant API response; system sends best-effort email/Slack notification to Platform Ops
+- [ ] **ADMIN-03**: System auto-expires `PENDING_ADMIN_APPROVAL` disbursements after `payam.disbursement.admin-approval-timeout-hours` (default: 24 h), transitioning to `EXPIRED` and releasing all associated claims
 
-### SEC — Security, Fraud & Approval Controls
+### FEE — Fee Exemption
 
-- [x] **SEC-01**: System enforces `Idempotency-Key` header on every `POST /v1/disbursements` request using a distinct Redis namespace (`idempotency:dsb:<tenantId>:<key>`); duplicate requests within 24-hour TTL return the cached response without calling the provider
-- [x] **SEC-02**: System applies disbursement-specific velocity limits: > 20 disbursements/minute per tenant returns `429`; > 200 disbursements/hour per tenant returns `429`; > 10 disbursements to same MSISDN/day returns `422 DAILY_LIMIT_EXCEEDED`
-- [x] **SEC-03**: System applies disbursement-specific fraud score signals on top of the existing `FraudScoringService`: new recipient MSISDN (+15), amount > 3× tenant median payout (+30), recipient on known-fraud list (+80); score > 80 blocks with `FRAUD_BLOCK`
-- [x] **SEC-04**: System requires a two-step flow for disbursements > 500,000 XAF: `POST /v1/disbursements` returns `202` with `status: PENDING_CONFIRMATION`; tenant must call `POST /v1/disbursements/{id}/confirm` to proceed to the provider; disbursement expires automatically after 15 minutes if unconfirmed
-- [x] **SEC-05**: System validates inbound provider callbacks (MTN + Orange disbursement paths) via IP whitelist, HMAC/token signature verification, double-check against provider status API, and Redis replay deduplication on `providerReferenceId`; callbacks arrive at distinct paths (`/v1/callbacks/mtn/disbursement/{ref}`, `/v1/callbacks/orange/disbursement`)
-- [x] **SEC-06**: System delivers outbound webhooks to the tenant's configured URL for terminal disbursement states with events `disbursement.completed` and `disbursement.failed`; payload is signed with `X-Payam-Signature` (HMAC-SHA256); non-2xx triggers exponential backoff with max 5 retries
+- [ ] **FEE-01**: Disbursement initiation bypasses `FeeEvaluationService`; `DisbursementResponse.fee` is always `BigDecimal.ZERO`; no fee rule is evaluated or stored
+- [ ] **FEE-02**: Any `Transaction` row written for a disbursement payout (`flow = DISBURSEMENT`) has `feeAmount = 0` and `feeRuleId = NULL`
 
-### TEST — E2E Test Coverage
+### IDEM — Idempotency Retry Recovery
 
-- [x] **TEST-01**: E2E test suite covers MTN disbursement: happy path (initiate → PROCESSING → callback SUCCESS → SUCCESS), callback FAILED → FAILED with balance release, idempotency race (20 concurrent requests → exactly 1 disbursement row), fraud block (no provider call), and MTN callback replay (second identical callback ignored)
-- [x] **TEST-02**: E2E test suite covers Orange disbursement: happy path (initiate → PROCESSING → callback → SUCCESS), insufficient balance (422, no provider call), and Orange callback replay protection
-- [x] **TEST-03**: E2E test covers step-up confirmation flow: large disbursement returns `PENDING_CONFIRMATION`, confirm endpoint triggers provider call, unconfirmed disbursement expires after 15 minutes
-- [x] **TEST-04**: Concurrency test: 20 simultaneous disbursements against the same MERCHANT_WALLET with balance covering only 1 — exactly 1 succeeds (PROCESSING), 19 return `422 INSUFFICIENT_BALANCE`; no overdraft
+- [ ] **IDEM-01**: System retries a `FAILED` disbursement with a retriable error code (`TIMEOUT`, `SYSTEM_ERROR`, `HTTP_5xx`) when the same `Idempotency-Key` is resent, provided all original transaction claims remain unclaimed (no active PENDING/CLAIMED ref for any of the original `transactionIds`)
+- [ ] **IDEM-02**: On successful retry validation, system reactivates the existing RELEASED `DisbursementTransactionRef` rows for this disbursement to `PENDING` (does not insert new rows — preserving audit trail), increments `retry_count`, and transitions the disbursement from `FAILED` to `INITIATED`
+- [ ] **IDEM-03**: System returns the cached `FAILED` response for terminal error codes (`ADMIN_REJECTED`, `INVALID_RECIPIENT`, `INSUFFICIENT_PROVIDER_FUNDS`) when the same `Idempotency-Key` is resent — no retry permitted
+
+### ALERT — Monitoring
+
+- [ ] **ALERT-01**: When a provider returns an error code mapping to Insufficient Funds, system transitions the disbursement to `FAILED`, releases all claims to `RELEASED`, and triggers a high-priority alert (Slack/PagerDuty/Email) to Platform Ops identifying the affected provider account and its need for liquidity
+
+### SCHEMA — Database Migrations
+
+- [ ] **SCHEMA-01**: V31 migration creates `disbursement_transaction_ref` table with columns (`id` UUID PK, `disbursement_id` UUID FK, `transaction_id` UUID FK, `ref_status` ENUM, `created_date` TIMESTAMP) and a partial unique index on `(transaction_id)` WHERE `ref_status IN ('PENDING', 'CLAIMED')` — enforces TXN-03 at the database level
+- [ ] **SCHEMA-02**: V31 migration adds `admin_note` (TEXT, nullable) and `retry_count` (INT NOT NULL DEFAULT 0) to the `disbursement` table, and removes the `reserved_amount` column
+- [ ] **SCHEMA-03**: V31 migration includes a pre-flight assertion that no `disbursement` row with `disbursement_status IN ('PROCESSING', 'PENDING_CONFIRMATION')` exists — migration fails fast if found; `merchant_wallet_balance` table is retired at the application layer (all reads/writes removed from code) but the table is not dropped in V31
+- [ ] **SCHEMA-04**: V32 migration drops `merchant_wallet_balance` (and its audit counterpart) after ops confirm all pre-V31 disbursements have reached a terminal state
 
 ---
 
-## Future Requirements (Deferred to v11+)
+## Future Requirements (Deferred to v12+)
 
-- Admin wallet top-up endpoint (`POST /v1/admin/wallet/{tenantId}/topup`) — production funding mechanism
-- Batch disbursement (`POST /v1/disbursements/batch`) — submit multiple payouts in a single request
-- Disbursement reversal (`POST /v1/disbursements/{id}/reverse`) — blocked until MTN/Orange expose reversal in their APIs
+- Admin wallet top-up endpoint — production funding mechanism (no longer needed for wallet, may evolve to liquidity management)
+- Batch disbursements (`POST /v1/disbursements/batch`) — significant new flow, single-disbursement API first
+- Disbursement reversal — blocked until MTN/Orange expose reversal in their APIs
 - Disbursement reconciliation report — extend existing daily reconciliation to cover disbursement flows
-- Admin disbursement investigation UI — extend existing transaction search to cover disbursements
+- Admin disbursement investigation UI — extend transaction search to cover disbursements
+- Partial-amount disbursement with explicit `overagePolicy: BURN` flag — deferred; exact equality required in v11
 
 ---
 
@@ -60,39 +72,49 @@
 
 | Feature | Reason |
 |---------|--------|
-| Admin wallet top-up endpoint | Adds 1–2 phases; production wallets funded via direct DB in v10; revisit v11 |
-| Batch disbursements | Significant new flow; single-disbursement API ships first |
-| Disbursement reversal | Neither MTN nor Orange expose reversal; back-office process only |
-| ML fraud models | Deferred; rule-based scoring sufficient for v10 volume |
-| Multi-currency disbursements | XAF only; consistent with collections constraint |
+| `disbursement.amount < SUM(disbursableAmount)` ("transaction burning") | Silent merchant loss; exact equality required; partial disbursement requires explicit future design |
+| Drop `merchant_wallet_balance` in V31 | Unsafe during migration window; deferred to V32 with ops sign-off |
+| New fee rules for disbursements | Disbursements are permanently fee-exempt per FEE-01 |
+| ML fraud signals for transaction-backed disbursements | Rule-based scoring sufficient; claim validation provides new layer of protection |
+| Multi-currency disbursements | XAF only; consistent with existing constraint |
 
 ---
 
 ## Traceability
 
-| REQ-ID | Phase | Plan |
-|--------|-------|------|
-| DISB-01 | Phase 51 | — |
-| DISB-02 | Phase 51 | — |
-| DISB-03 | Phase 51 | — |
-| DISB-04 | Phase 51 | — |
-| BAL-01 | Phase 50 | — |
-| BAL-02 | Phase 50 | — |
-| BAL-03 | Phase 50 | — |
-| PROV-01 | Phase 51 | — |
-| PROV-02 | Phase 51 | — |
-| PROV-03 | Phase 51 | — |
-| SEC-01 | Phase 51 | — |
-| SEC-02 | Phase 51 | 51-02 ✓ |
-| SEC-03 | Phase 51 | 51-02 ✓ |
-| SEC-04 | Phase 51 | — |
-| SEC-05 | Phase 52 | — |
-| SEC-06 | Phase 52 | — |
-| TEST-01 | Phase 53 | — |
-| TEST-02 | Phase 53 | — |
-| TEST-03 | Phase 53 | — |
-| TEST-04 | Phase 53 | — |
+| REQ-ID | Phase | Plan | Status |
+|--------|-------|------|--------|
+| TXN-01 | — | — | Pending |
+| TXN-02 | — | — | Pending |
+| TXN-03 | — | — | Pending |
+| TXN-04 | — | — | Pending |
+| TXN-05 | — | — | Pending |
+| TXN-06 | — | — | Pending |
+| CLAIM-01 | — | — | Pending |
+| CLAIM-02 | — | — | Pending |
+| CLAIM-03 | — | — | Pending |
+| CLAIM-04 | — | — | Pending |
+| CLAIM-05 | — | — | Pending |
+| ADMIN-01 | — | — | Pending |
+| ADMIN-02 | — | — | Pending |
+| ADMIN-03 | — | — | Pending |
+| FEE-01 | — | — | Pending |
+| FEE-02 | — | — | Pending |
+| IDEM-01 | — | — | Pending |
+| IDEM-02 | — | — | Pending |
+| IDEM-03 | — | — | Pending |
+| ALERT-01 | — | — | Pending |
+| SCHEMA-01 | — | — | Pending |
+| SCHEMA-02 | — | — | Pending |
+| SCHEMA-03 | — | — | Pending |
+| SCHEMA-04 | — | — | Pending |
+
+**Coverage:**
+- v11 requirements: 24 total
+- Mapped to phases: 0 (roadmap pending)
+- Unmapped: 24 ⚠️
 
 ---
 
-*Last updated: 2026-04-24*
+*Requirements defined: 2026-05-02*
+*Last updated: 2026-05-02 after initial definition*
