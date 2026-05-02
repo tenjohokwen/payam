@@ -21,7 +21,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -30,20 +29,18 @@ import static org.mockito.Mockito.when;
 class DisbursementCallbackTransitionServiceTest {
 
     private DisbursementRepository repo;
-    private WalletBalanceService walletBalanceService;
     private ApplicationEventPublisher eventPublisher;
     private DisbursementCallbackTransitionService sut;
 
     @BeforeEach
     void setUp() {
         repo = mock(DisbursementRepository.class);
-        walletBalanceService = mock(WalletBalanceService.class);
         eventPublisher = mock(ApplicationEventPublisher.class);
-        sut = new DisbursementCallbackTransitionService(repo, walletBalanceService, eventPublisher);
+        // FEE-01 / SCHEMA-03: wallet model retired in v11 — WalletBalanceService no longer injected
+        sut = new DisbursementCallbackTransitionService(repo, eventPublisher);
     }
 
-    private Disbursement disbursementInState(DisbursementStatus state, BigDecimal reserved,
-                                             MobilePaymentProvider provider) {
+    private Disbursement disbursementInState(DisbursementStatus state, MobilePaymentProvider provider) {
         Disbursement d = Disbursement.builder()
             .disbursementId("dsb-001")
             .tenantId(1001L)
@@ -53,7 +50,6 @@ class DisbursementCallbackTransitionServiceTest {
             .reference("merchant-ref-001")
             .disbursementStatus(state)
             .provider(provider)
-            .reservedAmount(reserved)
             .pollAttempts(0)
             .build();
         return d;
@@ -64,9 +60,8 @@ class DisbursementCallbackTransitionServiceTest {
     }
 
     @Test
-    void successPath_transitionsToSUCCESS_doesNotReleaseWallet_publishesCompletedEvent() {
-        Disbursement d = disbursementInState(DisbursementStatus.PROCESSING,
-            new BigDecimal("750.00"), MobilePaymentProvider.MTN);
+    void successPath_transitionsToSUCCESS_publishesCompletedEvent() {
+        Disbursement d = disbursementInState(DisbursementStatus.PROCESSING, MobilePaymentProvider.MTN);
         when(repo.findByDisbursementIdForUpdate("dsb-001")).thenReturn(Optional.of(d));
         // MTN raw status SUCCESSFUL → TransactionStatus.SUCCESS via MtnStatusMapper
         ProviderResult result = ProviderResult.success("ref-abc", "SUCCESSFUL");
@@ -74,7 +69,6 @@ class DisbursementCallbackTransitionServiceTest {
         sut.applyDisbursementTransition(event(MobilePaymentProvider.MTN), result);
 
         assertThat(d.getDisbursementStatus()).isEqualTo(DisbursementStatus.SUCCESS);
-        verify(walletBalanceService, never()).release(any(), any());
 
         ArgumentCaptor<WebhookEnqueueRequestedEvent> captor =
             ArgumentCaptor.forClass(WebhookEnqueueRequestedEvent.class);
@@ -87,9 +81,9 @@ class DisbursementCallbackTransitionServiceTest {
     }
 
     @Test
-    void failedPath_transitionsToFAILED_releasesWallet_publishesFailedEvent() {
-        Disbursement d = disbursementInState(DisbursementStatus.PROCESSING,
-            new BigDecimal("750.00"), MobilePaymentProvider.MTN);
+    void failedPath_transitionsToFAILED_publishesFailedEvent() {
+        // SCHEMA-03: wallet model retired — no wallet release on FAILED callback
+        Disbursement d = disbursementInState(DisbursementStatus.PROCESSING, MobilePaymentProvider.MTN);
         when(repo.findByDisbursementIdForUpdate("dsb-001")).thenReturn(Optional.of(d));
         // MTN raw status FAILED → TransactionStatus.FAILED via MtnStatusMapper
         ProviderResult result = ProviderResult.success("ref-abc", "FAILED");
@@ -97,7 +91,6 @@ class DisbursementCallbackTransitionServiceTest {
         sut.applyDisbursementTransition(event(MobilePaymentProvider.MTN), result);
 
         assertThat(d.getDisbursementStatus()).isEqualTo(DisbursementStatus.FAILED);
-        verify(walletBalanceService).release(eq(1001L), eq(new BigDecimal("750.00")));
 
         ArgumentCaptor<WebhookEnqueueRequestedEvent> captor =
             ArgumentCaptor.forClass(WebhookEnqueueRequestedEvent.class);
@@ -108,8 +101,7 @@ class DisbursementCallbackTransitionServiceTest {
 
     @Test
     void replayGuard_alreadyTerminal_returnsWithoutSideEffects() {
-        Disbursement d = disbursementInState(DisbursementStatus.SUCCESS,
-            new BigDecimal("750.00"), MobilePaymentProvider.MTN);
+        Disbursement d = disbursementInState(DisbursementStatus.SUCCESS, MobilePaymentProvider.MTN);
         when(repo.findByDisbursementIdForUpdate("dsb-001")).thenReturn(Optional.of(d));
         ProviderResult result = ProviderResult.success("ref-abc", "SUCCESSFUL");
 
@@ -117,7 +109,6 @@ class DisbursementCallbackTransitionServiceTest {
 
         // Status unchanged (still SUCCESS — no IllegalStateTransitionException thrown)
         assertThat(d.getDisbursementStatus()).isEqualTo(DisbursementStatus.SUCCESS);
-        verify(walletBalanceService, never()).release(any(), any());
         verify(eventPublisher, never()).publishEvent(any());
     }
 
@@ -133,9 +124,9 @@ class DisbursementCallbackTransitionServiceTest {
     }
 
     @Test
-    void unknownProviderResult_defaultsToFailed_releasesWallet() {
-        Disbursement d = disbursementInState(DisbursementStatus.PROCESSING,
-            new BigDecimal("750.00"), MobilePaymentProvider.ORANGE);
+    void unknownProviderResult_defaultsToFailed_publishesFailedEvent() {
+        // SCHEMA-03: wallet release removed — only state transition + event publish
+        Disbursement d = disbursementInState(DisbursementStatus.PROCESSING, MobilePaymentProvider.ORANGE);
         when(repo.findByDisbursementIdForUpdate("dsb-001")).thenReturn(Optional.of(d));
         // Orange raw status "PENDING" maps to PROCESSING — defensive fallback path
         // resolveTarget defaults non-SUCCESS mapped statuses to DisbursementStatus.FAILED
@@ -144,7 +135,6 @@ class DisbursementCallbackTransitionServiceTest {
         sut.applyDisbursementTransition(event(MobilePaymentProvider.ORANGE), result);
 
         assertThat(d.getDisbursementStatus()).isEqualTo(DisbursementStatus.FAILED);
-        verify(walletBalanceService).release(eq(1001L), eq(new BigDecimal("750.00")));
         ArgumentCaptor<WebhookEnqueueRequestedEvent> captor =
             ArgumentCaptor.forClass(WebhookEnqueueRequestedEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());

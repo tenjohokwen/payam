@@ -21,6 +21,8 @@ public class TestDataCleaner {
             jdbcTemplate.execute("DELETE FROM main.reconciliation_discrepancy");
             jdbcTemplate.execute("DELETE FROM main.reconciliation_report");
             jdbcTemplate.execute("DELETE FROM main.transaction");
+            jdbcTemplate.execute("DELETE FROM main.disbursement_transaction_ref_aud");  // NEW (V31)
+            jdbcTemplate.execute("DELETE FROM main.disbursement_transaction_ref");      // NEW (V31)
             jdbcTemplate.execute("DELETE FROM main.disbursement_aud");
             jdbcTemplate.execute("DELETE FROM main.disbursement");
             jdbcTemplate.execute("DELETE FROM main.merchant_wallet_balance_aud");

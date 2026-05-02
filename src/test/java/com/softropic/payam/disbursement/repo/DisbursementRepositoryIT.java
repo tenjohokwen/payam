@@ -42,7 +42,7 @@ class DisbursementRepositoryIT {
             .disbursementId(dsbId).tenantId(1001L).recipientMsisdn("237691111111")
             .amount(new BigDecimal("100.00")).currency("XAF").reference(reference)
             .disbursementStatus(status).provider(prov).providerRef(providerRef)
-            .reservedAmount(new BigDecimal("100.00")).build();
+            .build();
         return template.execute(s -> repo.saveAndFlush(d));
     }
 

@@ -131,11 +131,11 @@ class OrangeDisbursementCallbackControllerIT {
                 "INSERT INTO main.disbursement " +
                 "(id, created_by, created_date, last_modified_by, last_modified_date, " +
                 " request_id, status, disbursement_id, tenant_id, recipient_msisdn, amount, currency, " +
-                " reference, disbursement_status, provider, provider_ref, reserved_amount, poll_attempts) " +
+                " reference, disbursement_status, provider, provider_ref, poll_attempts) " +
                 "VALUES (?, 'TEST', NOW(), 'TEST', NOW(), gen_random_uuid()::text, 'ACTIVE', ?, ?, '237691111111', 700.00, 'XAF', " +
-                " 'merch-ref-orange-1', 'PROCESSING', ?, ?, ?, 0)",
+                " 'merch-ref-orange-1', 'PROCESSING', ?, ?, 0)",
                 System.nanoTime() & Long.MAX_VALUE, dsbId, TENANT_ID,
-                provider.name(), providerRef, RESERVED);
+                provider.name(), providerRef);
             return null;
         });
         return dsbId;

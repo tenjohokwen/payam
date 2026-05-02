@@ -92,7 +92,7 @@ class OrangeMoneyPortDisbursementCallbackTest {
             .disbursementId(dsbId).tenantId(1001L).recipientMsisdn("237691111111")
             .amount(new BigDecimal("100")).currency("XAF").reference("merchant-ref-1")
             .provider(MobilePaymentProvider.ORANGE).providerRef(providerRef)
-            .reservedAmount(new BigDecimal("100")).pollAttempts(0).build();
+            .pollAttempts(0).build();
     }
 
     @Test

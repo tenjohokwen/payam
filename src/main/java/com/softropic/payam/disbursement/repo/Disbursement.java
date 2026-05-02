@@ -67,9 +67,6 @@ public class Disbursement extends AbstractAuditingEntity {
     @Column(name = "idempotency_key", length = 255)
     private String idempotencyKey;
 
-    @Column(name = "reserved_amount", precision = 20, scale = 2)
-    private BigDecimal reservedAmount;
-
     @Column(columnDefinition = "TEXT")
     private String metadata;
 

@@ -82,7 +82,7 @@ class MtnMoMoPortDisbursementCallbackTest {
             .disbursementId(dsbId).tenantId(1001L).recipientMsisdn("237691111111")
             .amount(new BigDecimal("100")).currency("XAF").reference("ref-001")
             .provider(MobilePaymentProvider.MTN).providerRef(providerRef)
-            .reservedAmount(new BigDecimal("100")).pollAttempts(0).build();
+            .pollAttempts(0).build();
     }
 
     @Test

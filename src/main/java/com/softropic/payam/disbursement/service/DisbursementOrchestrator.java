@@ -12,11 +12,9 @@ import com.softropic.payam.disbursement.contract.DisbursementRequest;
 import com.softropic.payam.disbursement.contract.DisbursementResponse;
 import com.softropic.payam.disbursement.contract.DisbursementStatus;
 import com.softropic.payam.disbursement.contract.exception.DailyLimitExceededException;
-import com.softropic.payam.disbursement.contract.exception.InsufficientBalanceException;
 import com.softropic.payam.disbursement.contract.exception.VelocityExceededException;
 import com.softropic.payam.disbursement.repo.Disbursement;
 import com.softropic.payam.disbursement.repo.DisbursementRepository;
-import com.softropic.payam.fee.service.FeeEvaluationService;
 import com.softropic.payam.fraud.contract.FraudDecision;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
@@ -82,8 +80,6 @@ public class DisbursementOrchestrator {
     private final MsisdnRouter msisdnRouter;
     private final DisbursementVelocityService velocityService;
     private final DisbursementFraudEvaluationService fraudService;
-    private final FeeEvaluationService feeService;
-    private final WalletBalanceService walletBalanceService;
     private final DisbursementService disbursementService;
     private final DisbursementRepository disbursementRepository;
     private final MtnMoMoPort mtnPort;
@@ -94,8 +90,6 @@ public class DisbursementOrchestrator {
                                     MsisdnRouter msisdnRouter,
                                     DisbursementVelocityService velocityService,
                                     DisbursementFraudEvaluationService fraudService,
-                                    FeeEvaluationService feeService,
-                                    WalletBalanceService walletBalanceService,
                                     DisbursementService disbursementService,
                                     DisbursementRepository disbursementRepository,
                                     MtnMoMoPort mtnPort,
@@ -105,8 +99,6 @@ public class DisbursementOrchestrator {
         this.msisdnRouter = msisdnRouter;
         this.velocityService = velocityService;
         this.fraudService = fraudService;
-        this.feeService = feeService;
-        this.walletBalanceService = walletBalanceService;
         this.disbursementService = disbursementService;
         this.disbursementRepository = disbursementRepository;
         this.mtnPort = mtnPort;
@@ -169,29 +161,18 @@ public class DisbursementOrchestrator {
                     "Disbursement blocked: " + fraud.reason());
         }
 
-        // ── Step 5: Fee evaluation ───────────────────────────────────────────────────
-        BigDecimal fee = feeService.evaluateFee(tenantId, request.amount());
-        BigDecimal totalAmount = request.amount().add(fee != null ? fee : BigDecimal.ZERO);
+        // ── Step 5: Fee evaluation — disbursements carry no fee (FEE-01) ─────────────
+        BigDecimal fee = BigDecimal.ZERO;
+        BigDecimal totalAmount = request.amount();
 
-        // ── Step 6: Reserve wallet balance (inside TransactionTemplate) ──────────────
-        try {
-            transactionTemplate.execute(status -> {
-                walletBalanceService.checkAndReserve(tenantId, totalAmount);
-                return null;
-            });
-        } catch (InsufficientBalanceException e) {
-            return DisbursementResponse.failed(null,
-                    DisbursementOrchestratorError.INSUFFICIENT_BALANCE.getErrorCode(), e.getMessage());
-        }
-
-        // ── Step 7: Determine flow — step-up gate (SEC-04) ──────────────────────────
+        // ── Step 6: Determine flow — step-up gate (SEC-04) ──────────────────────────
         boolean stepUp = request.amount().compareTo(STEP_UP_THRESHOLD) > 0;
         DisbursementStatus initialStatus = stepUp
                 ? DisbursementStatus.PENDING_CONFIRMATION
                 : DisbursementStatus.INITIATED;
 
-        // ── Step 8: Create Disbursement row ─────────────────────────────────────────
-        Disbursement dsb = disbursementService.create(tenantId, provider, request, totalAmount, initialStatus);
+        // ── Step 7: Create Disbursement row ─────────────────────────────────────────
+        Disbursement dsb = disbursementService.create(tenantId, provider, request, initialStatus);
         String disbursementId = dsb.getDisbursementId();
 
         if (stepUp) {
@@ -234,8 +215,9 @@ public class DisbursementOrchestrator {
         }
 
         // Reconstruct pseudo-request from stored disbursement data for the dispatch tail
-        BigDecimal fee = dsb.getReservedAmount().subtract(dsb.getAmount());
-        BigDecimal totalAmount = dsb.getReservedAmount();
+        // FEE-01: disbursements carry no fee
+        BigDecimal fee = BigDecimal.ZERO;
+        BigDecimal totalAmount = dsb.getAmount();
 
         DisbursementRequest pseudoRequest = new DisbursementRequest(
                 dsb.getRecipientMsisdn(), dsb.getAmount(), dsb.getCurrency(),
@@ -341,23 +323,10 @@ public class DisbursementOrchestrator {
     }
 
     /**
-     * Release wallet reservation AND transition disbursement to FAILED.
-     * Each operation runs in its own TransactionTemplate to ensure independent commit.
+     * Transition disbursement to FAILED. No wallet release — wallet model retired in v11 (SCHEMA-03).
      * Errors are swallowed + logged — the original failure response is returned regardless.
-     *
-     * IMPORTANT: ONLY called for FAILED paths (BAL-02). NEVER called for EXPIRED (BAL-03).
      */
     private void releaseAndFail(Long tenantId, BigDecimal totalAmount, String disbursementId) {
-        try {
-            transactionTemplate.execute(st -> {
-                walletBalanceService.release(tenantId, totalAmount);
-                return null;
-            });
-        } catch (Exception ex) {
-            log.error("Failed to release wallet reservation",
-                    kv("operation", "dsb_release"),
-                    kv("disbursementId", disbursementId), ex);
-        }
         try {
             transactionTemplate.execute(st -> {
                 disbursementService.transitionToFailed(disbursementId);

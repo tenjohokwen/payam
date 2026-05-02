@@ -192,17 +192,16 @@ class DisbursementExpiryJobIT {
                 "INSERT INTO main.disbursement " +
                 "(id, created_by, created_date, last_modified_by, last_modified_date, " +
                 "request_id, status, disbursement_id, tenant_id, recipient_msisdn, " +
-                "amount, currency, reference, disbursement_status, provider, idempotency_key, " +
-                "reserved_amount) VALUES (?, 'TEST', NOW() - INTERVAL '" + interval +
+                "amount, currency, reference, disbursement_status, provider, idempotency_key) " +
+                "VALUES (?, 'TEST', NOW() - INTERVAL '" + interval +
                 "', 'TEST', NOW() - INTERVAL '" + interval + "', gen_random_uuid()::text, " +
-                "'ACTIVE', ?, ?, '+237671234567', ?, 'XAF', 'REF', ?, 'MTN', ?, ?)",
+                "'ACTIVE', ?, ?, '+237671234567', ?, 'XAF', 'REF', ?, 'MTN', ?)",
                 id,                                           // id
                 disbId,                                       // disbursement_id
                 tenantId,                                     // tenant_id
                 amount,                                       // amount
                 status.name(),                                // disbursement_status
-                "IDEM-" + disbId.substring(0, 8),            // idempotency_key
-                reserved);                                    // reserved_amount
+                "IDEM-" + disbId.substring(0, 8));            // idempotency_key
             return null;
         });
     }

@@ -8,11 +8,9 @@ import com.softropic.payam.disbursement.contract.DisbursementRequest;
 import com.softropic.payam.disbursement.contract.DisbursementResponse;
 import com.softropic.payam.disbursement.contract.DisbursementStatus;
 import com.softropic.payam.disbursement.contract.exception.DailyLimitExceededException;
-import com.softropic.payam.disbursement.contract.exception.InsufficientBalanceException;
 import com.softropic.payam.disbursement.contract.exception.VelocityExceededException;
 import com.softropic.payam.disbursement.repo.Disbursement;
 import com.softropic.payam.disbursement.repo.DisbursementRepository;
-import com.softropic.payam.fee.service.FeeEvaluationService;
 import com.softropic.payam.fraud.contract.FraudDecision;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
@@ -49,15 +47,12 @@ class DisbursementOrchestratorTest {
     private static final String ORANGE_MSISDN = "+237691234567";
     private static final BigDecimal SMALL_AMOUNT = BigDecimal.valueOf(5000);
     private static final BigDecimal STEP_UP_AMOUNT = BigDecimal.valueOf(600_000);
-    private static final BigDecimal FEE = BigDecimal.valueOf(50);
     private static final String DSB_ID = "test-dsb-id-123";
 
     @Mock DisbursementIdempotencyService idempotencyService;
     @Mock MsisdnRouter msisdnRouter;
     @Mock DisbursementVelocityService velocityService;
     @Mock DisbursementFraudEvaluationService fraudService;
-    @Mock FeeEvaluationService feeService;
-    @Mock WalletBalanceService walletBalanceService;
     @Mock DisbursementService dsbService;
     @Mock DisbursementRepository disbursementRepository;
     @Mock MtnMoMoPort mtnPort;
@@ -70,12 +65,11 @@ class DisbursementOrchestratorTest {
         return new DisbursementRequest(msisdn, amount, "XAF", "REF-001", null, null, "IDEM-001");
     }
 
-    private Disbursement mockDisbursement(String id, DisbursementStatus status, BigDecimal amount, BigDecimal reserved) {
+    private Disbursement mockDisbursement(String id, DisbursementStatus status, BigDecimal amount) {
         Disbursement dsb = mock(Disbursement.class);
         when(dsb.getDisbursementId()).thenReturn(id);
         when(dsb.getDisbursementStatus()).thenReturn(status);
         when(dsb.getAmount()).thenReturn(amount);
-        when(dsb.getReservedAmount()).thenReturn(reserved);
         when(dsb.getRecipientMsisdn()).thenReturn(MTN_MSISDN);
         when(dsb.getCurrency()).thenReturn("XAF");
         when(dsb.getReference()).thenReturn("REF-001");
@@ -101,9 +95,6 @@ class DisbursementOrchestratorTest {
         // Default: fraud allows through
         lenient().when(fraudService.evaluate(any(), any(), any())).thenReturn(FraudDecision.allow(0));
 
-        // Default: fee is 50
-        lenient().when(feeService.evaluateFee(any(), any())).thenReturn(FEE);
-
         // Default: MTN subscriber active
         lenient().when(mtnPort.validateSubscriber(any())).thenReturn(new SubscriberStatus(true, MTN_MSISDN, "ACTIVE"));
 
@@ -116,9 +107,9 @@ class DisbursementOrchestratorTest {
         // Default: Orange initiateDisbursement returns success
         lenient().when(orangePort.initiateDisbursement(any())).thenReturn(ProviderResult.success("ORANGE-REF-1", "SUCCESS"));
 
-        // Default: dsbService.create returns a mocked disbursement
-        Disbursement defaultDsb = mockDisbursement(DSB_ID, DisbursementStatus.INITIATED, SMALL_AMOUNT, SMALL_AMOUNT.add(FEE));
-        lenient().when(dsbService.create(any(), any(), any(), any(), any())).thenReturn(defaultDsb);
+        // Default: dsbService.create returns a mocked disbursement (FEE-01: no fee)
+        Disbursement defaultDsb = mockDisbursement(DSB_ID, DisbursementStatus.INITIATED, SMALL_AMOUNT);
+        lenient().when(dsbService.create(any(), any(), any(), any())).thenReturn(defaultDsb);
 
         // Default: TransactionTemplate executes the lambda inline
         lenient().when(transactionTemplate.execute(any())).thenAnswer(inv -> {
@@ -143,7 +134,6 @@ class DisbursementOrchestratorTest {
         assertThat(response.disbursementId()).isEqualTo(DSB_ID);
         assertThat(response.errorCode()).isNull();
         verify(mtnPort).initiateDisbursement(any());
-        verify(walletBalanceService).checkAndReserve(eq(TENANT_ID), any());
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
@@ -152,8 +142,8 @@ class DisbursementOrchestratorTest {
 
     @Test
     void initiate_happyPath_orange_returnsAcceptedProcessing() {
-        Disbursement orangeDsb = mockDisbursement(DSB_ID, DisbursementStatus.INITIATED, SMALL_AMOUNT, SMALL_AMOUNT.add(FEE));
-        when(dsbService.create(any(), any(), any(), any(), any())).thenReturn(orangeDsb);
+        Disbursement orangeDsb = mockDisbursement(DSB_ID, DisbursementStatus.INITIATED, SMALL_AMOUNT);
+        when(dsbService.create(any(), any(), any(), any())).thenReturn(orangeDsb);
 
         DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, ORANGE_MSISDN));
 
@@ -171,7 +161,7 @@ class DisbursementOrchestratorTest {
         // Simulate a completed cached response
         String cachedJson = "{\"disbursementId\":\"cached-dsb\",\"status\":\"PROCESSING\","
                 + "\"providerRef\":\"PROV-REF\",\"recipientMsisdn\":\"+237671234567\","
-                + "\"amount\":5000,\"fee\":50,\"currency\":\"XAF\",\"reference\":\"REF-001\","
+                + "\"amount\":5000,\"fee\":0,\"currency\":\"XAF\",\"reference\":\"REF-001\","
                 + "\"provider\":\"MTN\",\"errorCode\":null,\"errorMessage\":null}";
         when(idempotencyService.checkAndReserve(any(), any()))
                 .thenReturn(Optional.of(new CachedResponse(202, cachedJson)));
@@ -181,7 +171,7 @@ class DisbursementOrchestratorTest {
         assertThat(response.status()).isEqualTo("PROCESSING");
         assertThat(response.disbursementId()).isEqualTo("cached-dsb");
         // None of the downstream services should be called
-        verifyNoInteractions(msisdnRouter, velocityService, fraudService, walletBalanceService, mtnPort, orangePort);
+        verifyNoInteractions(msisdnRouter, velocityService, fraudService, mtnPort, orangePort);
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
@@ -196,150 +186,126 @@ class DisbursementOrchestratorTest {
         DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
 
         assertThat(response.errorCode()).isEqualTo(DisbursementOrchestratorError.DISBURSEMENT_ALREADY_PROCESSING.getErrorCode());
-        verifyNoInteractions(msisdnRouter, velocityService, fraudService, walletBalanceService, mtnPort, orangePort);
+        verifyNoInteractions(msisdnRouter, velocityService, fraudService, mtnPort, orangePort);
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
-    // Test 5: Unknown MSISDN prefix → UNKNOWN_MSISDN_PREFIX; balance NEVER touched
+    // Test 5: Unknown MSISDN prefix → UNKNOWN_MSISDN_PREFIX
     // ────────────────────────────────────────────────────────────────────────────────
 
     @Test
-    void initiate_unknownMsisdnPrefix_returnsFailedNoBalanceTouched() {
+    void initiate_unknownMsisdnPrefix_returnsFailed() {
         String unknownMsisdn = "+237999999999";
         when(msisdnRouter.resolve(eq(unknownMsisdn))).thenThrow(new UnknownMsisdnPrefixException(unknownMsisdn));
 
         DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, unknownMsisdn));
 
         assertThat(response.errorCode()).isEqualTo(DisbursementOrchestratorError.UNKNOWN_MSISDN_PREFIX.getErrorCode());
-        verify(walletBalanceService, never()).checkAndReserve(any(), any());
         verifyNoInteractions(mtnPort, orangePort);
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
-    // Test 6: Velocity exceeded → VELOCITY_EXCEEDED; balance NEVER touched
+    // Test 6: Velocity exceeded → VELOCITY_EXCEEDED
     // ────────────────────────────────────────────────────────────────────────────────
 
     @Test
-    void initiate_velocityExceeded_returnsFailedNoBalanceTouched() {
+    void initiate_velocityExceeded_returnsFailed() {
         doThrow(new VelocityExceededException("minute limit"))
                 .when(velocityService).checkTenantVelocity(any());
 
         DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
 
         assertThat(response.errorCode()).isEqualTo(DisbursementOrchestratorError.VELOCITY_EXCEEDED.getErrorCode());
-        verify(walletBalanceService, never()).checkAndReserve(any(), any());
         verifyNoInteractions(mtnPort, orangePort);
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
-    // Test 7: Daily MSISDN limit exceeded → DAILY_LIMIT_EXCEEDED; balance NEVER touched
+    // Test 7: Daily MSISDN limit exceeded → DAILY_LIMIT_EXCEEDED
     // ────────────────────────────────────────────────────────────────────────────────
 
     @Test
-    void initiate_dailyLimitExceeded_returnsFailedNoBalanceTouched() {
+    void initiate_dailyLimitExceeded_returnsFailed() {
         doThrow(new DailyLimitExceededException("daily limit"))
                 .when(velocityService).checkMsisdnDailyLimit(any(), any());
 
         DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
 
         assertThat(response.errorCode()).isEqualTo(DisbursementOrchestratorError.DAILY_LIMIT_EXCEEDED.getErrorCode());
-        verify(walletBalanceService, never()).checkAndReserve(any(), any());
         verifyNoInteractions(mtnPort, orangePort);
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
-    // Test 8: Fraud blocked → FRAUD_BLOCK; balance NEVER touched
+    // Test 8: Fraud blocked → FRAUD_BLOCK
     // ────────────────────────────────────────────────────────────────────────────────
 
     @Test
-    void initiate_fraudBlocked_returnsFailedNoBalanceTouched() {
+    void initiate_fraudBlocked_returnsFailed() {
         when(fraudService.evaluate(any(), any(), any())).thenReturn(FraudDecision.block(95, "BLOCKLIST_MSISDN"));
 
         DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
 
         assertThat(response.errorCode()).isEqualTo(DisbursementOrchestratorError.FRAUD_BLOCK.getErrorCode());
-        verify(walletBalanceService, never()).checkAndReserve(any(), any());
         verifyNoInteractions(mtnPort, orangePort);
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
-    // Test 9: Insufficient balance → INSUFFICIENT_BALANCE
+    // Test 9: Recipient inactive → RECIPIENT_NOT_FOUND; transitionToFailed called
+    // (FEE-01 / SCHEMA-03: wallet model retired; no balance release)
     // ────────────────────────────────────────────────────────────────────────────────
 
     @Test
-    void initiate_insufficientBalance_returnsFailedFromException() {
-        doThrow(new InsufficientBalanceException("balance too low"))
-                .when(walletBalanceService).checkAndReserve(any(), any());
-
-        DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
-
-        assertThat(response.errorCode()).isEqualTo(DisbursementOrchestratorError.INSUFFICIENT_BALANCE.getErrorCode());
-        verifyNoInteractions(mtnPort, orangePort);
-    }
-
-    // ────────────────────────────────────────────────────────────────────────────────
-    // Test 10: Recipient inactive → RECIPIENT_NOT_FOUND; release + transitionToFailed called
-    // ────────────────────────────────────────────────────────────────────────────────
-
-    @Test
-    void initiate_recipientInactive_releasesBalanceAndTransitionsToFailed() {
+    void initiate_recipientInactive_transitionsToFailed() {
         when(mtnPort.validateSubscriber(any())).thenReturn(new SubscriberStatus(false, MTN_MSISDN, "INACTIVE"));
 
         DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
 
         assertThat(response.errorCode()).isEqualTo(DisbursementOrchestratorError.RECIPIENT_NOT_FOUND.getErrorCode());
-        verify(walletBalanceService).release(eq(TENANT_ID), any());
         verify(dsbService).transitionToFailed(eq(DSB_ID));
         verify(mtnPort, never()).initiateDisbursement(any());
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
-    // Test 11: Provider throws RuntimeException → PROVIDER_ERROR; release + transitionToFailed
+    // Test 10: Provider throws RuntimeException → PROVIDER_ERROR; transitionToFailed called
     // ────────────────────────────────────────────────────────────────────────────────
 
     @Test
-    void initiate_providerThrows_releasesBalanceAndTransitionsToFailed() {
+    void initiate_providerThrows_transitionsToFailed() {
         when(mtnPort.initiateDisbursement(any())).thenThrow(new RuntimeException("provider boom"));
 
         DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
 
         assertThat(response.errorCode()).isEqualTo(DisbursementOrchestratorError.PROVIDER_ERROR.getErrorCode());
-        verify(walletBalanceService).release(eq(TENANT_ID), any());
         verify(dsbService).transitionToFailed(eq(DSB_ID));
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
-    // Test 12: Amount > 500,000 → PENDING_CONFIRMATION; no provider call; balance IS reserved
+    // Test 11: Amount > 500,000 → PENDING_CONFIRMATION; no provider call
+    // (FEE-01 / SCHEMA-03: no wallet reservation — wallet model retired)
     // ────────────────────────────────────────────────────────────────────────────────
 
     @Test
     void initiate_amountAbove500000_returnsPendingConfirmation_skipsProvider() {
-        Disbursement stepUpDsb = mockDisbursement(DSB_ID, DisbursementStatus.PENDING_CONFIRMATION,
-                STEP_UP_AMOUNT, STEP_UP_AMOUNT.add(FEE));
-        when(dsbService.create(any(), any(), any(), any(), eq(DisbursementStatus.PENDING_CONFIRMATION)))
+        Disbursement stepUpDsb = mockDisbursement(DSB_ID, DisbursementStatus.PENDING_CONFIRMATION, STEP_UP_AMOUNT);
+        when(dsbService.create(any(), any(), any(), eq(DisbursementStatus.PENDING_CONFIRMATION)))
                 .thenReturn(stepUpDsb);
 
         DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(STEP_UP_AMOUNT, MTN_MSISDN));
 
         assertThat(response.status()).isEqualTo("PENDING_CONFIRMATION");
         assertThat(response.errorCode()).isNull();
-        // Balance IS reserved (step-up: funds held before confirmation)
-        verify(walletBalanceService).checkAndReserve(eq(TENANT_ID), any());
         // Provider is NOT called
         verify(mtnPort, never()).initiateDisbursement(any());
         verify(mtnPort, never()).validateSubscriber(any());
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
-    // Test 13: confirm — PENDING_CONFIRMATION → validates subscriber + dispatches → PROCESSING
+    // Test 12: confirm — PENDING_CONFIRMATION → validates subscriber + dispatches → PROCESSING
     // ────────────────────────────────────────────────────────────────────────────────
 
     @Test
     void confirm_pendingConfirmationStatus_validatesAndDispatches() {
         BigDecimal principal = BigDecimal.valueOf(600_000);
-        BigDecimal fee = BigDecimal.valueOf(50);
-        BigDecimal reserved = principal.add(fee);
-        Disbursement pendingDsb = mockDisbursement(DSB_ID, DisbursementStatus.PENDING_CONFIRMATION, principal, reserved);
+        Disbursement pendingDsb = mockDisbursement(DSB_ID, DisbursementStatus.PENDING_CONFIRMATION, principal);
 
         when(disbursementRepository.findByTenantIdAndDisbursementId(eq(TENANT_ID), eq(DSB_ID)))
                 .thenReturn(Optional.of(pendingDsb));
@@ -353,13 +319,12 @@ class DisbursementOrchestratorTest {
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
-    // Test 14: confirm — non-PENDING_CONFIRMATION status → INVALID_STATE
+    // Test 13: confirm — non-PENDING_CONFIRMATION status → INVALID_STATE
     // ────────────────────────────────────────────────────────────────────────────────
 
     @Test
     void confirm_nonPendingStatus_returnsInvalidState() {
-        Disbursement processingDsb = mockDisbursement(DSB_ID, DisbursementStatus.PROCESSING,
-                SMALL_AMOUNT, SMALL_AMOUNT.add(FEE));
+        Disbursement processingDsb = mockDisbursement(DSB_ID, DisbursementStatus.PROCESSING, SMALL_AMOUNT);
         when(disbursementRepository.findByTenantIdAndDisbursementId(eq(TENANT_ID), eq(DSB_ID)))
                 .thenReturn(Optional.of(processingDsb));
 
@@ -370,7 +335,7 @@ class DisbursementOrchestratorTest {
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
-    // Test 15: confirm — disbursement not found → INVALID_STATE
+    // Test 14: confirm — disbursement not found → INVALID_STATE
     // ────────────────────────────────────────────────────────────────────────────────
 
     @Test

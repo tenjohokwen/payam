@@ -146,9 +146,8 @@ public class DisbursementResource {
     }
 
     private DisbursementListItem toListItem(Disbursement d) {
-        BigDecimal fee = d.getReservedAmount() != null && d.getAmount() != null
-                ? d.getReservedAmount().subtract(d.getAmount())
-                : BigDecimal.ZERO;
+        // FEE-01: disbursements carry no fee — wallet model retired in v11 (SCHEMA-03)
+        BigDecimal fee = BigDecimal.ZERO;
         Instant completedAt = (d.getDisbursementStatus() == DisbursementStatus.SUCCESS
                             || d.getDisbursementStatus() == DisbursementStatus.FAILED
                             || d.getDisbursementStatus() == DisbursementStatus.EXPIRED)

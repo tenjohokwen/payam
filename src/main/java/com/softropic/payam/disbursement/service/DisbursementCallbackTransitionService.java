@@ -43,15 +43,12 @@ public class DisbursementCallbackTransitionService {
         LoggerFactory.getLogger(DisbursementCallbackTransitionService.class);
 
     private final DisbursementRepository disbursementRepository;
-    private final WalletBalanceService walletBalanceService;
     private final ApplicationEventPublisher eventPublisher;
 
     public DisbursementCallbackTransitionService(
             DisbursementRepository disbursementRepository,
-            WalletBalanceService walletBalanceService,
             ApplicationEventPublisher eventPublisher) {
         this.disbursementRepository = disbursementRepository;
-        this.walletBalanceService = walletBalanceService;
         this.eventPublisher = eventPublisher;
     }
 
@@ -91,24 +88,12 @@ public class DisbursementCallbackTransitionService {
         locked.applyTransition(target);
         disbursementRepository.save(locked);
 
-        // BAL-02: release ONLY for FAILED. SUCCESS keeps the reservation as committed spend.
-        // EXPIRED is reserved for the expiry job (BAL-03) — never reached via this method
-        // because allowedTransitions does not include EXPIRED on a callback-driven path.
-        if (target == DisbursementStatus.FAILED) {
-            walletBalanceService.release(locked.getTenantId(), locked.getReservedAmount());
-            log.info("Disbursement transition committed",
-                kv("operation", "dsb_callback_transition"),
-                kv("disbursementId", event.transactionId()),
-                kv("toState", target.name()),
-                kv("walletReleased", locked.getReservedAmount()),
-                kv("actor", "DSB_CALLBACK"));
-        } else {
-            log.info("Disbursement transition committed",
-                kv("operation", "dsb_callback_transition"),
-                kv("disbursementId", event.transactionId()),
-                kv("toState", target.name()),
-                kv("actor", "DSB_CALLBACK"));
-        }
+        // Wallet model retired in v11 (SCHEMA-03) — no wallet release on FAILED callback.
+        log.info("Disbursement transition committed",
+            kv("operation", "dsb_callback_transition"),
+            kv("disbursementId", event.transactionId()),
+            kv("toState", target.name()),
+            kv("actor", "DSB_CALLBACK"));
 
         // SEC-06: outbound webhook event types preserve the existing OutboundWebhookPayload
         // contains-check fallback ("DISBURSEMENT_COMPLETED" contains nothing matching "SUCCESS",
