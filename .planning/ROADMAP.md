@@ -610,7 +610,7 @@ Plans:
 | 51. Orchestrator & Public API | v10 | 2/4 | Complete | 2026-04-25 |
 | 52. Callbacks & Outbound Webhooks | v10 | 4/4 | Complete | 2026-04-27 |
 | 53. E2E Test Suite | v10 | 6/6 | Complete | 2026-04-28 |
-| 54. V31 Schema Migration | v11 | 0/? | Not started | - |
+| 54. V31 Schema Migration | v11 | 1/3 | In Progress|  |
 | 55. Transaction Validation & Fee Removal | v11 | 0/? | Not started | - |
 | 56. Claim Lifecycle & Admin Approval | v11 | 0/? | Not started | - |
 | 57. Idempotency Retry Recovery & V32 Migration Scaffold | v11 | 0/? | Not started | - |

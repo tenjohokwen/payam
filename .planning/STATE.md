@@ -1,16 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v11
-milestone_name: Transaction-Backed Disbursements
-status: roadmapped
-stopped_at: Roadmap created — Phase 54 is next
-last_updated: "2026-05-01T00:00:00.000Z"
-last_activity: 2026-05-01
+milestone: v1.0.2
+milestone_name: milestone
+status: planning
+last_updated: "2026-05-02T08:41:21.961Z"
+last_activity: 2026-05-01 — v11 roadmap created (5 phases, 24 requirements mapped)
 progress:
-  total_phases: 5
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 29
+  completed_phases: 15
+  total_plans: 47
+  completed_plans: 45
   percent: 0
 ---
 
@@ -25,12 +24,12 @@ See: .planning/PROJECT.md (updated 2026-05-01 — v11 milestone started)
 
 ## Current Position
 
-Phase: 54 (not started)
-Plan: —
-Status: Roadmapped — ready to plan Phase 54
-Last activity: 2026-05-01 — v11 roadmap created (5 phases, 24 requirements mapped)
+Phase: 54
+Plan: 01 complete — Plan 02 is next (V31 Flyway migration)
+Status: In progress — Phase 54 Plan 01 complete
+Last activity: 2026-05-02 — Phase 54 Plan 01 complete (Wave 0: entity + repository + IT scaffold)
 
-Progress: [░░░░░░░░░░] 0% (0/5 phases complete)
+Progress: [██████████] 96% (45/47 plans complete)
 
 ## Performance Metrics
 
@@ -60,6 +59,10 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - Retry reactivates existing RELEASED `DisbursementTransactionRef` rows (no new inserts) to preserve audit trail
 - V31 migration must include pre-flight assertion: no PROCESSING/PENDING_CONFIRMATION disbursements exist before migration
 - V32 migration drops `merchant_wallet_balance` and `merchant_wallet_balance_aud` — scaffolded in Phase 57, not run until ops confirm all pre-V31 disbursements are terminal
+- [Phase 54-01]: DisbursementRefStatus placed in disbursement/contract (not repo) — mirrors DisbursementStatus placement; business-domain state not a persistence artifact
+- [Phase 54-01]: DisbursementTransactionRef.transactionId typed as String/VARCHAR(36) — matches ledger_entry.transaction_id convention; no cross-table FK on non-PK column
+- [Phase 54-01]: Repository left as minimal JpaRepository stub — query methods deferred to Phase 55; Wave 0 strictly compile-only
+- [Phase 54-01]: DisbursementTransactionRefIT intentionally fails before Plan 02 applies V31 DDL — Wave 0 RED state is by design
 
 ### v11 Phase Map
 
@@ -70,6 +73,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 | 56 | Claim Lifecycle & Admin Approval | CLAIM-01, CLAIM-02, CLAIM-03, CLAIM-04, CLAIM-05, ADMIN-01, ADMIN-02, ADMIN-03, ALERT-01 |
 | 57 | Idempotency Retry Recovery & V32 Migration Scaffold | IDEM-01, IDEM-02, IDEM-03, SCHEMA-04 |
 | 58 | Integration & E2E Test Suite | cross-cutting quality gate |
+| Phase 54 P01 | 833 | 3 tasks | 4 files |
 
 ### Pending Todos
 

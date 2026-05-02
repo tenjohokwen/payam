@@ -50,9 +50,9 @@
 
 ### SCHEMA — Database Migrations
 
-- [ ] **SCHEMA-01**: V31 migration creates `disbursement_transaction_ref` table with columns (`id` UUID PK, `disbursement_id` UUID FK, `transaction_id` UUID FK, `ref_status` ENUM, `created_date` TIMESTAMP) and a partial unique index on `(transaction_id)` WHERE `ref_status IN ('PENDING', 'CLAIMED')` — enforces TXN-03 at the database level
-- [ ] **SCHEMA-02**: V31 migration adds `admin_note` (TEXT, nullable) and `retry_count` (INT NOT NULL DEFAULT 0) to the `disbursement` table, and removes the `reserved_amount` column
-- [ ] **SCHEMA-03**: V31 migration includes a pre-flight assertion that no `disbursement` row with `disbursement_status IN ('PROCESSING', 'PENDING_CONFIRMATION')` exists — migration fails fast if found; `merchant_wallet_balance` table is retired at the application layer (all reads/writes removed from code) but the table is not dropped in V31
+- [x] **SCHEMA-01**: V31 migration creates `disbursement_transaction_ref` table with columns (`id` UUID PK, `disbursement_id` UUID FK, `transaction_id` UUID FK, `ref_status` ENUM, `created_date` TIMESTAMP) and a partial unique index on `(transaction_id)` WHERE `ref_status IN ('PENDING', 'CLAIMED')` — enforces TXN-03 at the database level
+- [x] **SCHEMA-02**: V31 migration adds `admin_note` (TEXT, nullable) and `retry_count` (INT NOT NULL DEFAULT 0) to the `disbursement` table, and removes the `reserved_amount` column
+- [x] **SCHEMA-03**: V31 migration includes a pre-flight assertion that no `disbursement` row with `disbursement_status IN ('PROCESSING', 'PENDING_CONFIRMATION')` exists — migration fails fast if found; `merchant_wallet_balance` table is retired at the application layer (all reads/writes removed from code) but the table is not dropped in V31
 - [ ] **SCHEMA-04**: V32 migration drops `merchant_wallet_balance` (and its audit counterpart) after ops confirm all pre-V31 disbursements have reached a terminal state
 
 ---
