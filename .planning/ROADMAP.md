@@ -134,7 +134,7 @@
 
 **Milestone Goal:** Replace the pre-funded wallet-balance model with claim-based locking — every disbursement must be explicitly backed by a set of previously successful collection transactions.
 
-- [ ] **Phase 54: V31 Schema Migration** — `disbursement_transaction_ref` table, `admin_note` + `retry_count` columns, `reserved_amount` removal, `PENDING_ADMIN_APPROVAL` status, pre-flight assertion, `merchant_wallet_balance` application-layer retirement
+- [x] **Phase 54: V31 Schema Migration** — `disbursement_transaction_ref` table, `admin_note` + `retry_count` columns, `reserved_amount` removal, `PENDING_ADMIN_APPROVAL` status, pre-flight assertion, `merchant_wallet_balance` application-layer retirement (completed 2026-05-02)
 - [ ] **Phase 55: Transaction Validation & Fee Removal** — `transactionIds` field on `DisbursementRequest`, claim validation in `DisbursementOrchestrator` (tenant ownership, status, flow, active-claim check, amount equality, deadlock-safe SELECT FOR UPDATE), `FeeEvaluationService` bypass
 - [ ] **Phase 56: Claim Lifecycle & Admin Approval** — Claim state transitions (PENDING→CLAIMED/RELEASED), `PENDING_ADMIN_APPROVAL` flow, Quartz expiry job for admin-approval timeout, Insufficient Funds high-priority alert
 - [ ] **Phase 57: Idempotency Retry Recovery & V32 Migration Scaffold** — RELEASED claim reactivation on retriable-failure retry, `retry_count` increment, terminal error code caching, V32 migration that drops `merchant_wallet_balance`

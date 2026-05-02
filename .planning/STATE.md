@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-02T08:41:21.961Z"
-last_activity: 2026-05-02 — Phase 54 Plan 01 complete (Wave 0: entity + repository + IT scaffold)
+last_updated: "2026-05-02T17:00:00.000Z"
+last_activity: 2026-05-02 — Phase 54 Plan 03 complete (Wave 2: PENDING_ADMIN_APPROVAL enum + wallet retirement completion)
 progress:
   total_phases: 29
   completed_phases: 15
   total_plans: 47
-  completed_plans: 45
-  percent: 0
+  completed_plans: 47
+  percent: 100
 ---
 
 # Project State
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-05-01 — v11 milestone started)
 ## Current Position
 
 Phase: 54
-Plan: 01 complete — Plan 02 is next (V31 Flyway migration)
-Status: In progress — Phase 54 Plan 01 complete
-Last activity: 2026-05-02 — Phase 54 Plan 01 complete (Wave 0: entity + repository + IT scaffold)
+Plan: 03 complete — Phase 54 complete (all 3 plans done)
+Status: Phase 54 complete — ready for Phase 55
+Last activity: 2026-05-02 — Phase 54 Plan 03 complete (Wave 2: PENDING_ADMIN_APPROVAL + wallet model retirement finalized)
 
-Progress: [██████████] 96% (45/47 plans complete)
+Progress: [██████████] 100% (47/47 plans complete)
 
 ## Performance Metrics
 
@@ -63,6 +63,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 54-01]: DisbursementTransactionRef.transactionId typed as String/VARCHAR(36) — matches ledger_entry.transaction_id convention; no cross-table FK on non-PK column
 - [Phase 54-01]: Repository left as minimal JpaRepository stub — query methods deferred to Phase 55; Wave 0 strictly compile-only
 - [Phase 54-01]: DisbursementTransactionRefIT intentionally fails before Plan 02 applies V31 DDL — Wave 0 RED state is by design
+- [Phase 54-03]: PENDING_ADMIN_APPROVAL has no producer in DisbursementOrchestrator yet — Phase 56 ADMIN-01 adds the branch that transitions INTO this state; Plan 03 only declares the state and its outbound transitions {PROCESSING, EXPIRED}
+- [Phase 54-03]: PENDING_ADMIN_APPROVAL.allowedTransitions() excludes FAILED — admin rejection flows through PROCESSING (distinguishes "approved but provider failed" from "admin rejected"); verified via pendingAdminApprovalToFailedThrows test
+- [Phase 54-03]: Phase 54 closes SCHEMA-01 (disbursement_transaction_ref DDL), SCHEMA-02 (admin_note + retry_count columns), SCHEMA-03 (application-layer wallet retirement); WalletBalanceService + MerchantWalletBalance classes survive until Phase 57 V32 migration
 
 ### v11 Phase Map
 

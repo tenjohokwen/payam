@@ -104,9 +104,9 @@
 | IDEM-02 | Phase 57 | — | Pending |
 | IDEM-03 | Phase 57 | — | Pending |
 | ALERT-01 | Phase 56 | — | Pending |
-| SCHEMA-01 | Phase 54 | — | Pending |
-| SCHEMA-02 | Phase 54 | — | Pending |
-| SCHEMA-03 | Phase 54 | — | Pending |
+| SCHEMA-01 | Phase 54 | 54-02 | Complete |
+| SCHEMA-02 | Phase 54 | 54-02 | Complete |
+| SCHEMA-03 | Phase 54 | 54-02, 54-03 | Complete |
 | SCHEMA-04 | Phase 57 | — | Pending |
 
 **Coverage:**
