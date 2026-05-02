@@ -17,6 +17,7 @@ class DisbursementStatusTest {
             .containsExactlyInAnyOrder(
                 DisbursementStatus.INITIATED,
                 DisbursementStatus.PENDING_CONFIRMATION,
+                DisbursementStatus.PENDING_ADMIN_APPROVAL,
                 DisbursementStatus.PROCESSING,
                 DisbursementStatus.SUCCESS,
                 DisbursementStatus.FAILED,
@@ -28,6 +29,7 @@ class DisbursementStatusTest {
         assertThat(DisbursementStatus.INITIATED.allowedTransitions())
             .containsExactlyInAnyOrderElementsOf(
                 EnumSet.of(DisbursementStatus.PENDING_CONFIRMATION,
+                           DisbursementStatus.PENDING_ADMIN_APPROVAL,
                            DisbursementStatus.PROCESSING,
                            DisbursementStatus.FAILED));
     }
@@ -77,6 +79,36 @@ class DisbursementStatusTest {
         // SEC-04 step-up timeout: PENDING_CONFIRMATION -> EXPIRED must be legal
         assertThat(DisbursementStatus.PENDING_CONFIRMATION.transitionTo(DisbursementStatus.EXPIRED))
             .isEqualTo(DisbursementStatus.EXPIRED);
+    }
+
+    @Test
+    void pendingAdminApprovalAllowedTransitions() {
+        // Phase 56 ADMIN-01: admin approval gates progress to PROCESSING; ADMIN-03 expiry to EXPIRED.
+        assertThat(DisbursementStatus.PENDING_ADMIN_APPROVAL.allowedTransitions())
+            .containsExactlyInAnyOrderElementsOf(
+                EnumSet.of(DisbursementStatus.PROCESSING,
+                           DisbursementStatus.EXPIRED));
+    }
+
+    @Test
+    void initiatedToPendingAdminApprovalSucceeds() {
+        assertThat(DisbursementStatus.INITIATED.transitionTo(DisbursementStatus.PENDING_ADMIN_APPROVAL))
+            .isEqualTo(DisbursementStatus.PENDING_ADMIN_APPROVAL);
+    }
+
+    @Test
+    void pendingAdminApprovalToProcessingSucceeds() {
+        assertThat(DisbursementStatus.PENDING_ADMIN_APPROVAL.transitionTo(DisbursementStatus.PROCESSING))
+            .isEqualTo(DisbursementStatus.PROCESSING);
+    }
+
+    @Test
+    void pendingAdminApprovalToFailedThrows() {
+        assertThatThrownBy(() ->
+            DisbursementStatus.PENDING_ADMIN_APPROVAL.transitionTo(DisbursementStatus.FAILED))
+            .isInstanceOf(IllegalStateTransitionException.class)
+            .hasMessageContaining("PENDING_ADMIN_APPROVAL")
+            .hasMessageContaining("FAILED");
     }
 
     @Test
