@@ -75,6 +75,27 @@ public class DisbursementService {
     }
 
     /**
+     * ADMIN-01/ADMIN-02: transition a disbursement to PENDING_ADMIN_APPROVAL and
+     * record an ops-only admin note. Loads the row under PESSIMISTIC_WRITE so
+     * concurrent transitions are serialized.
+     *
+     * @param disbursementId the disbursement UUID
+     * @param adminNote       ops-only note (e.g. "Amount above admin approval threshold X XAF")
+     * @throws IllegalStateException if no matching disbursement found (programmer bug)
+     */
+    @Transactional
+    public void transitionToPendingAdminApproval(String disbursementId, String adminNote) {
+        Disbursement locked = disbursementRepository.findByDisbursementIdForUpdate(disbursementId)
+                .orElseThrow(() -> new IllegalStateException("Disbursement not found: " + disbursementId));
+        locked.applyTransition(DisbursementStatus.PENDING_ADMIN_APPROVAL);
+        locked.setAdminNote(adminNote);
+        log.info("Disbursement transitioned to PENDING_ADMIN_APPROVAL",
+                kv("operation", "dsb_transition"),
+                kv("disbursementId", disbursementId),
+                kv("toStatus", "PENDING_ADMIN_APPROVAL"));
+    }
+
+    /**
      * Transition a disbursement to FAILED (under pessimistic lock). Used by the orchestrator
      * when a provider dispatch failure occurs.
      *
