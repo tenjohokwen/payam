@@ -203,10 +203,8 @@ class MtnDisbursementE2EIT {
             disbursementRepository.findByDisbursementId(disbursementId).orElseThrow()
                 .getDisbursementStatus() == DisbursementStatus.SUCCESS);
 
-        // Derive fee from DB: reserved_amount holds principal+fee; fee = reserved_amount - amount
-        BigDecimal fee = jdbcTemplate.queryForObject(
-            "SELECT (reserved_amount - amount) FROM main.disbursement WHERE disbursement_id = ?",
-            BigDecimal.class, disbursementId);
+        // FEE-01: disbursements carry no fee — fee is always ZERO
+        BigDecimal fee = BigDecimal.ZERO;
 
         // Assert balanced 3-entry ledger: DEBIT MERCHANT_WALLET, CREDIT CUSTOMER_WALLET + PROVIDER_FEE
         new LedgerVerifier(jdbcTemplate).assertDisbursementLedgerBalanced(disbursementId, PRINCIPAL, fee);

@@ -198,11 +198,9 @@ class StepUpConfirmationE2EIT {
         // Provider NOT called — verify ZERO MTN transfer calls
         mtnServer.verify(0, postRequestedFor(urlPathEqualTo("/v1_0/transfer")));
 
-        // Wallet IS reserved — balance reduced from 1,000,000
-        BigDecimal balance = jdbcTemplate.queryForObject(
-            "SELECT balance FROM main.merchant_wallet_balance WHERE tenant_id = ?",
-            BigDecimal.class, tenantId);
-        assertThat(balance).isLessThan(new BigDecimal("1000000"));
+        // Wallet model retired (SCHEMA-03) — orchestrator never modifies merchant_wallet_balance
+        // Balance assertion removed; claim-based locking (DisbursementTransactionRef) is the
+        // authoritative in-flight guard after Phase 55.
 
         // GET /v1/disbursements/{id} → 200, status=PENDING_CONFIRMATION (DISB-02)
         ResponseEntity<String> getResponse = getDisbursement(disbursementId);

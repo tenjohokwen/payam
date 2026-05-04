@@ -14,6 +14,7 @@ import com.softropic.payam.tenant.service.TenantService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -231,6 +232,9 @@ class OrangeDisbursementE2EIT {
     // Test 2: Insufficient balance → 422 INSUFFICIENT_BALANCE; Orange /cashout NOT called
     // ────────────────────────────────────────────────────────────────────────────────
 
+    @Disabled("INSUFFICIENT_BALANCE path retired in SCHEMA-03 — wallet model removed, " +
+              "orchestrator never checks merchant_wallet_balance. " +
+              "Phase 56 ADMIN-02 or Phase 57 IDEM-02 may introduce a replacement guard.")
     @Test
     void insufficientBalance_returns422_andOrangeCashoutNotCalled() {
         // Stub Orange subscriber endpoint only — cashout must NOT be called
