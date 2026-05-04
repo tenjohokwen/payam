@@ -2,7 +2,9 @@ package com.softropic.payam.disbursement.service;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.common.payment.ProviderResult;
+import com.softropic.payam.disbursement.contract.DisbursementRefStatus;
 import com.softropic.payam.disbursement.contract.DisbursementStatus;
+import com.softropic.payam.disbursement.contract.event.InsufficientFundsAlertEvent;
 import com.softropic.payam.disbursement.repo.Disbursement;
 import com.softropic.payam.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.mtn.service.MtnStatusMapper;
@@ -12,6 +14,8 @@ import com.softropic.payam.webhook.contract.WebhookEnqueueRequestedEvent;
 import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
+
+import java.time.Instant;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,14 +31,19 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>Why a separate bean: @Transactional self-invocation bypasses Spring AOP proxy.
  * WebhookDoubleCheckHandler injects this bean and calls applyDisbursementTransition.
  *
- * <p>Atomicity contract: the disbursement state transition AND the wallet release (when
- * target=FAILED) commit in the SAME REQUIRES_NEW transaction. A crash between the two
- * cannot leave the row FAILED with the wallet still reserved (Pitfall 3 in 52-RESEARCH).
+ * <p>Atomicity contract: the disbursement state transition, the claim transition (SUCCESS or
+ * FAILED), and the IF alert (FAILED + Insufficient Funds signal) all commit in the SAME
+ * REQUIRES_NEW transaction (Pitfall 4 in 56-RESEARCH).
  *
  * <p>Idempotent replay guard: if the disbursement is already in a terminal state
  * (allowedTransitions empty), the method silently returns without side effects.
  * This protects against the same callback being delivered twice and the second arrival
  * sneaking past the Redis dedup (e.g. dedup key TTL expired).
+ *
+ * <p>CLAIM-05 invariant: this service produces SUCCESS or FAILED targets only. EXPIRED is
+ * produced by Quartz expiry jobs (DisbursementExpiryJob, admin-approval expiry) and is
+ * NOT handled here. The PROCESSING→EXPIRED path MUST NOT release claims — that invariant
+ * is upheld by design (EXPIRED is never a reachable target via this method).
  */
 @Service
 public class DisbursementCallbackTransitionService {
@@ -44,12 +53,18 @@ public class DisbursementCallbackTransitionService {
 
     private final DisbursementRepository disbursementRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final DisbursementClaimTransitionService claimTransitionService;
+    private final InsufficientFundsDetector insufficientFundsDetector;
 
     public DisbursementCallbackTransitionService(
             DisbursementRepository disbursementRepository,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher,
+            DisbursementClaimTransitionService claimTransitionService,
+            InsufficientFundsDetector insufficientFundsDetector) {
         this.disbursementRepository = disbursementRepository;
         this.eventPublisher = eventPublisher;
+        this.claimTransitionService = claimTransitionService;
+        this.insufficientFundsDetector = insufficientFundsDetector;
     }
 
     /**
@@ -58,12 +73,13 @@ public class DisbursementCallbackTransitionService {
      *
      * <p>REQUIRES_NEW: the @TransactionalEventListener(AFTER_COMMIT) fires when no transaction
      * is active. REQUIRES_NEW creates a fresh independent transaction so the
-     * findByDisbursementIdForUpdate row lock + applyTransition + walletBalanceService.release
+     * findByDisbursementIdForUpdate row lock + applyTransition + claimTransitionService call
      * + event publish all commit atomically.
      *
-     * <p>Atomic scope (BAL-02): on FAILED, walletBalanceService.release runs in this same
-     * transaction. WalletBalanceService.release is @Transactional with default propagation
-     * (REQUIRED) — Spring joins the existing transaction.
+     * <p>Claim transition (CLAIM-02/CLAIM-03): immediately after the disbursement row transitions,
+     * all PENDING claim rows are bulk-updated to CLAIMED (SUCCESS) or RELEASED (FAILED) within
+     * this same REQUIRES_NEW transaction. {@code claimTransitionService} is @Transactional(REQUIRED)
+     * so Spring joins the existing transaction — no nested transaction boundary.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void applyDisbursementTransition(WebhookReceivedEvent event, ProviderResult result) {
@@ -94,6 +110,41 @@ public class DisbursementCallbackTransitionService {
             kv("disbursementId", event.transactionId()),
             kv("toState", target.name()),
             kv("actor", "DSB_CALLBACK"));
+
+        // CLAIM-02 / CLAIM-03: bulk-transition all claims atomically in this same
+        // REQUIRES_NEW transaction. transitionClaims is @Transactional(REQUIRED) so
+        // Spring joins this transaction (Pitfall 4 in 56-RESEARCH.md).
+        // CLAIM-05 invariant: this method only emits SUCCESS or FAILED targets — never
+        // EXPIRED. PROCESSING→EXPIRED via DisbursementStatusPollerJob handles its own
+        // path and MUST NOT release claims. EXPIRED is therefore not handled here by design.
+        if (target == DisbursementStatus.SUCCESS) {
+            claimTransitionService.transitionClaims(
+                    locked.getId(),
+                    DisbursementRefStatus.PENDING,
+                    DisbursementRefStatus.CLAIMED);
+        } else if (target == DisbursementStatus.FAILED) {
+            claimTransitionService.transitionClaims(
+                    locked.getId(),
+                    DisbursementRefStatus.PENDING,
+                    DisbursementRefStatus.RELEASED);
+            // ALERT-01: detect Insufficient Funds error and publish high-priority alert
+            if (insufficientFundsDetector.isInsufficientFunds(result)) {
+                log.warn("Provider Insufficient Funds detected on disbursement",
+                        kv("operation", "dsb_insufficient_funds"),
+                        kv("disbursementId", event.transactionId()),
+                        kv("provider", event.provider()),
+                        kv("errorCode", result.errorCode()));
+                eventPublisher.publishEvent(new InsufficientFundsAlertEvent(
+                        event.transactionId(),
+                        locked.getTenantId(),
+                        event.provider(),
+                        locked.getAmount(),
+                        locked.getCurrency(),
+                        result.errorCode(),
+                        result.errorMessage(),
+                        Instant.now()));
+            }
+        }
 
         // SEC-06: outbound webhook event types preserve the existing OutboundWebhookPayload
         // contains-check fallback ("DISBURSEMENT_COMPLETED" contains nothing matching "SUCCESS",
