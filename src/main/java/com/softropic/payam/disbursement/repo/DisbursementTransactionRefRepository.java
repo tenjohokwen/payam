@@ -3,6 +3,7 @@ package com.softropic.payam.disbursement.repo;
 import com.softropic.payam.disbursement.contract.DisbursementRefStatus;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -31,4 +32,24 @@ public interface DisbursementTransactionRefRepository
     List<String> findClaimedTransactionIds(
         @Param("transactionIds") List<String> transactionIds,
         @Param("statuses") Collection<DisbursementRefStatus> statuses);
+
+    /**
+     * CLAIM-02/03/04: bulk transition all claims of a disbursement from one
+     * ref_status to another. Returns the number of rows updated. A 0 result is
+     * NOT an error — releaseAndFail() may be called before any claim row exists.
+     *
+     * <p>Atomically scoped: only rows where (disbursementId, refStatus) match the
+     * supplied parameters are updated. Other refStatus values (e.g. RELEASED for
+     * an audit-trail row from an earlier retry) are not touched. This is a single
+     * SQL UPDATE — no N+1, no entity load, no @Audited per-row revision noise.
+     */
+    @Modifying
+    @Query("UPDATE DisbursementTransactionRef r " +
+           "SET r.refStatus = :target " +
+           "WHERE r.disbursementId = :disbursementId " +
+           "AND r.refStatus = :current")
+    int updateRefStatusForDisbursement(
+        @Param("disbursementId") Long disbursementId,
+        @Param("current") DisbursementRefStatus current,
+        @Param("target") DisbursementRefStatus target);
 }
