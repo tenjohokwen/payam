@@ -21,6 +21,7 @@ import com.softropic.payam.transaction.repo.TransactionRepository;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -77,7 +78,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         baseUrlProperties = {"orange.base-url", "orange.pay-url"},
         portProperties    = {"wiremock.orange.port"})
 })
-class DisbursementOrchestratorIT {
+    class DisbursementOrchestratorIT {
 
     private static final String MTN_MSISDN    = "+237671234567";
     private static final String ORANGE_MSISDN = "+237691234567";
@@ -219,12 +220,6 @@ class DisbursementOrchestratorIT {
             String.class, response.disbursementId());
         assertThat(dbStatus).isEqualTo("PROCESSING");
 
-        // Verify wallet balance reduced (5000 principal + fee reserved)
-        BigDecimal balance = jdbcTemplate.queryForObject(
-            "SELECT balance FROM main.merchant_wallet_balance WHERE tenant_id = ?",
-            BigDecimal.class, tenantId);
-        assertThat(balance).isLessThan(new BigDecimal("1000000"));
-
         // CLAIM-01: verify PENDING DisbursementTransactionRef rows exist after initiate
         long pendingRefs = transactionRefRepository.findAll().stream()
                 .filter(r -> r.getRefStatus() == DisbursementRefStatus.PENDING)
@@ -294,12 +289,6 @@ class DisbursementOrchestratorIT {
 
         // Provider was NOT called (no transfer request posted)
         assertThat(mtnServer.findAll(postRequestedFor(urlPathEqualTo("/v1_0/transfer")))).isEmpty();
-
-        // Wallet IS reduced (reservation made before confirmation)
-        BigDecimal balance = jdbcTemplate.queryForObject(
-            "SELECT balance FROM main.merchant_wallet_balance WHERE tenant_id = ?",
-            BigDecimal.class, tenantId);
-        assertThat(balance).isLessThan(new BigDecimal("1000000"));
 
         // Disbursement row in PENDING_CONFIRMATION
         String dbStatus = jdbcTemplate.queryForObject(
@@ -396,18 +385,9 @@ class DisbursementOrchestratorIT {
     // Test 6: Insufficient balance → INSUFFICIENT_BALANCE; provider NOT called
     // ────────────────────────────────────────────────────────────────────────────────
 
+    @Disabled("SCHEMA-03 retired the wallet-reservation model — INSUFFICIENT_BALANCE path no longer exists in DisbursementOrchestrator. Re-enable when a dedicated phase re-introduces balance gating.")
     @Test
     void insufficient_balance_returns_failed_no_provider_call() {
-        // transactionIds: dummy is acceptable here — INSUFFICIENT_BALANCE fires at Step 3
-        // (velocity/wallet check), strictly BEFORE Step 7.5 claim validation runs. The
-        // Phase 54 wallet-balance gate may be retired in a separate revision; this test
-        // is preserved for that follow-up.
-        //
-        // NOTE: The v11 refactor (SCHEMA-03) retired the wallet-reservation model. The
-        // INSUFFICIENT_BALANCE path no longer exists in DisbursementOrchestrator — the
-        // wallet check was removed as part of claim-based locking. This test is kept as a
-        // placeholder to track the diverged behavior; a separate Phase 54/57 cleanup plan
-        // should either re-introduce the check or remove this test entirely.
         DisbursementRequest request = new DisbursementRequest(
             MTN_MSISDN, new BigDecimal("2000000"), "XAF", "REF-INSUF-001",
             null, null, List.of("dummy-txn-id"), "IDEM-INSUF-" + UUID.randomUUID());
