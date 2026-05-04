@@ -41,6 +41,7 @@ import org.wiremock.spring.InjectWireMock;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
@@ -189,8 +190,9 @@ class OrangeDisbursementE2EIT {
     void orangeHappyPath_initiateThenCallbackSuccessful_transitionsToSuccess() throws Exception {
         stubOrangeSubscriberAndCashout();
 
+        List<String> txnIds = seedTxnsForClaim(tenantId, 1, PRINCIPAL);
         ResponseEntity<String> initResponse = postDisbursement(
-            ORANGE_MSISDN, PRINCIPAL, "REF-OR-HAPPY-" + UUID.randomUUID(), "IDEM-OR-HAPPY-" + UUID.randomUUID());
+            ORANGE_MSISDN, PRINCIPAL, "REF-OR-HAPPY-" + UUID.randomUUID(), "IDEM-OR-HAPPY-" + UUID.randomUUID(), txnIds);
 
         assertThat(initResponse.getStatusCode().value())
             .as("POST /v1/disbursements must return 202 Accepted")
@@ -255,7 +257,8 @@ class OrangeDisbursementE2EIT {
         headers.set("Idempotency-Key", "IDEM-OR-INSUF-" + UUID.randomUUID());
 
         // Amount 2,000,000 exceeds wallet balance of 1,000,000 — must trigger INSUFFICIENT_BALANCE
-        String body = buildDisbursementBody(ORANGE_MSISDN, new BigDecimal("2000000"), "REF-OR-INSUF-" + UUID.randomUUID());
+        List<String> txnIds = seedTxnsForClaim(tenantId, 1, new BigDecimal("2000000"));
+        String body = buildDisbursementBody(ORANGE_MSISDN, new BigDecimal("2000000"), "REF-OR-INSUF-" + UUID.randomUUID(), txnIds);
         HttpEntity<String> entity = new HttpEntity<>(body, headers);
 
         ResponseEntity<String> response = rt.exchange(
@@ -283,8 +286,9 @@ class OrangeDisbursementE2EIT {
     void orangeReplayedCallback_isDeduplicated() throws Exception {
         stubOrangeSubscriberAndCashout();
 
+        List<String> txnIds = seedTxnsForClaim(tenantId, 1, PRINCIPAL);
         ResponseEntity<String> initResponse = postDisbursement(
-            ORANGE_MSISDN, PRINCIPAL, "REF-OR-REPLAY-" + UUID.randomUUID(), "IDEM-OR-REPLAY-" + UUID.randomUUID());
+            ORANGE_MSISDN, PRINCIPAL, "REF-OR-REPLAY-" + UUID.randomUUID(), "IDEM-OR-REPLAY-" + UUID.randomUUID(), txnIds);
 
         assertThat(initResponse.getStatusCode().value()).isEqualTo(202);
 
@@ -340,25 +344,51 @@ class OrangeDisbursementE2EIT {
             .willReturn(okJson("{\"status\":\"" + status + "\",\"pay_token\":\"" + payToken + "\"}")));
     }
 
+    private List<String> seedTxnsForClaim(Long tenantId, int count, BigDecimal eachAmount) {
+        List<String> ids = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            String id = java.util.UUID.randomUUID().toString();
+            transactionTemplate.execute(s -> {
+                jdbcTemplate.update(
+                    "INSERT INTO main.transaction " +
+                    "(transaction_id, trace_id, tenant_id, provider, tx_status, flow, " +
+                    " amount, fee_amount, currency, created_by, created_date, last_modified_by, " +
+                    " last_modified_date, request_id, version) " +
+                    "VALUES (?, ?, ?, 'MTN', 'SUCCESS', 'COLLECTION', " +
+                    "       ?, 0, 'XAF', 'TEST', NOW(), 'TEST', NOW(), gen_random_uuid()::text, 0)",
+                    id, id, tenantId, eachAmount);
+                return null;
+            });
+            ids.add(id);
+        }
+        return ids;
+    }
+
     /** Posts a disbursement via HTTP to /v1/disbursements with X-Api-Key + Idempotency-Key headers. */
     private ResponseEntity<String> postDisbursement(
-            String msisdn, BigDecimal amount, String reference, String idempotencyKey) {
+            String msisdn, BigDecimal amount, String reference, String idempotencyKey,
+            List<String> transactionIds) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("X-Api-Key", rawApiKey);
         headers.set("Idempotency-Key", idempotencyKey);
 
-        String body = buildDisbursementBody(msisdn, amount, reference);
+        String body = buildDisbursementBody(msisdn, amount, reference, transactionIds);
         return testRestTemplate.exchange(
             "http://localhost:" + serverPort + "/v1/disbursements",
             HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
     }
 
     /** Builds the JSON body for POST /v1/disbursements. */
-    private String buildDisbursementBody(String msisdn, BigDecimal amount, String reference) {
+    private String buildDisbursementBody(String msisdn, BigDecimal amount, String reference,
+                                          List<String> transactionIds) {
+        String txnIdsJson = transactionIds.stream()
+            .map(id -> "\"" + id + "\"")
+            .collect(java.util.stream.Collectors.joining(",", "[", "]"));
         return String.format(
-            "{\"recipientMsisdn\":\"%s\",\"amount\":%s,\"currency\":\"XAF\",\"reference\":\"%s\"}",
-            msisdn, amount.toPlainString(), reference);
+            "{\"recipientMsisdn\":\"%s\",\"amount\":%s,\"currency\":\"XAF\"," +
+            "\"reference\":\"%s\",\"transactionIds\":%s}",
+            msisdn, amount.toPlainString(), reference, txnIdsJson);
     }
 
     /** Posts an Orange disbursement callback to /v1/callbacks/orange/disbursement. */

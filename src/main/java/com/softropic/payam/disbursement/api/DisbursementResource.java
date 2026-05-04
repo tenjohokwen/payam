@@ -75,7 +75,9 @@ public class DisbursementResource {
         // sees the canonical key. This avoids leaking the header into the request body contract.
         DisbursementRequest withKey = new DisbursementRequest(
                 body.recipientMsisdn(), body.amount(), body.currency(),
-                body.reference(), body.description(), body.metadata(), idempotencyKey);
+                body.reference(), body.description(), body.metadata(),
+                body.transactionIds(),
+                idempotencyKey);
 
         DisbursementResponse response = orchestrator.initiate(principal.getTenantId(), withKey);
 
@@ -146,9 +148,8 @@ public class DisbursementResource {
     }
 
     private DisbursementListItem toListItem(Disbursement d) {
-        BigDecimal fee = d.getReservedAmount() != null && d.getAmount() != null
-                ? d.getReservedAmount().subtract(d.getAmount())
-                : BigDecimal.ZERO;
+        // FEE-01: disbursements carry no fee — wallet model retired in v11 (SCHEMA-03)
+        BigDecimal fee = BigDecimal.ZERO;
         Instant completedAt = (d.getDisbursementStatus() == DisbursementStatus.SUCCESS
                             || d.getDisbursementStatus() == DisbursementStatus.FAILED
                             || d.getDisbursementStatus() == DisbursementStatus.EXPIRED)

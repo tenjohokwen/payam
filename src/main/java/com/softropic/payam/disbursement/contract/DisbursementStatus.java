@@ -10,24 +10,35 @@ import java.util.Set;
  *
  * Terminal states: SUCCESS, FAILED, EXPIRED — no outbound transitions.
  *
- * EXPIRED semantics (BAL-03): distinct from FAILED.
- *  - FAILED: provider never accepted or definitively rejected; reserved balance MUST be released.
- *  - EXPIRED: either (a) PENDING_CONFIRMATION aged past the 15-minute confirm window (SEC-04),
- *             or (b) provider accepted but an internal error (e.g. ledger write failure) prevents
- *             clean state update. Reserved balance is held pending manual ops resolution.
+ * <p>Two distinct gating states co-exist as of v11 Phase 54:
+ * <ul>
+ *   <li><b>PENDING_CONFIRMATION</b> — merchant step-up: amount &gt; 500,000 XAF requires the
+ *       tenant to call /confirm before provider dispatch (SEC-04, v10).</li>
+ *   <li><b>PENDING_ADMIN_APPROVAL</b> — Platform Ops approval: amount &gt; admin-approval
+ *       threshold gates dispatch behind an internal approval (Phase 56 ADMIN-01..03).
+ *       Auto-expires after admin-approval-timeout-hours; releases claims to RELEASED on expiry.</li>
+ * </ul>
  */
 public enum DisbursementStatus {
 
     INITIATED {
         @Override
         public Set<DisbursementStatus> allowedTransitions() {
-            return EnumSet.of(PENDING_CONFIRMATION, PROCESSING, FAILED);
+            return EnumSet.of(PENDING_CONFIRMATION, PENDING_ADMIN_APPROVAL, PROCESSING, FAILED);
         }
     },
     PENDING_CONFIRMATION {
         @Override
         public Set<DisbursementStatus> allowedTransitions() {
             return EnumSet.of(PROCESSING, EXPIRED, FAILED);
+        }
+    },
+    PENDING_ADMIN_APPROVAL {
+        @Override
+        public Set<DisbursementStatus> allowedTransitions() {
+            // PENDING_ADMIN_APPROVAL → PROCESSING: Phase 56 ADMIN-01 admin approval path.
+            // PENDING_ADMIN_APPROVAL → EXPIRED: Phase 56 ADMIN-03 approval timeout path.
+            return EnumSet.of(PROCESSING, EXPIRED);
         }
     },
     PROCESSING {

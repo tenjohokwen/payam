@@ -20,6 +20,9 @@ import com.softropic.payam.common.exception.ErrorCode;
  *   <li>{@link #PROVIDER_UNAVAILABLE}         — HTTP 503 (Resilience4j circuit open)</li>
  *   <li>{@link #PROVIDER_ERROR}               — HTTP 502 (4xx/5xx from provider)</li>
  *   <li>{@link #DISBURSEMENT_ALREADY_PROCESSING} — HTTP 202 (duplicate Idempotency-Key replay)</li>
+ *   <li>{@link #INVALID_TRANSACTION}         — HTTP 422 (TXN-01/TXN-02 ownership/status/flow)</li>
+ *   <li>{@link #TRANSACTION_CLAIMED}         — HTTP 422 (TXN-03 active-claim conflict)</li>
+ *   <li>{@link #AMOUNT_MISMATCH}             — HTTP 422 (TXN-04 sum mismatch)</li>
  * </ul>
  */
 public enum DisbursementOrchestratorError implements ErrorCode {
@@ -86,7 +89,30 @@ public enum DisbursementOrchestratorError implements ErrorCode {
      * an acknowledgment that the original is still processing and retry with polling.
      * Maps to HTTP 202.
      */
-    DISBURSEMENT_ALREADY_PROCESSING;
+    DISBURSEMENT_ALREADY_PROCESSING,
+
+    /**
+     * One or more supplied transactionIds failed validation: empty list, max>500,
+     * not owned by the requesting tenant, or has txStatus != SUCCESS / flow != COLLECTION.
+     * Maps to HTTP 422 (default in {@code DisbursementResource.resolveHttpStatus}).
+     * Triggered by {@code TransactionClaimValidationService.validateAndClaim} (TXN-01, TXN-02).
+     */
+    INVALID_TRANSACTION,
+
+    /**
+     * One or more supplied transactionIds already have an active claim
+     * ({@code DisbursementTransactionRef.refStatus IN ('PENDING','CLAIMED')}). The
+     * partial unique index {@code uq_dtr_txn_active_claim} (V31) enforces this at the
+     * DB layer; the orchestrator surfaces it as this code (TXN-03). Maps to HTTP 422.
+     */
+    TRANSACTION_CLAIMED,
+
+    /**
+     * The disbursement {@code request.amount} is not equal to the sum of
+     * {@code transaction.amount - feeAmount} across all supplied transactions
+     * (BigDecimal.compareTo, scale-insensitive). Maps to HTTP 422 (TXN-04).
+     */
+    AMOUNT_MISMATCH;
 
     @Override
     public String getErrorCode() {

@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -38,21 +37,18 @@ public class DisbursementService {
 
     /**
      * Create the initial Disbursement row in the supplied state (INITIATED or PENDING_CONFIRMATION).
-     * The disbursementId is generated as a UUID. The reservedAmount field is the principal+fee total
-     * already debited from the wallet.
+     * The disbursementId is generated as a UUID.
      *
-     * @param tenantId       owning tenant
-     * @param provider       resolved mobile payment provider (MTN or ORANGE)
-     * @param request        disbursement request DTO
-     * @param reservedAmount principal + fee total that has been reserved from the wallet
-     * @param initialStatus  INITIATED for small amounts; PENDING_CONFIRMATION for step-up
+     * @param tenantId      owning tenant
+     * @param provider      resolved mobile payment provider (MTN or ORANGE)
+     * @param request       disbursement request DTO
+     * @param initialStatus INITIATED for small amounts; PENDING_CONFIRMATION for step-up
      * @return saved Disbursement entity with disbursementId populated
      */
     @Transactional
     public Disbursement create(Long tenantId,
                                MobilePaymentProvider provider,
                                DisbursementRequest request,
-                               BigDecimal reservedAmount,
                                DisbursementStatus initialStatus) {
         String disbursementId = UUID.randomUUID().toString();
         Disbursement dsb = Disbursement.builder()
@@ -66,7 +62,6 @@ public class DisbursementService {
                 .disbursementStatus(initialStatus)
                 .provider(provider)
                 .idempotencyKey(request.idempotencyKey())
-                .reservedAmount(reservedAmount)
                 .metadata(request.metadata())
                 .build();
         Disbursement saved = disbursementRepository.save(dsb);
@@ -81,11 +76,7 @@ public class DisbursementService {
 
     /**
      * Transition a disbursement to FAILED (under pessimistic lock). Used by the orchestrator
-     * when a post-reservation failure occurs (subscriber inactive, provider error).
-     *
-     * <p>IMPORTANT: The caller MUST also release the wallet balance via
-     * {@link WalletBalanceService#release} before or after calling this method (BAL-02).
-     * This method only handles the DB state transition, not the wallet release.
+     * when a provider dispatch failure occurs.
      *
      * @param disbursementId the disbursementId UUID string
      * @throws IllegalStateException if no matching disbursement found (programmer bug)

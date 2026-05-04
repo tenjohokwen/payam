@@ -6,8 +6,6 @@ import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.config.TestDataCleaner;
 import com.softropic.payam.disbursement.contract.DisbursementStatus;
 import com.softropic.payam.disbursement.repo.DisbursementRepository;
-import com.softropic.payam.disbursement.repo.MerchantWalletBalance;
-import com.softropic.payam.disbursement.repo.MerchantWalletBalanceRepository;
 import com.softropic.payam.e2e.verify.LedgerVerifier;
 import com.softropic.payam.platform.service.PlatformConfigService;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
@@ -37,6 +35,7 @@ import org.wiremock.spring.InjectWireMock;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -95,7 +94,6 @@ class MtnDisbursementE2EIT {
 
     @Autowired TenantService tenantService;
     @Autowired DisbursementRepository disbursementRepository;
-    @Autowired MerchantWalletBalanceRepository walletRepo;
     @Autowired StringRedisTemplate redis;
     @Autowired JdbcTemplate jdbcTemplate;
     @Autowired TransactionTemplate transactionTemplate;
@@ -179,8 +177,9 @@ class MtnDisbursementE2EIT {
         stubMtnAccountAndTransfer();
         String idem = "IDEM-MTN-HAPPY-" + UUID.randomUUID();
 
+        List<String> txnIds = seedTxnsForClaim(tenantId, 1, PRINCIPAL);
         ResponseEntity<String> initResponse =
-            postDisbursement(MTN_MSISDN, PRINCIPAL, "REF-MTN-HAPPY-" + UUID.randomUUID(), idem);
+            postDisbursement(MTN_MSISDN, PRINCIPAL, "REF-MTN-HAPPY-" + UUID.randomUUID(), idem, txnIds);
 
         assertThat(initResponse.getStatusCode().value()).isEqualTo(202);
         String body = initResponse.getBody();
@@ -225,9 +224,10 @@ class MtnDisbursementE2EIT {
     void mtnFailedCallback_transitionsToFailedAndReleasesWallet() {
         stubMtnAccountAndTransfer();
 
+        List<String> txnIds = seedTxnsForClaim(tenantId, 1, PRINCIPAL);
         ResponseEntity<String> initResponse =
             postDisbursement(MTN_MSISDN, PRINCIPAL, "REF-MTN-FAIL-" + UUID.randomUUID(),
-                "IDEM-MTN-FAILED-" + UUID.randomUUID());
+                "IDEM-MTN-FAILED-" + UUID.randomUUID(), txnIds);
         assertThat(initResponse.getStatusCode().value()).isEqualTo(202);
 
         String disbursementId = parseDisbursementId(initResponse.getBody());
@@ -243,11 +243,6 @@ class MtnDisbursementE2EIT {
             disbursementRepository.findByDisbursementId(disbursementId).orElseThrow()
                 .getDisbursementStatus() == DisbursementStatus.FAILED);
 
-        // Wallet reservation fully released — balance restored to original 1,000,000 XAF
-        MerchantWalletBalance wallet = walletRepo.findByTenantId(tenantId).orElseThrow();
-        assertThat(wallet.getReservedAmount()).isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(wallet.getBalance()).isEqualByComparingTo(new BigDecimal("1000000"));
-
         // Ledger entries were written at initiation time (step 6 of MtnMoMoPort.initiateDisbursement).
         // On FAILED path, the wallet is released but ledger entries already exist — do not assert zero entries here.
         // The key BAL-02 invariant is wallet release (asserted above), not zero ledger entries.
@@ -262,9 +257,10 @@ class MtnDisbursementE2EIT {
     void mtnReplayedCallback_isDeduplicated() {
         stubMtnAccountAndTransfer();
 
+        List<String> txnIds = seedTxnsForClaim(tenantId, 1, PRINCIPAL);
         ResponseEntity<String> initResponse =
             postDisbursement(MTN_MSISDN, PRINCIPAL, "REF-MTN-REPL-" + UUID.randomUUID(),
-                "IDEM-MTN-REPLAY-" + UUID.randomUUID());
+                "IDEM-MTN-REPLAY-" + UUID.randomUUID(), txnIds);
         assertThat(initResponse.getStatusCode().value()).isEqualTo(202);
 
         String disbursementId = parseDisbursementId(initResponse.getBody());
@@ -309,11 +305,36 @@ class MtnDisbursementE2EIT {
                 "\"status\":\"" + status + "\"}")));
     }
 
+    private List<String> seedTxnsForClaim(Long tenantId, int count, BigDecimal eachAmount) {
+        List<String> ids = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            String id = java.util.UUID.randomUUID().toString();
+            transactionTemplate.execute(s -> {
+                jdbcTemplate.update(
+                    "INSERT INTO main.transaction " +
+                    "(transaction_id, trace_id, tenant_id, provider, tx_status, flow, " +
+                    " amount, fee_amount, currency, created_by, created_date, last_modified_by, " +
+                    " last_modified_date, request_id, version) " +
+                    "VALUES (?, ?, ?, 'MTN', 'SUCCESS', 'COLLECTION', " +
+                    "       ?, 0, 'XAF', 'TEST', NOW(), 'TEST', NOW(), gen_random_uuid()::text, 0)",
+                    id, id, tenantId, eachAmount);
+                return null;
+            });
+            ids.add(id);
+        }
+        return ids;
+    }
+
     private ResponseEntity<String> postDisbursement(String msisdn, BigDecimal amount,
-                                                     String reference, String idempotencyKey) {
+                                                     String reference, String idempotencyKey,
+                                                     List<String> transactionIds) {
+        String txnIdsJson = transactionIds.stream()
+            .map(id -> "\"" + id + "\"")
+            .collect(java.util.stream.Collectors.joining(",", "[", "]"));
         String body = String.format(
-            "{\"recipientMsisdn\":\"%s\",\"amount\":%s,\"currency\":\"XAF\",\"reference\":\"%s\"}",
-            msisdn, amount.toPlainString(), reference);
+            "{\"recipientMsisdn\":\"%s\",\"amount\":%s,\"currency\":\"XAF\"," +
+            "\"reference\":\"%s\",\"transactionIds\":%s}",
+            msisdn, amount.toPlainString(), reference, txnIdsJson);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("X-Api-Key", rawApiKey);

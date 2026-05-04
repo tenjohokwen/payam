@@ -67,15 +67,29 @@ public class Disbursement extends AbstractAuditingEntity {
     @Column(name = "idempotency_key", length = 255)
     private String idempotencyKey;
 
-    @Column(name = "reserved_amount", precision = 20, scale = 2)
-    private BigDecimal reservedAmount;
-
     @Column(columnDefinition = "TEXT")
     private String metadata;
 
     @Column(name = "poll_attempts", nullable = false)
     @Builder.Default
     private Integer pollAttempts = 0;
+
+    /**
+     * Optional ops-only note recorded when the disbursement transitions to
+     * PENDING_ADMIN_APPROVAL. Never returned in the public merchant API response.
+     * Persisted by V31 migration. Phase 56 ADMIN-02 populates this field.
+     */
+    @Column(name = "admin_note", columnDefinition = "TEXT")
+    private String adminNote;
+
+    /**
+     * Number of times this disbursement has been retried via Idempotency-Key recovery
+     * (IDEM-02, Phase 57). Defaults to 0; incremented on each successful retry.
+     * Persisted by V31 migration.
+     */
+    @Builder.Default
+    @Column(name = "retry_count", nullable = false)
+    private Integer retryCount = 0;
 
     /** Increment poll_attempts; null-safe (treats null as 0). Used by DisbursementStatusPollerJob. */
     public void incrementPollAttempts() {

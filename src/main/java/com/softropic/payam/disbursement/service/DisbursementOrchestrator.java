@@ -11,12 +11,13 @@ import com.softropic.payam.disbursement.contract.DisbursementOrchestratorError;
 import com.softropic.payam.disbursement.contract.DisbursementRequest;
 import com.softropic.payam.disbursement.contract.DisbursementResponse;
 import com.softropic.payam.disbursement.contract.DisbursementStatus;
+import com.softropic.payam.disbursement.contract.exception.AmountMismatchException;
 import com.softropic.payam.disbursement.contract.exception.DailyLimitExceededException;
-import com.softropic.payam.disbursement.contract.exception.InsufficientBalanceException;
+import com.softropic.payam.disbursement.contract.exception.InvalidTransactionException;
+import com.softropic.payam.disbursement.contract.exception.TransactionClaimedException;
 import com.softropic.payam.disbursement.contract.exception.VelocityExceededException;
 import com.softropic.payam.disbursement.repo.Disbursement;
 import com.softropic.payam.disbursement.repo.DisbursementRepository;
-import com.softropic.payam.fee.service.FeeEvaluationService;
 import com.softropic.payam.fraud.contract.FraudDecision;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
@@ -47,27 +48,30 @@ import java.util.Optional;
  *   <li>MSISDN routing</li>
  *   <li>Velocity check (tenant minute, tenant hour, msisdn day)</li>
  *   <li>Fraud check</li>
- *   <li>Fee evaluation</li>
- *   <li>Wallet balance reserve (PESSIMISTIC_WRITE inside TransactionTemplate)</li>
- *   <li>Create Disbursement row (INITIATED or PENDING_CONFIRMATION based on amount)</li>
+ *   <li>Fee evaluation — fee = ZERO (FEE-01; disbursements carry no fee)</li>
+ *   <li>Step-up gate decision (status = INITIATED or PENDING_CONFIRMATION)</li>
+ *   <li>Create Disbursement row</li>
+ *   <li>Transaction claim validation + PENDING ref-row inserts (TXN-01..04, TXN-06,
+ *       atomic inside transactionTemplate.execute) — runs for both INITIATED and
+ *       PENDING_CONFIRMATION paths so claims back the disbursement before the
+ *       merchant step-up window opens</li>
  *   <li>If PENDING_CONFIRMATION → return; else continue:</li>
- *   <li>validateSubscriber → if inactive: release + transitionToFailed → return</li>
+ *   <li>validateSubscriber → if inactive: transitionToFailed → return</li>
  *   <li>Dispatch to provider port (initiateDisbursement)</li>
  *   <li>Transition to PROCESSING</li>
  *   <li>Store idempotency response</li>
  * </ol>
  *
- * <p>SEC-04 step-up: amount &gt; 500,000 XAF returns PENDING_CONFIRMATION. The wallet IS reserved
- * at this point (prevents concurrent disbursements from consuming the funds while awaiting
- * confirmation). Plan 05's Quartz job ages PENDING_CONFIRMATION rows out to EXPIRED after
- * 15 minutes (and does NOT release — per BAL-03).
+ * <p>SEC-04 step-up: amount &gt; 500,000 XAF returns PENDING_CONFIRMATION. Claims are still
+ * created at this point (CLAIM-01) so the backing transactions are locked while awaiting
+ * merchant confirmation. The Quartz expiry job ages PENDING_CONFIRMATION rows to EXPIRED
+ * after 15 minutes.
  *
- * <p><strong>Failure paths and wallet release semantics:</strong>
+ * <p><strong>Failure paths and transition semantics:</strong>
  * <ul>
- *   <li>Pre-reservation failures (idempotency, MSISDN, velocity, fraud) — wallet is NEVER touched</li>
- *   <li>Post-reservation failures (subscriber inactive, provider error) — wallet IS released via
- *       {@link WalletBalanceService#release} AND disbursement transitions to FAILED (BAL-02)</li>
- *   <li>EXPIRED state (Plan 05 expiry job) — wallet is NOT released (BAL-03)</li>
+ *   <li>Pre-disbursement-row failures (idempotency, MSISDN, velocity, fraud) — no row created</li>
+ *   <li>Post-row failures (claim validation, subscriber inactive, provider error) — disbursement
+ *       transitions to FAILED via {@link #releaseAndFail}</li>
  * </ul>
  */
 @Service
@@ -82,36 +86,33 @@ public class DisbursementOrchestrator {
     private final MsisdnRouter msisdnRouter;
     private final DisbursementVelocityService velocityService;
     private final DisbursementFraudEvaluationService fraudService;
-    private final FeeEvaluationService feeService;
-    private final WalletBalanceService walletBalanceService;
     private final DisbursementService disbursementService;
     private final DisbursementRepository disbursementRepository;
     private final MtnMoMoPort mtnPort;
     private final OrangeMoneyPort orangePort;
     private final TransactionTemplate transactionTemplate;
+    private final TransactionClaimValidationService transactionClaimValidationService;
 
     public DisbursementOrchestrator(DisbursementIdempotencyService idempotencyService,
                                     MsisdnRouter msisdnRouter,
                                     DisbursementVelocityService velocityService,
                                     DisbursementFraudEvaluationService fraudService,
-                                    FeeEvaluationService feeService,
-                                    WalletBalanceService walletBalanceService,
                                     DisbursementService disbursementService,
                                     DisbursementRepository disbursementRepository,
                                     MtnMoMoPort mtnPort,
                                     OrangeMoneyPort orangePort,
-                                    TransactionTemplate transactionTemplate) {
+                                    TransactionTemplate transactionTemplate,
+                                    TransactionClaimValidationService transactionClaimValidationService) {
         this.idempotencyService = idempotencyService;
         this.msisdnRouter = msisdnRouter;
         this.velocityService = velocityService;
         this.fraudService = fraudService;
-        this.feeService = feeService;
-        this.walletBalanceService = walletBalanceService;
         this.disbursementService = disbursementService;
         this.disbursementRepository = disbursementRepository;
         this.mtnPort = mtnPort;
         this.orangePort = orangePort;
         this.transactionTemplate = transactionTemplate;
+        this.transactionClaimValidationService = transactionClaimValidationService;
     }
 
     /**
@@ -169,30 +170,52 @@ public class DisbursementOrchestrator {
                     "Disbursement blocked: " + fraud.reason());
         }
 
-        // ── Step 5: Fee evaluation ───────────────────────────────────────────────────
-        BigDecimal fee = feeService.evaluateFee(tenantId, request.amount());
-        BigDecimal totalAmount = request.amount().add(fee != null ? fee : BigDecimal.ZERO);
+        // ── Step 5: Fee evaluation — disbursements carry no fee (FEE-01) ─────────────
+        BigDecimal fee = BigDecimal.ZERO;
+        BigDecimal totalAmount = request.amount();
 
-        // ── Step 6: Reserve wallet balance (inside TransactionTemplate) ──────────────
-        try {
-            transactionTemplate.execute(status -> {
-                walletBalanceService.checkAndReserve(tenantId, totalAmount);
-                return null;
-            });
-        } catch (InsufficientBalanceException e) {
-            return DisbursementResponse.failed(null,
-                    DisbursementOrchestratorError.INSUFFICIENT_BALANCE.getErrorCode(), e.getMessage());
-        }
-
-        // ── Step 7: Determine flow — step-up gate (SEC-04) ──────────────────────────
+        // ── Step 6: Determine flow — step-up gate (SEC-04) ──────────────────────────
         boolean stepUp = request.amount().compareTo(STEP_UP_THRESHOLD) > 0;
         DisbursementStatus initialStatus = stepUp
                 ? DisbursementStatus.PENDING_CONFIRMATION
                 : DisbursementStatus.INITIATED;
 
-        // ── Step 8: Create Disbursement row ─────────────────────────────────────────
-        Disbursement dsb = disbursementService.create(tenantId, provider, request, totalAmount, initialStatus);
+        // ── Step 7: Create Disbursement row ─────────────────────────────────────────
+        Disbursement dsb = disbursementService.create(tenantId, provider, request, initialStatus);
         String disbursementId = dsb.getDisbursementId();
+
+        // ── Step 7.5: Transaction claim validation (TXN-01..04, TXN-06) ─────────
+        // Runs inside ONE transactionTemplate.execute block. The pre-lock ownership
+        // check happens FIRST inside validateAndClaim (before the SELECT FOR UPDATE)
+        // so wrong-tenant requests fail fast without acquiring locks.
+        // Runs BEFORE the step-up early-return so claims are created even for
+        // PENDING_CONFIRMATION disbursements (CLAIM-01).
+        try {
+            transactionTemplate.execute(status -> {
+                transactionClaimValidationService.validateAndClaim(
+                        tenantId,
+                        request.transactionIds(),
+                        request.amount(),
+                        dsb.getId()
+                );
+                return null;
+            });
+        } catch (InvalidTransactionException e) {
+            releaseAndFail(tenantId, totalAmount, disbursementId);
+            return DisbursementResponse.failed(disbursementId,
+                    DisbursementOrchestratorError.INVALID_TRANSACTION.getErrorCode(),
+                    e.getMessage());
+        } catch (TransactionClaimedException e) {
+            releaseAndFail(tenantId, totalAmount, disbursementId);
+            return DisbursementResponse.failed(disbursementId,
+                    DisbursementOrchestratorError.TRANSACTION_CLAIMED.getErrorCode(),
+                    e.getMessage());
+        } catch (AmountMismatchException e) {
+            releaseAndFail(tenantId, totalAmount, disbursementId);
+            return DisbursementResponse.failed(disbursementId,
+                    DisbursementOrchestratorError.AMOUNT_MISMATCH.getErrorCode(),
+                    e.getMessage());
+        }
 
         if (stepUp) {
             DisbursementResponse pendingResponse = DisbursementResponse.accepted(
@@ -234,12 +257,17 @@ public class DisbursementOrchestrator {
         }
 
         // Reconstruct pseudo-request from stored disbursement data for the dispatch tail
-        BigDecimal fee = dsb.getReservedAmount().subtract(dsb.getAmount());
-        BigDecimal totalAmount = dsb.getReservedAmount();
+        // FEE-01: disbursements carry no fee
+        BigDecimal fee = BigDecimal.ZERO;
+        BigDecimal totalAmount = dsb.getAmount();
 
+        // Pass null for transactionIds: confirm() does NOT re-run claim validation. Claims
+        // were created during initiate() inside a transactionTemplate.execute block; this
+        // pseudo-request feeds dispatchToProvider, which never inspects transactionIds.
         DisbursementRequest pseudoRequest = new DisbursementRequest(
                 dsb.getRecipientMsisdn(), dsb.getAmount(), dsb.getCurrency(),
                 dsb.getReference(), dsb.getDescription(), dsb.getMetadata(),
+                null,
                 dsb.getIdempotencyKey()
         );
         return dispatchToProvider(tenantId, pseudoRequest, dsb.getProvider(), dsb, fee, totalAmount);
@@ -341,23 +369,10 @@ public class DisbursementOrchestrator {
     }
 
     /**
-     * Release wallet reservation AND transition disbursement to FAILED.
-     * Each operation runs in its own TransactionTemplate to ensure independent commit.
+     * Transition disbursement to FAILED. No wallet release — wallet model retired in v11 (SCHEMA-03).
      * Errors are swallowed + logged — the original failure response is returned regardless.
-     *
-     * IMPORTANT: ONLY called for FAILED paths (BAL-02). NEVER called for EXPIRED (BAL-03).
      */
     private void releaseAndFail(Long tenantId, BigDecimal totalAmount, String disbursementId) {
-        try {
-            transactionTemplate.execute(st -> {
-                walletBalanceService.release(tenantId, totalAmount);
-                return null;
-            });
-        } catch (Exception ex) {
-            log.error("Failed to release wallet reservation",
-                    kv("operation", "dsb_release"),
-                    kv("disbursementId", disbursementId), ex);
-        }
         try {
             transactionTemplate.execute(st -> {
                 disbursementService.transitionToFailed(disbursementId);

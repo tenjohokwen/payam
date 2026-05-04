@@ -1,11 +1,13 @@
 package com.softropic.payam.disbursement.contract;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Request DTO for POST /v1/disbursements.
@@ -61,6 +63,18 @@ public record DisbursementRequest(
          */
         @Size(max = 2048)
         String metadata,
+
+        /**
+         * v11 TXN-01: non-empty list (max 500) of collection-transaction IDs that back
+         * this disbursement. Each element is the logical transactionId (UUID string,
+         * matches Transaction.transactionId / VARCHAR(36)). The orchestrator validates
+         * tenant ownership, status (SUCCESS), flow (COLLECTION), no active claim
+         * (TXN-03), and amount equality (TXN-04 — sum of transaction.amount - feeAmount
+         * must equal request.amount).
+         */
+        @NotEmpty
+        @Size(max = 500)
+        List<@NotBlank String> transactionIds,
 
         /**
          * Required idempotency key sourced from the {@code Idempotency-Key} HTTP header.
