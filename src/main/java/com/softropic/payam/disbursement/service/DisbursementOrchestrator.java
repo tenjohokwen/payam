@@ -11,7 +11,10 @@ import com.softropic.payam.disbursement.contract.DisbursementOrchestratorError;
 import com.softropic.payam.disbursement.contract.DisbursementRequest;
 import com.softropic.payam.disbursement.contract.DisbursementResponse;
 import com.softropic.payam.disbursement.contract.DisbursementStatus;
+import com.softropic.payam.disbursement.contract.exception.AmountMismatchException;
 import com.softropic.payam.disbursement.contract.exception.DailyLimitExceededException;
+import com.softropic.payam.disbursement.contract.exception.InvalidTransactionException;
+import com.softropic.payam.disbursement.contract.exception.TransactionClaimedException;
 import com.softropic.payam.disbursement.contract.exception.VelocityExceededException;
 import com.softropic.payam.disbursement.repo.Disbursement;
 import com.softropic.payam.disbursement.repo.DisbursementRepository;
@@ -45,27 +48,30 @@ import java.util.Optional;
  *   <li>MSISDN routing</li>
  *   <li>Velocity check (tenant minute, tenant hour, msisdn day)</li>
  *   <li>Fraud check</li>
- *   <li>Fee evaluation</li>
- *   <li>Wallet balance reserve (PESSIMISTIC_WRITE inside TransactionTemplate)</li>
- *   <li>Create Disbursement row (INITIATED or PENDING_CONFIRMATION based on amount)</li>
+ *   <li>Fee evaluation — fee = ZERO (FEE-01; disbursements carry no fee)</li>
+ *   <li>Step-up gate decision (status = INITIATED or PENDING_CONFIRMATION)</li>
+ *   <li>Create Disbursement row</li>
+ *   <li>Transaction claim validation + PENDING ref-row inserts (TXN-01..04, TXN-06,
+ *       atomic inside transactionTemplate.execute) — runs for both INITIATED and
+ *       PENDING_CONFIRMATION paths so claims back the disbursement before the
+ *       merchant step-up window opens</li>
  *   <li>If PENDING_CONFIRMATION → return; else continue:</li>
- *   <li>validateSubscriber → if inactive: release + transitionToFailed → return</li>
+ *   <li>validateSubscriber → if inactive: transitionToFailed → return</li>
  *   <li>Dispatch to provider port (initiateDisbursement)</li>
  *   <li>Transition to PROCESSING</li>
  *   <li>Store idempotency response</li>
  * </ol>
  *
- * <p>SEC-04 step-up: amount &gt; 500,000 XAF returns PENDING_CONFIRMATION. The wallet IS reserved
- * at this point (prevents concurrent disbursements from consuming the funds while awaiting
- * confirmation). Plan 05's Quartz job ages PENDING_CONFIRMATION rows out to EXPIRED after
- * 15 minutes (and does NOT release — per BAL-03).
+ * <p>SEC-04 step-up: amount &gt; 500,000 XAF returns PENDING_CONFIRMATION. Claims are still
+ * created at this point (CLAIM-01) so the backing transactions are locked while awaiting
+ * merchant confirmation. The Quartz expiry job ages PENDING_CONFIRMATION rows to EXPIRED
+ * after 15 minutes.
  *
- * <p><strong>Failure paths and wallet release semantics:</strong>
+ * <p><strong>Failure paths and transition semantics:</strong>
  * <ul>
- *   <li>Pre-reservation failures (idempotency, MSISDN, velocity, fraud) — wallet is NEVER touched</li>
- *   <li>Post-reservation failures (subscriber inactive, provider error) — wallet IS released via
- *       {@link WalletBalanceService#release} AND disbursement transitions to FAILED (BAL-02)</li>
- *   <li>EXPIRED state (Plan 05 expiry job) — wallet is NOT released (BAL-03)</li>
+ *   <li>Pre-disbursement-row failures (idempotency, MSISDN, velocity, fraud) — no row created</li>
+ *   <li>Post-row failures (claim validation, subscriber inactive, provider error) — disbursement
+ *       transitions to FAILED via {@link #releaseAndFail}</li>
  * </ul>
  */
 @Service
@@ -85,6 +91,7 @@ public class DisbursementOrchestrator {
     private final MtnMoMoPort mtnPort;
     private final OrangeMoneyPort orangePort;
     private final TransactionTemplate transactionTemplate;
+    private final TransactionClaimValidationService transactionClaimValidationService;
 
     public DisbursementOrchestrator(DisbursementIdempotencyService idempotencyService,
                                     MsisdnRouter msisdnRouter,
@@ -94,7 +101,8 @@ public class DisbursementOrchestrator {
                                     DisbursementRepository disbursementRepository,
                                     MtnMoMoPort mtnPort,
                                     OrangeMoneyPort orangePort,
-                                    TransactionTemplate transactionTemplate) {
+                                    TransactionTemplate transactionTemplate,
+                                    TransactionClaimValidationService transactionClaimValidationService) {
         this.idempotencyService = idempotencyService;
         this.msisdnRouter = msisdnRouter;
         this.velocityService = velocityService;
@@ -104,6 +112,7 @@ public class DisbursementOrchestrator {
         this.mtnPort = mtnPort;
         this.orangePort = orangePort;
         this.transactionTemplate = transactionTemplate;
+        this.transactionClaimValidationService = transactionClaimValidationService;
     }
 
     /**
@@ -174,6 +183,39 @@ public class DisbursementOrchestrator {
         // ── Step 7: Create Disbursement row ─────────────────────────────────────────
         Disbursement dsb = disbursementService.create(tenantId, provider, request, initialStatus);
         String disbursementId = dsb.getDisbursementId();
+
+        // ── Step 7.5: Transaction claim validation (TXN-01..04, TXN-06) ─────────
+        // Runs inside ONE transactionTemplate.execute block. The pre-lock ownership
+        // check happens FIRST inside validateAndClaim (before the SELECT FOR UPDATE)
+        // so wrong-tenant requests fail fast without acquiring locks.
+        // Runs BEFORE the step-up early-return so claims are created even for
+        // PENDING_CONFIRMATION disbursements (CLAIM-01).
+        try {
+            transactionTemplate.execute(status -> {
+                transactionClaimValidationService.validateAndClaim(
+                        tenantId,
+                        request.transactionIds(),
+                        request.amount(),
+                        dsb.getId()
+                );
+                return null;
+            });
+        } catch (InvalidTransactionException e) {
+            releaseAndFail(tenantId, totalAmount, disbursementId);
+            return DisbursementResponse.failed(disbursementId,
+                    DisbursementOrchestratorError.INVALID_TRANSACTION.getErrorCode(),
+                    e.getMessage());
+        } catch (TransactionClaimedException e) {
+            releaseAndFail(tenantId, totalAmount, disbursementId);
+            return DisbursementResponse.failed(disbursementId,
+                    DisbursementOrchestratorError.TRANSACTION_CLAIMED.getErrorCode(),
+                    e.getMessage());
+        } catch (AmountMismatchException e) {
+            releaseAndFail(tenantId, totalAmount, disbursementId);
+            return DisbursementResponse.failed(disbursementId,
+                    DisbursementOrchestratorError.AMOUNT_MISMATCH.getErrorCode(),
+                    e.getMessage());
+        }
 
         if (stepUp) {
             DisbursementResponse pendingResponse = DisbursementResponse.accepted(
