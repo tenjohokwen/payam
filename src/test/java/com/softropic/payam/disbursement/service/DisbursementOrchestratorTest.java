@@ -7,7 +7,10 @@ import com.softropic.payam.disbursement.contract.DisbursementOrchestratorError;
 import com.softropic.payam.disbursement.contract.DisbursementRequest;
 import com.softropic.payam.disbursement.contract.DisbursementResponse;
 import com.softropic.payam.disbursement.contract.DisbursementStatus;
+import com.softropic.payam.disbursement.contract.exception.AmountMismatchException;
 import com.softropic.payam.disbursement.contract.exception.DailyLimitExceededException;
+import com.softropic.payam.disbursement.contract.exception.InvalidTransactionException;
+import com.softropic.payam.disbursement.contract.exception.TransactionClaimedException;
 import com.softropic.payam.disbursement.contract.exception.VelocityExceededException;
 import com.softropic.payam.disbursement.repo.Disbursement;
 import com.softropic.payam.disbursement.repo.DisbursementRepository;
@@ -58,6 +61,7 @@ class DisbursementOrchestratorTest {
     @Mock MtnMoMoPort mtnPort;
     @Mock OrangeMoneyPort orangePort;
     @Mock TransactionTemplate transactionTemplate;
+    @Mock TransactionClaimValidationService transactionClaimValidationService;
 
     @InjectMocks DisbursementOrchestrator orchestrator;
 
@@ -348,5 +352,103 @@ class DisbursementOrchestratorTest {
 
         assertThat(response.errorCode()).isEqualTo(DisbursementOrchestratorError.INVALID_STATE.getErrorCode());
         verifyNoInteractions(mtnPort, orangePort);
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
+    // Test 15: empty transactionIds → INVALID_TRANSACTION
+    // ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void initiateRejectsEmptyTransactionIdsList() {
+        doThrow(new InvalidTransactionException("transactionIds list is empty"))
+                .when(transactionClaimValidationService)
+                .validateAndClaim(anyLong(), anyList(), any(BigDecimal.class), anyLong());
+
+        DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
+
+        assertThat(response.errorCode()).isEqualTo("INVALID_TRANSACTION");
+        verify(dsbService).transitionToFailed(any());
+        verify(mtnPort, never()).initiateDisbursement(any());
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
+    // Test 16: amount mismatch → AMOUNT_MISMATCH
+    // ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void initiateRejectsMismatchedAmount() {
+        doThrow(new AmountMismatchException("request.amount=100 != sum=99"))
+                .when(transactionClaimValidationService)
+                .validateAndClaim(anyLong(), anyList(), any(BigDecimal.class), anyLong());
+
+        DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
+
+        assertThat(response.errorCode()).isEqualTo("AMOUNT_MISMATCH");
+        verify(dsbService).transitionToFailed(any());
+        verify(mtnPort, never()).initiateDisbursement(any());
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
+    // Test 17: transaction already claimed → TRANSACTION_CLAIMED; disbursement failed
+    // ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void initiateRejectsClaimedTransaction() {
+        doThrow(new TransactionClaimedException("txn-001 already claimed"))
+                .when(transactionClaimValidationService)
+                .validateAndClaim(anyLong(), anyList(), any(BigDecimal.class), anyLong());
+
+        DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
+
+        assertThat(response.errorCode()).isEqualTo("TRANSACTION_CLAIMED");
+        verify(dsbService).transitionToFailed(any());
+        verify(mtnPort, never()).initiateDisbursement(any());
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
+    // Test 18: FEE-01 regression — orchestrator has NO FeeEvaluationService dependency
+    // ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void initiateNeverCallsFeeEvaluationService_FEE01_regression() {
+        // FEE-01: orchestrator must not depend on FeeEvaluationService
+        // Phase 54 retired the fee evaluation model; this test ensures it stays retired
+        long feeFields = java.util.Arrays.stream(orchestrator.getClass().getDeclaredFields())
+                .filter(f -> f.getType().getSimpleName().contains("Fee"))
+                .count();
+        assertThat(feeFields).as("FEE-01: no FeeEvaluationService dependency").isZero();
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
+    // Test 19: validation failure transitions disbursement to FAILED (via releaseAndFail)
+    // ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void initiateOnValidationFailureTransitionsDisbursementToFailed() {
+        doThrow(new InvalidTransactionException("txn-001 has txStatus=FAILED, expected SUCCESS"))
+                .when(transactionClaimValidationService)
+                .validateAndClaim(anyLong(), anyList(), any(BigDecimal.class), anyLong());
+
+        orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
+
+        // releaseAndFail internally calls disbursementService.transitionToFailed
+        verify(dsbService).transitionToFailed(eq(DSB_ID));
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
+    // Test 20: happy path calls validateAndClaim once with correct tenant/list/amount
+    // ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void initiateOnSuccessCallsValidateAndClaim() {
+        DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
+
+        assertThat(response.errorCode()).isNull();
+        verify(transactionClaimValidationService).validateAndClaim(
+                eq(TENANT_ID),
+                eq(java.util.List.of("txn-001")),
+                eq(SMALL_AMOUNT),
+                any(Long.class)
+        );
     }
 }
