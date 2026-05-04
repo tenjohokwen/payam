@@ -16,7 +16,9 @@ public enum EmailTemplate {
     TENANT_API_KEY_REACTIVATED("email.tenant.api_key_reactivated.title"),
     TENANT_WEBHOOK_SECRET_REGENERATED("email.tenant.webhook_secret_regenerated.title"),
     TENANT_STATUS_CHANGED("email.tenant.status_changed.title"),
-    TENANT_CREATED("email.tenant.created.title");
+    TENANT_CREATED("email.tenant.created.title"),
+    DISBURSEMENT_ADMIN_APPROVAL_REQUIRED("email.disbursement.admin_approval_required.title"),
+    DISBURSEMENT_INSUFFICIENT_FUNDS_ALERT("email.disbursement.insufficient_funds_alert.title");
 
     private final String subjectKey;
     EmailTemplate(final String subjectKey) {

@@ -323,3 +323,7 @@ payam:
   platform:
     notification-email: ${PLATFORM_NOTIFICATION_EMAIL:tenjoh_okwen@yahoo.com}
     pin-encryption-secret: ${PLATFORM_PIN_ENCRYPTION_SECRET:}
+  disbursement:
+    admin-approval-threshold: ${PAYAM_DISBURSEMENT_ADMIN_APPROVAL_THRESHOLD:5000000}
+    admin-approval-timeout-hours: ${PAYAM_DISBURSEMENT_ADMIN_APPROVAL_TIMEOUT_HOURS:24}
+    admin-approval-expiry-cron: ${PAYAM_DISBURSEMENT_ADMIN_APPROVAL_EXPIRY_CRON:0 * * * * ?}
