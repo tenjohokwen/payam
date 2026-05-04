@@ -3,11 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-04T06:00:00.000Z"
-last_activity: 2026-05-04 -- Phase 55 Plan 01 complete
+stopped_at: Completed 55-02-PLAN.md (transaction claim validation service)
+last_updated: "2026-05-04T05:33:08.110Z"
+last_activity: 2026-05-04
 progress:
   total_phases: 29
-  completed_phases: 16
+  completed_phases: 15
   total_plans: 50
   completed_plans: 48
   percent: 96
@@ -25,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-05-01 — v11 milestone started)
 ## Current Position
 
 Phase: 55 (transaction-validation-fee-removal) — EXECUTING
-Plan: 2 of 3 (Plan 01 complete)
-Status: Executing Phase 55 — Plan 01 done, Plan 02 next
-Last activity: 2026-05-04 -- Phase 55 Plan 01 complete
+Plan: 3 of 3 (Plan 01 complete)
+Status: Ready to execute
+Last activity: 2026-05-04
 
 Progress: [██████████] 96% (48/50 plans complete)
 
@@ -70,6 +71,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 55-01]: DisbursementOrchestrator.confirm() pseudoRequest passes null for transactionIds — claim validation only at initiate() time; confirm() feeds dispatchToProvider which never inspects transactionIds
 - [Phase 55-01]: findByTransactionIdsForUpdate uses ORDER BY t.transactionId ASC — canonical lock ordering prevents deadlocks when concurrent disbursements have overlapping transaction sets (TXN-05)
 - [Phase 55-01]: Test construction sites use List.of("dummy-txn-id") as placeholder — real transaction row setup belongs in Plan 02 (unit mocks) and Plan 03 (IT with real DB)
+- [Phase 55]: Pre-lock ownership check uses individual findByTransactionId() calls — bounded by Bean Validation 500-id limit; locked SELECT FOR UPDATE is the authoritative read
+- [Phase 55]: Step 7.5 runs BEFORE stepUp early-return in DisbursementOrchestrator — CLAIM-01 requires claims to exist when disbursement is accepted, including PENDING_CONFIRMATION state
+- [Phase 55]: FEE-01 regression guard uses reflection on getDeclaredFields() to check absence of any *Fee*-typed field — pinned forward without depending on specific class name
 
 ### v11 Phase Map
 
@@ -81,6 +85,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 | 57 | Idempotency Retry Recovery & V32 Migration Scaffold | IDEM-01, IDEM-02, IDEM-03, SCHEMA-04 |
 | 58 | Integration & E2E Test Suite | cross-cutting quality gate |
 | Phase 54 P01 | 833 | 3 tasks | 4 files |
+| Phase 55 P02 | 23 | 2 tasks | 4 files |
 
 ### Pending Todos
 
@@ -92,6 +97,6 @@ None — Phase 55 Plan 01 complete, Plans 02 and 03 ready for execution.
 
 ## Session Continuity
 
-Last session: 2026-05-04T06:00:00.000Z
-Stopped at: Completed 55-01 contract foundation plan
+Last session: 2026-05-04T05:33:08.102Z
+Stopped at: Completed 55-02-PLAN.md (transaction claim validation service)
 Resume: Execute 55-02-PLAN.md (TransactionClaimValidationService implementation)

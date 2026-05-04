@@ -13,11 +13,11 @@
 ### TXN — Transaction Validation & Claim Locking
 
 - [x] **TXN-01**: Tenant supplies `transactionIds` (non-empty, max 500 UUIDs) in `DisbursementRequest`; system rejects if any transaction does not belong to the requesting tenant, returning `422 INVALID_TRANSACTION`
-- [ ] **TXN-02**: System rejects a disbursement where any supplied transaction has `txStatus != SUCCESS` or `flow != COLLECTION`, returning `422 INVALID_TRANSACTION`
-- [ ] **TXN-03**: System rejects a disbursement where any supplied transaction has an active claim (`ref_status IN ('PENDING', 'CLAIMED')` in `disbursement_transaction_ref`), returning `422 TRANSACTION_CLAIMED`
-- [ ] **TXN-04**: System rejects a disbursement where `disbursement.amount != SUM(disbursableAmount)` across all supplied transactions (`disbursableAmount = transaction.amount - feeAmount`), returning `422 AMOUNT_MISMATCH`
+- [x] **TXN-02**: System rejects a disbursement where any supplied transaction has `txStatus != SUCCESS` or `flow != COLLECTION`, returning `422 INVALID_TRANSACTION`
+- [x] **TXN-03**: System rejects a disbursement where any supplied transaction has an active claim (`ref_status IN ('PENDING', 'CLAIMED')` in `disbursement_transaction_ref`), returning `422 TRANSACTION_CLAIMED`
+- [x] **TXN-04**: System rejects a disbursement where `disbursement.amount != SUM(disbursableAmount)` across all supplied transactions (`disbursableAmount = transaction.amount - feeAmount`), returning `422 AMOUNT_MISMATCH`
 - [ ] **TXN-05**: System performs claim validation and creation atomically via `SELECT FOR UPDATE` on `Transaction` rows ordered by `transaction_id` ascending (lexicographic) within a single database transaction to prevent deadlocks
-- [ ] **TXN-06**: For pre-Phase-10 collection transactions with `fee_amount IS NULL`, system treats `feeAmount = 0` so the full `transaction.amount` is disbursable
+- [x] **TXN-06**: For pre-Phase-10 collection transactions with `fee_amount IS NULL`, system treats `feeAmount = 0` so the full `transaction.amount` is disbursable
 
 ### CLAIM — Claim Lifecycle
 
@@ -35,7 +35,7 @@
 
 ### FEE — Fee Exemption
 
-- [ ] **FEE-01**: Disbursement initiation bypasses `FeeEvaluationService`; `DisbursementResponse.fee` is always `BigDecimal.ZERO`; no fee rule is evaluated or stored
+- [x] **FEE-01**: Disbursement initiation bypasses `FeeEvaluationService`; `DisbursementResponse.fee` is always `BigDecimal.ZERO`; no fee rule is evaluated or stored
 - [ ] **FEE-02**: Any `Transaction` row written for a disbursement payout (`flow = DISBURSEMENT`) has `feeAmount = 0` and `feeRuleId = NULL`
 
 ### IDEM — Idempotency Retry Recovery
