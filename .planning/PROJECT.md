@@ -10,7 +10,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ## Current State
 
-Phase 55 complete — transaction-claim validation (TXN-01..06) and fee-removal regression guards (FEE-01, FEE-02) implemented. Next: Phase 56 — claim lifecycle & admin approval.
+Phase 56 complete — claim lifecycle state machine (PENDING→CLAIMED/RELEASED), admin-approval gate for disbursements >5M XAF with Quartz-based expiry, ops email alerts (admin-approval + insufficient-funds). Next: Phase 57 — idempotency retry recovery & V32 migration scaffold.
 
 ## Current Milestone: v11 Transaction-Backed Disbursements
 
