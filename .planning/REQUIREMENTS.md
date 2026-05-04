@@ -12,7 +12,7 @@
 
 ### TXN — Transaction Validation & Claim Locking
 
-- [ ] **TXN-01**: Tenant supplies `transactionIds` (non-empty, max 500 UUIDs) in `DisbursementRequest`; system rejects if any transaction does not belong to the requesting tenant, returning `422 INVALID_TRANSACTION`
+- [x] **TXN-01**: Tenant supplies `transactionIds` (non-empty, max 500 UUIDs) in `DisbursementRequest`; system rejects if any transaction does not belong to the requesting tenant, returning `422 INVALID_TRANSACTION`
 - [ ] **TXN-02**: System rejects a disbursement where any supplied transaction has `txStatus != SUCCESS` or `flow != COLLECTION`, returning `422 INVALID_TRANSACTION`
 - [ ] **TXN-03**: System rejects a disbursement where any supplied transaction has an active claim (`ref_status IN ('PENDING', 'CLAIMED')` in `disbursement_transaction_ref`), returning `422 TRANSACTION_CLAIMED`
 - [ ] **TXN-04**: System rejects a disbursement where `disbursement.amount != SUM(disbursableAmount)` across all supplied transactions (`disbursableAmount = transaction.amount - feeAmount`), returning `422 AMOUNT_MISMATCH`

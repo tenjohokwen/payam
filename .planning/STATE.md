@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
-status: completed
-last_updated: "2026-05-02T17:25:37.890Z"
-last_activity: 2026-05-02
+status: executing
+last_updated: "2026-05-04T06:00:00.000Z"
+last_activity: 2026-05-04 -- Phase 55 Plan 01 complete
 progress:
   total_phases: 29
   completed_phases: 16
-  total_plans: 47
-  completed_plans: 47
-  percent: 100
+  total_plans: 50
+  completed_plans: 48
+  percent: 96
 ---
 
 # Project State
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-01 — v11 milestone started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 54 — v31-schema-migration
+**Current focus:** Phase 55 — transaction-validation-fee-removal
 
 ## Current Position
 
-Phase: 55
-Plan: Not started
-Status: Phase 54 complete — ready for Phase 55
-Last activity: 2026-05-02
+Phase: 55 (transaction-validation-fee-removal) — EXECUTING
+Plan: 2 of 3 (Plan 01 complete)
+Status: Executing Phase 55 — Plan 01 done, Plan 02 next
+Last activity: 2026-05-04 -- Phase 55 Plan 01 complete
 
-Progress: [██████████] 100% (47/47 plans complete)
+Progress: [██████████] 96% (48/50 plans complete)
 
 ## Performance Metrics
 
@@ -66,6 +66,10 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 54-03]: PENDING_ADMIN_APPROVAL has no producer in DisbursementOrchestrator yet — Phase 56 ADMIN-01 adds the branch that transitions INTO this state; Plan 03 only declares the state and its outbound transitions {PROCESSING, EXPIRED}
 - [Phase 54-03]: PENDING_ADMIN_APPROVAL.allowedTransitions() excludes FAILED — admin rejection flows through PROCESSING (distinguishes "approved but provider failed" from "admin rejected"); verified via pendingAdminApprovalToFailedThrows test
 - [Phase 54-03]: Phase 54 closes SCHEMA-01 (disbursement_transaction_ref DDL), SCHEMA-02 (admin_note + retry_count columns), SCHEMA-03 (application-layer wallet retirement); WalletBalanceService + MerchantWalletBalance classes survive until Phase 57 V32 migration
+- [Phase 55-01]: DisbursementRequest.transactionIds placed as slot 7 (before idempotencyKey) — idempotencyKey must remain last for DisbursementResource header-injection pattern
+- [Phase 55-01]: DisbursementOrchestrator.confirm() pseudoRequest passes null for transactionIds — claim validation only at initiate() time; confirm() feeds dispatchToProvider which never inspects transactionIds
+- [Phase 55-01]: findByTransactionIdsForUpdate uses ORDER BY t.transactionId ASC — canonical lock ordering prevents deadlocks when concurrent disbursements have overlapping transaction sets (TXN-05)
+- [Phase 55-01]: Test construction sites use List.of("dummy-txn-id") as placeholder — real transaction row setup belongs in Plan 02 (unit mocks) and Plan 03 (IT with real DB)
 
 ### v11 Phase Map
 
@@ -84,4 +88,10 @@ None.
 
 ### Blockers/Concerns
 
-None — roadmap approved, ready for Phase 54 planning.
+None — Phase 55 Plan 01 complete, Plans 02 and 03 ready for execution.
+
+## Session Continuity
+
+Last session: 2026-05-04T06:00:00.000Z
+Stopped at: Completed 55-01 contract foundation plan
+Resume: Execute 55-02-PLAN.md (TransactionClaimValidationService implementation)
