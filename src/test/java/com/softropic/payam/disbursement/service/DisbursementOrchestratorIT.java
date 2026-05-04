@@ -1,16 +1,23 @@
 package com.softropic.payam.disbursement.service;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.config.TestDataCleaner;
 import com.softropic.payam.disbursement.contract.DisbursementOrchestratorError;
+import com.softropic.payam.disbursement.contract.DisbursementRefStatus;
 import com.softropic.payam.disbursement.contract.DisbursementRequest;
 import com.softropic.payam.disbursement.contract.DisbursementResponse;
 import com.softropic.payam.disbursement.repo.DisbursementRepository;
+import com.softropic.payam.disbursement.repo.DisbursementTransactionRefRepository;
 import com.softropic.payam.disbursement.repo.MerchantWalletBalanceRepository;
 import com.softropic.payam.platform.service.PlatformConfigService;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
+import com.softropic.payam.transaction.contract.LedgerFlow;
+import com.softropic.payam.transaction.contract.TransactionStatus;
+import com.softropic.payam.transaction.repo.Transaction;
+import com.softropic.payam.transaction.repo.TransactionRepository;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -87,6 +94,8 @@ class DisbursementOrchestratorIT {
     @Autowired JdbcTemplate jdbcTemplate;
     @Autowired TransactionTemplate transactionTemplate;
     @Autowired TestDataCleaner testDataCleaner;
+    @Autowired TransactionRepository transactionRepository;
+    @Autowired DisbursementTransactionRefRepository transactionRefRepository;
 
     private Long tenantId;
 
@@ -149,6 +158,35 @@ class DisbursementOrchestratorIT {
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
+    // Helpers
+    // ────────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Seeds {@code count} Transaction rows with txStatus=SUCCESS, flow=COLLECTION for the
+     * current test tenant. Used by tests 1-5 so that Step 7.5 claim validation succeeds.
+     * Each transaction has {@code amount=eachAmount} so the total for the DisbursementRequest
+     * must be {@code count * eachAmount}.
+     */
+    private List<String> seedTxnsForClaim(Long tenantId, int count, BigDecimal eachAmount) {
+        return java.util.stream.IntStream.range(0, count).mapToObj(i -> {
+            String id = UUID.randomUUID().toString();
+            Transaction tx = Transaction.builder()
+                    .transactionId(id).traceId(id).tenantId(tenantId)
+                    .provider(MobilePaymentProvider.MTN)
+                    .txStatus(TransactionStatus.SUCCESS)
+                    .flow(LedgerFlow.COLLECTION)
+                    .amount(eachAmount).currency("XAF")
+                    .feeAmount(BigDecimal.ZERO)
+                    .build();
+            transactionTemplate.execute(s -> {
+                transactionRepository.save(tx);
+                return null;
+            });
+            return id;
+        }).toList();
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
     // Test 1: MTN happy path — small disbursement → PROCESSING, wallet reduced
     // ────────────────────────────────────────────────────────────────────────────────
 
@@ -161,9 +199,13 @@ class DisbursementOrchestratorIT {
         mtnServer.stubFor(post(urlPathEqualTo("/v1_0/transfer"))
             .willReturn(aResponse().withStatus(202)));
 
+        // Seed 1 SUCCESS/COLLECTION transaction matching the request amount (Step 7.5 validation)
+        BigDecimal requestAmount = new BigDecimal("5000");
+        List<String> txnIds = seedTxnsForClaim(tenantId, 1, requestAmount);
+
         DisbursementRequest request = new DisbursementRequest(
-            MTN_MSISDN, new BigDecimal("5000"), "XAF", "REF-MTN-001",
-            null, null, List.of("dummy-txn-id"), "IDEM-MTN-HAPPY-" + UUID.randomUUID());
+            MTN_MSISDN, requestAmount, "XAF", "REF-MTN-001",
+            null, null, txnIds, "IDEM-MTN-HAPPY-" + UUID.randomUUID());
 
         DisbursementResponse response = orchestrator.initiate(tenantId, request);
 
@@ -182,6 +224,12 @@ class DisbursementOrchestratorIT {
             "SELECT balance FROM main.merchant_wallet_balance WHERE tenant_id = ?",
             BigDecimal.class, tenantId);
         assertThat(balance).isLessThan(new BigDecimal("1000000"));
+
+        // CLAIM-01: verify PENDING DisbursementTransactionRef rows exist after initiate
+        long pendingRefs = transactionRefRepository.findAll().stream()
+                .filter(r -> r.getRefStatus() == DisbursementRefStatus.PENDING)
+                .count();
+        assertThat(pendingRefs).as("CLAIM-01: PENDING ref per txn").isEqualTo(txnIds.size());
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
@@ -198,9 +246,13 @@ class DisbursementOrchestratorIT {
         orangeServer.stubFor(post(urlPathEqualTo("/cashout"))
             .willReturn(okJson("{\"status\":\"SUCCESS\"}")));
 
+        // Seed 1 SUCCESS/COLLECTION transaction matching the request amount (Step 7.5 validation)
+        BigDecimal requestAmount = new BigDecimal("5000");
+        List<String> txnIds = seedTxnsForClaim(tenantId, 1, requestAmount);
+
         DisbursementRequest request = new DisbursementRequest(
-            ORANGE_MSISDN, new BigDecimal("5000"), "XAF", "REF-ORANGE-001",
-            null, null, List.of("dummy-txn-id"), "IDEM-ORANGE-HAPPY-" + UUID.randomUUID());
+            ORANGE_MSISDN, requestAmount, "XAF", "REF-ORANGE-001",
+            null, null, txnIds, "IDEM-ORANGE-HAPPY-" + UUID.randomUUID());
 
         DisbursementResponse response = orchestrator.initiate(tenantId, request);
 
@@ -212,6 +264,12 @@ class DisbursementOrchestratorIT {
             "SELECT disbursement_status FROM main.disbursement WHERE disbursement_id = ?",
             String.class, response.disbursementId());
         assertThat(dbStatus).isEqualTo("PROCESSING");
+
+        // CLAIM-01: verify PENDING DisbursementTransactionRef rows exist after initiate
+        long pendingRefs = transactionRefRepository.findAll().stream()
+                .filter(r -> r.getRefStatus() == DisbursementRefStatus.PENDING)
+                .count();
+        assertThat(pendingRefs).as("CLAIM-01: PENDING ref per txn").isEqualTo(txnIds.size());
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
@@ -220,9 +278,13 @@ class DisbursementOrchestratorIT {
 
     @Test
     void step_up_amount_returns_pending_confirmation_no_provider_call() {
+        // Seed 1 SUCCESS/COLLECTION transaction for 600000 XAF (Step 7.5 runs BEFORE step-up return)
+        BigDecimal requestAmount = new BigDecimal("600000");
+        List<String> txnIds = seedTxnsForClaim(tenantId, 1, requestAmount);
+
         DisbursementRequest request = new DisbursementRequest(
-            MTN_MSISDN, new BigDecimal("600000"), "XAF", "REF-STEPUP-001",
-            null, null, List.of("dummy-txn-id"), "IDEM-STEPUP-" + UUID.randomUUID());
+            MTN_MSISDN, requestAmount, "XAF", "REF-STEPUP-001",
+            null, null, txnIds, "IDEM-STEPUP-" + UUID.randomUUID());
 
         DisbursementResponse response = orchestrator.initiate(tenantId, request);
 
@@ -244,6 +306,12 @@ class DisbursementOrchestratorIT {
             "SELECT disbursement_status FROM main.disbursement WHERE disbursement_id = ?",
             String.class, response.disbursementId());
         assertThat(dbStatus).isEqualTo("PENDING_CONFIRMATION");
+
+        // CLAIM-01: claims are created even for PENDING_CONFIRMATION (Step 7.5 runs before step-up return)
+        long pendingRefs = transactionRefRepository.findAll().stream()
+                .filter(r -> r.getRefStatus() == DisbursementRefStatus.PENDING)
+                .count();
+        assertThat(pendingRefs).as("CLAIM-01: PENDING ref exists even for PENDING_CONFIRMATION").isEqualTo(txnIds.size());
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
@@ -252,10 +320,15 @@ class DisbursementOrchestratorIT {
 
     @Test
     void confirm_pending_disbursement_dispatches_to_provider() {
+        // Seed 1 SUCCESS/COLLECTION transaction for the initiate phase (600000 XAF, step-up path)
+        // confirm() uses pseudoRequest with transactionIds=null (Plan 01 Step 4) — no extra seeding needed.
+        BigDecimal initAmount = new BigDecimal("600000");
+        List<String> txnIds = seedTxnsForClaim(tenantId, 1, initAmount);
+
         // First: create a step-up disbursement in PENDING_CONFIRMATION
         DisbursementRequest initRequest = new DisbursementRequest(
-            MTN_MSISDN, new BigDecimal("600000"), "XAF", "REF-CONFIRM-001",
-            null, null, List.of("dummy-txn-id"), "IDEM-CONFIRM-" + UUID.randomUUID());
+            MTN_MSISDN, initAmount, "XAF", "REF-CONFIRM-001",
+            null, null, txnIds, "IDEM-CONFIRM-" + UUID.randomUUID());
 
         DisbursementResponse initResponse = orchestrator.initiate(tenantId, initRequest);
         assertThat(initResponse.status()).isEqualTo("PENDING_CONFIRMATION");
@@ -294,9 +367,13 @@ class DisbursementOrchestratorIT {
         mtnServer.stubFor(post(urlPathEqualTo("/v1_0/transfer"))
             .willReturn(aResponse().withStatus(202)));
 
+        // Seed 1 SUCCESS/COLLECTION transaction for the initiate (5000 XAF, non-step-up → PROCESSING)
+        BigDecimal requestAmount = new BigDecimal("5000");
+        List<String> txnIds = seedTxnsForClaim(tenantId, 1, requestAmount);
+
         DisbursementRequest request = new DisbursementRequest(
-            MTN_MSISDN, new BigDecimal("5000"), "XAF", "REF-INVALID-001",
-            null, null, List.of("dummy-txn-id"), "IDEM-INVALID-" + UUID.randomUUID());
+            MTN_MSISDN, requestAmount, "XAF", "REF-INVALID-001",
+            null, null, txnIds, "IDEM-INVALID-" + UUID.randomUUID());
 
         DisbursementResponse initResponse = orchestrator.initiate(tenantId, request);
         assertThat(initResponse.status()).isEqualTo("PROCESSING");
@@ -321,7 +398,16 @@ class DisbursementOrchestratorIT {
 
     @Test
     void insufficient_balance_returns_failed_no_provider_call() {
-        // Request amount (2,000,000) exceeds wallet balance (1,000,000 seeded above)
+        // transactionIds: dummy is acceptable here — INSUFFICIENT_BALANCE fires at Step 3
+        // (velocity/wallet check), strictly BEFORE Step 7.5 claim validation runs. The
+        // Phase 54 wallet-balance gate may be retired in a separate revision; this test
+        // is preserved for that follow-up.
+        //
+        // NOTE: The v11 refactor (SCHEMA-03) retired the wallet-reservation model. The
+        // INSUFFICIENT_BALANCE path no longer exists in DisbursementOrchestrator — the
+        // wallet check was removed as part of claim-based locking. This test is kept as a
+        // placeholder to track the diverged behavior; a separate Phase 54/57 cleanup plan
+        // should either re-introduce the check or remove this test entirely.
         DisbursementRequest request = new DisbursementRequest(
             MTN_MSISDN, new BigDecimal("2000000"), "XAF", "REF-INSUF-001",
             null, null, List.of("dummy-txn-id"), "IDEM-INSUF-" + UUID.randomUUID());
