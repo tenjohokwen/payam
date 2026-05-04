@@ -7,10 +7,13 @@ import com.softropic.payam.common.payment.PaymentCommand;
 import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.common.payment.SubscriberStatus;
 import com.softropic.payam.common.util.JsonUtil;
+import com.softropic.payam.disbursement.config.DisbursementProperties;
 import com.softropic.payam.disbursement.contract.DisbursementOrchestratorError;
+import com.softropic.payam.disbursement.contract.DisbursementRefStatus;
 import com.softropic.payam.disbursement.contract.DisbursementRequest;
 import com.softropic.payam.disbursement.contract.DisbursementResponse;
 import com.softropic.payam.disbursement.contract.DisbursementStatus;
+import com.softropic.payam.disbursement.contract.event.DisbursementAdminApprovalRequiredEvent;
 import com.softropic.payam.disbursement.contract.exception.AmountMismatchException;
 import com.softropic.payam.disbursement.contract.exception.DailyLimitExceededException;
 import com.softropic.payam.disbursement.contract.exception.InvalidTransactionException;
@@ -29,12 +32,14 @@ import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -92,6 +97,9 @@ public class DisbursementOrchestrator {
     private final OrangeMoneyPort orangePort;
     private final TransactionTemplate transactionTemplate;
     private final TransactionClaimValidationService transactionClaimValidationService;
+    private final DisbursementProperties disbursementProperties;
+    private final DisbursementClaimTransitionService claimTransitionService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public DisbursementOrchestrator(DisbursementIdempotencyService idempotencyService,
                                     MsisdnRouter msisdnRouter,
@@ -102,7 +110,10 @@ public class DisbursementOrchestrator {
                                     MtnMoMoPort mtnPort,
                                     OrangeMoneyPort orangePort,
                                     TransactionTemplate transactionTemplate,
-                                    TransactionClaimValidationService transactionClaimValidationService) {
+                                    TransactionClaimValidationService transactionClaimValidationService,
+                                    DisbursementProperties disbursementProperties,
+                                    DisbursementClaimTransitionService claimTransitionService,
+                                    ApplicationEventPublisher eventPublisher) {
         this.idempotencyService = idempotencyService;
         this.msisdnRouter = msisdnRouter;
         this.velocityService = velocityService;
@@ -113,6 +124,9 @@ public class DisbursementOrchestrator {
         this.orangePort = orangePort;
         this.transactionTemplate = transactionTemplate;
         this.transactionClaimValidationService = transactionClaimValidationService;
+        this.disbursementProperties = disbursementProperties;
+        this.claimTransitionService = claimTransitionService;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -174,11 +188,19 @@ public class DisbursementOrchestrator {
         BigDecimal fee = BigDecimal.ZERO;
         BigDecimal totalAmount = request.amount();
 
-        // ── Step 6: Determine flow — step-up gate (SEC-04) ──────────────────────────
-        boolean stepUp = request.amount().compareTo(STEP_UP_THRESHOLD) > 0;
-        DisbursementStatus initialStatus = stepUp
-                ? DisbursementStatus.PENDING_CONFIRMATION
-                : DisbursementStatus.INITIATED;
+        // ── Step 6: Determine flow — admin-approval gate FIRST, then step-up (ADMIN-01) ─
+        // Threshold ordering invariant: adminApprovalThreshold MUST exceed STEP_UP_THRESHOLD
+        // so the two flows co-exist. Admin-approval takes precedence — checked first.
+        BigDecimal adminApprovalThreshold = disbursementProperties.getAdminApprovalThreshold();
+        boolean adminApproval = request.amount().compareTo(adminApprovalThreshold) > 0;
+        boolean stepUp        = !adminApproval
+                               && request.amount().compareTo(STEP_UP_THRESHOLD) > 0;
+        // When adminApproval: create row as INITIATED, then transition to PENDING_ADMIN_APPROVAL
+        // after claim validation (Step 7.6). INITIATED→PENDING_ADMIN_APPROVAL is allowed by state machine.
+        DisbursementStatus initialStatus =
+                adminApproval ? DisbursementStatus.INITIATED
+              : stepUp        ? DisbursementStatus.PENDING_CONFIRMATION
+              :                 DisbursementStatus.INITIATED;
 
         // ── Step 7: Create Disbursement row ─────────────────────────────────────────
         Disbursement dsb = disbursementService.create(tenantId, provider, request, initialStatus);
@@ -215,6 +237,31 @@ public class DisbursementOrchestrator {
             return DisbursementResponse.failed(disbursementId,
                     DisbursementOrchestratorError.AMOUNT_MISMATCH.getErrorCode(),
                     e.getMessage());
+        }
+
+        // ── Step 7.6: Admin-approval gate (ADMIN-01, ADMIN-02) ──────────────────────
+        if (adminApproval) {
+            String adminNote = "Amount " + request.amount() + " " + request.currency()
+                             + " exceeds admin-approval threshold "
+                             + adminApprovalThreshold + " " + request.currency();
+            transactionTemplate.execute(st -> {
+                disbursementService.transitionToPendingAdminApproval(disbursementId, adminNote);
+                return null;
+            });
+            eventPublisher.publishEvent(new DisbursementAdminApprovalRequiredEvent(
+                    disbursementId, tenantId, request.amount(), request.currency(),
+                    request.recipientMsisdn(), request.reference(), adminNote, Instant.now()));
+            DisbursementResponse adminPendingResponse = DisbursementResponse.accepted(
+                    disbursementId, "PENDING_ADMIN_APPROVAL", null,
+                    request.recipientMsisdn(), request.amount(), fee, request.currency(),
+                    request.reference(), provider.name());
+            idempotencyService.store(tenantId, request.idempotencyKey(), 202, JsonUtil.toJson(adminPendingResponse));
+            log.info("Disbursement gated for admin approval",
+                    kv("operation", "dsb_admin_approval_gate"),
+                    kv("disbursementId", disbursementId),
+                    kv("amount", request.amount()),
+                    kv("threshold", adminApprovalThreshold));
+            return adminPendingResponse;
         }
 
         if (stepUp) {
@@ -369,13 +416,34 @@ public class DisbursementOrchestrator {
     }
 
     /**
-     * Transition disbursement to FAILED. No wallet release — wallet model retired in v11 (SCHEMA-03).
+     * Transition disbursement to FAILED and release any PENDING claims to RELEASED (CLAIM-03).
+     * Both operations commit atomically in the same TransactionTemplate block.
+     * No wallet release — wallet model retired in v11 (SCHEMA-03).
      * Errors are swallowed + logged — the original failure response is returned regardless.
+     *
+     * <p>Zero-claim invariant (CLAIM-05): if no claim rows exist yet (claim creation itself
+     * threw earlier in the flow), transitionClaims returns 0 — that is NOT an error.
+     * The method completes gracefully so the disbursement transitions to FAILED regardless.
      */
     private void releaseAndFail(Long tenantId, BigDecimal totalAmount, String disbursementId) {
         try {
             transactionTemplate.execute(st -> {
-                disbursementService.transitionToFailed(disbursementId);
+                Disbursement locked = disbursementRepository
+                        .findByDisbursementIdForUpdate(disbursementId)
+                        .orElseThrow(() -> new IllegalStateException(
+                                "Disbursement not found: " + disbursementId));
+                locked.applyTransition(DisbursementStatus.FAILED);
+                // CLAIM-03: release any PENDING claims to RELEASED. Returns 0 if no claim
+                // rows exist yet — that is NOT an error. Safe to call unconditionally;
+                // @Modifying UPDATE with no matching rows is a no-op.
+                int released = claimTransitionService.transitionClaims(
+                        locked.getId(),
+                        DisbursementRefStatus.PENDING,
+                        DisbursementRefStatus.RELEASED);
+                log.info("releaseAndFail completed",
+                        kv("operation", "dsb_release_and_fail"),
+                        kv("disbursementId", disbursementId),
+                        kv("claimsReleased", released));
                 return null;
             });
         } catch (Exception ex) {
