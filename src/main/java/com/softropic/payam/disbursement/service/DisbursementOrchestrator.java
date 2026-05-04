@@ -219,9 +219,13 @@ public class DisbursementOrchestrator {
         BigDecimal fee = BigDecimal.ZERO;
         BigDecimal totalAmount = dsb.getAmount();
 
+        // Pass null for transactionIds: confirm() does NOT re-run claim validation. Claims
+        // were created during initiate() inside a transactionTemplate.execute block; this
+        // pseudo-request feeds dispatchToProvider, which never inspects transactionIds.
         DisbursementRequest pseudoRequest = new DisbursementRequest(
                 dsb.getRecipientMsisdn(), dsb.getAmount(), dsb.getCurrency(),
                 dsb.getReference(), dsb.getDescription(), dsb.getMetadata(),
+                null,
                 dsb.getIdempotencyKey()
         );
         return dispatchToProvider(tenantId, pseudoRequest, dsb.getProvider(), dsb, fee, totalAmount);

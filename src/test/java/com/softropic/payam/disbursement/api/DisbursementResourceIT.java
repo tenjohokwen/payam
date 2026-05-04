@@ -28,6 +28,7 @@ import org.wiremock.spring.EnableWireMock;
 import org.wiremock.spring.InjectWireMock;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -184,7 +185,8 @@ class DisbursementResourceIT {
             "recipientMsisdn", MTN_MSISDN,
             "amount", 5000,
             "currency", "XAF",
-            "reference", "REF-T1"));
+            "reference", "REF-T1",
+            "transactionIds", List.of("dummy-txn-id")));
 
         mockMvc.perform(post("/v1/disbursements")
                 .header("X-Api-Key", apiKeyA)
@@ -310,7 +312,8 @@ class DisbursementResourceIT {
             "recipientMsisdn", msisdn,
             "amount", amount,
             "currency", "XAF",
-            "reference", "REF-" + UUID.randomUUID().toString().substring(0, 8)));
+            "reference", "REF-" + UUID.randomUUID().toString().substring(0, 8),
+            "transactionIds", List.of("dummy-txn-id")));
 
         String responseJson = mockMvc.perform(post("/v1/disbursements")
                 .header("X-Api-Key", apiKey)

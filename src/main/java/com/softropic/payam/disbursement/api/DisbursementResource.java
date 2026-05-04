@@ -75,7 +75,9 @@ public class DisbursementResource {
         // sees the canonical key. This avoids leaking the header into the request body contract.
         DisbursementRequest withKey = new DisbursementRequest(
                 body.recipientMsisdn(), body.amount(), body.currency(),
-                body.reference(), body.description(), body.metadata(), idempotencyKey);
+                body.reference(), body.description(), body.metadata(),
+                body.transactionIds(),
+                idempotencyKey);
 
         DisbursementResponse response = orchestrator.initiate(principal.getTenantId(), withKey);
 

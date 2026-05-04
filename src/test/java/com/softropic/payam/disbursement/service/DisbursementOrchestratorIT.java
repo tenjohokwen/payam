@@ -28,6 +28,7 @@ import org.wiremock.spring.EnableWireMock;
 import org.wiremock.spring.InjectWireMock;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -162,7 +163,7 @@ class DisbursementOrchestratorIT {
 
         DisbursementRequest request = new DisbursementRequest(
             MTN_MSISDN, new BigDecimal("5000"), "XAF", "REF-MTN-001",
-            null, null, "IDEM-MTN-HAPPY-" + UUID.randomUUID());
+            null, null, List.of("dummy-txn-id"), "IDEM-MTN-HAPPY-" + UUID.randomUUID());
 
         DisbursementResponse response = orchestrator.initiate(tenantId, request);
 
@@ -199,7 +200,7 @@ class DisbursementOrchestratorIT {
 
         DisbursementRequest request = new DisbursementRequest(
             ORANGE_MSISDN, new BigDecimal("5000"), "XAF", "REF-ORANGE-001",
-            null, null, "IDEM-ORANGE-HAPPY-" + UUID.randomUUID());
+            null, null, List.of("dummy-txn-id"), "IDEM-ORANGE-HAPPY-" + UUID.randomUUID());
 
         DisbursementResponse response = orchestrator.initiate(tenantId, request);
 
@@ -221,7 +222,7 @@ class DisbursementOrchestratorIT {
     void step_up_amount_returns_pending_confirmation_no_provider_call() {
         DisbursementRequest request = new DisbursementRequest(
             MTN_MSISDN, new BigDecimal("600000"), "XAF", "REF-STEPUP-001",
-            null, null, "IDEM-STEPUP-" + UUID.randomUUID());
+            null, null, List.of("dummy-txn-id"), "IDEM-STEPUP-" + UUID.randomUUID());
 
         DisbursementResponse response = orchestrator.initiate(tenantId, request);
 
@@ -254,7 +255,7 @@ class DisbursementOrchestratorIT {
         // First: create a step-up disbursement in PENDING_CONFIRMATION
         DisbursementRequest initRequest = new DisbursementRequest(
             MTN_MSISDN, new BigDecimal("600000"), "XAF", "REF-CONFIRM-001",
-            null, null, "IDEM-CONFIRM-" + UUID.randomUUID());
+            null, null, List.of("dummy-txn-id"), "IDEM-CONFIRM-" + UUID.randomUUID());
 
         DisbursementResponse initResponse = orchestrator.initiate(tenantId, initRequest);
         assertThat(initResponse.status()).isEqualTo("PENDING_CONFIRMATION");
@@ -295,7 +296,7 @@ class DisbursementOrchestratorIT {
 
         DisbursementRequest request = new DisbursementRequest(
             MTN_MSISDN, new BigDecimal("5000"), "XAF", "REF-INVALID-001",
-            null, null, "IDEM-INVALID-" + UUID.randomUUID());
+            null, null, List.of("dummy-txn-id"), "IDEM-INVALID-" + UUID.randomUUID());
 
         DisbursementResponse initResponse = orchestrator.initiate(tenantId, request);
         assertThat(initResponse.status()).isEqualTo("PROCESSING");
@@ -323,7 +324,7 @@ class DisbursementOrchestratorIT {
         // Request amount (2,000,000) exceeds wallet balance (1,000,000 seeded above)
         DisbursementRequest request = new DisbursementRequest(
             MTN_MSISDN, new BigDecimal("2000000"), "XAF", "REF-INSUF-001",
-            null, null, "IDEM-INSUF-" + UUID.randomUUID());
+            null, null, List.of("dummy-txn-id"), "IDEM-INSUF-" + UUID.randomUUID());
 
         DisbursementResponse response = orchestrator.initiate(tenantId, request);
 

@@ -42,6 +42,19 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     Optional<Transaction> findByTransactionIdForUpdate(@Param("transactionId") String transactionId);
 
     /**
+     * {@link #findByTransactionIdsForUpdate} — multi-row PESSIMISTIC_WRITE lock used by
+     * Phase 55 transaction-claim validation (TXN-05). The ORDER BY t.transactionId ASC is
+     * mandatory: it serializes lock acquisition across concurrent disbursement requests with
+     * overlapping transaction sets, preventing deadlocks. Caller MUST be inside a
+     * transactionTemplate.execute() block — locks are released on commit.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM Transaction t WHERE t.transactionId IN :transactionIds " +
+           "ORDER BY t.transactionId ASC")
+    List<Transaction> findByTransactionIdsForUpdate(
+        @Param("transactionIds") List<String> transactionIds);
+
+    /**
      * Find PROCESSING transactions for a given provider that have not been modified
      * since {@code lastModifiedDate}. Used by the status poller jobs.
      *

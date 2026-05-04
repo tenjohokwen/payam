@@ -62,7 +62,8 @@ class DisbursementOrchestratorTest {
     @InjectMocks DisbursementOrchestrator orchestrator;
 
     private DisbursementRequest validRequest(BigDecimal amount, String msisdn) {
-        return new DisbursementRequest(msisdn, amount, "XAF", "REF-001", null, null, "IDEM-001");
+        return new DisbursementRequest(msisdn, amount, "XAF", "REF-001", null, null,
+                java.util.List.of("txn-001"), "IDEM-001");
     }
 
     private Disbursement mockDisbursement(String id, DisbursementStatus status, BigDecimal amount) {
