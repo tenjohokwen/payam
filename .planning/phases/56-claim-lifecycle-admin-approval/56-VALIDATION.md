@@ -38,15 +38,14 @@ created: 2026-05-04
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 56-01-01 | 01 | 1 | CLAIM-01 | unit | `./mvnw test -Dtest="DisbursementClaimServiceTest#createClaims"` | ❌ W0 | ⬜ pending |
-| 56-01-02 | 01 | 1 | CLAIM-02 | unit | `./mvnw test -Dtest="DisbursementClaimServiceTest#transitionOnSuccess"` | ❌ W0 | ⬜ pending |
-| 56-01-03 | 01 | 1 | CLAIM-03 | unit | `./mvnw test -Dtest="DisbursementClaimServiceTest#transitionOnFailure"` | ❌ W0 | ⬜ pending |
-| 56-01-04 | 01 | 1 | CLAIM-04 | unit | `./mvnw test -Dtest="DisbursementClaimServiceTest#claimsHeldOnProcessingExpiry"` | ❌ W0 | ⬜ pending |
-| 56-01-05 | 01 | 1 | CLAIM-05 | unit | `./mvnw test -Dtest="DisbursementClaimServiceTest#claimsReleasedOnAdminExpiry"` | ❌ W0 | ⬜ pending |
-| 56-02-01 | 02 | 1 | ADMIN-01 | unit | `./mvnw test -Dtest="DisbursementOrchestratorTest#routesToAdminApproval"` | ❌ W0 | ⬜ pending |
-| 56-02-02 | 02 | 1 | ADMIN-02 | unit | `./mvnw test -Dtest="DisbursementAdminApprovalExpiryJobTest"` | ❌ W0 | ⬜ pending |
-| 56-02-03 | 02 | 1 | ADMIN-03 | integration | `./mvnw test -Dtest="DisbursementAdminApprovalIT"` | ❌ W0 | ⬜ pending |
-| 56-03-01 | 03 | 2 | ALERT-01 | unit | `./mvnw test -Dtest="InsufficientFundsAlertServiceTest"` | ❌ W0 | ⬜ pending |
+| 56-01-01 | 01 | 1 | CLAIM-01 | manual/N/A | (no-op verification task — Phase 55 already delivers CLAIM-01; grep-only sanity check) | N/A | ⬜ pending |
+| 56-01-02 | 01 | 1 | CLAIM-02 | unit | `./mvnw test -Dtest="DisbursementClaimTransitionServiceTest"` | ❌ W0 | ⬜ pending |
+| 56-01-03 | 01 | 1 | CLAIM-03 | unit | `./mvnw test -Dtest="DisbursementClaimTransitionServiceTest"` | ❌ W0 | ⬜ pending |
+| 56-01-05 | 01 | 1 | CLAIM-05 | unit | `./mvnw test -Dtest="DisbursementClaimTransitionServiceTest"` | ❌ W0 | ⬜ pending |
+| 56-02-01 | 02 | 2 | ADMIN-01 | unit | `./mvnw test -Dtest="DisbursementOrchestratorTest"` | ❌ W0 | ⬜ pending |
+| 56-02-02 | 02 | 2 | ADMIN-02 / ALERT-01 listener | unit | `./mvnw test -Dtest="DisbursementOpsAlertEmailListenerTest"` | ❌ W0 | ⬜ pending |
+| 56-03-01 | 03 | 2 | CLAIM-04 / ADMIN-03 | integration | `./mvnw test -Dtest="DisbursementAdminApprovalExpiryJobIT"` | ❌ W0 | ⬜ pending |
+| 56-03-02 | 03 | 2 | ALERT-01 detector | unit | `./mvnw test -Dtest="InsufficientFundsDetectorTest"` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -54,11 +53,11 @@ created: 2026-05-04
 
 ## Wave 0 Requirements
 
-- [ ] `src/test/java/.../DisbursementClaimServiceTest.java` — stubs for CLAIM-01 through CLAIM-05
+- [ ] `src/test/java/.../DisbursementClaimTransitionServiceTest.java` — stubs for CLAIM-02, CLAIM-03, CLAIM-05
 - [ ] `src/test/java/.../DisbursementOrchestratorTest.java` — stubs for ADMIN-01
-- [ ] `src/test/java/.../DisbursementAdminApprovalExpiryJobTest.java` — stubs for ADMIN-02
-- [ ] `src/test/java/.../DisbursementAdminApprovalIT.java` — integration test stubs for ADMIN-03
-- [ ] `src/test/java/.../InsufficientFundsAlertServiceTest.java` — stubs for ALERT-01
+- [ ] `src/test/java/.../DisbursementOpsAlertEmailListenerTest.java` — stubs for ADMIN-02 + ALERT-01 listener
+- [ ] `src/test/java/.../DisbursementAdminApprovalExpiryJobIT.java` — integration test stubs for CLAIM-04 + ADMIN-03
+- [ ] `src/test/java/.../InsufficientFundsDetectorTest.java` — stubs for ALERT-01 detector
 
 ---
 
