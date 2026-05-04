@@ -8,6 +8,10 @@ Payam is a unified, multi-tenant payment API for Cameroon that wraps MTN Mobile 
 
 Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
 
+## Current State
+
+Phase 55 complete — transaction-claim validation (TXN-01..06) and fee-removal regression guards (FEE-01, FEE-02) implemented. Next: Phase 56 — claim lifecycle & admin approval.
+
 ## Current Milestone: v11 Transaction-Backed Disbursements
 
 **Goal:** Replace the pre-funded wallet-balance model with claim-based locking — every disbursement must be explicitly backed by a set of previously successful collection transactions.
@@ -271,4 +275,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-02 — Phase 54 complete (V31 schema migration, wallet model retired)*
+*Last updated: 2026-05-04 — Phase 55 complete (transaction-claim validation TXN-01..06, FEE-01/FEE-02 regression guards)*
