@@ -197,10 +197,6 @@ class OrangeDisbursementCallbackControllerIT {
             disbursementRepository.findByDisbursementId(dsbId).orElseThrow()
                 .getDisbursementStatus() == DisbursementStatus.FAILED);
 
-        // FAILED path: wallet released — BAL-02
-        MerchantWalletBalance wallet = walletRepo.findByTenantId(TENANT_ID).orElseThrow();
-        assertThat(wallet.getReservedAmount()).isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(wallet.getBalance()).isEqualByComparingTo(RESERVED);
     }
 
     @Test

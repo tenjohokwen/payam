@@ -230,7 +230,8 @@ class DisbursementFraudBlockE2EIT {
         // Submit disbursement to blocklisted MSISDN
         RestTemplate rt = noErrorRestTemplate();
         String idem = "FRAUD-" + UUID.randomUUID();
-        ResponseEntity<String> r = postDisbursement(rt, FRAUD_MSISDN, "REF-FRAUD-" + UUID.randomUUID(), idem);
+        List<String> fraudTxnIds = seedTxnsForClaim(tenantId, 1, PRINCIPAL);
+        ResponseEntity<String> r = postDisbursement(rt, FRAUD_MSISDN, "REF-FRAUD-" + UUID.randomUUID(), idem, fraudTxnIds);
 
         // Assert HTTP 422
         assertThat(r.getStatusCode().value())
@@ -271,6 +272,14 @@ class DisbursementFraudBlockE2EIT {
     void twentyConcurrentRequestsWithSameIdempotencyKey_produceExactlyOneDisbursementRow() throws Exception {
         final String SHARED_IDEM = "RACE-IDEM-" + UUID.randomUUID();
 
+        // Pre-seed unique transaction IDs for each thread before launching the race.
+        // Each thread needs its own txnId to pass @NotEmpty validation; the idempotency
+        // guard ensures only 1 disbursement row is created regardless.
+        List<List<String>> perThreadTxnIds = new ArrayList<>();
+        for (int i = 0; i < RACE_THREADS; i++) {
+            perThreadTxnIds.add(seedTxnsForClaim(tenantId, 1, PRINCIPAL));
+        }
+
         CyclicBarrier barrier = new CyclicBarrier(RACE_THREADS);
         ExecutorService pool = Executors.newFixedThreadPool(RACE_THREADS);
         AtomicInteger accepted = new AtomicInteger(0);
@@ -278,6 +287,7 @@ class DisbursementFraudBlockE2EIT {
         List<Throwable> failures = Collections.synchronizedList(new ArrayList<>());
 
         for (int i = 0; i < RACE_THREADS; i++) {
+            final List<String> threadTxnIds = perThreadTxnIds.get(i);
             pool.submit(() -> {
                 RestTemplate rt = noErrorRestTemplate();
                 try {
@@ -285,7 +295,7 @@ class DisbursementFraudBlockE2EIT {
                     // Same idempotency key, same MSISDN, same amount — different reference
                     // (controller reads ONLY the Idempotency-Key header for idempotency)
                     ResponseEntity<String> r = postDisbursement(rt, CLEAN_MSISDN,
-                        "REF-RACE-" + UUID.randomUUID(), SHARED_IDEM);
+                        "REF-RACE-" + UUID.randomUUID(), SHARED_IDEM, threadTxnIds);
                     if (r.getStatusCode().value() == 202) {
                         accepted.incrementAndGet();
                     } else {
@@ -345,15 +355,40 @@ class DisbursementFraudBlockE2EIT {
         return rt;
     }
 
+    private List<String> seedTxnsForClaim(Long tenantId, int count, BigDecimal eachAmount) {
+        List<String> ids = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            String id = java.util.UUID.randomUUID().toString();
+            transactionTemplate.execute(s -> {
+                jdbcTemplate.update(
+                    "INSERT INTO main.transaction " +
+                    "(transaction_id, trace_id, tenant_id, provider, tx_status, flow, " +
+                    " amount, fee_amount, currency, created_by, created_date, last_modified_by, " +
+                    " last_modified_date, request_id, version) " +
+                    "VALUES (?, ?, ?, 'MTN', 'SUCCESS', 'COLLECTION', " +
+                    "       ?, 0, 'XAF', 'TEST', NOW(), 'TEST', NOW(), gen_random_uuid()::text, 0)",
+                    id, id, tenantId, eachAmount);
+                return null;
+            });
+            ids.add(id);
+        }
+        return ids;
+    }
+
     /**
      * POST a disbursement request to {@code /v1/disbursements} with the given MSISDN, reference,
      * and idempotency key. Uses the tenant's raw API key for authentication.
      */
     private ResponseEntity<String> postDisbursement(RestTemplate rt, String msisdn,
-                                                     String reference, String idempotencyKey) {
+                                                     String reference, String idempotencyKey,
+                                                     List<String> transactionIds) {
+        String txnIdsJson = transactionIds.stream()
+            .map(id -> "\"" + id + "\"")
+            .collect(java.util.stream.Collectors.joining(",", "[", "]"));
         String body = String.format(
-            "{\"recipientMsisdn\":\"%s\",\"amount\":5000,\"currency\":\"XAF\",\"reference\":\"%s\"}",
-            msisdn, reference);
+            "{\"recipientMsisdn\":\"%s\",\"amount\":5000,\"currency\":\"XAF\"," +
+            "\"reference\":\"%s\",\"transactionIds\":%s}",
+            msisdn, reference, txnIdsJson);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

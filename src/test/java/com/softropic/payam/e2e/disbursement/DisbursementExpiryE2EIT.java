@@ -34,7 +34,7 @@ import org.wiremock.spring.EnableWireMock;
 import org.wiremock.spring.InjectWireMock;
 
 import java.math.BigDecimal;
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
@@ -175,10 +175,12 @@ class DisbursementExpiryE2EIT {
     @Test
     void agedPendingConfirmation_expiresViaJob_walletHeld_providerNotCalled() throws Exception {
         // Submit step-up disbursement via HTTP: 600,000 XAF > 500,000 threshold
+        List<String> txnIds1 = seedTxnsForClaim(tenantId, 1, STEP_UP_AMOUNT);
         String disbursementId = postDisbursementAndAssertPending(
             STEP_UP_AMOUNT,
             "REF-EXPIRY-1-" + UUID.randomUUID(),
-            "IDEM-EXPIRY-1-" + UUID.randomUUID());
+            "IDEM-EXPIRY-1-" + UUID.randomUUID(),
+            txnIds1);
 
         // Snapshot wallet BEFORE expiry (balance + reservedAmount set by orchestrator)
         MerchantWalletBalance before = walletRepo.findByTenantId(tenantId).orElseThrow();
@@ -220,10 +222,12 @@ class DisbursementExpiryE2EIT {
     @Test
     void freshPendingConfirmation_isNotExpired() throws Exception {
         // Submit step-up disbursement via HTTP → PENDING_CONFIRMATION
+        List<String> txnIds2 = seedTxnsForClaim(tenantId, 1, STEP_UP_AMOUNT);
         String disbursementId = postDisbursementAndAssertPending(
             STEP_UP_AMOUNT,
             "REF-FRESH-1-" + UUID.randomUUID(),
-            "IDEM-FRESH-1-" + UUID.randomUUID());
+            "IDEM-FRESH-1-" + UUID.randomUUID(),
+            txnIds2);
 
         // Anchor created_date to DB-relative time (NOW() - 2 minutes) to avoid JVM vs Postgres
         // timezone/clock skew that can make a just-created row look stale. This is the same
@@ -254,6 +258,26 @@ class DisbursementExpiryE2EIT {
     // Helper methods
     // ────────────────────────────────────────────────────────────────────────────────
 
+    private List<String> seedTxnsForClaim(Long tenantId, int count, BigDecimal eachAmount) {
+        List<String> ids = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            String id = java.util.UUID.randomUUID().toString();
+            transactionTemplate.execute(s -> {
+                jdbcTemplate.update(
+                    "INSERT INTO main.transaction " +
+                    "(transaction_id, trace_id, tenant_id, provider, tx_status, flow, " +
+                    " amount, fee_amount, currency, created_by, created_date, last_modified_by, " +
+                    " last_modified_date, request_id, version) " +
+                    "VALUES (?, ?, ?, 'MTN', 'SUCCESS', 'COLLECTION', " +
+                    "       ?, 0, 'XAF', 'TEST', NOW(), 'TEST', NOW(), gen_random_uuid()::text, 0)",
+                    id, id, tenantId, eachAmount);
+                return null;
+            });
+            ids.add(id);
+        }
+        return ids;
+    }
+
     /**
      * POST /v1/disbursements with step-up amount, assert 202 Accepted and status=PENDING_CONFIRMATION.
      *
@@ -261,20 +285,21 @@ class DisbursementExpiryE2EIT {
      */
     private String postDisbursementAndAssertPending(BigDecimal amount,
                                                     String reference,
-                                                    String idempotencyKey) throws Exception {
+                                                    String idempotencyKey,
+                                                    List<String> transactionIds) throws Exception {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("X-Api-Key", rawApiKey);
         headers.set("Idempotency-Key", idempotencyKey);
 
-        Map<String, Object> body = Map.of(
-            "recipientMsisdn", MTN_MSISDN,
-            "amount", amount,
-            "currency", "XAF",
-            "reference", reference
-        );
+        String txnIdsJson = transactionIds.stream()
+            .map(id -> "\"" + id + "\"")
+            .collect(java.util.stream.Collectors.joining(",", "[", "]"));
+        String json = String.format(
+            "{\"recipientMsisdn\":\"%s\",\"amount\":%s,\"currency\":\"XAF\"," +
+            "\"reference\":\"%s\",\"transactionIds\":%s}",
+            MTN_MSISDN, amount.toPlainString(), reference, txnIdsJson);
 
-        String json = objectMapper.writeValueAsString(body);
         ResponseEntity<String> response = restTemplate.exchange(
             "http://localhost:" + serverPort + "/v1/disbursements",
             HttpMethod.POST,
@@ -294,32 +319,6 @@ class DisbursementExpiryE2EIT {
             .isEqualTo("PENDING_CONFIRMATION");
 
         return disbursementId;
-    }
-
-    /**
-     * POST /v1/disbursements — raw form used by older helper (kept for structural symmetry).
-     */
-    private ResponseEntity<String> postDisbursement(BigDecimal amount,
-                                                    String reference,
-                                                    String idempotencyKey) throws Exception {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("X-Api-Key", rawApiKey);
-        headers.set("Idempotency-Key", idempotencyKey);
-
-        Map<String, Object> body = Map.of(
-            "recipientMsisdn", MTN_MSISDN,
-            "amount", amount,
-            "currency", "XAF",
-            "reference", reference
-        );
-
-        String json = objectMapper.writeValueAsString(body);
-        return restTemplate.exchange(
-            "http://localhost:" + serverPort + "/v1/disbursements",
-            HttpMethod.POST,
-            new HttpEntity<>(json, headers),
-            String.class);
     }
 
     /** GET /v1/disbursements/{disbursementId} — tenant-scoped via X-Api-Key. */

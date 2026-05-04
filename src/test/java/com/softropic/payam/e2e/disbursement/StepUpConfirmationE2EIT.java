@@ -39,6 +39,7 @@ import org.wiremock.spring.InjectWireMock;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -178,10 +179,12 @@ class StepUpConfirmationE2EIT {
     @Test
     void stepUpAmount_returnsPendingConfirmation_andDoesNotCallProvider() throws Exception {
         // Do NOT stub /v1_0/transfer — this test asserts ZERO transfer calls
+        List<String> txnIds1 = seedTxnsForClaim(tenantId, 1, STEP_UP_AMOUNT);
         ResponseEntity<String> initResponse = postDisbursement(
             STEP_UP_AMOUNT,
             "REF-STEPUP-1-" + UUID.randomUUID(),
-            "IDEM-STEPUP-1-" + UUID.randomUUID());
+            "IDEM-STEPUP-1-" + UUID.randomUUID(),
+            txnIds1);
 
         assertThat(initResponse.getStatusCode().value()).isEqualTo(202);
 
@@ -214,10 +217,12 @@ class StepUpConfirmationE2EIT {
     @Test
     void confirmPendingDisbursement_dispatchesToProvider_andTransitionsToProcessing() throws Exception {
         // Initiate step-up disbursement — goes to PENDING_CONFIRMATION without provider call
+        List<String> txnIds2 = seedTxnsForClaim(tenantId, 1, STEP_UP_AMOUNT);
         ResponseEntity<String> initResponse = postDisbursement(
             STEP_UP_AMOUNT,
             "REF-SU-CONF-" + UUID.randomUUID(),
-            "IDEM-STEPUP-CONFIRM-" + UUID.randomUUID());
+            "IDEM-STEPUP-CONFIRM-" + UUID.randomUUID(),
+            txnIds2);
 
         assertThat(initResponse.getStatusCode().value()).isEqualTo(202);
         String disbursementId = parseDisbursementId(initResponse.getBody());
@@ -255,10 +260,12 @@ class StepUpConfirmationE2EIT {
         // Submit a small-amount disbursement — goes directly to PROCESSING
         stubMtnAccountAndTransfer();
 
+        List<String> txnIds3 = seedTxnsForClaim(tenantId, 1, SMALL_AMOUNT);
         ResponseEntity<String> initResponse = postDisbursement(
             SMALL_AMOUNT,
             "REF-SMALL-" + UUID.randomUUID(),
-            "IDEM-SMALL-" + UUID.randomUUID());
+            "IDEM-SMALL-" + UUID.randomUUID(),
+            txnIds3);
 
         assertThat(initResponse.getStatusCode().value()).isEqualTo(202);
         String disbursementId = parseDisbursementId(initResponse.getBody());
@@ -287,11 +294,36 @@ class StepUpConfirmationE2EIT {
     // Helpers
     // ────────────────────────────────────────────────────────────────────────────
 
+    private List<String> seedTxnsForClaim(Long tenantId, int count, BigDecimal eachAmount) {
+        List<String> ids = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            String id = java.util.UUID.randomUUID().toString();
+            transactionTemplate.execute(s -> {
+                jdbcTemplate.update(
+                    "INSERT INTO main.transaction " +
+                    "(transaction_id, trace_id, tenant_id, provider, tx_status, flow, " +
+                    " amount, fee_amount, currency, created_by, created_date, last_modified_by, " +
+                    " last_modified_date, request_id, version) " +
+                    "VALUES (?, ?, ?, 'MTN', 'SUCCESS', 'COLLECTION', " +
+                    "       ?, 0, 'XAF', 'TEST', NOW(), 'TEST', NOW(), gen_random_uuid()::text, 0)",
+                    id, id, tenantId, eachAmount);
+                return null;
+            });
+            ids.add(id);
+        }
+        return ids;
+    }
+
     private ResponseEntity<String> postDisbursement(BigDecimal amount, String reference,
-                                                     String idempotencyKey) {
+                                                     String idempotencyKey,
+                                                     List<String> transactionIds) {
+        String txnIdsJson = transactionIds.stream()
+            .map(id -> "\"" + id + "\"")
+            .collect(java.util.stream.Collectors.joining(",", "[", "]"));
         String body = String.format(
-            "{\"recipientMsisdn\":\"%s\",\"amount\":%s,\"currency\":\"XAF\",\"reference\":\"%s\"}",
-            MTN_MSISDN, amount.toPlainString(), reference);
+            "{\"recipientMsisdn\":\"%s\",\"amount\":%s,\"currency\":\"XAF\"," +
+            "\"reference\":\"%s\",\"transactionIds\":%s}",
+            MTN_MSISDN, amount.toPlainString(), reference, txnIdsJson);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("X-Api-Key", rawApiKey);

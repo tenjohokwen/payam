@@ -181,12 +181,13 @@ class DisbursementResourceIT {
 
     @Test
     void post_happy_path_returns_202_with_disbursement_id() throws Exception {
+        List<String> txnIds = seedTxnsForClaim(tenantIdA, 1, new BigDecimal("5000"));
         String body = objectMapper.writeValueAsString(Map.of(
             "recipientMsisdn", MTN_MSISDN,
             "amount", 5000,
             "currency", "XAF",
             "reference", "REF-T1",
-            "transactionIds", List.of("dummy-txn-id")));
+            "transactionIds", txnIds));
 
         mockMvc.perform(post("/v1/disbursements")
                 .header("X-Api-Key", apiKeyA)
@@ -307,13 +308,35 @@ class DisbursementResourceIT {
     // Helper
     // ────────────────────────────────────────────────────────────────────────
 
+    private List<String> seedTxnsForClaim(Long tenantId, int count, BigDecimal eachAmount) {
+        List<String> ids = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            String id = java.util.UUID.randomUUID().toString();
+            transactionTemplate.execute(s -> {
+                jdbcTemplate.update(
+                    "INSERT INTO main.transaction " +
+                    "(transaction_id, trace_id, tenant_id, provider, tx_status, flow, " +
+                    " amount, fee_amount, currency, created_by, created_date, last_modified_by, " +
+                    " last_modified_date, request_id, version) " +
+                    "VALUES (?, ?, ?, 'MTN', 'SUCCESS', 'COLLECTION', " +
+                    "       ?, 0, 'XAF', 'TEST', NOW(), 'TEST', NOW(), gen_random_uuid()::text, 0)",
+                    id, id, tenantId, eachAmount);
+                return null;
+            });
+            ids.add(id);
+        }
+        return ids;
+    }
+
     private String postAndGetDisbursementId(String apiKey, String msisdn, int amount, String idemKey) throws Exception {
+        Long tenantId = apiKey.equals(apiKeyA) ? tenantIdA : tenantIdB;
+        List<String> txnIds = seedTxnsForClaim(tenantId, 1, new BigDecimal(amount));
         String body = objectMapper.writeValueAsString(Map.of(
             "recipientMsisdn", msisdn,
             "amount", amount,
             "currency", "XAF",
             "reference", "REF-" + UUID.randomUUID().toString().substring(0, 8),
-            "transactionIds", List.of("dummy-txn-id")));
+            "transactionIds", txnIds));
 
         String responseJson = mockMvc.perform(post("/v1/disbursements")
                 .header("X-Api-Key", apiKey)
