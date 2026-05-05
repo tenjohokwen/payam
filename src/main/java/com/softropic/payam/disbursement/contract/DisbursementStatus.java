@@ -8,7 +8,8 @@ import java.util.Set;
 /**
  * Lifecycle state machine for Disbursement.
  *
- * Terminal states: SUCCESS, FAILED, EXPIRED — no outbound transitions.
+ * Terminal states: SUCCESS, EXPIRED — no outbound transitions. FAILED has one outbound
+ * transition (INITIATED) reserved for IDEM-02 retry recovery.
  *
  * <p>Two distinct gating states co-exist as of v11 Phase 54:
  * <ul>
@@ -56,7 +57,10 @@ public enum DisbursementStatus {
     FAILED {
         @Override
         public Set<DisbursementStatus> allowedTransitions() {
-            return EnumSet.noneOf(DisbursementStatus.class);
+            // IDEM-02: retry recovery transitions FAILED back to INITIATED.
+            // FAILED remains terminal for SUCCESS/PROCESSING — only INITIATED is reachable
+            // (and only via DisbursementOrchestrator.handleRetry under PESSIMISTIC_WRITE lock).
+            return EnumSet.of(INITIATED);
         }
     },
     EXPIRED {

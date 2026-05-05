@@ -58,8 +58,25 @@ class DisbursementStatusTest {
     }
 
     @Test
-    void failedIsTerminal() {
-        assertThat(DisbursementStatus.FAILED.allowedTransitions()).isEmpty();
+    void failedAllowedTransitions() {
+        // IDEM-02: retry recovery legalizes FAILED -> INITIATED. Other targets remain illegal.
+        assertThat(DisbursementStatus.FAILED.allowedTransitions())
+            .containsExactlyInAnyOrderElementsOf(EnumSet.of(DisbursementStatus.INITIATED));
+    }
+
+    @Test
+    void failedToInitiatedSucceeds() {
+        // IDEM-02: retry recovery transition.
+        assertThat(DisbursementStatus.FAILED.transitionTo(DisbursementStatus.INITIATED))
+            .isEqualTo(DisbursementStatus.INITIATED);
+    }
+
+    @Test
+    void failedToSuccessThrows() {
+        assertThatThrownBy(() -> DisbursementStatus.FAILED.transitionTo(DisbursementStatus.SUCCESS))
+            .isInstanceOf(IllegalStateTransitionException.class)
+            .hasMessageContaining("FAILED")
+            .hasMessageContaining("SUCCESS");
     }
 
     @Test
