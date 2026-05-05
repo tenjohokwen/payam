@@ -10,7 +10,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ## Current State
 
-Phase 56 complete — claim lifecycle state machine (PENDING→CLAIMED/RELEASED), admin-approval gate for disbursements >5M XAF with Quartz-based expiry, ops email alerts (admin-approval + insufficient-funds). Next: Phase 57 — idempotency retry recovery & V32 migration scaffold.
+Phase 57 complete — idempotency retry recovery (IDEM-01/02/03): FAILED disbursements with retriable error codes (PROVIDER_ERROR, PROVIDER_UNAVAILABLE) can be retried with the same idempotency key; RELEASED claims reactivate to PENDING atomically, retry_count increments, provider re-dispatched. Terminal codes return cached FAILED immediately. V32 migration scaffold (SCHEMA-04) drops merchant_wallet_balance tables (ops sign-off required before production apply). Next: Phase 58 — integration & E2E test suite.
 
 ## Current Milestone: v11 Transaction-Backed Disbursements
 
@@ -136,10 +136,10 @@ Phase 56 complete — claim lifecycle state machine (PENDING→CLAIMED/RELEASED)
 - [ ] CLAIM-01: System creates a `DisbursementTransactionRef` claim (PENDING) per transaction atomically with disbursement acceptance; advances to CLAIMED on SUCCESS, RELEASED on FAILED or admin-approval expiry
 - [ ] ADMIN-01: Disbursements exceeding `payam.disbursement.admin-approval-threshold` transition to `PENDING_ADMIN_APPROVAL`; Platform Ops notified; auto-expires after `payam.disbursement.admin-approval-timeout-hours` with claims released
 - [ ] FEE-01: Disbursements never invoke `FeeEvaluationService`; `DisbursementResponse.fee` is always `BigDecimal.ZERO`; any DISBURSEMENT-flow `Transaction` row has `feeAmount = 0` and `feeRuleId = NULL`
-- [ ] IDEM-01: On retriable-failure retry, system reactivates existing RELEASED claims to PENDING (no new rows), increments `retry_count`, and retransitions disbursement to `INITIATED` for provider dispatch
+- [x] IDEM-01: On retriable-failure retry, system reactivates existing RELEASED claims to PENDING (no new rows), increments `retry_count`, and retransitions disbursement to `INITIATED` for provider dispatch — Validated in Phase 57: IDEM-01, IDEM-02, IDEM-03
 - [ ] ALERT-01: Provider Insufficient Funds response triggers high-priority alert (Slack/PagerDuty/Email) to Platform Ops naming the affected provider account; disbursement transitions to FAILED, claims released
 - [x] SCHEMA-01: V31 migration: `disbursement_transaction_ref` table with partial unique index; `admin_note` + `retry_count` added to `disbursement`; `reserved_amount` removed; `merchant_wallet_balance` application-layer retired (not dropped); pre-flight assertion no open PROCESSING/PENDING_CONFIRMATION rows — Validated in Phase 54: SCHEMA-01, SCHEMA-02, SCHEMA-03
-- [ ] SCHEMA-02: V32 migration drops `merchant_wallet_balance` after ops confirm all legacy disbursements are terminal
+- [x] SCHEMA-02: V32 migration drops `merchant_wallet_balance` after ops confirm all legacy disbursements are terminal — scaffolded in Phase 57: SCHEMA-04 (ops sign-off required before production apply)
 
 #### Phase 50 complete — Validated in Phase 50: BAL-01, BAL-02, BAL-03
 - ✓ Flyway V28: `main.disbursement`, `main.disbursement_aud`, `main.merchant_wallet_balance`, `main.merchant_wallet_balance_aud` with named constraints — v10 (Phase 50)
