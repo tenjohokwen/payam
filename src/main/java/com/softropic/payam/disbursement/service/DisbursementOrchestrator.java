@@ -54,8 +54,8 @@ import java.util.Optional;
  *   <li>MSISDN routing</li>
  *   <li>Velocity check (tenant minute, tenant hour, msisdn day)</li>
  *   <li>Fraud check</li>
- *   <li>Fee evaluation — fee = ZERO (FEE-01; disbursements carry no fee)</li>
- *   <li>Step-up gate decision (status = INITIATED or PENDING_CONFIRMATION)</li>
+ *   <li>fee = BigDecimal.ZERO (FEE-01 — disbursements carry no fee; no FeeEvaluationService call)</li>
+ *   <li>Determine flow — admin-approval gate (ADMIN-01) first, then step-up gate; routes to PENDING_ADMIN_APPROVAL, PENDING_CONFIRMATION, or INITIATED</li>
  *   <li>Create Disbursement row</li>
  *   <li>Transaction claim validation + PENDING ref-row inserts (TXN-01..04, TXN-06,
  *       atomic inside transactionTemplate.execute) — runs for both INITIATED and
@@ -197,7 +197,7 @@ public class DisbursementOrchestrator {
                     "Disbursement blocked: " + fraud.reason());
         }
 
-        // ── Step 5: Fee evaluation — disbursements carry no fee (FEE-01) ─────────────
+        // ── Step 5: fee = BigDecimal.ZERO — no FeeEvaluationService call (FEE-01) ────
         BigDecimal fee = BigDecimal.ZERO;
         BigDecimal totalAmount = request.amount();
 
