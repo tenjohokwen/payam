@@ -37,6 +37,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -190,6 +191,9 @@ class MtnDisbursementE2EIT {
         assertThat(status).isEqualTo("PROCESSING");
         assertThat(disbursementId).isNotBlank();
 
+        // CLAIM-01: claim row created in PENDING state at initiation time (before callback)
+        assertClaimStatuses(disbursementId, "PENDING", 1);
+
         String providerRef = fetchProviderRef(disbursementId);
         assertThat(providerRef).isNotNull();
 
@@ -202,6 +206,9 @@ class MtnDisbursementE2EIT {
         await().atMost(Duration.ofSeconds(10)).until(() ->
             disbursementRepository.findByDisbursementId(disbursementId).orElseThrow()
                 .getDisbursementStatus() == DisbursementStatus.SUCCESS);
+
+        // CLAIM-02: claim transitions PENDING→CLAIMED inside the AFTER_COMMIT listener
+        awaitClaimStatuses(disbursementId, "CLAIMED", 1);
 
         // FEE-01: disbursements carry no fee — fee is always ZERO
         BigDecimal fee = BigDecimal.ZERO;
@@ -305,20 +312,21 @@ class MtnDisbursementE2EIT {
 
     private List<String> seedTxnsForClaim(Long tenantId, int count, BigDecimal eachAmount) {
         List<String> ids = new java.util.ArrayList<>();
+        final ThreadLocalRandom threadLocalRandom = ThreadLocalRandom.current();
         for (int i = 0; i < count; i++) {
-            String id = java.util.UUID.randomUUID().toString();
+            Long id = threadLocalRandom.nextLong();
             transactionTemplate.execute(s -> {
                 jdbcTemplate.update(
-                    "INSERT INTO main.transaction " +
-                    "(transaction_id, trace_id, tenant_id, provider, tx_status, flow, " +
-                    " amount, fee_amount, currency, created_by, created_date, last_modified_by, " +
-                    " last_modified_date, request_id, version) " +
-                    "VALUES (?, ?, ?, 'MTN', 'SUCCESS', 'COLLECTION', " +
-                    "       ?, 0, 'XAF', 'TEST', NOW(), 'TEST', NOW(), gen_random_uuid()::text, 0)",
-                    id, id, tenantId, eachAmount);
+                        "INSERT INTO main.transaction " +
+                                "(id, transaction_id, trace_id, tenant_id, provider, tx_status, flow, " +
+                                " amount, fee_amount, currency, created_by, created_date, last_modified_by, " +
+                                " last_modified_date, request_id, status) " +
+                                "VALUES (?, ?, ?, ?, 'MTN', 'SUCCESS', 'COLLECTION', " +
+                                "       ?, 0, 'XAF', 'TEST', NOW(), 'TEST', NOW(), gen_random_uuid()::text, 'ACTIVE')",
+                        id, id, id, tenantId, eachAmount);
                 return null;
             });
-            ids.add(id);
+            ids.add(String.valueOf(id));
         }
         return ids;
     }
@@ -373,5 +381,33 @@ class MtnDisbursementE2EIT {
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse status from: " + responseBody, e);
         }
+    }
+
+    /**
+     * Assert that the disbursement_transaction_ref rows for the given disbursement UUID
+     * all have the expected ref_status. Uses raw JDBC to avoid JPA first-level cache.
+     * Pattern from DisbursementAdminApprovalExpiryJobIT.
+     */
+    private void assertClaimStatuses(String disbursementId, String expectedStatus, int expectedCount) {
+        List<String> statuses = jdbcTemplate.queryForList(
+            "SELECT ref_status FROM main.disbursement_transaction_ref " +
+            "WHERE disbursement_id = (SELECT id FROM main.disbursement WHERE disbursement_id = ?)",
+            String.class, disbursementId);
+        assertThat(statuses).hasSize(expectedCount);
+        assertThat(statuses).containsOnly(expectedStatus);
+    }
+
+    /**
+     * Await the disbursement_transaction_ref rows reaching the expected ref_status.
+     * Required because PENDING→CLAIMED happens inside the AFTER_COMMIT listener.
+     */
+    private void awaitClaimStatuses(String disbursementId, String expectedStatus, int expectedCount) {
+        await().atMost(Duration.ofSeconds(10)).until(() -> {
+            List<String> statuses = jdbcTemplate.queryForList(
+                "SELECT ref_status FROM main.disbursement_transaction_ref " +
+                "WHERE disbursement_id = (SELECT id FROM main.disbursement WHERE disbursement_id = ?)",
+                String.class, disbursementId);
+            return statuses.size() == expectedCount && statuses.stream().allMatch(expectedStatus::equals);
+        });
     }
 }
