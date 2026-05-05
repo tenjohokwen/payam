@@ -576,7 +576,9 @@ Plans:
   1. `DisbursementExpiryE2EIT` (or `DisbursementAdminApprovalE2EIT`) includes a test that: initiates a disbursement with valid `transactionIds`, advances the disbursement to `PROCESSING`, triggers the expiry job to produce `EXPIRED`, then queries `disbursement_transaction_ref` and asserts all rows remain in `CLAIMED` state
   2. The assertion uses raw SQL against `main.disbursement_transaction_ref` consistent with the pattern established in Phase 58 E2E tests
   3. `mvn verify` passes with the new assertion green
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 60-01-PLAN.md — Add CLAIM-05 E2E test method to DisbursementExpiryE2EIT proving PROCESSING→EXPIRED leaves disbursement_transaction_ref rows unchanged + mvn verify phase gate
 
 ## Progress
 
