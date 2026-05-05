@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed Phase 57 (57-01 IDEM retry recovery + 57-02 V32 migration scaffold)
-last_updated: "2026-05-05T10:18:36.512Z"
+stopped_at: Completed 58-02-PLAN.md
+last_updated: "2026-05-05T10:41:35.038Z"
 last_activity: 2026-05-05 -- Phase 58 execution started
 progress:
   total_phases: 29
@@ -90,9 +90,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 | 56 | Claim Lifecycle & Admin Approval | CLAIM-01, CLAIM-02, CLAIM-03, CLAIM-04, CLAIM-05, ADMIN-01, ADMIN-02, ADMIN-03, ALERT-01 |
 | 57 | Idempotency Retry Recovery & V32 Migration Scaffold | IDEM-01, IDEM-02, IDEM-03, SCHEMA-04 |
 | 58 | Integration & E2E Test Suite | cross-cutting quality gate |
-| Phase 54 P01 | 833 | 3 tasks | 4 files |
-| Phase 55 P02 | 23 | 2 tasks | 4 files |
-| Phase 55-transaction-validation-fee-removal P03 | 18 | 2 tasks | 3 files |
+
+- [Phase 58-integration-e2e-test-suite]: assertClaimStatuses() uses raw JdbcTemplate over JPA to avoid first-level cache masking real DB state during async AFTER_COMMIT listener assertions
 
 ### Pending Todos
 
@@ -104,6 +103,6 @@ None — Phase 55 Plan 01 complete, Plans 02 and 03 ready for execution.
 
 ## Session Continuity
 
-Last session: 2026-05-05T02:58:37.195Z
-Stopped at: Completed Phase 57 (57-01 IDEM retry recovery + 57-02 V32 migration scaffold)
-Resume: Execute 55-02-PLAN.md (TransactionClaimValidationService implementation)
+Last session: 2026-05-05T10:41:29.834Z
+Stopped at: Completed 58-02-PLAN.md
+Resume: Execute 58-03-PLAN.md (DisbursementAdminApprovalE2EIT)

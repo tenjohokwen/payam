@@ -44,6 +44,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -204,6 +205,9 @@ class OrangeDisbursementE2EIT {
         assertThat(disbursementId).as("disbursementId must be present in 202 response").isNotBlank();
         assertThat(status).as("status must be PROCESSING").isEqualTo("PROCESSING");
 
+        // CLAIM-01: claim row created in PENDING state at initiation time (before callback)
+        assertClaimStatuses(disbursementId, "PENDING", 1);
+
         // Fetch providerRef (payToken) from DB — Orange stores cashout providerRef
         String providerRef = fetchProviderRef(disbursementId);
         assertThat(providerRef).as("providerRef (payToken) must be set after Orange cashout call").isNotNull();
@@ -221,6 +225,9 @@ class OrangeDisbursementE2EIT {
         await().atMost(Duration.ofSeconds(10)).until(() ->
             disbursementRepository.findByDisbursementId(disbursementId).orElseThrow()
                 .getDisbursementStatus() == DisbursementStatus.SUCCESS);
+
+        // CLAIM-02: claim transitions PENDING→CLAIMED inside the AFTER_COMMIT listener
+        awaitClaimStatuses(disbursementId, "CLAIMED", 1);
 
         // Verify exactly 1 cashout call was made to Orange (not 0, not 2)
         assertThat(orangeServer.findAll(postRequestedFor(urlPathEqualTo("/cashout"))))
@@ -323,6 +330,65 @@ class OrangeDisbursementE2EIT {
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
+    // Test 4: CLAIM-03 — FAILED callback releases claims to RELEASED, and the SAME
+    //         transactionIds can back a brand-new disbursement (proves the partial
+    //         unique index does NOT block RELEASED rows).
+    // ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void orangeFailedCallback_releasesClaimsAndAllowsReuse_transitionsToFailed() {
+        stubOrangeSubscriberAndCashout();
+
+        // Step 1 — Initiate first disbursement (will fail)
+        List<String> txnIds = seedTxnsForClaim(tenantId, 1, PRINCIPAL);
+        String firstIdem = "IDEM-OR-FAIL-" + UUID.randomUUID();
+        ResponseEntity<String> firstResponse = postDisbursement(
+            ORANGE_MSISDN, PRINCIPAL, "REF-OR-FAIL-" + UUID.randomUUID(),
+            firstIdem, txnIds);
+        assertThat(firstResponse.getStatusCode().value()).isEqualTo(202);
+        String firstDsbId = parseDisbursementId(firstResponse.getBody());
+        assertThat(firstDsbId).isNotBlank();
+        // Sanity: claim is PENDING right after initiation
+        assertClaimStatuses(firstDsbId, "PENDING", 1);
+
+        String providerRef = fetchProviderRef(firstDsbId);
+        assertThat(providerRef).isNotNull();
+
+        // Step 2 — Stub the double-check GET to return FAILED then dispatch failure callback
+        stubOrangePaymentStatus(providerRef, "FAILED");
+        ResponseEntity<Void> callbackResponse = postOrangeCallback(providerRef, "FAILED");
+        assertThat(callbackResponse.getStatusCode().value()).isEqualTo(200);
+
+        // Step 3 — Wait for FAILED transition (AFTER_COMMIT listener)
+        await().atMost(Duration.ofSeconds(10)).until(() ->
+            disbursementRepository.findByDisbursementId(firstDsbId).orElseThrow()
+                .getDisbursementStatus() == DisbursementStatus.FAILED);
+
+        // Step 4 — CLAIM-03: claims released to RELEASED via AFTER_COMMIT listener
+        awaitClaimStatuses(firstDsbId, "RELEASED", 1);
+
+        // Step 5 — Reuse the SAME transactionIds in a brand-new disbursement.
+        //         The partial unique index uq_dtr_txn_active_claim does NOT include
+        //         RELEASED rows, so a fresh PENDING claim row CAN be inserted.
+        //         Different idempotency key required (Pitfall 4).
+        String secondIdem = "IDEM-OR-REUSE-" + UUID.randomUUID();
+        ResponseEntity<String> secondResponse = postDisbursement(
+            ORANGE_MSISDN, PRINCIPAL, "REF-OR-REUSE-" + UUID.randomUUID(),
+            secondIdem, txnIds);
+        assertThat(secondResponse.getStatusCode().value())
+            .as("Reuse of RELEASED transactionIds must succeed with 202 PROCESSING")
+            .isEqualTo(202);
+        String secondDsbId = parseDisbursementId(secondResponse.getBody());
+        assertThat(secondDsbId)
+            .as("Second disbursement must have a NEW disbursementId")
+            .isNotBlank()
+            .isNotEqualTo(firstDsbId);
+
+        // Step 6 — Second disbursement also has its own PENDING claim row
+        assertClaimStatuses(secondDsbId, "PENDING", 1);
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
     // Helpers
     // ────────────────────────────────────────────────────────────────────────────────
 
@@ -350,20 +416,21 @@ class OrangeDisbursementE2EIT {
 
     private List<String> seedTxnsForClaim(Long tenantId, int count, BigDecimal eachAmount) {
         List<String> ids = new java.util.ArrayList<>();
+        final ThreadLocalRandom threadLocalRandom = ThreadLocalRandom.current();
         for (int i = 0; i < count; i++) {
-            String id = java.util.UUID.randomUUID().toString();
+            Long id = threadLocalRandom.nextLong();
             transactionTemplate.execute(s -> {
                 jdbcTemplate.update(
-                    "INSERT INTO main.transaction " +
-                    "(transaction_id, trace_id, tenant_id, provider, tx_status, flow, " +
-                    " amount, fee_amount, currency, created_by, created_date, last_modified_by, " +
-                    " last_modified_date, request_id, version) " +
-                    "VALUES (?, ?, ?, 'MTN', 'SUCCESS', 'COLLECTION', " +
-                    "       ?, 0, 'XAF', 'TEST', NOW(), 'TEST', NOW(), gen_random_uuid()::text, 0)",
-                    id, id, tenantId, eachAmount);
+                        "INSERT INTO main.transaction " +
+                                "(id, transaction_id, trace_id, tenant_id, provider, tx_status, flow, " +
+                                " amount, fee_amount, currency, created_by, created_date, last_modified_by, " +
+                                " last_modified_date, request_id, status) " +
+                                "VALUES (?, ?, ?, ?, 'MTN', 'SUCCESS', 'COLLECTION', " +
+                                "       ?, 0, 'XAF', 'TEST', NOW(), 'TEST', NOW(), gen_random_uuid()::text, 'ACTIVE')",
+                        id, id, id, tenantId, eachAmount);
                 return null;
             });
-            ids.add(id);
+            ids.add(String.valueOf(id));
         }
         return ids;
     }
@@ -442,5 +509,33 @@ class OrangeDisbursementE2EIT {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /**
+     * Assert that the disbursement_transaction_ref rows for the given disbursement UUID
+     * all have the expected ref_status. Uses raw JDBC to avoid JPA first-level cache.
+     * Pattern from DisbursementAdminApprovalExpiryJobIT.
+     */
+    private void assertClaimStatuses(String disbursementId, String expectedStatus, int expectedCount) {
+        List<String> statuses = jdbcTemplate.queryForList(
+            "SELECT ref_status FROM main.disbursement_transaction_ref " +
+            "WHERE disbursement_id = (SELECT id FROM main.disbursement WHERE disbursement_id = ?)",
+            String.class, disbursementId);
+        assertThat(statuses).hasSize(expectedCount);
+        assertThat(statuses).containsOnly(expectedStatus);
+    }
+
+    /**
+     * Await the disbursement_transaction_ref rows reaching the expected ref_status.
+     * Required because PENDING→CLAIMED and PENDING→RELEASED happen inside AFTER_COMMIT.
+     */
+    private void awaitClaimStatuses(String disbursementId, String expectedStatus, int expectedCount) {
+        await().atMost(Duration.ofSeconds(10)).until(() -> {
+            List<String> statuses = jdbcTemplate.queryForList(
+                "SELECT ref_status FROM main.disbursement_transaction_ref " +
+                "WHERE disbursement_id = (SELECT id FROM main.disbursement WHERE disbursement_id = ?)",
+                String.class, disbursementId);
+            return statuses.size() == expectedCount && statuses.stream().allMatch(expectedStatus::equals);
+        });
     }
 }
