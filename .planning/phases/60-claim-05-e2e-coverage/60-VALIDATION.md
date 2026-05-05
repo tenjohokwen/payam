@@ -1,9 +1,9 @@
 ---
 phase: 60
 slug: claim-05-e2e-coverage
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-05
 ---
 
@@ -38,8 +38,8 @@ created: 2026-05-05
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 60-01-01 | 01 | 1 | CLAIM-05 | E2E | `mvn test -Dtest=DisbursementExpiryE2EIT` | ✅ (add method) | ⬜ pending |
-| Phase gate | 01 | 1 | CLAIM-05 | Full suite | `mvn verify` | N/A | ⬜ pending |
+| 60-01-01 | 01 | 1 | CLAIM-05 | E2E | `mvn test -Dtest=DisbursementExpiryE2EIT` | ✅ (add method) | ✅ green |
+| Phase gate | 01 | 1 | CLAIM-05 | Full suite | `mvn verify` | N/A | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -59,11 +59,11 @@ All phase behaviors have automated verification.
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 300s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 300s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** complete — `mvn verify` BUILD SUCCESS (301 ITs, 0F/0E/3S; DisbursementExpiryE2EIT 3/0/0)
