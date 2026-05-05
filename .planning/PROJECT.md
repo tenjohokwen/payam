@@ -10,7 +10,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ## Current State
 
-Phase 58 complete — integration & E2E test suite: full v11 claim lifecycle proven end-to-end across MTN (CLAIM-01/02, TXN-03) and Orange (CLAIM-01/02/03) providers; DisbursementAdminApprovalE2EIT proves PENDING_ADMIN_APPROVAL → expiry → EXPIRED + claims RELEASED (CLAIM-04, ADMIN-01, ADMIN-03). mvn verify exits 0: 474 unit + 300 integration tests, 0 failures. v11 milestone complete.
+Phase 60 complete — CLAIM-05 E2E coverage: DisbursementExpiryE2EIT now proves PROCESSING→EXPIRED does NOT release claims (disbursement_transaction_ref rows stay PENDING for ops reconciliation). Closes Finding G-1 from v11-MILESTONE-AUDIT.md. mvn verify exits 0: 474 unit + 301 integration tests, 0 failures. v11 milestone fully verified.
 
 ## Current Milestone: v11 Transaction-Backed Disbursements
 
