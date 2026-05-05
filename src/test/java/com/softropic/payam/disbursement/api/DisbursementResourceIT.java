@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 
@@ -310,20 +311,21 @@ class DisbursementResourceIT {
 
     private List<String> seedTxnsForClaim(Long tenantId, int count, BigDecimal eachAmount) {
         List<String> ids = new java.util.ArrayList<>();
+        final ThreadLocalRandom threadLocalRandom = ThreadLocalRandom.current();
         for (int i = 0; i < count; i++) {
-            String id = java.util.UUID.randomUUID().toString();
+            Long id = threadLocalRandom.nextLong();
             transactionTemplate.execute(s -> {
                 jdbcTemplate.update(
                     "INSERT INTO main.transaction " +
-                    "(transaction_id, trace_id, tenant_id, provider, tx_status, flow, " +
+                    "(id, transaction_id, trace_id, tenant_id, provider, tx_status, flow, " +
                     " amount, fee_amount, currency, created_by, created_date, last_modified_by, " +
-                    " last_modified_date, request_id, version) " +
-                    "VALUES (?, ?, ?, 'MTN', 'SUCCESS', 'COLLECTION', " +
-                    "       ?, 0, 'XAF', 'TEST', NOW(), 'TEST', NOW(), gen_random_uuid()::text, 0)",
-                    id, id, tenantId, eachAmount);
+                    " last_modified_date, request_id, status) " +
+                    "VALUES (?, ?, ?, ?, 'MTN', 'SUCCESS', 'COLLECTION', " +
+                    "       ?, 0, 'XAF', 'TEST', NOW(), 'TEST', NOW(), gen_random_uuid()::text, 'ACTIVE')",
+                    id, id, id, tenantId, eachAmount);
                 return null;
             });
-            ids.add(id);
+            ids.add(String.valueOf(id));
         }
         return ids;
     }
