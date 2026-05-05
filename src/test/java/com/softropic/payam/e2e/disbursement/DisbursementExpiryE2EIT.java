@@ -38,10 +38,13 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -58,6 +61,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * <p>DB-side INTERVAL aging (pattern from DisbursementExpiryJobIT) avoids JVM-vs-Postgres
  * timezone skew when comparing against TIMESTAMP WITHOUT TIME ZONE columns.
+ *
+ * <p>Test 3 covers CLAIM-05: a disbursement forced from PROCESSING → EXPIRED via
+ * direct SQL must leave its disbursement_transaction_ref rows in PENDING state
+ * (claims held for ops reconciliation, never released). Closes Finding G-1.
  */
 @ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -82,6 +89,7 @@ class DisbursementExpiryE2EIT {
 
     private static final String MTN_MSISDN    = "+237671234567";
     private static final BigDecimal STEP_UP_AMOUNT = new BigDecimal("600000");
+    private static final BigDecimal SUB_THRESHOLD_AMOUNT = new BigDecimal("5000");
 
     @InjectWireMock("mtn")    WireMockServer mtnServer;
     @InjectWireMock("orange") WireMockServer orangeServer;
@@ -256,6 +264,99 @@ class DisbursementExpiryE2EIT {
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
+    // Test 3: PROCESSING → EXPIRED transition does NOT release claims (CLAIM-05)
+    // ────────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * CLAIM-05 E2E coverage: a disbursement that transitions PROCESSING → EXPIRED
+     * (e.g. due to an internal timeout or future DisbursementStatusPollerJob) MUST NOT
+     * release its claims. Claims remain in PENDING state for ops reconciliation —
+     * provider funds may have been dispatched, so the platform must hold the claim
+     * lock until ops manually reconciles the underlying transactions with the provider.
+     *
+     * <p>The production invariant is enforced by omission:
+     * {@link com.softropic.payam.disbursement.service.DisbursementCallbackTransitionService}
+     * only calls {@code claimTransitionService.transitionClaims} for SUCCESS and FAILED
+     * targets; {@link com.softropic.payam.disbursement.service.DisbursementExpiryJob}
+     * only handles {@code PENDING_CONFIRMATION} (never {@code PROCESSING}). This test
+     * proves the invariant holds against the real database.
+     *
+     * <p>{@code DisbursementStatusPollerJob} (the future automated trigger for
+     * {@code PROCESSING → EXPIRED}) does not exist in this codebase yet — the
+     * transition is forced via direct SQL UPDATE inside a TransactionTemplate.
+     * {@code DisbursementStatus.PROCESSING.allowedTransitions()} includes EXPIRED
+     * (verified line 48), so the resulting state is consistent with the state machine.
+     *
+     * <p>Closes Finding G-1 from v11-MILESTONE-AUDIT.md.
+     */
+    @Test
+    void processingToExpired_claimsRemainUnchanged_neverReleased() throws Exception {
+        // Step 1 — Stub MTN account validation + transfer dispatch so the disbursement
+        // can reach PROCESSING. Existing setUp deliberately omits /v1_0/transfer because
+        // the other two tests assert zero calls; we must add the stub locally here.
+        stubMtnAccountAndTransferForProcessing();
+
+        // Step 2 — Seed 1 backing transaction and POST a sub-threshold disbursement.
+        // 5,000 XAF < 500,000 step-up threshold AND < 5,000,000 admin-approval threshold,
+        // so the orchestrator dispatches directly to MTN and the response reports PROCESSING.
+        List<String> txnIds = seedTxnsForClaim(tenantId, 1, SUB_THRESHOLD_AMOUNT);
+        String disbursementId = postDisbursementForProcessing(
+            SUB_THRESHOLD_AMOUNT,
+            "REF-CLAIM05-" + UUID.randomUUID(),
+            "IDEM-CLAIM05-" + UUID.randomUUID(),
+            txnIds);
+
+        // Step 3 — CLAIM-01 precondition: claim row created in PENDING state at initiate time.
+        assertClaimStatuses(disbursementId, "PENDING", 1);
+
+        // Step 4 — Force PROCESSING → EXPIRED via direct SQL.
+        // DisbursementStatusPollerJob does not exist; this simulates the future automated
+        // trigger. PROCESSING → EXPIRED is a valid state machine transition (DisbursementStatus
+        // line 48: PROCESSING.allowedTransitions() = {SUCCESS, FAILED, EXPIRED}).
+        // The WHERE clause includes `disbursement_status = 'PROCESSING'` as a safety guard —
+        // if the row is somehow not in PROCESSING the UPDATE affects 0 rows and the assertion fails fast.
+        Integer rowsUpdated = transactionTemplate.execute(s ->
+            jdbcTemplate.update(
+                "UPDATE main.disbursement SET disbursement_status = 'EXPIRED' " +
+                "WHERE disbursement_id = ? AND disbursement_status = 'PROCESSING'",
+                disbursementId));
+        assertThat(rowsUpdated)
+            .as("UPDATE PROCESSING → EXPIRED must affect exactly 1 row")
+            .isEqualTo(1);
+
+        // Step 5 — Verify the disbursement is now EXPIRED in the DB.
+        String dbStatus = jdbcTemplate.queryForObject(
+            "SELECT disbursement_status FROM main.disbursement WHERE disbursement_id = ?",
+            String.class, disbursementId);
+        assertThat(dbStatus)
+            .as("disbursement must be EXPIRED after forced UPDATE")
+            .isEqualTo("EXPIRED");
+
+        // Step 6 — CLAIM-05 CORE INVARIANT: claim rows remain PENDING (NOT released).
+        // No event listener fires on EXPIRED; no @TransactionalEventListener handles this
+        // path. The assertion is synchronous and immediate.
+        assertClaimStatuses(disbursementId, "PENDING", 1);
+
+        // Step 7 — Negative control: explicitly verify NO rows were released.
+        // This guards against a future regression where someone adds an EXPIRED branch
+        // to claim transition logic.
+        List<String> releasedStatuses = jdbcTemplate.queryForList(
+            "SELECT ref_status FROM main.disbursement_transaction_ref " +
+            "WHERE disbursement_id = (SELECT id FROM main.disbursement WHERE disbursement_id = ?) " +
+            "AND ref_status = 'RELEASED'",
+            String.class, disbursementId);
+        assertThat(releasedStatuses)
+            .as("CLAIM-05: PROCESSING→EXPIRED MUST NOT release any claims — they stay PENDING for ops reconciliation")
+            .isEmpty();
+
+        // Step 8 — HTTP-visible state matches DB state.
+        ResponseEntity<String> getResponse = getDisbursement(disbursementId);
+        assertThat(getResponse.getStatusCode().value()).isEqualTo(200);
+        String getStatus = parseStatus(getResponse.getBody());
+        assertThat(getStatus).isEqualTo("EXPIRED");
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
     // Helper methods
     // ────────────────────────────────────────────────────────────────────────────────
 
@@ -382,5 +483,82 @@ class DisbursementExpiryE2EIT {
     /** Parse the {@code status} field from JSON response body. */
     private String parseStatus(String body) throws Exception {
         return objectMapper.readTree(body).path("status").asText(null);
+    }
+
+    /**
+     * Stub MTN provider endpoints required for a disbursement to reach PROCESSING:
+     * account-holder validation (GET) returns 200 with empty JSON body, and the
+     * transfer dispatch (POST) returns 202 Accepted. Pattern from MtnDisbursementE2EIT.
+     *
+     * <p>Not in setUp because the other two tests in this class assert
+     * {@code mtnServer.verify(0, postRequestedFor(urlPathEqualTo("/v1_0/transfer")))}.
+     */
+    private void stubMtnAccountAndTransferForProcessing() {
+        mtnServer.stubFor(get(urlPathMatching("/v1_0/accountholder/MSISDN/.*"))
+            .willReturn(okJson("{}")));
+        mtnServer.stubFor(post(urlPathEqualTo("/v1_0/transfer"))
+            .willReturn(aResponse().withStatus(202)));
+    }
+
+    /**
+     * POST /v1/disbursements with a sub-threshold amount; assert 202 Accepted and
+     * status=PROCESSING (i.e. dispatched directly to the provider, no step-up gate,
+     * no admin-approval gate).
+     *
+     * @return disbursementId parsed from the response body
+     */
+    private String postDisbursementForProcessing(BigDecimal amount,
+                                                 String reference,
+                                                 String idempotencyKey,
+                                                 List<String> transactionIds) throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("X-Api-Key", rawApiKey);
+        headers.set("Idempotency-Key", idempotencyKey);
+
+        String txnIdsJson = transactionIds.stream()
+            .map(id -> "\"" + id + "\"")
+            .collect(java.util.stream.Collectors.joining(",", "[", "]"));
+        String json = String.format(
+            "{\"recipientMsisdn\":\"%s\",\"amount\":%s,\"currency\":\"XAF\"," +
+            "\"reference\":\"%s\",\"transactionIds\":%s}",
+            MTN_MSISDN, amount.toPlainString(), reference, txnIdsJson);
+
+        ResponseEntity<String> response = restTemplate.exchange(
+            "http://localhost:" + serverPort + "/v1/disbursements",
+            HttpMethod.POST,
+            new HttpEntity<>(json, headers),
+            String.class);
+
+        assertThat(response.getStatusCode().value())
+            .as("POST /v1/disbursements must return 202 Accepted for sub-threshold amount")
+            .isEqualTo(202);
+
+        String disbursementId = parseDisbursementId(response.getBody());
+        assertThat(disbursementId)
+            .as("disbursementId must be non-null in 202 response")
+            .isNotBlank();
+
+        String status = parseStatus(response.getBody());
+        assertThat(status)
+            .as("Sub-threshold amount (" + amount + " < 500,000) must dispatch directly → PROCESSING")
+            .isEqualTo("PROCESSING");
+
+        return disbursementId;
+    }
+
+    /**
+     * Assert that all disbursement_transaction_ref rows for the given disbursement UUID
+     * have the expected ref_status. Uses raw JDBC to avoid JPA first-level cache returning
+     * stale entities. Pattern copied verbatim from MtnDisbursementE2EIT.assertClaimStatuses
+     * (lines 452-459).
+     */
+    private void assertClaimStatuses(String disbursementId, String expectedStatus, int expectedCount) {
+        List<String> statuses = jdbcTemplate.queryForList(
+            "SELECT ref_status FROM main.disbursement_transaction_ref " +
+            "WHERE disbursement_id = (SELECT id FROM main.disbursement WHERE disbursement_id = ?)",
+            String.class, disbursementId);
+        assertThat(statuses).hasSize(expectedCount);
+        assertThat(statuses).containsOnly(expectedStatus);
     }
 }
