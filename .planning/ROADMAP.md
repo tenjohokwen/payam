@@ -137,7 +137,7 @@
 - [x] **Phase 54: V31 Schema Migration** — `disbursement_transaction_ref` table, `admin_note` + `retry_count` columns, `reserved_amount` removal, `PENDING_ADMIN_APPROVAL` status, pre-flight assertion, `merchant_wallet_balance` application-layer retirement (completed 2026-05-02)
 - [x] **Phase 55: Transaction Validation & Fee Removal** — `transactionIds` field on `DisbursementRequest`, claim validation in `DisbursementOrchestrator` (tenant ownership, status, flow, active-claim check, amount equality, deadlock-safe SELECT FOR UPDATE), `FeeEvaluationService` bypass (completed 2026-05-04)
 - [x] **Phase 56: Claim Lifecycle & Admin Approval** — Claim state transitions (PENDING→CLAIMED/RELEASED), `PENDING_ADMIN_APPROVAL` flow, Quartz expiry job for admin-approval timeout, Insufficient Funds high-priority alert (completed 2026-05-04)
-- [ ] **Phase 57: Idempotency Retry Recovery & V32 Migration Scaffold** — RELEASED claim reactivation on retriable-failure retry, `retry_count` increment, terminal error code caching, V32 migration that drops `merchant_wallet_balance`
+- [x] **Phase 57: Idempotency Retry Recovery & V32 Migration Scaffold** — RELEASED claim reactivation on retriable-failure retry, `retry_count` increment, terminal error code caching, V32 migration that drops `merchant_wallet_balance` (completed 2026-05-05)
 - [ ] **Phase 58: Integration & E2E Test Suite** — Full claim-based disbursement flow E2E coverage for both providers, admin-approval path, retry recovery, insufficient funds alert, concurrency safety
 
 ## Phase Details
@@ -613,5 +613,5 @@ Plans:
 | 54. V31 Schema Migration | v11 | 1/3 | Complete    | 2026-05-02 |
 | 55. Transaction Validation & Fee Removal | v11 | 3/3 | Complete    | 2026-05-04 |
 | 56. Claim Lifecycle & Admin Approval | v11 | 0/? | Complete    | 2026-05-04 |
-| 57. Idempotency Retry Recovery & V32 Migration Scaffold | v11 | 0/? | Not started | - |
+| 57. Idempotency Retry Recovery & V32 Migration Scaffold | v11 | 2/2 | Complete   | 2026-05-05 |
 | 58. Integration & E2E Test Suite | v11 | 0/? | Not started | - |

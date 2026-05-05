@@ -40,9 +40,9 @@
 
 ### IDEM — Idempotency Retry Recovery
 
-- [ ] **IDEM-01**: System retries a `FAILED` disbursement with a retriable error code (`TIMEOUT`, `SYSTEM_ERROR`, `HTTP_5xx`) when the same `Idempotency-Key` is resent, provided all original transaction claims remain unclaimed (no active PENDING/CLAIMED ref for any of the original `transactionIds`)
-- [ ] **IDEM-02**: On successful retry validation, system reactivates the existing RELEASED `DisbursementTransactionRef` rows for this disbursement to `PENDING` (does not insert new rows — preserving audit trail), increments `retry_count`, and transitions the disbursement from `FAILED` to `INITIATED`
-- [ ] **IDEM-03**: System returns the cached `FAILED` response for terminal error codes (`ADMIN_REJECTED`, `INVALID_RECIPIENT`, `INSUFFICIENT_PROVIDER_FUNDS`) when the same `Idempotency-Key` is resent — no retry permitted
+- [x] **IDEM-01**: System retries a `FAILED` disbursement with a retriable error code (`TIMEOUT`, `SYSTEM_ERROR`, `HTTP_5xx`) when the same `Idempotency-Key` is resent, provided all original transaction claims remain unclaimed (no active PENDING/CLAIMED ref for any of the original `transactionIds`)
+- [x] **IDEM-02**: On successful retry validation, system reactivates the existing RELEASED `DisbursementTransactionRef` rows for this disbursement to `PENDING` (does not insert new rows — preserving audit trail), increments `retry_count`, and transitions the disbursement from `FAILED` to `INITIATED`
+- [x] **IDEM-03**: System returns the cached `FAILED` response for terminal error codes (`ADMIN_REJECTED`, `INVALID_RECIPIENT`, `INSUFFICIENT_PROVIDER_FUNDS`) when the same `Idempotency-Key` is resent — no retry permitted
 
 ### ALERT — Monitoring
 
@@ -53,7 +53,7 @@
 - [x] **SCHEMA-01**: V31 migration creates `disbursement_transaction_ref` table with columns (`id` UUID PK, `disbursement_id` UUID FK, `transaction_id` UUID FK, `ref_status` ENUM, `created_date` TIMESTAMP) and a partial unique index on `(transaction_id)` WHERE `ref_status IN ('PENDING', 'CLAIMED')` — enforces TXN-03 at the database level
 - [x] **SCHEMA-02**: V31 migration adds `admin_note` (TEXT, nullable) and `retry_count` (INT NOT NULL DEFAULT 0) to the `disbursement` table, and removes the `reserved_amount` column
 - [x] **SCHEMA-03**: V31 migration includes a pre-flight assertion that no `disbursement` row with `disbursement_status IN ('PROCESSING', 'PENDING_CONFIRMATION')` exists — migration fails fast if found; `merchant_wallet_balance` table is retired at the application layer (all reads/writes removed from code) but the table is not dropped in V31
-- [ ] **SCHEMA-04**: V32 migration drops `merchant_wallet_balance` (and its audit counterpart) after ops confirm all pre-V31 disbursements have reached a terminal state
+- [x] **SCHEMA-04**: V32 migration drops `merchant_wallet_balance` (and its audit counterpart) after ops confirm all pre-V31 disbursements have reached a terminal state
 
 ---
 

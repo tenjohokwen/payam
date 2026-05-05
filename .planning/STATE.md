@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
-status: executing
-stopped_at: Completed 55-03-PLAN.md (concurrency IT + FEE-02 regression test)
-last_updated: "2026-05-04T21:38:18.004Z"
-last_activity: 2026-05-04
+status: verifying
+stopped_at: Completed Phase 57 (57-01 IDEM retry recovery + 57-02 V32 migration scaffold)
+last_updated: "2026-05-05T02:58:48.717Z"
+last_activity: 2026-05-05
 progress:
   total_phases: 29
-  completed_phases: 18
-  total_plans: 53
-  completed_plans: 53
+  completed_phases: 19
+  total_plans: 55
+  completed_plans: 55
   percent: 96
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-01 — v11 milestone started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 56 — claim-lifecycle-admin-approval
+**Current focus:** Phase 57 — idempotency-retry-recovery-v32-migration-scaffold
 
 ## Current Position
 
-Phase: 57
-Plan: Not started
-Status: Executing Phase 56
-Last activity: 2026-05-04
+Phase: 57 (idempotency-retry-recovery-v32-migration-scaffold) — EXECUTING
+Plan: 2 of 2
+Status: Phase complete — ready for verification
+Last activity: 2026-05-05
 
 Progress: [██████████] 96% (48/50 plans complete)
 
@@ -76,6 +76,10 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 55]: FEE-01 regression guard uses reflection on getDeclaredFields() to check absence of any *Fee*-typed field — pinned forward without depending on specific class name
 - [Phase 55]: DisbursementClaimConcurrencyIT uses step-up amounts (600003 XAF) to avoid WireMock complexity — keeps concurrency test focused on locking invariant, not HTTP layer
 - [Phase 55]: Fee02RegressionTest simplifies port check to whole-file assertion (no Transaction.builder() in OrangeMoneyPort/MtnMoMoPort) — simpler and more robust than method-body regex
+- [Phase 57]: Conservative retry classification: RETRIABLE={PROVIDER_ERROR, PROVIDER_UNAVAILABLE}, all others TERMINAL (null included)
+- [Phase 57]: Audit-trail-preserving retry reactivation: UPDATE RELEASED->PENDING via transitionClaims — no new DisbursementTransactionRef inserts on retry
+- [Phase 57]: V32 OPS SIGN-OFF comment block as production gate — no pre-flight assertion (wallet tables are dead code since Phase 54)
+- [Phase 57]: V32MigrationIT uses flyway_schema_history assertions (not table absence) because Hibernate generate-ddl:true recreates @Entity wallet tables post-migration in test context
 
 ### v11 Phase Map
 
@@ -100,6 +104,6 @@ None — Phase 55 Plan 01 complete, Plans 02 and 03 ready for execution.
 
 ## Session Continuity
 
-Last session: 2026-05-04T05:50:09.492Z
-Stopped at: Completed 55-03-PLAN.md (concurrency IT + FEE-02 regression test)
+Last session: 2026-05-05T02:58:37.195Z
+Stopped at: Completed Phase 57 (57-01 IDEM retry recovery + 57-02 V32 migration scaffold)
 Resume: Execute 55-02-PLAN.md (TransactionClaimValidationService implementation)
