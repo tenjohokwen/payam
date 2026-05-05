@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 53-e2e-test-suite all 6 plans
-last_updated: "2026-04-28T05:53:26.293Z"
+stopped_at: Completed 58-02-PLAN.md
+last_updated: "2026-05-05T10:41:35.038Z"
 last_activity: 2026-04-28
 progress:
   total_phases: 24
@@ -95,6 +95,7 @@ Key context carried forward for v10:
 - [Phase 53-e2e-test-suite]: OrangeMoneyPort.initiateDisbursement() production bug: was returning null providerRef; fixed to extract payToken from cashout response Map for callback correlation
 - [Phase 53-e2e-test-suite]: DisbursementVelocityService per-MSISDN daily bucket (capacity=10): concurrency race test must use unique MSISDN per thread to avoid DAILY_LIMIT_EXCEEDED contaminating INSUFFICIENT_BALANCE count
 - [Phase 53-e2e-test-suite]: DisbursementExpiryJob.executeInternal() cross-package test requires reflection (setAccessible=true) — do NOT make it public for test convenience
+- [Phase 58-integration-e2e-test-suite]: assertClaimStatuses() uses raw JdbcTemplate over JPA to avoid first-level cache masking real DB state during async AFTER_COMMIT listener assertions
 
 ### Pending Todos
 
@@ -107,6 +108,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-28T05:43:28.604Z
-Stopped at: Completed 53-e2e-test-suite all 6 plans
+Last session: 2026-05-05T10:41:29.834Z
+Stopped at: Completed 58-02-PLAN.md
 Resume: Execute 52-04-PLAN.md (outbound webhook delivery)
