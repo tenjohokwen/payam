@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 58-03-PLAN.md (DisbursementAdminApprovalE2EIT)
-last_updated: "2026-05-05T12:16:08.216Z"
+stopped_at: Completed 58-04-PLAN.md (Phase 58 final verification — mvn verify green, SC-5 met)
+last_updated: "2026-05-05T15:48:17.500Z"
 last_activity: 2026-05-05
 progress:
   total_phases: 29
-  completed_phases: 18
+  completed_phases: 19
   total_plans: 59
-  completed_plans: 56
+  completed_plans: 58
   percent: 96
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-01 — v11 milestone started)
 ## Current Position
 
 Phase: 58 (integration-e2e-test-suite) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-05-05
 
@@ -82,6 +82,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 57]: V32MigrationIT uses flyway_schema_history assertions (not table absence) because Hibernate generate-ddl:true recreates @Entity wallet tables post-migration in test context
 - [Phase 58]: Fresh-row negative-control test requires DB-side backdateDisbursement(2 min) to guard JVM/DB clock skew — same pattern as DisbursementExpiryE2EIT.freshPendingConfirmation_isNotExpired
 - [Phase 58]: Reference prefix for DisbursementAdminApprovalE2EIT test 2 must be at most 14 chars to satisfy @Size(max=50) with UUID suffix (REF-FRESH- at 10 chars = 46 total)
+- [Phase 58]: OrangeDisbursementE2EIT.insufficientBalance_returns422_andOrangeCashoutNotCalled kept @Disabled: asserts SCHEMA-03 wallet semantics retired in v11; equivalent TXN-03/CLAIM-03 coverage exists in 58-01 Task 2 and 58-02 Task 2
 
 ### v11 Phase Map
 
@@ -96,6 +97,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 58-integration-e2e-test-suite]: assertClaimStatuses() uses raw JdbcTemplate over JPA to avoid first-level cache masking real DB state during async AFTER_COMMIT listener assertions
 
 | Phase 58 P03 | 45 | 1 tasks | 1 files |
+| Phase 58 P04 | 38 | 1 tasks | 0 files |
 
 ### Pending Todos
 
@@ -107,6 +109,6 @@ None — Phase 55 Plan 01 complete, Plans 02 and 03 ready for execution.
 
 ## Session Continuity
 
-Last session: 2026-05-05T12:16:08.207Z
-Stopped at: Completed 58-03-PLAN.md (DisbursementAdminApprovalE2EIT)
+Last session: 2026-05-05T15:48:17.489Z
+Stopped at: Completed 58-04-PLAN.md (Phase 58 final verification — mvn verify green, SC-5 met)
 Resume: Execute 58-03-PLAN.md (DisbursementAdminApprovalE2EIT)
