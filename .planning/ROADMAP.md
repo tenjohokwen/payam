@@ -563,7 +563,9 @@ Plans:
   1. `DisbursementOrchestrator.java` class-level `<ol>` no longer lists "Fee evaluation" (step 5) or "Wallet balance reserve (PESSIMISTIC_WRITE)" (step 6); all BAL-02/BAL-03 references removed from Javadoc
   2. `DisbursementCallbackTransitionService.java` class-level Javadoc no longer references "wallet release (when target=FAILED)", `walletBalanceService.release`, or BAL-02; method body comment at line 91 ("Wallet model retired in v11") is consistent with updated class summary
   3. `mvn verify` passes with no regressions
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 59-01-PLAN.md — Update DisbursementOrchestrator Javadoc step 5/6 + matching inline comment, defensively verify DisbursementCallbackTransitionService is clean, run mvn verify (SC-1..SC-5)
 
 ### Phase 60: CLAIM-05 E2E Coverage
 **Goal**: Prove at the E2E level that `disbursement_transaction_ref` rows survive a `PROCESSING→EXPIRED` transition unmodified — no claims are released when a disbursement expires due to an internal timeout
@@ -639,5 +641,5 @@ Plans:
 | 56. Claim Lifecycle & Admin Approval | v11 | 0/? | Complete    | 2026-05-04 |
 | 57. Idempotency Retry Recovery & V32 Migration Scaffold | v11 | 2/2 | Complete    | 2026-05-05 |
 | 58. Integration & E2E Test Suite | v11 | 4/4 | Complete    | 2026-05-05 |
-| 59. v11 Javadoc & Tech Debt Cleanup | v11 | 0/? | Pending | — |
+| 59. v11 Javadoc & Tech Debt Cleanup | v11 | 0/1 | Pending | — |
 | 60. CLAIM-05 E2E Coverage | v11 | 0/? | Pending | — |
