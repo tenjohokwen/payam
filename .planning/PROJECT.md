@@ -245,8 +245,8 @@ Phase 58 complete — integration & E2E test suite: full v11 claim lifecycle pro
 ## Current State
 
 **Shipped:** v9 (2026-04-23) — 49 phases total (13 v1 + 4 v2 + 6 v3 + 3 v4 + 4 v5 + 5 v6 + 6 v7 + 5 v8 + 4 v9), 106 plans
-**In progress:** v11 Transaction-Backed Disbursements — Phase 54 complete (2026-05-02); Phase 55 next
-**Next:** `/gsd:plan-phase 55`
+**In progress:** v11 Transaction-Backed Disbursements — Phase 59 complete (2026-05-05); Phase 60 next
+**Next:** `/gsd:plan-phase 60`
 **Codebase:** Spring Boot 3.5 + Spring Security + Spring Data JPA + Resilience4j + Quartz + Bucket4j + logstash-logback-encoder + micrometer-tracing-bridge-otel + Vue 3 + Quasar + Hibernate Envers + Cryptopher/Jasypt AES256
 **Observability:** Full Loki-queryable structured logging + Spring Boot Actuator health with live provider MSISDN validation + CB state
 **Test coverage:** Machine-checked E2E suite (32 test classes) + domain invariants + concurrency races + SM path matrix + PITest ≥90% mutation coverage + 22 tenant/key integration tests + PIN integration tests (PlatformConfigAdminResourceIT: 12 tests)
@@ -275,4 +275,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-04 — Phase 55 complete (transaction-claim validation TXN-01..06, FEE-01/FEE-02 regression guards)*
+*Last updated: 2026-05-05 — Phase 59 complete (v11 Javadoc tech debt cleanup — stale fee/wallet references removed from DisbursementOrchestrator and DisbursementCallbackTransitionService; 2 WARNING items from v11-MILESTONE-AUDIT closed)*
