@@ -12,7 +12,7 @@
 - ✅ **v8 Platform Config PIN** — Phases 41–45 (shipped 2026-04-21) — see [milestones/v8-ROADMAP.md](milestones/v8-ROADMAP.md)
 - ✅ **v9 Ledger Disbursement Support** — Phases 46–49 (shipped 2026-04-23) — see [milestones/v9-ROADMAP.md](milestones/v9-ROADMAP.md)
 - ✅ **v10 Client Disbursement API** — Phases 50–53 (shipped 2026-04-28)
-- ✅ **v11 Transaction-Backed Disbursements** — Phases 54–60 (shipped 2026-05-05) — see [milestones/v11-ROADMAP.md](milestones/v11-ROADMAP.md)
+- 🚧 **v11 Transaction-Backed Disbursements** — Phases 54–58 (in progress)
 
 ## Phases
 
@@ -130,8 +130,9 @@
 
 </details>
 
-<details>
-<summary>✅ v11 Transaction-Backed Disbursements (Phases 54–60) — SHIPPED 2026-05-05</summary>
+### v11 Transaction-Backed Disbursements (In Progress)
+
+**Milestone Goal:** Replace the pre-funded wallet-balance model with claim-based locking — every disbursement must be explicitly backed by a set of previously successful collection transactions.
 
 - [x] **Phase 54: V31 Schema Migration** — `disbursement_transaction_ref` table, `admin_note` + `retry_count` columns, `reserved_amount` removal, `PENDING_ADMIN_APPROVAL` status, pre-flight assertion, `merchant_wallet_balance` application-layer retirement (completed 2026-05-02)
 - [x] **Phase 55: Transaction Validation & Fee Removal** — `transactionIds` field on `DisbursementRequest`, claim validation in `DisbursementOrchestrator` (tenant ownership, status, flow, active-claim check, amount equality, deadlock-safe SELECT FOR UPDATE), `FeeEvaluationService` bypass (completed 2026-05-04)
@@ -140,8 +141,6 @@
 - [x] **Phase 58: Integration & E2E Test Suite** — Full claim-based disbursement flow E2E coverage for both providers, admin-approval path, retry recovery, insufficient funds alert, concurrency safety (completed 2026-05-05)
 - [x] **Phase 59: v11 Javadoc & Tech Debt Cleanup** — Remove stale wallet/fee references from `DisbursementOrchestrator` and `DisbursementCallbackTransitionService` class-level Javadoc; verify `mvn verify` passes (completed 2026-05-05)
 - [x] **Phase 60: CLAIM-05 E2E Coverage** — Add `disbursement_transaction_ref` assertion in `DisbursementExpiryE2EIT` proving claims survive `PROCESSING→EXPIRED` unmodified; verify `mvn verify` passes (completed 2026-05-05)
-
-</details>
 
 ## Phase Details
 
@@ -639,10 +638,10 @@ Plans:
 | 51. Orchestrator & Public API | v10 | 2/4 | Complete | 2026-04-25 |
 | 52. Callbacks & Outbound Webhooks | v10 | 4/4 | Complete | 2026-04-27 |
 | 53. E2E Test Suite | v10 | 6/6 | Complete | 2026-04-28 |
-| 54. V31 Schema Migration | v11 | 3/3 | Complete | 2026-05-02 |
-| 55. Transaction Validation & Fee Removal | v11 | 3/3 | Complete | 2026-05-04 |
-| 56. Claim Lifecycle & Admin Approval | v11 | 3/3 | Complete | 2026-05-04 |
-| 57. Idempotency Retry Recovery & V32 Migration Scaffold | v11 | 2/2 | Complete | 2026-05-05 |
-| 58. Integration & E2E Test Suite | v11 | 4/4 | Complete | 2026-05-05 |
-| 59. v11 Javadoc & Tech Debt Cleanup | v11 | 1/1 | Complete | 2026-05-05 |
-| 60. CLAIM-05 E2E Coverage | v11 | 1/1 | Complete | 2026-05-05 |
+| 54. V31 Schema Migration | v11 | 1/3 | Complete    | 2026-05-02 |
+| 55. Transaction Validation & Fee Removal | v11 | 3/3 | Complete    | 2026-05-04 |
+| 56. Claim Lifecycle & Admin Approval | v11 | 0/? | Complete    | 2026-05-04 |
+| 57. Idempotency Retry Recovery & V32 Migration Scaffold | v11 | 2/2 | Complete    | 2026-05-05 |
+| 58. Integration & E2E Test Suite | v11 | 4/4 | Complete    | 2026-05-05 |
+| 59. v11 Javadoc & Tech Debt Cleanup | v11 | 0/1 | Complete    | 2026-05-05 |
+| 60. CLAIM-05 E2E Coverage | v11 | 1/1 | Complete    | 2026-05-05 |

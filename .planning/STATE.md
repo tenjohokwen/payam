@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0.2
-milestone_name: milestone
-status: executing
-stopped_at: Completed 58-04-PLAN.md (Phase 58 final verification — mvn verify green, SC-5 met)
-last_updated: "2026-05-05T21:49:57.071Z"
+milestone: v11
+milestone_name: Transaction-Backed Disbursements
+status: milestone_complete
+stopped_at: v11 milestone archived — 7 phases (54-60) complete, 17 plans, 24/24 requirements satisfied
+last_updated: "2026-05-05T23:59:00.000Z"
 last_activity: 2026-05-05
 progress:
-  total_phases: 31
-  completed_phases: 22
-  total_plans: 61
-  completed_plans: 61
-  percent: 96
+  total_phases: 60
+  completed_phases: 60
+  total_plans: 17
+  completed_plans: 17
+  percent: 100
 ---
 
 # Project State
@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-01 — v11 milestone started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 60 — claim-05-e2e-coverage
+**Current focus:** v11 milestone complete — run `/gsd:new-milestone` to plan v12
 
 ## Current Position
 

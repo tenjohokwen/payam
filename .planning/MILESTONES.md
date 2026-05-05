@@ -1,5 +1,44 @@
 # Project Milestones: Payam
 
+## v11 Transaction-Backed Disbursements (Shipped: 2026-05-05)
+
+**Delivered:** Replaced the pre-funded wallet-balance model with claim-based locking — every disbursement is now explicitly backed by validated collection transactions with atomic `SELECT FOR UPDATE` claim creation, full claim lifecycle management (PENDING → CLAIMED | RELEASED), admin approval gate with configurable threshold and Quartz auto-expiry, idempotency retry recovery that reactivates existing claims (no new rows), and high-priority insufficient funds alerting to Platform Ops.
+
+**Phases completed:** 7 phases (54–60), 17 plans
+
+**Stats:**
+- 107 commits
+- 7 days (2026-04-28 → 2026-05-05)
+- 685 Java files, ~70k LOC total codebase
+
+**Key accomplishments:**
+
+- Flyway V31 migration: `disbursement_transaction_ref` table with partial unique index on `(transaction_id) WHERE ref_status IN ('PENDING', 'CLAIMED')` enforcing TXN-03 at DB level; `admin_note` + `retry_count` columns on `disbursement`; `reserved_amount` removed; `PENDING_ADMIN_APPROVAL` state added to `DisbursementStatus`; wallet balance retired at application layer; pre-flight DO $$ assertion blocks migration on live-traffic database (Phase 54)
+- `TransactionClaimValidationService.validateAndClaim()` enforces TXN-01..06: tenant ownership, SUCCESS status, COLLECTION flow, no active claim, exact amount equality with `BigDecimal.compareTo`; `SELECT FOR UPDATE` on Transaction rows in ascending `transaction_id` order prevents deadlocks; `DisbursementClaimConcurrencyIT` proves deadlock-free under concurrent overlapping transaction sets; `FeeEvaluationService` bypassed — `DisbursementResponse.fee` always `BigDecimal.ZERO` (Phase 55)
+- `DisbursementClaimTransitionService` bulk-updates claims atomically via `@Modifying` JPQL: PENDING→CLAIMED on SUCCESS, PENDING→RELEASED on FAILED or admin-approval expiry; CLAIM-05: PROCESSING→EXPIRED deliberately leaves claims in CLAIMED for ops reconciliation (structural invariant — expiry job has no knowledge of claims) (Phase 56)
+- Admin approval gate: disbursements exceeding `payam.disbursement.admin-approval-threshold` (default 500,000 XAF) route to `PENDING_ADMIN_APPROVAL`; `DisbursementAdminApprovalExpiryJob` (Quartz, configurable timeout) auto-expires with claim release; `DisbursementOpsAlertEmailListener` sends best-effort email to Platform Ops for both approval required and insufficient funds events (Phase 56)
+- `DisbursementRetryClassifier` classifies RETRIABLE (`PROVIDER_ERROR`, `PROVIDER_UNAVAILABLE`) vs TERMINAL (all others); `handleRetry()` in `DisbursementOrchestrator` reactivates existing RELEASED claims to PENDING (no new rows — audit trail preserved), increments `retry_count`, re-enters provider dispatch; V32 Flyway migration scaffolded to drop wallet tables behind OPS SIGN-OFF comment gate (Phase 57)
+- Full E2E machine-verification: MTN/Orange claim lifecycle (PENDING→CLAIMED/RELEASED), admin-approval HTTP initiation + Quartz expiry + CLAIMED release, idempotency retry recovery (RELEASED→PENDING + retry_count increment), CLAIM-05 PROCESSING→EXPIRED invariant proof via raw SQL on `disbursement_transaction_ref`; `mvn verify` 474 unit + 301 integration tests, 0 failures (Phases 58, 60)
+
+**Archive:** `.planning/milestones/v11-ROADMAP.md`
+- One-liner:
+- 1. [Rule 3 - Blocking] spring.jpa.generate-ddl=true caused Hibernate to re-add reserved_amount after V31 dropped it
+- DisbursementStatus extended to 7 values with PENDING_ADMIN_APPROVAL state, completing Phase 54's SCHEMA-03 requirement to retire the wallet model at the application layer
+- DisbursementRequest record
+- 1. Worktree was behind main (Phase 55-01 changes absent)
+- Three-scenario deadlock-free concurrency proof (TXN-05) + FEE-02 static-analysis regression guard + DisbursementOrchestratorIT wired with real SUCCESS/COLLECTION transaction seeding for claim validation
+- File:
+- FAILED->INITIATED state machine transition + conservative classifier (PROVIDER_ERROR/PROVIDER_UNAVAILABLE=RETRIABLE) + DisbursementOrchestrator.handleRetry routing RELEASED->PENDING reactivation with audit-trail preservation, end-to-end verified by 3 WireMock+Testcontainers integration tests
+- V32 Flyway migration drops merchant_wallet_balance + _aud with IF EXISTS guards and OPS SIGN-OFF gate; V32MigrationIT verifies via flyway_schema_history and idempotency re-apply because Hibernate recreates tables from @Entity post-migration
+- MtnDisbursementE2EIT.java
+- OrangeDisbursementE2EIT gains CLAIM-01/CLAIM-02 assertions (PENDING at init, CLAIMED after SUCCESSFULL) and a new CLAIM-03 test proving FAILED callback releases claims to RELEASED and RELEASED transactionIds unblock a second disbursement.
+- DisbursementAdminApprovalE2EIT.java
+- Full mvn verify suite passes green (474 unit tests + 300 IT runs, 0 failures, 0 errors) — Phase 58 SC-5 satisfied; v11 milestone machine-verified
+- Case A (no edit needed):
+- Focused run:
+
+---
+
 ## v9 Ledger Disbursement Support (Shipped: 2026-04-23)
 
 **Delivered:** Extended the double-entry ledger to support disbursement/cashout flows — `LedgerFlow` enum + `LedgerPosting` record in `transaction/contract`; `LedgerService` routes to COLLECTION (2-entry) and DISBURSEMENT (3-entry) builders; `OrangeMoneyPort.initiateCashout` wired with real HTTP call + 3-row balanced ledger entry via `TransactionTemplate`.
@@ -7,6 +46,7 @@
 **Phases completed:** 46–49 (4 phases, 8 plans)
 
 **Stats:**
+
 - 95 files changed, 9,412 insertions, 1,295 deletions
 - 3 days (2026-04-21 → 2026-04-23)
 

@@ -10,21 +10,13 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ## Current State
 
-Phase 60 complete — CLAIM-05 E2E coverage: DisbursementExpiryE2EIT now proves PROCESSING→EXPIRED does NOT release claims (disbursement_transaction_ref rows stay PENDING for ops reconciliation). Closes Finding G-1 from v11-MILESTONE-AUDIT.md. mvn verify exits 0: 474 unit + 301 integration tests, 0 failures. v11 milestone fully verified.
+v11 complete (2026-05-05) — Transaction-Backed Disbursements shipped. Every disbursement is now backed by explicit claim locking against validated collection transactions. 24/24 requirements satisfied, 474 unit + 301 integration tests green. Ready for v12 planning.
 
-## Current Milestone: v11 Transaction-Backed Disbursements
+## Shipped Milestone: v11 Transaction-Backed Disbursements ✅
 
-**Goal:** Replace the pre-funded wallet-balance model with claim-based locking — every disbursement must be explicitly backed by a set of previously successful collection transactions.
+**Shipped:** 2026-05-05 — 7 phases (54–60), 17 plans
 
-**Target features:**
-- `transactionIds` field on `DisbursementRequest` — disbursements backed by specific collection transactions
-- New `disbursement_transaction_ref` join table with claim lifecycle (PENDING → CLAIMED | RELEASED)
-- Transaction validation rules (TXN-01..06): tenant ownership, SUCCESS status, COLLECTION flow, no active claim, exact amount equality, deadlock-safe lock ordering
-- New `PENDING_ADMIN_APPROVAL` state for large disbursements with configurable threshold, Ops notification, and timeout expiry
-- No platform fees on disbursements — bypass `FeeEvaluationService`, always return `fee = BigDecimal.ZERO`
-- Idempotency retry recovery for retriable failures — reactivate RELEASED claims, increment `retry_count`
-- Insufficient Funds high-priority alert to Platform Ops (Slack/PagerDuty/Email)
-- V31 migration (claim table, new disbursement columns, wallet table soft-deprecated) + V32 migration (wallet table drop)
+**Delivered:** Replaced the pre-funded wallet-balance model with claim-based locking — every disbursement is explicitly backed by validated collection transactions. `DisbursementTransactionRef` claim lifecycle (PENDING → CLAIMED | RELEASED); admin approval gate with Quartz auto-expiry; idempotency retry recovery; insufficient funds alerting; V31 + V32 Flyway migrations. All 24 v11 requirements satisfied.
 
 ## Requirements
 
@@ -114,32 +106,18 @@ Phase 60 complete — CLAIM-05 E2E coverage: DisbursementExpiryE2EIT now proves 
 - ✓ `LedgerBalanceGuardTest`: 2 new `@Test` methods for DISBURSEMENT (`fee > 0` and `fee == 0`) in `com.softropic.payam.domain` package — PITest mutation kill rate 100% (4/4) on LedgerService — v9 (Phase 48): TEST-01, TEST-02, TEST-03, TEST-04, TEST-05
 - ✓ `LedgerServiceIT.postEntry_disbursement_persistsThreeBalancedRows`: Testcontainers + real PostgreSQL integration test; V25 balance-check trigger accepts DISBURSEMENT group at commit; shared `entry_group_id` across all 3 rows — v9 (Phase 48): TEST-06
 - ✓ `LedgerVerifier.assertDisbursementLedgerBalanced(txId, principal, fee)`: reusable E2E helper for Phase 49 downstream tests; 5 unit tests in `LedgerVerifierTest`; existing `assertLedgerBalanced` untouched — v9 (Phase 48): TEST-07
+- ✓ V31 schema migration: `disbursement_transaction_ref` table with partial unique index; `admin_note`/`retry_count` on disbursement; `reserved_amount` removed; `PENDING_ADMIN_APPROVAL` state; wallet balance application-layer retired; pre-flight DO $$ guard — v11 (Phase 54): SCHEMA-01, SCHEMA-02, SCHEMA-03
+- ✓ `TransactionClaimValidationService.validateAndClaim()`: tenant ownership, SUCCESS/COLLECTION validation, active-claim guard, amount equality, deadlock-safe `SELECT FOR UPDATE` with ascending `transaction_id` order; `DisbursementClaimConcurrencyIT` proves no deadlock — v11 (Phase 55): TXN-01..06, FEE-01, FEE-02
+- ✓ `DisbursementClaimTransitionService` bulk JPQL: PENDING→CLAIMED on SUCCESS, PENDING→RELEASED on FAILED/admin-approval expiry; CLAIM-05 invariant: PROCESSING→EXPIRED leaves claims in CLAIMED for ops reconciliation — v11 (Phase 56): CLAIM-01..05
+- ✓ Admin approval gate: disbursements > `payam.disbursement.admin-approval-threshold` → `PENDING_ADMIN_APPROVAL`; `DisbursementAdminApprovalExpiryJob` auto-expires with claim release; `DisbursementOpsAlertEmailListener` fires for admin-approval and insufficient funds — v11 (Phase 56): ADMIN-01..03, ALERT-01
+- ✓ `DisbursementRetryClassifier` + `handleRetry()`: RETRIABLE codes reactivate RELEASED claims to PENDING (no new rows), increment `retry_count`, re-enter provider dispatch; TERMINAL codes return cached response; `FAILED→INITIATED` transition added to state machine; V32 migration scaffolded — v11 (Phase 57): IDEM-01..03, SCHEMA-04
+- ✓ Full E2E suite: MTN/Orange claim lifecycle, admin-approval expiry path, idempotency retry recovery, CLAIM-05 PROCESSING→EXPIRED invariant via raw SQL on `disbursement_transaction_ref`; `mvn verify` 474 unit + 301 IT, 0 failures — v11 (Phases 58, 60)
 - ✓ `PaymentCommand` gains 14th nullable `BigDecimal feeAmount` component; backward-compat 13-arg constructor delegates to canonical with `feeAmount=null`; `withFeeAmount(BigDecimal)` wither method; `PaymentOrchestrator.initiate()` enriches in-flight command via `cmd = cmd.withFeeAmount(fee)` before port dispatch — v9 (Phase 49): CASHOUT-01
 - ✓ `OrangeMoneyPort.initiateCashout()` calls `orangeMoneyClient.cashout()`, guards on `is2xxSuccessful()`, posts `LedgerPosting.disbursement(principal, fee, currency)` via `transactionTemplate.execute` (no `@Transactional` on method); null `feeAmount` falls back to `BigDecimal.ZERO` — `OrangeMoneyPortIT`: 8/8 tests green — v9 (Phase 49): CASHOUT-02
 
 ### Active
 
-<!-- v10 Client Disbursement API — started 2026-04-24 -->
-- [ ] DISB-01: Tenant can initiate a disbursement via `POST /v1/disbursements` (MTN + Orange)
-- [ ] DISB-02: Tenant can query disbursement status via `GET /v1/disbursements/{id}`
-- [ ] DISB-03: System validates idempotency key on every disbursement request
-- [ ] DISB-04: System gates disbursement on pre-funded `MERCHANT_WALLET` balance
-- [ ] DISB-05: System applies disbursement-specific fraud scoring and velocity rules
-- [ ] DISB-06: System delivers `disbursement.completed` / `disbursement.failed` outbound webhook
-- [x] DISB-07: E2E test suite covers disbursement flows for both providers — Validated in Phase 53: TEST-01, TEST-02, TEST-03, TEST-04
-
-<!-- v11 Transaction-Backed Disbursements — started 2026-05-01 -->
-- [ ] TXN-01: Tenant supplies `transactionIds` in `DisbursementRequest`; system validates each belongs to the requesting tenant, has `txStatus = SUCCESS` and `flow = COLLECTION`
-- [ ] TXN-02: System rejects a disbursement where any transaction has an active claim (`PENDING` or `CLAIMED`), returning `422 TRANSACTION_CLAIMED`
-- [ ] TXN-03: System rejects a disbursement where `disbursement.amount != SUM(disbursableAmount)`, returning `422 AMOUNT_MISMATCH`
-- [ ] TXN-04: System acquires `SELECT FOR UPDATE` locks on validated transactions in ascending `transaction_id` order within a single atomic operation (deadlock-safe)
-- [ ] CLAIM-01: System creates a `DisbursementTransactionRef` claim (PENDING) per transaction atomically with disbursement acceptance; advances to CLAIMED on SUCCESS, RELEASED on FAILED or admin-approval expiry
-- [ ] ADMIN-01: Disbursements exceeding `payam.disbursement.admin-approval-threshold` transition to `PENDING_ADMIN_APPROVAL`; Platform Ops notified; auto-expires after `payam.disbursement.admin-approval-timeout-hours` with claims released
-- [ ] FEE-01: Disbursements never invoke `FeeEvaluationService`; `DisbursementResponse.fee` is always `BigDecimal.ZERO`; any DISBURSEMENT-flow `Transaction` row has `feeAmount = 0` and `feeRuleId = NULL`
-- [x] IDEM-01: On retriable-failure retry, system reactivates existing RELEASED claims to PENDING (no new rows), increments `retry_count`, and retransitions disbursement to `INITIATED` for provider dispatch — Validated in Phase 57: IDEM-01, IDEM-02, IDEM-03
-- [ ] ALERT-01: Provider Insufficient Funds response triggers high-priority alert (Slack/PagerDuty/Email) to Platform Ops naming the affected provider account; disbursement transitions to FAILED, claims released
-- [x] SCHEMA-01: V31 migration: `disbursement_transaction_ref` table with partial unique index; `admin_note` + `retry_count` added to `disbursement`; `reserved_amount` removed; `merchant_wallet_balance` application-layer retired (not dropped); pre-flight assertion no open PROCESSING/PENDING_CONFIRMATION rows — Validated in Phase 54: SCHEMA-01, SCHEMA-02, SCHEMA-03
-- [x] SCHEMA-02: V32 migration drops `merchant_wallet_balance` after ops confirm all legacy disbursements are terminal — scaffolded in Phase 57: SCHEMA-04 (ops sign-off required before production apply)
+*(No active requirements — start `/gsd:new-milestone` to define v12 requirements)*
 
 #### Phase 50 complete — Validated in Phase 50: BAL-01, BAL-02, BAL-03
 - ✓ Flyway V28: `main.disbursement`, `main.disbursement_aud`, `main.merchant_wallet_balance`, `main.merchant_wallet_balance_aud` with named constraints — v10 (Phase 50)
@@ -275,4 +253,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-05 — Phase 59 complete (v11 Javadoc tech debt cleanup — stale fee/wallet references removed from DisbursementOrchestrator and DisbursementCallbackTransitionService; 2 WARNING items from v11-MILESTONE-AUDIT closed)*
+*Last updated: 2026-05-05 after v11 milestone — Transaction-Backed Disbursements shipped; all 24 v11 requirements validated; 474 unit + 301 integration tests green*

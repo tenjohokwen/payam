@@ -1,3 +1,12 @@
+# Requirements Archive: v11 Transaction-Backed Disbursements
+
+**Archived:** 2026-05-05
+**Status:** SHIPPED
+
+For current requirements, see `.planning/REQUIREMENTS.md`.
+
+---
+
 # Milestone v11 Requirements — Transaction-Backed Disbursements
 
 **Milestone:** v11
