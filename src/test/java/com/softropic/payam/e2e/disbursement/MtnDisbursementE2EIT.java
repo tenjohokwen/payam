@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.config.TestDataCleaner;
+import com.softropic.payam.disbursement.contract.DisbursementOrchestratorError;
 import com.softropic.payam.disbursement.contract.DisbursementStatus;
 import com.softropic.payam.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.e2e.verify.LedgerVerifier;
@@ -291,6 +292,57 @@ class MtnDisbursementE2EIT {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Test 4: TXN-03 — second POST with SAME transactionIds and DIFFERENT
+    //         idempotency key returns 422 TRANSACTION_CLAIMED before any
+    //         provider call is made. Different idempotency key is critical:
+    //         same key would return the cached PROCESSING response (Pitfall 4).
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void mtnSecondAttemptWithSameTransactionIds_returns422TransactionClaimed() {
+        stubMtnAccountAndTransfer();
+
+        // First disbursement — creates PENDING claims
+        List<String> txnIds = seedTxnsForClaim(tenantId, 1, PRINCIPAL);
+        String firstIdem = "IDEM-MTN-FIRST-" + UUID.randomUUID();
+        ResponseEntity<String> firstResponse = postDisbursement(
+            MTN_MSISDN, PRINCIPAL, "REF-CLAIM1-" + UUID.randomUUID(),
+            firstIdem, txnIds);
+        assertThat(firstResponse.getStatusCode().value()).isEqualTo(202);
+        String firstDisbursementId = parseDisbursementId(firstResponse.getBody());
+        assertThat(firstDisbursementId).isNotBlank();
+
+        // First-attempt baseline: claims must be PENDING (TXN-03 active set)
+        assertClaimStatuses(firstDisbursementId, "PENDING", 1);
+
+        // Capture provider call count BEFORE second attempt — must NOT increase
+        int transferCallsBefore = mtnServer.findAll(
+            postRequestedFor(urlPathEqualTo("/v1_0/transfer"))).size();
+
+        // Second disbursement — DIFFERENT idempotency key, SAME transactionIds
+        // Must reject with 422 TRANSACTION_CLAIMED before provider dispatch
+        String secondIdem = "IDEM-MTN-SECOND-" + UUID.randomUUID();
+        ResponseEntity<String> secondResponse = postDisbursement(
+            MTN_MSISDN, PRINCIPAL, "REF-CLAIM2-" + UUID.randomUUID(),
+            secondIdem, txnIds);
+
+        assertThat(secondResponse.getStatusCode().value())
+            .as("Second POST with claimed transactionIds must return 422")
+            .isEqualTo(422);
+        String errorCode = parseErrorCode(secondResponse.getBody());
+        assertThat(errorCode)
+            .as("errorCode must be TRANSACTION_CLAIMED (TXN-03)")
+            .isEqualTo(DisbursementOrchestratorError.TRANSACTION_CLAIMED.getErrorCode());
+
+        // Provider call count UNCHANGED — rejection happened before dispatch
+        int transferCallsAfter = mtnServer.findAll(
+            postRequestedFor(urlPathEqualTo("/v1_0/transfer"))).size();
+        assertThat(transferCallsAfter)
+            .as("/v1_0/transfer must NOT be called for the rejected second attempt")
+            .isEqualTo(transferCallsBefore);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Private helpers
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -380,6 +432,15 @@ class MtnDisbursementE2EIT {
             return new ObjectMapper().readTree(responseBody).get("status").asText();
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse status from: " + responseBody, e);
+        }
+    }
+
+    private String parseErrorCode(String body) {
+        try {
+            String val = new ObjectMapper().readTree(body).path("errorCode").asText(null);
+            return (val != null && val.isBlank()) ? null : val;
+        } catch (Exception e) {
+            return null;
         }
     }
 
