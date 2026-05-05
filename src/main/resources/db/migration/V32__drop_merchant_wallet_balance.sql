@@ -1,0 +1,46 @@
+-- V32: Drop merchant_wallet_balance tables (SCHEMA-04)
+--
+-- The merchant_wallet_balance / merchant_wallet_balance_aud tables were created in
+-- V28 to back the pre-funded wallet reservation model used by v10 disbursements.
+-- Phase 54 (SCHEMA-03, V31) retired this model at the application layer:
+--   - WalletBalanceService is no longer called from DisbursementOrchestrator
+--     or DisbursementCallbackTransitionService.
+--   - The MerchantWalletBalance entity and repository remain in the codebase
+--     but are unreachable from any production call path.
+--   - DisbursementTransactionRef + claim-based locking is the new model.
+--
+-- V32 finalizes the cleanup by dropping the dead tables.
+--
+-- ============================================================
+-- OPS SIGN-OFF REQUIRED BEFORE APPLYING IN PRODUCTION
+-- ============================================================
+-- Confirm the following BEFORE deploying a build that contains V32:
+--   1. All pre-V31 disbursements have reached a terminal state
+--      (SUCCESS / FAILED / EXPIRED) — none remain in PROCESSING or
+--      PENDING_CONFIRMATION. Run:
+--          SELECT disbursement_status, COUNT(*) FROM main.disbursement
+--          GROUP BY disbursement_status;
+--      Verify zero rows in non-terminal states.
+--   2. No live operational tooling reads main.merchant_wallet_balance.
+--   3. A current backup of main.merchant_wallet_balance and
+--      main.merchant_wallet_balance_aud has been taken and archived.
+-- ============================================================
+--
+-- Idempotency: IF EXISTS guards make this migration safe on environments
+-- where the tables may have already been manually dropped (e.g. partial
+-- recovery scenarios). Re-running V32 is a no-op.
+--
+-- Drop order: _aud table FIRST, then base table. The _aud table holds an
+-- FK to main.revinfo(rev); dropping it first cleanly tears down the FK
+-- reference. The base merchant_wallet_balance table has no FKs from other
+-- tables (verified against V28 DDL), so this order is safe.
+
+-- ============================================================
+-- Step 1: Drop the Envers audit table
+-- ============================================================
+DROP TABLE IF EXISTS main.merchant_wallet_balance_aud;
+
+-- ============================================================
+-- Step 2: Drop the base wallet balance table
+-- ============================================================
+DROP TABLE IF EXISTS main.merchant_wallet_balance;
