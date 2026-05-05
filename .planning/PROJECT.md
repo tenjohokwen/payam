@@ -10,7 +10,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ## Current State
 
-Phase 57 complete — idempotency retry recovery (IDEM-01/02/03): FAILED disbursements with retriable error codes (PROVIDER_ERROR, PROVIDER_UNAVAILABLE) can be retried with the same idempotency key; RELEASED claims reactivate to PENDING atomically, retry_count increments, provider re-dispatched. Terminal codes return cached FAILED immediately. V32 migration scaffold (SCHEMA-04) drops merchant_wallet_balance tables (ops sign-off required before production apply). Next: Phase 58 — integration & E2E test suite.
+Phase 58 complete — integration & E2E test suite: full v11 claim lifecycle proven end-to-end across MTN (CLAIM-01/02, TXN-03) and Orange (CLAIM-01/02/03) providers; DisbursementAdminApprovalE2EIT proves PENDING_ADMIN_APPROVAL → expiry → EXPIRED + claims RELEASED (CLAIM-04, ADMIN-01, ADMIN-03). mvn verify exits 0: 474 unit + 300 integration tests, 0 failures. v11 milestone complete.
 
 ## Current Milestone: v11 Transaction-Backed Disbursements
 
