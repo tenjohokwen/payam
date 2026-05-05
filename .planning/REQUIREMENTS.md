@@ -24,14 +24,14 @@
 - [ ] **CLAIM-01**: System creates a `DisbursementTransactionRef` row in `PENDING` state for each supplied transaction when a disbursement is accepted (atomically with disbursement creation, enforced by the partial unique index)
 - [ ] **CLAIM-02**: System transitions all claims from `PENDING` to `CLAIMED` when the disbursement reaches `SUCCESS`
 - [ ] **CLAIM-03**: System transitions all claims to `RELEASED` when the disbursement reaches `FAILED` for any reason, including Insufficient Funds — released transactions are available for future disbursements
-- [ ] **CLAIM-04**: System transitions all claims to `RELEASED` when a `PENDING_ADMIN_APPROVAL` disbursement auto-expires — released transactions are available for future disbursements
+- [x] **CLAIM-04**: System transitions all claims to `RELEASED` when a `PENDING_ADMIN_APPROVAL` disbursement auto-expires — released transactions are available for future disbursements
 - [ ] **CLAIM-05**: System retains claims in `CLAIMED` state when a `PROCESSING` disbursement transitions to `EXPIRED` due to an internal error — claims remain held pending ops reconciliation with the provider
 
 ### ADMIN — Admin Approval Flow
 
-- [ ] **ADMIN-01**: Disbursements where `amount > payam.disbursement.admin-approval-threshold` (default: 500,000 XAF, configurable) transition to `PENDING_ADMIN_APPROVAL` instead of dispatching to the provider; the existing `PENDING_CONFIRMATION` merchant step-up flow is unchanged and co-exists
+- [x] **ADMIN-01**: Disbursements where `amount > payam.disbursement.admin-approval-threshold` (default: 500,000 XAF, configurable) transition to `PENDING_ADMIN_APPROVAL` instead of dispatching to the provider; the existing `PENDING_CONFIRMATION` merchant step-up flow is unchanged and co-exists
 - [ ] **ADMIN-02**: System stores `admin_note` (TEXT, nullable) on the disbursement row on transition to `PENDING_ADMIN_APPROVAL`; the field is never returned in the public merchant API response; system sends best-effort email/Slack notification to Platform Ops
-- [ ] **ADMIN-03**: System auto-expires `PENDING_ADMIN_APPROVAL` disbursements after `payam.disbursement.admin-approval-timeout-hours` (default: 24 h), transitioning to `EXPIRED` and releasing all associated claims
+- [x] **ADMIN-03**: System auto-expires `PENDING_ADMIN_APPROVAL` disbursements after `payam.disbursement.admin-approval-timeout-hours` (default: 24 h), transitioning to `EXPIRED` and releasing all associated claims
 
 ### FEE — Fee Exemption
 
