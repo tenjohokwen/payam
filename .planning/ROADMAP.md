@@ -139,7 +139,7 @@
 - [x] **Phase 56: Claim Lifecycle & Admin Approval** — Claim state transitions (PENDING→CLAIMED/RELEASED), `PENDING_ADMIN_APPROVAL` flow, Quartz expiry job for admin-approval timeout, Insufficient Funds high-priority alert (completed 2026-05-04)
 - [x] **Phase 57: Idempotency Retry Recovery & V32 Migration Scaffold** — RELEASED claim reactivation on retriable-failure retry, `retry_count` increment, terminal error code caching, V32 migration that drops `merchant_wallet_balance` (completed 2026-05-05)
 - [x] **Phase 58: Integration & E2E Test Suite** — Full claim-based disbursement flow E2E coverage for both providers, admin-approval path, retry recovery, insufficient funds alert, concurrency safety (completed 2026-05-05)
-- [ ] **Phase 59: v11 Javadoc & Tech Debt Cleanup** — Remove stale wallet/fee references from `DisbursementOrchestrator` and `DisbursementCallbackTransitionService` class-level Javadoc; verify `mvn verify` passes
+- [x] **Phase 59: v11 Javadoc & Tech Debt Cleanup** — Remove stale wallet/fee references from `DisbursementOrchestrator` and `DisbursementCallbackTransitionService` class-level Javadoc; verify `mvn verify` passes (completed 2026-05-05)
 - [ ] **Phase 60: CLAIM-05 E2E Coverage** — Add `disbursement_transaction_ref` assertion in `DisbursementExpiryE2EIT` proving claims survive `PROCESSING→EXPIRED` unmodified; verify `mvn verify` passes
 
 ## Phase Details
@@ -641,5 +641,5 @@ Plans:
 | 56. Claim Lifecycle & Admin Approval | v11 | 0/? | Complete    | 2026-05-04 |
 | 57. Idempotency Retry Recovery & V32 Migration Scaffold | v11 | 2/2 | Complete    | 2026-05-05 |
 | 58. Integration & E2E Test Suite | v11 | 4/4 | Complete    | 2026-05-05 |
-| 59. v11 Javadoc & Tech Debt Cleanup | v11 | 0/1 | Pending | — |
+| 59. v11 Javadoc & Tech Debt Cleanup | v11 | 0/1 | Complete    | 2026-05-05 |
 | 60. CLAIM-05 E2E Coverage | v11 | 0/? | Pending | — |
