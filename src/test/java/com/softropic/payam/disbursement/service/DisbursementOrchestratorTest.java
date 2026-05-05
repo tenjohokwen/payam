@@ -7,6 +7,7 @@ import com.softropic.payam.disbursement.config.DisbursementProperties;
 import com.softropic.payam.disbursement.contract.DisbursementOrchestratorError;
 import com.softropic.payam.disbursement.contract.DisbursementRefStatus;
 import com.softropic.payam.disbursement.contract.DisbursementRequest;
+import com.softropic.payam.disbursement.repo.DisbursementTransactionRefRepository;
 import com.softropic.payam.disbursement.contract.DisbursementResponse;
 import com.softropic.payam.disbursement.contract.DisbursementStatus;
 import com.softropic.payam.disbursement.contract.event.DisbursementAdminApprovalRequiredEvent;
@@ -74,6 +75,8 @@ class DisbursementOrchestratorTest {
     @Mock DisbursementProperties properties;
     @Mock DisbursementClaimTransitionService claimTransitionService;
     @Mock ApplicationEventPublisher eventPublisher;
+    @Mock DisbursementRetryClassifier retryClassifier;
+    @Mock DisbursementTransactionRefRepository refRepository;
 
     @InjectMocks DisbursementOrchestrator orchestrator;
 
@@ -145,6 +148,11 @@ class DisbursementOrchestratorTest {
 
         // Default: claimTransitionService returns 1 for any transition
         lenient().when(claimTransitionService.transitionClaims(anyLong(), any(), any())).thenReturn(1);
+
+        // Default: classifier returns RETRIABLE (most retry tests are happy-path retries)
+        lenient().when(retryClassifier.classify(any())).thenReturn(DisbursementRetryClassifier.Classification.RETRIABLE);
+        // Default: no transactions claimed by other disbursements
+        lenient().when(refRepository.findClaimedTransactionIds(any(), any())).thenReturn(java.util.List.of());
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
@@ -621,5 +629,167 @@ class DisbursementOrchestratorTest {
                 eq(DSB_PK_ID), eq(DisbursementRefStatus.PENDING), eq(DisbursementRefStatus.RELEASED));
         // disbursementRepository was locked (FAILED transition attempted)
         verify(disbursementRepository).findByDisbursementIdForUpdate(eq(DSB_ID));
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════════
+    // IDEM-01 / IDEM-02 / IDEM-03: Retry recovery tests (Phase 57)
+    // ════════════════════════════════════════════════════════════════════════════════
+
+    private static String failedCachedJson(String errorCode) {
+        return "{\"disbursementId\":\"" + DSB_ID + "\",\"status\":\"FAILED\","
+                + "\"providerRef\":null,\"recipientMsisdn\":null,"
+                + "\"amount\":null,\"fee\":0,\"currency\":null,"
+                + "\"reference\":null,\"provider\":null,"
+                + "\"errorCode\":\"" + errorCode + "\","
+                + "\"errorMessage\":\"prior failure\"}";
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
+    // Test 28: IDEM-02 — retriable code + no active claims → reactivate + dispatch
+    // ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void initiate_failedRetriableCode_reactivatesClaimsAndDispatches() {
+        // Cached FAILED response with retriable code
+        when(idempotencyService.checkAndReserve(any(), any()))
+                .thenReturn(Optional.of(new CachedResponse(202, failedCachedJson("PROVIDER_ERROR"))));
+        when(retryClassifier.classify("PROVIDER_ERROR"))
+                .thenReturn(DisbursementRetryClassifier.Classification.RETRIABLE);
+        // Disbursement entity exists and is FAILED
+        Disbursement failedDsb = mockDisbursement(DSB_ID, DisbursementStatus.FAILED, SMALL_AMOUNT);
+        when(failedDsb.getProvider()).thenReturn(MobilePaymentProvider.MTN);
+        when(failedDsb.getRetryCount()).thenReturn(0);
+        when(disbursementRepository.findByTenantIdAndIdempotencyKey(eq(TENANT_ID), eq("IDEM-001")))
+                .thenReturn(Optional.of(failedDsb));
+        when(disbursementRepository.findByDisbursementIdForUpdate(eq(DSB_ID)))
+                .thenReturn(Optional.of(failedDsb));
+        when(refRepository.findClaimedTransactionIds(any(), any())).thenReturn(java.util.List.of());
+
+        DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
+
+        assertThat(response.status()).isEqualTo("PROCESSING");
+        // RELEASED → PENDING reactivation
+        verify(claimTransitionService).transitionClaims(eq(DSB_PK_ID),
+                eq(DisbursementRefStatus.RELEASED), eq(DisbursementRefStatus.PENDING));
+        // retry_count incremented
+        verify(failedDsb).setRetryCount(1);
+        // FAILED → INITIATED transition
+        verify(failedDsb).applyTransition(eq(DisbursementStatus.INITIATED));
+        // Provider re-dispatched
+        verify(mtnPort).initiateDisbursement(any());
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
+    // Test 29: IDEM-01 — retriable code + active claim conflict → TRANSACTION_CLAIMED
+    // ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void initiate_failedRetriableCode_butActiveClaimExists_returnsTransactionClaimed() {
+        when(idempotencyService.checkAndReserve(any(), any()))
+                .thenReturn(Optional.of(new CachedResponse(202, failedCachedJson("PROVIDER_ERROR"))));
+        when(retryClassifier.classify("PROVIDER_ERROR"))
+                .thenReturn(DisbursementRetryClassifier.Classification.RETRIABLE);
+        Disbursement failedDsb = mockDisbursement(DSB_ID, DisbursementStatus.FAILED, SMALL_AMOUNT);
+        when(disbursementRepository.findByTenantIdAndIdempotencyKey(eq(TENANT_ID), eq("IDEM-001")))
+                .thenReturn(Optional.of(failedDsb));
+        // One transaction is claimed by another disbursement
+        when(refRepository.findClaimedTransactionIds(any(), any()))
+                .thenReturn(java.util.List.of("txn-001"));
+
+        DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
+
+        assertThat(response.errorCode())
+                .isEqualTo(DisbursementOrchestratorError.TRANSACTION_CLAIMED.getErrorCode());
+        // No state change
+        verify(failedDsb, never()).applyTransition(any());
+        verify(claimTransitionService, never()).transitionClaims(anyLong(), eq(DisbursementRefStatus.RELEASED), any());
+        verify(mtnPort, never()).initiateDisbursement(any());
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
+    // Test 30: IDEM-03 — terminal code → cached response returned verbatim
+    // ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void initiate_failedTerminalCode_returnsCachedResponseWithoutRetry() {
+        when(idempotencyService.checkAndReserve(any(), any()))
+                .thenReturn(Optional.of(new CachedResponse(202, failedCachedJson("RECIPIENT_NOT_FOUND"))));
+        when(retryClassifier.classify("RECIPIENT_NOT_FOUND"))
+                .thenReturn(DisbursementRetryClassifier.Classification.TERMINAL);
+
+        DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
+
+        assertThat(response.status()).isEqualTo("FAILED");
+        assertThat(response.errorCode()).isEqualTo("RECIPIENT_NOT_FOUND");
+        verify(retryClassifier).classify("RECIPIENT_NOT_FOUND");
+        verifyNoInteractions(refRepository);
+        verify(disbursementRepository, never()).findByTenantIdAndIdempotencyKey(any(), any());
+        verify(mtnPort, never()).initiateDisbursement(any());
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
+    // Test 31: IDEM-03 — terminal code FRAUD_BLOCK → cached response returned verbatim
+    // ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void initiate_failedTerminalCode_fraudBlock_returnsCachedResponse() {
+        when(idempotencyService.checkAndReserve(any(), any()))
+                .thenReturn(Optional.of(new CachedResponse(202, failedCachedJson("FRAUD_BLOCK"))));
+        when(retryClassifier.classify("FRAUD_BLOCK"))
+                .thenReturn(DisbursementRetryClassifier.Classification.TERMINAL);
+
+        DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
+
+        assertThat(response.status()).isEqualTo("FAILED");
+        assertThat(response.errorCode()).isEqualTo("FRAUD_BLOCK");
+        verifyNoInteractions(mtnPort, orangePort);
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
+    // Test 32: IDEM-02 defensive — retriable but entity not found in DB → cached response
+    // ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void initiate_failedRetriable_butDisbursementNotFoundInDb_returnsCachedResponse() {
+        when(idempotencyService.checkAndReserve(any(), any()))
+                .thenReturn(Optional.of(new CachedResponse(202, failedCachedJson("PROVIDER_ERROR"))));
+        when(retryClassifier.classify("PROVIDER_ERROR"))
+                .thenReturn(DisbursementRetryClassifier.Classification.RETRIABLE);
+        when(disbursementRepository.findByTenantIdAndIdempotencyKey(eq(TENANT_ID), eq("IDEM-001")))
+                .thenReturn(Optional.empty());
+
+        DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
+
+        assertThat(response.status()).isEqualTo("FAILED");
+        assertThat(response.errorCode()).isEqualTo("PROVIDER_ERROR");
+        verify(claimTransitionService, never()).transitionClaims(anyLong(), eq(DisbursementRefStatus.RELEASED), any());
+        verify(mtnPort, never()).initiateDisbursement(any());
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
+    // Test 33: Race guard — retriable but status no longer FAILED inside lock → cached response
+    // ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void initiate_failedRetriable_butStatusNoLongerFailed_returnsCachedResponse() {
+        when(idempotencyService.checkAndReserve(any(), any()))
+                .thenReturn(Optional.of(new CachedResponse(202, failedCachedJson("PROVIDER_ERROR"))));
+        when(retryClassifier.classify("PROVIDER_ERROR"))
+                .thenReturn(DisbursementRetryClassifier.Classification.RETRIABLE);
+        Disbursement failedDsb = mockDisbursement(DSB_ID, DisbursementStatus.FAILED, SMALL_AMOUNT);
+        when(disbursementRepository.findByTenantIdAndIdempotencyKey(eq(TENANT_ID), eq("IDEM-001")))
+                .thenReturn(Optional.of(failedDsb));
+        // Inside the lock, the disbursement is no longer FAILED (race won by another retry)
+        Disbursement lockedDsb = mock(Disbursement.class);
+        when(lockedDsb.getDisbursementStatus()).thenReturn(DisbursementStatus.PROCESSING);
+        when(disbursementRepository.findByDisbursementIdForUpdate(eq(DSB_ID)))
+                .thenReturn(Optional.of(lockedDsb));
+
+        DisbursementResponse response = orchestrator.initiate(TENANT_ID, validRequest(SMALL_AMOUNT, MTN_MSISDN));
+
+        assertThat(response.status()).isEqualTo("FAILED");
+        assertThat(response.errorCode()).isEqualTo("PROVIDER_ERROR");
+        verify(lockedDsb, never()).applyTransition(any());
+        verify(mtnPort, never()).initiateDisbursement(any());
     }
 }

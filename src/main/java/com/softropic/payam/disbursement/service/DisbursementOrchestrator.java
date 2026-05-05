@@ -21,6 +21,7 @@ import com.softropic.payam.disbursement.contract.exception.TransactionClaimedExc
 import com.softropic.payam.disbursement.contract.exception.VelocityExceededException;
 import com.softropic.payam.disbursement.repo.Disbursement;
 import com.softropic.payam.disbursement.repo.DisbursementRepository;
+import com.softropic.payam.disbursement.repo.DisbursementTransactionRefRepository;
 import com.softropic.payam.fraud.contract.FraudDecision;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
@@ -100,6 +101,8 @@ public class DisbursementOrchestrator {
     private final DisbursementProperties disbursementProperties;
     private final DisbursementClaimTransitionService claimTransitionService;
     private final ApplicationEventPublisher eventPublisher;
+    private final DisbursementRetryClassifier retryClassifier;
+    private final DisbursementTransactionRefRepository refRepository;
 
     public DisbursementOrchestrator(DisbursementIdempotencyService idempotencyService,
                                     MsisdnRouter msisdnRouter,
@@ -113,7 +116,9 @@ public class DisbursementOrchestrator {
                                     TransactionClaimValidationService transactionClaimValidationService,
                                     DisbursementProperties disbursementProperties,
                                     DisbursementClaimTransitionService claimTransitionService,
-                                    ApplicationEventPublisher eventPublisher) {
+                                    ApplicationEventPublisher eventPublisher,
+                                    DisbursementRetryClassifier retryClassifier,
+                                    DisbursementTransactionRefRepository refRepository) {
         this.idempotencyService = idempotencyService;
         this.msisdnRouter = msisdnRouter;
         this.velocityService = velocityService;
@@ -127,6 +132,8 @@ public class DisbursementOrchestrator {
         this.disbursementProperties = disbursementProperties;
         this.claimTransitionService = claimTransitionService;
         this.eventPublisher = eventPublisher;
+        this.retryClassifier = retryClassifier;
+        this.refRepository = refRepository;
     }
 
     /**
@@ -147,7 +154,13 @@ public class DisbursementOrchestrator {
                         DisbursementOrchestratorError.DISBURSEMENT_ALREADY_PROCESSING.getErrorCode(),
                         "Disbursement already in progress");
             }
-            return JsonUtil.toObject(cr.responseBody(), DisbursementResponse.class);
+            DisbursementResponse cachedResp = JsonUtil.toObject(cr.responseBody(), DisbursementResponse.class);
+            // IDEM-01/02/03: only FAILED responses are candidates for retry recovery.
+            // PROCESSING / SUCCESS / PENDING_CONFIRMATION / PENDING_ADMIN_APPROVAL replay verbatim.
+            if (!"FAILED".equals(cachedResp.status())) {
+                return cachedResp;
+            }
+            return handleRetry(tenantId, request, cachedResp);
         }
 
         // ── Step 2: MSISDN routing ───────────────────────────────────────────────────
@@ -413,6 +426,101 @@ public class DisbursementOrchestrator {
                     DisbursementOrchestratorError.PROVIDER_ERROR.getErrorCode(),
                     "Provider error: " + e.getMessage());
         }
+    }
+
+    /**
+     * Phase 57 IDEM-01/02/03 retry recovery for FAILED disbursements.
+     *
+     * <p>Decision flow:
+     * <ol>
+     *   <li>Classify the cached FAILED response's errorCode via {@link DisbursementRetryClassifier}.
+     *       TERMINAL → return the cached response immediately (IDEM-03).</li>
+     *   <li>Load the FAILED Disbursement entity by (tenantId, idempotencyKey). If absent
+     *       (data inconsistency), defensively return the cached response.</li>
+     *   <li>Probe ACTIVE_CLAIM_STATUSES = {PENDING, CLAIMED} on the request's transactionIds
+     *       (IDEM-01 guard). If any are claimed, return 422 TRANSACTION_CLAIMED — the original
+     *       transactions are no longer available for this disbursement.</li>
+     *   <li>Inside ONE transactionTemplate.execute block: PESSIMISTIC_WRITE lock the
+     *       disbursement row → re-check status is still FAILED (race guard) → applyTransition
+     *       (FAILED → INITIATED) → increment retry_count → bulk reactivate RELEASED claims
+     *       to PENDING via {@link DisbursementClaimTransitionService}.</li>
+     *   <li>Re-enter {@link #dispatchToProvider} with the original request to redrive the
+     *       provider call. The new PROCESSING response overwrites the cached FAILED response
+     *       via {@code idempotencyService.store()} on success.</li>
+     * </ol>
+     */
+    private DisbursementResponse handleRetry(Long tenantId,
+                                             DisbursementRequest request,
+                                             DisbursementResponse cachedResp) {
+        // IDEM-03: terminal codes return cached response immediately
+        if (retryClassifier.classify(cachedResp.errorCode()) == DisbursementRetryClassifier.Classification.TERMINAL) {
+            log.info("Disbursement retry skipped — terminal error code",
+                    kv("operation", "dsb_retry_terminal"),
+                    kv("disbursementId", cachedResp.disbursementId()),
+                    kv("errorCode", cachedResp.errorCode()));
+            return cachedResp;
+        }
+
+        // Load the FAILED disbursement entity by (tenantId, idempotencyKey)
+        Optional<Disbursement> dsbOpt = disbursementRepository
+                .findByTenantIdAndIdempotencyKey(tenantId, request.idempotencyKey());
+        if (dsbOpt.isEmpty()) {
+            log.warn("Disbursement retry — entity not found for cached FAILED response (data inconsistency)",
+                    kv("operation", "dsb_retry_not_found"),
+                    kv("idempotencyKey", request.idempotencyKey()));
+            return cachedResp;
+        }
+        Disbursement dsb = dsbOpt.get();
+        String disbursementId = dsb.getDisbursementId();
+
+        // IDEM-01: re-validate that all original transactionIds are not currently PENDING or CLAIMED
+        // (active-claim probe). If any are claimed by another disbursement, refuse retry.
+        java.util.List<String> claimed = refRepository.findClaimedTransactionIds(
+                request.transactionIds(),
+                java.util.List.of(DisbursementRefStatus.PENDING, DisbursementRefStatus.CLAIMED));
+        if (!claimed.isEmpty()) {
+            log.info("Disbursement retry blocked — transactions claimed by another disbursement",
+                    kv("operation", "dsb_retry_claim_conflict"),
+                    kv("disbursementId", disbursementId),
+                    kv("claimedCount", claimed.size()));
+            return DisbursementResponse.failed(disbursementId,
+                    DisbursementOrchestratorError.TRANSACTION_CLAIMED.getErrorCode(),
+                    "Cannot retry — " + claimed.size() + " transaction(s) already claimed");
+        }
+
+        // IDEM-02: atomic block — lock + race-guard + transition + retry_count + reactivate claims
+        Boolean transitioned = transactionTemplate.execute(status -> {
+            Disbursement locked = disbursementRepository.findByDisbursementIdForUpdate(disbursementId)
+                    .orElseThrow(() -> new IllegalStateException("Disbursement vanished: " + disbursementId));
+            // Race guard: another thread may have already retried this disbursement
+            if (locked.getDisbursementStatus() != DisbursementStatus.FAILED) {
+                log.info("Disbursement retry race — status no longer FAILED",
+                        kv("operation", "dsb_retry_race"),
+                        kv("disbursementId", disbursementId),
+                        kv("currentStatus", locked.getDisbursementStatus().name()));
+                return Boolean.FALSE;
+            }
+            locked.applyTransition(DisbursementStatus.INITIATED);
+            locked.setRetryCount(locked.getRetryCount() + 1);
+            int reactivated = claimTransitionService.transitionClaims(
+                    locked.getId(),
+                    DisbursementRefStatus.RELEASED,
+                    DisbursementRefStatus.PENDING);
+            log.info("Disbursement retry reactivation",
+                    kv("operation", "dsb_retry_reactivation"),
+                    kv("disbursementId", disbursementId),
+                    kv("reactivatedClaims", reactivated),
+                    kv("retryCount", locked.getRetryCount()));
+            return Boolean.TRUE;
+        });
+        if (!Boolean.TRUE.equals(transitioned)) {
+            return cachedResp;
+        }
+
+        // Re-enter dispatchToProvider — uses dsb.getProvider() resolved from when row was created
+        BigDecimal fee = BigDecimal.ZERO;       // FEE-01: disbursements carry no fee
+        BigDecimal totalAmount = request.amount();
+        return dispatchToProvider(tenantId, request, dsb.getProvider(), dsb, fee, totalAmount);
     }
 
     /**
