@@ -139,6 +139,8 @@
 - [x] **Phase 56: Claim Lifecycle & Admin Approval** — Claim state transitions (PENDING→CLAIMED/RELEASED), `PENDING_ADMIN_APPROVAL` flow, Quartz expiry job for admin-approval timeout, Insufficient Funds high-priority alert (completed 2026-05-04)
 - [x] **Phase 57: Idempotency Retry Recovery & V32 Migration Scaffold** — RELEASED claim reactivation on retriable-failure retry, `retry_count` increment, terminal error code caching, V32 migration that drops `merchant_wallet_balance` (completed 2026-05-05)
 - [x] **Phase 58: Integration & E2E Test Suite** — Full claim-based disbursement flow E2E coverage for both providers, admin-approval path, retry recovery, insufficient funds alert, concurrency safety (completed 2026-05-05)
+- [ ] **Phase 59: v11 Javadoc & Tech Debt Cleanup** — Remove stale wallet/fee references from `DisbursementOrchestrator` and `DisbursementCallbackTransitionService` class-level Javadoc; verify `mvn verify` passes
+- [ ] **Phase 60: CLAIM-05 E2E Coverage** — Add `disbursement_transaction_ref` assertion in `DisbursementExpiryE2EIT` proving claims survive `PROCESSING→EXPIRED` unmodified; verify `mvn verify` passes
 
 ## Phase Details
 
@@ -552,6 +554,28 @@ Plans:
   5. `mvn verify` passes cleanly — all v11 requirements are satisfied
 **Plans**: TBD
 
+### Phase 59: v11 Javadoc & Tech Debt Cleanup
+**Goal**: Remove all stale wallet and fee references from class-level Javadoc in the two orchestration classes affected by v11 changes
+**Depends on**: Phase 58
+**Requirements**: (no new requirements — audit tech debt closure)
+**Gap Closure**: Closes Phase 54 WARNING-level tech debt items from v11-MILESTONE-AUDIT.md
+**Success Criteria** (what must be TRUE):
+  1. `DisbursementOrchestrator.java` class-level `<ol>` no longer lists "Fee evaluation" (step 5) or "Wallet balance reserve (PESSIMISTIC_WRITE)" (step 6); all BAL-02/BAL-03 references removed from Javadoc
+  2. `DisbursementCallbackTransitionService.java` class-level Javadoc no longer references "wallet release (when target=FAILED)", `walletBalanceService.release`, or BAL-02; method body comment at line 91 ("Wallet model retired in v11") is consistent with updated class summary
+  3. `mvn verify` passes with no regressions
+**Plans**: TBD
+
+### Phase 60: CLAIM-05 E2E Coverage
+**Goal**: Prove at the E2E level that `disbursement_transaction_ref` rows survive a `PROCESSING→EXPIRED` transition unmodified — no claims are released when a disbursement expires due to an internal timeout
+**Depends on**: Phase 59
+**Requirements**: CLAIM-05 (E2E coverage only — requirement is satisfied; this adds E2E proof)
+**Gap Closure**: Closes Finding G-1 from v11-MILESTONE-AUDIT.md
+**Success Criteria** (what must be TRUE):
+  1. `DisbursementExpiryE2EIT` (or `DisbursementAdminApprovalE2EIT`) includes a test that: initiates a disbursement with valid `transactionIds`, advances the disbursement to `PROCESSING`, triggers the expiry job to produce `EXPIRED`, then queries `disbursement_transaction_ref` and asserts all rows remain in `CLAIMED` state
+  2. The assertion uses raw SQL against `main.disbursement_transaction_ref` consistent with the pattern established in Phase 58 E2E tests
+  3. `mvn verify` passes with the new assertion green
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -615,3 +639,5 @@ Plans:
 | 56. Claim Lifecycle & Admin Approval | v11 | 0/? | Complete    | 2026-05-04 |
 | 57. Idempotency Retry Recovery & V32 Migration Scaffold | v11 | 2/2 | Complete    | 2026-05-05 |
 | 58. Integration & E2E Test Suite | v11 | 4/4 | Complete    | 2026-05-05 |
+| 59. v11 Javadoc & Tech Debt Cleanup | v11 | 0/? | Pending | — |
+| 60. CLAIM-05 E2E Coverage | v11 | 0/? | Pending | — |

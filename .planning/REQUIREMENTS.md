@@ -21,16 +21,16 @@
 
 ### CLAIM — Claim Lifecycle
 
-- [ ] **CLAIM-01**: System creates a `DisbursementTransactionRef` row in `PENDING` state for each supplied transaction when a disbursement is accepted (atomically with disbursement creation, enforced by the partial unique index)
-- [ ] **CLAIM-02**: System transitions all claims from `PENDING` to `CLAIMED` when the disbursement reaches `SUCCESS`
-- [ ] **CLAIM-03**: System transitions all claims to `RELEASED` when the disbursement reaches `FAILED` for any reason, including Insufficient Funds — released transactions are available for future disbursements
+- [x] **CLAIM-01**: System creates a `DisbursementTransactionRef` row in `PENDING` state for each supplied transaction when a disbursement is accepted (atomically with disbursement creation, enforced by the partial unique index)
+- [x] **CLAIM-02**: System transitions all claims from `PENDING` to `CLAIMED` when the disbursement reaches `SUCCESS`
+- [x] **CLAIM-03**: System transitions all claims to `RELEASED` when the disbursement reaches `FAILED` for any reason, including Insufficient Funds — released transactions are available for future disbursements
 - [x] **CLAIM-04**: System transitions all claims to `RELEASED` when a `PENDING_ADMIN_APPROVAL` disbursement auto-expires — released transactions are available for future disbursements
-- [ ] **CLAIM-05**: System retains claims in `CLAIMED` state when a `PROCESSING` disbursement transitions to `EXPIRED` due to an internal error — claims remain held pending ops reconciliation with the provider
+- [x] **CLAIM-05**: System retains claims in `CLAIMED` state when a `PROCESSING` disbursement transitions to `EXPIRED` due to an internal error — claims remain held pending ops reconciliation with the provider
 
 ### ADMIN — Admin Approval Flow
 
 - [x] **ADMIN-01**: Disbursements where `amount > payam.disbursement.admin-approval-threshold` (default: 500,000 XAF, configurable) transition to `PENDING_ADMIN_APPROVAL` instead of dispatching to the provider; the existing `PENDING_CONFIRMATION` merchant step-up flow is unchanged and co-exists
-- [ ] **ADMIN-02**: System stores `admin_note` (TEXT, nullable) on the disbursement row on transition to `PENDING_ADMIN_APPROVAL`; the field is never returned in the public merchant API response; system sends best-effort email/Slack notification to Platform Ops
+- [x] **ADMIN-02**: System stores `admin_note` (TEXT, nullable) on the disbursement row on transition to `PENDING_ADMIN_APPROVAL`; the field is never returned in the public merchant API response; system sends best-effort email/Slack notification to Platform Ops
 - [x] **ADMIN-03**: System auto-expires `PENDING_ADMIN_APPROVAL` disbursements after `payam.disbursement.admin-approval-timeout-hours` (default: 24 h), transitioning to `EXPIRED` and releasing all associated claims
 
 ### FEE — Fee Exemption
@@ -46,7 +46,7 @@
 
 ### ALERT — Monitoring
 
-- [ ] **ALERT-01**: When a provider returns an error code mapping to Insufficient Funds, system transitions the disbursement to `FAILED`, releases all claims to `RELEASED`, and triggers a high-priority alert (Slack/PagerDuty/Email) to Platform Ops identifying the affected provider account and its need for liquidity
+- [x] **ALERT-01**: When a provider returns an error code mapping to Insufficient Funds, system transitions the disbursement to `FAILED`, releases all claims to `RELEASED`, and triggers a high-priority alert (Slack/PagerDuty/Email) to Platform Ops identifying the affected provider account and its need for liquidity
 
 ### SCHEMA — Database Migrations
 
@@ -84,37 +84,38 @@
 
 | REQ-ID | Phase | Plan | Status |
 |--------|-------|------|--------|
-| TXN-01 | Phase 55 | — | Pending |
-| TXN-02 | Phase 55 | — | Pending |
-| TXN-03 | Phase 55 | — | Pending |
-| TXN-04 | Phase 55 | — | Pending |
-| TXN-05 | Phase 55 | — | Pending |
-| TXN-06 | Phase 55 | — | Pending |
-| CLAIM-01 | Phase 56 | — | Pending |
-| CLAIM-02 | Phase 56 | — | Pending |
-| CLAIM-03 | Phase 56 | — | Pending |
-| CLAIM-04 | Phase 56 | — | Pending |
-| CLAIM-05 | Phase 56 | — | Pending |
-| ADMIN-01 | Phase 56 | — | Pending |
-| ADMIN-02 | Phase 56 | — | Pending |
-| ADMIN-03 | Phase 56 | — | Pending |
-| FEE-01 | Phase 55 | — | Pending |
-| FEE-02 | Phase 55 | — | Pending |
-| IDEM-01 | Phase 57 | — | Pending |
-| IDEM-02 | Phase 57 | — | Pending |
-| IDEM-03 | Phase 57 | — | Pending |
-| ALERT-01 | Phase 56 | — | Pending |
+| TXN-01 | Phase 55 | — | Complete |
+| TXN-02 | Phase 55 | — | Complete |
+| TXN-03 | Phase 55, 58 | — | Complete |
+| TXN-04 | Phase 55 | — | Complete |
+| TXN-05 | Phase 55 | — | Complete |
+| TXN-06 | Phase 55 | — | Complete |
+| CLAIM-01 | Phase 56, 58 | — | Complete |
+| CLAIM-02 | Phase 56, 58 | — | Complete |
+| CLAIM-03 | Phase 56, 58 | — | Complete |
+| CLAIM-04 | Phase 56, 58 | — | Complete |
+| CLAIM-05 | Phase 56 | — | Complete |
+| ADMIN-01 | Phase 56, 58 | — | Complete |
+| ADMIN-02 | Phase 56 | — | Complete |
+| ADMIN-03 | Phase 56, 58 | — | Complete |
+| FEE-01 | Phase 55 | — | Complete |
+| FEE-02 | Phase 55 | — | Complete |
+| IDEM-01 | Phase 57 | — | Complete |
+| IDEM-02 | Phase 57 | — | Complete |
+| IDEM-03 | Phase 57 | — | Complete |
+| ALERT-01 | Phase 56 | — | Complete |
 | SCHEMA-01 | Phase 54 | 54-02 | Complete |
 | SCHEMA-02 | Phase 54 | 54-02 | Complete |
 | SCHEMA-03 | Phase 54 | 54-02, 54-03 | Complete |
-| SCHEMA-04 | Phase 57 | — | Pending |
+| SCHEMA-04 | Phase 57, 58 | — | Complete |
 
 **Coverage:**
 - v11 requirements: 24 total
 - Mapped to phases: 24 ✓
 - Unmapped: 0 ✓
+- Satisfied: 24 ✓
 
 ---
 
 *Requirements defined: 2026-05-02*
-*Last updated: 2026-05-01 — traceability table populated after roadmap creation*
+*Last updated: 2026-05-05 — checkboxes and traceability table updated after v11 audit (all phases complete)*
