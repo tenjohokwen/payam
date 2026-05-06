@@ -1,4 +1,4 @@
-package com.softropic.payam.ops;
+package com.softropic.payam.platform.monitoring;
 
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.transaction.contract.TransactionEventType;

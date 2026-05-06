@@ -1,4 +1,4 @@
-package com.softropic.payam.health;
+package com.softropic.payam.platform.monitoring;
 
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 import com.softropic.payam.platform.contract.PlatformConfigDto;
