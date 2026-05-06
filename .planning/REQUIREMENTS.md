@@ -39,7 +39,7 @@ Architectural reorganization from flat package explosion to explicit bounded con
 
 ### Infrastructure Layer (INFRA)
 
-- [ ] **INFRA-01**: `config` package (AsyncConfig, DataSourceConfig, ObservabilityConfig) is relocated to `infrastructure.config` with all imports updated
+- [x] **INFRA-01**: `config` package (AsyncConfig, DataSourceConfig, ObservabilityConfig) is relocated to `infrastructure.config` with all imports updated
 - [x] **INFRA-02**: Spring filters, interceptors, and web infrastructure are consolidated under `infrastructure.web`
 - [x] **INFRA-03**: Shared persistence base classes and configuration are consolidated under `infrastructure.persistence`
 
@@ -85,7 +85,7 @@ Architectural reorganization from flat package explosion to explicit bounded con
 | CMN-02 | Phase 65 | Pending |
 | CMN-03 | Phase 65 | Pending |
 | CMN-04 | Phase 65 | Pending |
-| INFRA-01 | Phase 61 | Pending |
+| INFRA-01 | Phase 61 | Complete |
 | INFRA-02 | Phase 61 | Complete |
 | INFRA-03 | Phase 61 | Complete |
 | BUILD-01 | cross-cutting (61–65) | Complete |
