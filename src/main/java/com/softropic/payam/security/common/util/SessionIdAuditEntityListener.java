@@ -2,7 +2,7 @@ package com.softropic.payam.security.common.util;
 
 
 
-import com.softropic.payam.common.persistence.AbstractAuditingEntity;
+import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
 
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreRemove;

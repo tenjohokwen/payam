@@ -1,6 +1,6 @@
 package com.softropic.payam.security.service;
 
-import com.softropic.payam.common.persistence.EntityStatus;
+import com.softropic.payam.infrastructure.persistence.EntityStatus;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.security.repo.Secret;
 import com.softropic.payam.utils.DbCleaner;

@@ -2,7 +2,7 @@ package com.softropic.payam.security.repo;
 
 
 
-import com.softropic.payam.common.persistence.BaseEntity;
+import com.softropic.payam.infrastructure.persistence.BaseEntity;
 
 import java.time.LocalDateTime;
 

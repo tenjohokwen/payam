@@ -2,7 +2,7 @@ package com.softropic.payam.security.service;
 
 
 
-import com.softropic.payam.common.persistence.EntityStatus;
+import com.softropic.payam.infrastructure.persistence.EntityStatus;
 import com.softropic.payam.security.contract.exception.SecError;
 import com.softropic.payam.security.contract.exception.SecException;
 import com.softropic.payam.security.repo.Secret;

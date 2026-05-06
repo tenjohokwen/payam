@@ -1,6 +1,6 @@
 package com.softropic.payam.fee.repo;
 
-import com.softropic.payam.common.persistence.AbstractAuditingEntity;
+import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
 import com.softropic.payam.fee.contract.FeeType;
 
 import jakarta.persistence.Column;

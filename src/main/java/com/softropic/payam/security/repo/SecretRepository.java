@@ -2,7 +2,7 @@ package com.softropic.payam.security.repo;
 
 
 
-import com.softropic.payam.common.persistence.EntityStatus;
+import com.softropic.payam.infrastructure.persistence.EntityStatus;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

@@ -1,6 +1,6 @@
 package com.softropic.payam.e2e.builder;
 
-import com.softropic.payam.common.persistence.DbUtil;
+import com.softropic.payam.infrastructure.persistence.DbUtil;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.jdbc.core.JdbcTemplate;

@@ -1,6 +1,6 @@
 package com.softropic.payam.disbursement.repo;
 
-import com.softropic.payam.common.persistence.AbstractAuditingEntity;
+import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
 
 import org.hibernate.envers.Audited;
 

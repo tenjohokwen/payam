@@ -1,7 +1,7 @@
 package com.softropic.payam.transaction.repo;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.common.persistence.AbstractAuditingEntity;
+import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
 import com.softropic.payam.transaction.contract.LedgerFlow;
 import com.softropic.payam.transaction.contract.TransactionStatus;
 

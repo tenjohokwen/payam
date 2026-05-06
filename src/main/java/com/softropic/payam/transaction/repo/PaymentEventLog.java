@@ -1,6 +1,6 @@
 package com.softropic.payam.transaction.repo;
 
-import com.softropic.payam.common.persistence.BaseEntity;
+import com.softropic.payam.infrastructure.persistence.BaseEntity;
 import com.softropic.payam.transaction.contract.TransactionEventType;
 import com.softropic.payam.transaction.contract.TransactionStatus;
 

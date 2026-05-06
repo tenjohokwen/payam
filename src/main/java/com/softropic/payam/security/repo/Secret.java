@@ -1,7 +1,7 @@
 package com.softropic.payam.security.repo;
 
 
-import com.softropic.payam.common.persistence.AbstractAuditingEntity;
+import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
 import com.softropic.payam.security.contract.exception.SecError;
 import com.softropic.payam.security.contract.exception.SecException;
 

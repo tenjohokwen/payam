@@ -1,7 +1,7 @@
 package com.softropic.payam.security.repo;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.softropic.payam.common.persistence.AbstractAuditingEntity;
+import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
 
 import org.hibernate.envers.Audited;
 

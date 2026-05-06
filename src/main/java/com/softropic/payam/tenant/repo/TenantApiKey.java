@@ -1,6 +1,6 @@
 package com.softropic.payam.tenant.repo;
 
-import com.softropic.payam.common.persistence.AbstractAuditingEntity;
+import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.contract.ApiKeyStatus;
 

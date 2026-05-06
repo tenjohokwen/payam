@@ -1,7 +1,7 @@
 package com.softropic.payam.payment.repo;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.common.persistence.AbstractAuditingEntity;
+import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

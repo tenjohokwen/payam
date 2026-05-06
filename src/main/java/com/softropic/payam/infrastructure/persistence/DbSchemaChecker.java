@@ -1,4 +1,4 @@
-package com.softropic.payam.common.persistence;
+package com.softropic.payam.infrastructure.persistence;
 
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationInfo;

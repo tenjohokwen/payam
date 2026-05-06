@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.service;
 
-import com.softropic.payam.common.persistence.EntityStatus;
+import com.softropic.payam.infrastructure.persistence.EntityStatus;
 import com.softropic.payam.platform.contract.PlatformConfigDto;
 import com.softropic.payam.platform.contract.event.PlatformConfigChangedEvent;
 import com.softropic.payam.platform.repo.PlatformConfig;

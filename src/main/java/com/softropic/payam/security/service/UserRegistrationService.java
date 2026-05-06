@@ -1,6 +1,6 @@
 package com.softropic.payam.security.service;
 
-import com.softropic.payam.common.persistence.EntityStatus;
+import com.softropic.payam.infrastructure.persistence.EntityStatus;
 import com.softropic.payam.common.util.RandomUtil;
 import com.softropic.payam.security.common.util.SecurityConstants;
 import com.softropic.payam.security.repo.Authority;

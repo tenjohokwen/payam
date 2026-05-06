@@ -2,7 +2,7 @@ package com.softropic.payam.security.service;
 
 import com.softropic.payam.common.ClockProvider;
 import com.softropic.payam.common.Gender;
-import com.softropic.payam.common.persistence.EntityStatus;
+import com.softropic.payam.infrastructure.persistence.EntityStatus;
 import com.softropic.payam.common.util.RandomUtil;
 import com.softropic.payam.common.validation.PhoneNumber;
 import com.softropic.payam.common.validation.Provider;

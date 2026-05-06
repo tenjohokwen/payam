@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.repo;
 
-import com.softropic.payam.common.persistence.AbstractAuditingEntity;
+import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

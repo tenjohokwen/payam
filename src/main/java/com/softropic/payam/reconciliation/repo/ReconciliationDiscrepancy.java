@@ -1,7 +1,7 @@
 package com.softropic.payam.reconciliation.repo;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.common.persistence.BaseEntity;
+import com.softropic.payam.infrastructure.persistence.BaseEntity;
 import com.softropic.payam.reconciliation.contract.DiscrepancySeverity;
 import com.softropic.payam.reconciliation.contract.DiscrepancyType;
 

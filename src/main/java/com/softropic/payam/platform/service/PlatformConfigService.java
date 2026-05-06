@@ -122,7 +122,7 @@ public class PlatformConfigService {
                     PlatformConfig newConfig = PlatformConfig.builder()
                             .provider(upper)
                             .platformMsisdn(newMsisdn)
-                            .status(com.softropic.payam.common.persistence.EntityStatus.ACTIVE)
+                            .status(com.softropic.payam.infrastructure.persistence.EntityStatus.ACTIVE)
                             .build();
                     if (StringUtils.isNotBlank(pin)) {
                         String ciphertext = pinCryptopher.encrypt(pin);

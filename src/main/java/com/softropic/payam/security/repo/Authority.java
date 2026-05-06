@@ -4,8 +4,8 @@ package com.softropic.payam.security.repo;
 
 
 
-import com.softropic.payam.common.persistence.AbstractAuditingEntity;
-import com.softropic.payam.common.persistence.RequestIdAuditEntityListener;
+import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
+import com.softropic.payam.infrastructure.persistence.RequestIdAuditEntityListener;
 
 import org.hibernate.envers.Audited;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
