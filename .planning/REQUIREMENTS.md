@@ -67,36 +67,37 @@ Architectural reorganization from flat package explosion to explicit bounded con
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PAY-01 | — | Pending |
-| PAY-02 | — | Pending |
-| PAY-03 | — | Pending |
-| PAY-04 | — | Pending |
-| PAY-05 | — | Pending |
-| PAY-06 | — | Pending |
-| PAY-07 | — | Pending |
-| PROV-01 | — | Pending |
-| PROV-02 | — | Pending |
-| PLAT-01 | — | Pending |
-| PLAT-02 | — | Pending |
-| PLAT-03 | — | Pending |
-| PLAT-04 | — | Pending |
-| PLAT-05 | — | Pending |
-| CMN-01 | — | Pending |
-| CMN-02 | — | Pending |
-| CMN-03 | — | Pending |
-| CMN-04 | — | Pending |
-| INFRA-01 | — | Pending |
-| INFRA-02 | — | Pending |
-| INFRA-03 | — | Pending |
-| BUILD-01 | — | Pending |
-| BUILD-02 | — | Pending |
-| BUILD-03 | — | Pending |
+| PAY-01 | Phase 63 | Pending |
+| PAY-02 | Phase 63 | Pending |
+| PAY-03 | Phase 63 | Pending |
+| PAY-04 | Phase 63 | Pending |
+| PAY-05 | Phase 63 | Pending |
+| PAY-06 | Phase 63 | Pending |
+| PAY-07 | Phase 63 | Pending |
+| PROV-01 | Phase 64 | Pending |
+| PROV-02 | Phase 64 | Pending |
+| PLAT-01 | Phase 62 | Pending |
+| PLAT-02 | Phase 62 | Pending |
+| PLAT-03 | Phase 62 | Pending |
+| PLAT-04 | Phase 62 | Pending |
+| PLAT-05 | Phase 62 | Pending |
+| CMN-01 | Phase 65 | Pending |
+| CMN-02 | Phase 65 | Pending |
+| CMN-03 | Phase 65 | Pending |
+| CMN-04 | Phase 65 | Pending |
+| INFRA-01 | Phase 61 | Pending |
+| INFRA-02 | Phase 61 | Pending |
+| INFRA-03 | Phase 61 | Pending |
+| BUILD-01 | cross-cutting (61–65) | Pending |
+| BUILD-02 | cross-cutting (61–65) | Pending |
+| BUILD-03 | cross-cutting (61–65) | Pending |
 
 **Coverage:**
 - v12 requirements: 24 total
-- Mapped to phases: 0 (roadmap not yet created)
-- Unmapped: 24 ⚠️
+- Functional requirements mapped: 21/21 (Phases 61–65)
+- Cross-cutting gates: 3/3 (BUILD-01/02/03 applied to all phases)
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-05-06*
-*Last updated: 2026-05-06 after initial definition*
+*Last updated: 2026-05-06 — traceability populated after roadmap creation*

@@ -13,6 +13,7 @@
 - ✅ **v9 Ledger Disbursement Support** — Phases 46–49 (shipped 2026-04-23) — see [milestones/v9-ROADMAP.md](milestones/v9-ROADMAP.md)
 - ✅ **v10 Client Disbursement API** — Phases 50–53 (shipped 2026-04-28)
 - ✅ **v11 Transaction-Backed Disbursements** — Phases 54–60 (shipped 2026-05-05) — see [milestones/v11-ROADMAP.md](milestones/v11-ROADMAP.md)
+- 🚧 **v12 Architectural Reorganization** — Phases 61–65 (in progress)
 
 ## Phases
 
@@ -142,6 +143,16 @@
 - [x] **Phase 60: CLAIM-05 E2E Coverage** — Add `disbursement_transaction_ref` assertion in `DisbursementExpiryE2EIT` proving claims survive `PROCESSING→EXPIRED` unmodified; verify `mvn verify` passes (completed 2026-05-05)
 
 </details>
+
+### 🚧 v12 Architectural Reorganization (In Progress)
+
+**Milestone Goal:** Restructure the flat `com.softropic.payam` package hierarchy into explicit bounded contexts — `payment`, `platform`, `infrastructure` — so the codebase communicates business intent instead of technical noise, while `mvn verify` stays green on every commit.
+
+- [ ] **Phase 61: Infrastructure Layer Creation** - Create `infrastructure.config`, `infrastructure.web`, and `infrastructure.persistence` packages; move `config` package and web/persistence foundation classes
+- [ ] **Phase 62: Platform Layer Reorganization** - Move `tenant`, `security`, `email`+`alert` (merged), `health`+`ops` (merged), and `admin`+`platform` (merged) into `platform.*` sub-packages
+- [ ] **Phase 63: Payment Domain Consolidation** - Move `payment`, `transaction`, `disbursement`, `fee`, `reconciliation`, `fraud`, and `webhook` into `payment.*` sub-packages
+- [ ] **Phase 64: Provider Infrastructure Encapsulation** - Move `mtn` and `orange` into `payment.provider.mtn` and `payment.provider.orange`
+- [ ] **Phase 65: Common Package Redistribution** - Redistribute all `common.*` sub-packages to their owning domain destinations and remove the now-empty `common` package
 
 ## Phase Details
 
@@ -581,6 +592,67 @@ Plans:
 Plans:
 - [x] 60-01-PLAN.md — Add CLAIM-05 E2E test method to DisbursementExpiryE2EIT proving PROCESSING→EXPIRED leaves disbursement_transaction_ref rows unchanged + mvn verify phase gate
 
+### Phase 61: Infrastructure Layer Creation
+**Goal**: The `infrastructure` bounded context exists as a compilable package hierarchy — global config, web filters/interceptors, and persistence base classes have moved out of `config` and `common` into `infrastructure.*` sub-packages with all imports updated
+**Depends on**: Phase 60
+**Requirements**: INFRA-01, INFRA-02, INFRA-03
+**Cross-cutting**: BUILD-01, BUILD-02, BUILD-03 apply to this phase and every subsequent v12 phase
+**Success Criteria** (what must be TRUE):
+  1. `infrastructure.config` contains all classes previously in the `config` package (AsyncConfig, DataSourceConfig, ObservabilityConfig, etc.) with no `config.*` import remaining in production code
+  2. `infrastructure.web` contains all Spring filters, interceptors, and web-layer infrastructure classes (e.g., `ApiKeyAuthenticationFilter`, request logging filters) previously scattered across other packages
+  3. `infrastructure.persistence` contains all shared persistence base classes and JPA configuration previously in `common.persistence`
+  4. Spring component-scan picks up all three new sub-packages — the application starts, health endpoints respond, and at least one API call succeeds end-to-end
+  5. `mvn verify` passes with no import errors and no regressions in any unit or integration test
+**Plans**: TBD
+
+### Phase 62: Platform Layer Reorganization
+**Goal**: All platform-supporting services are under the `platform` namespace — `tenant`, `security`, merged `platform.notification` (email + alert), merged `platform.monitoring` (health + ops), and merged `platform.admin` (admin + platform config) — with no cross-reference to the old flat packages
+**Depends on**: Phase 61
+**Requirements**: PLAT-01, PLAT-02, PLAT-03, PLAT-04, PLAT-05
+**Success Criteria** (what must be TRUE):
+  1. `platform.tenant` contains all tenant lifecycle classes; `GET /v1/admin/tenants` returns a paginated list and tenant suspension/reactivation work correctly end-to-end
+  2. `platform.security` contains all auth/JWT/security-filter classes; login, token refresh, and API key authentication all work with no `security.*` flat-package import remaining
+  3. `platform.notification` unifies the former `email` and `alert` packages; tenant lifecycle emails and fraud/failure alert emails are delivered after commit as before
+  4. `platform.monitoring` unifies `health` and `ops`; `GET /manage/health` returns live provider MSISDN validation and circuit breaker state for both providers
+  5. `platform.admin` unifies `admin` and `platform` (provider config); `PUT /v1/admin/platform-config/{provider}` persists and `GET /manage/health` reflects the updated MSISDN
+  6. `mvn verify` passes with all existing tenant, security, and platform config integration tests green
+**Plans**: TBD
+
+### Phase 63: Payment Domain Consolidation
+**Goal**: All payment domain packages are under the `payment` umbrella — collection orchestration in `payment.core`, ledger/idempotency in `payment.ledger`, disbursements in `payment.disbursement`, fee rules in `payment.fee`, reconciliation in `payment.reconciliation`, fraud in `payment.fraud`, and outbound webhooks in `payment.webhook` — with no flat-package imports remaining
+**Depends on**: Phase 62
+**Requirements**: PAY-01, PAY-02, PAY-03, PAY-04, PAY-05, PAY-06, PAY-07
+**Success Criteria** (what must be TRUE):
+  1. `payment.core` contains collection orchestration and MSISDN routing; `POST /v1/payments` initiates a collection, advances through the state machine, and returns a correct response
+  2. `payment.ledger` contains the transaction repository, ledger service, and idempotency classes; a duplicate payment with the same idempotency key returns the cached response without creating a second DB row
+  3. `payment.disbursement` contains payout orchestration; `POST /v1/disbursements` initiates a disbursement and routes to the correct provider
+  4. `payment.fee`, `payment.reconciliation`, `payment.fraud`, and `payment.webhook` each contain their respective classes; fraud velocity checks block a known-bad request before provider dispatch and outbound webhook delivery occurs after a terminal state transition
+  5. `mvn verify` passes with all existing payment, disbursement, fraud, reconciliation, and webhook integration tests green
+**Plans**: TBD
+
+### Phase 64: Provider Infrastructure Encapsulation
+**Goal**: MTN and Orange provider adapters are encapsulated under `payment.provider.mtn` and `payment.provider.orange` respectively — no flat `mtn.*` or `orange.*` import remains anywhere in production or test code
+**Depends on**: Phase 63
+**Requirements**: PROV-01, PROV-02
+**Success Criteria** (what must be TRUE):
+  1. `payment.provider.mtn` contains all MTN-specific clients, token services, and callback controllers; `POST /v1/callbacks/mtn/payment/{ref}` processes a WireMock-mocked MTN callback and transitions the transaction to SUCCESS
+  2. `payment.provider.orange` contains all Orange-specific clients, token services, and callback controllers; `POST /v1/callbacks/orange/payment` processes a WireMock-mocked Orange callback and transitions the transaction to SUCCESS
+  3. The hexagonal adapter boundary is respected — no `payment.provider.*` class is referenced directly from `payment.core`, `payment.disbursement`, or any other domain package (dependency points inward only)
+  4. `mvn verify` passes with all MTN and Orange E2E tests green, including callback replay dedup and double-check handler routing
+**Plans**: TBD
+
+### Phase 65: Common Package Redistribution
+**Goal**: The `common` package is fully emptied and removed — `common.payment`/`common.refund` moved to `payment.core`, all infrastructure sub-packages moved to `infrastructure.*`, domain-specific enums moved to their owning packages — and the codebase compiles with zero `common.*` references
+**Depends on**: Phase 64
+**Requirements**: CMN-01, CMN-02, CMN-03, CMN-04
+**Success Criteria** (what must be TRUE):
+  1. `common.payment` and `common.refund` classes reside in `payment.core`; all callers reference only `payment.core.*` — no `common.payment.*` or `common.refund.*` import exists in any file
+  2. All `common.persistence`, `common.logging`, `common.threadpool`, `common.client`, `common.config`, `common.util`, `common.message`, `common.exception`, and `common.validation` classes reside in `infrastructure.*` sub-packages; no `common.*` infrastructure import exists
+  3. All domain-specific enums formerly in `common.enums` reside in their owning domain packages (e.g., payment-related enums in `payment.*`, platform enums in `platform.*`); no `common.enums.*` import exists
+  4. The `com.softropic.payam.common` package directory is absent from the source tree — `find src -name "*.java" | xargs grep "com.softropic.payam.common"` returns no results
+  5. `mvn verify` passes cleanly — all 474 unit tests and 301 integration tests green, confirming the full package hierarchy is correct with no broken imports
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -646,3 +718,8 @@ Plans:
 | 58. Integration & E2E Test Suite | v11 | 4/4 | Complete | 2026-05-05 |
 | 59. v11 Javadoc & Tech Debt Cleanup | v11 | 1/1 | Complete | 2026-05-05 |
 | 60. CLAIM-05 E2E Coverage | v11 | 1/1 | Complete | 2026-05-05 |
+| 61. Infrastructure Layer Creation | v12 | 0/TBD | Not started | - |
+| 62. Platform Layer Reorganization | v12 | 0/TBD | Not started | - |
+| 63. Payment Domain Consolidation | v12 | 0/TBD | Not started | - |
+| 64. Provider Infrastructure Encapsulation | v12 | 0/TBD | Not started | - |
+| 65. Common Package Redistribution | v12 | 0/TBD | Not started | - |
