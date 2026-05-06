@@ -10,7 +10,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ## Current State
 
-v11 complete (2026-05-05) — Transaction-Backed Disbursements shipped. Every disbursement is now backed by explicit claim locking against validated collection transactions. 24/24 requirements satisfied, 474 unit + 301 integration tests green. Ready for v12 planning.
+v12 in progress — Phase 61 complete (2026-05-06). Infrastructure layer created: `infrastructure.persistence` (8 classes), `infrastructure.config` (3 classes), `infrastructure.web` (3 classes). All INFRA-01/02/03 requirements satisfied. Phase 62 (platform layer reorganization) is next.
 
 ## Shipped Milestone: v11 Transaction-Backed Disbursements ✅
 
