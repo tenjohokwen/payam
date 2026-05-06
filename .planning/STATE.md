@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v12
-milestone_name: Architectural Reorganization
-status: ready_to_plan
-stopped_at: v12 roadmap created — 5 phases (61–65), ready to plan Phase 61
-last_updated: "2026-05-06T00:00:00.000Z"
+milestone: v1.0.2
+milestone_name: milestone
+status: executing
+stopped_at: Completed 61-01-PLAN.md (INFRA-03 complete)
+last_updated: "2026-05-06T18:39:57.867Z"
 last_activity: 2026-05-06
 progress:
-  total_phases: 5
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 36
+  completed_phases: 22
+  total_plans: 64
+  completed_plans: 62
   percent: 0
 ---
 
@@ -21,20 +21,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-06 — v12 milestone started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** v12 Phase 61 — Infrastructure Layer Creation
+**Current focus:** Phase 61 — infrastructure-layer-creation
 
 ## Current Position
 
-Phase: 61 of 65 (Infrastructure Layer Creation)
-Plan: — (not yet planned)
-Status: Ready to plan
-Last activity: 2026-05-06 — v12 roadmap created (5 phases, 21 functional requirements + 3 cross-cutting BUILD gates)
+Phase: 61 (infrastructure-layer-creation) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-05-06
 
 Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 106+ (across v1–v11)
 - v11 duration: 7 days (2026-04-28 → 2026-05-05), 7 phases, 17 plans
 - v12 estimate: pure refactoring — no Flyway, no schema changes, no new endpoints
@@ -55,6 +56,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - `common` redistribution (Phase 65) is last because it has the most dependents; all destination packages must exist first
 - Provider packages (PROV-01/02, Phase 64) depend on `payment.core` types — payment domain must move first (Phase 63)
 - Platform layer (Phase 62) depends on infrastructure base classes — infrastructure must move first (Phase 61)
+- [Phase 61]: @Component(AuditingDateTimeProvider.NAME) annotation preserved byte-for-byte — Spring @EnableJpaAuditing resolves dateTimeProvider by name convention; changing it would silently break JPA auditing
+- [Phase 61]: Atomic single commit for 8 moved files + 42 caller updates — partial commit leaves codebase uncompilable; both tasks must ship together
 
 ### v12 Phase Map
 
@@ -67,6 +70,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 | 65 | Common Package Redistribution | CMN-01, CMN-02, CMN-03, CMN-04 |
 
 BUILD-01, BUILD-02, BUILD-03 are cross-cutting and apply to every phase.
+| Phase 61 P01 | 35 | 2 tasks | 50 files |
 
 ### Pending Todos
 
@@ -78,6 +82,6 @@ None — roadmap is defined, requirements are 100% mapped.
 
 ## Session Continuity
 
-Last session: 2026-05-06
-Stopped at: v12 ROADMAP.md + STATE.md written, REQUIREMENTS.md traceability updated
+Last session: 2026-05-06T18:39:57.858Z
+Stopped at: Completed 61-01-PLAN.md (INFRA-03 complete)
 Resume: `/gsd:plan-phase 61`

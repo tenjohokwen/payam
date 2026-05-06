@@ -41,13 +41,13 @@ Architectural reorganization from flat package explosion to explicit bounded con
 
 - [ ] **INFRA-01**: `config` package (AsyncConfig, DataSourceConfig, ObservabilityConfig) is relocated to `infrastructure.config` with all imports updated
 - [ ] **INFRA-02**: Spring filters, interceptors, and web infrastructure are consolidated under `infrastructure.web`
-- [ ] **INFRA-03**: Shared persistence base classes and configuration are consolidated under `infrastructure.persistence`
+- [x] **INFRA-03**: Shared persistence base classes and configuration are consolidated under `infrastructure.persistence`
 
 ### Build Quality (BUILD)
 
-- [ ] **BUILD-01**: `mvn verify` passes green (all unit + integration tests) after every phase commit — no deferred red phases
-- [ ] **BUILD-02**: No functional behavior changes — all existing REST API contracts, database schemas, and Flyway migrations are unchanged
-- [ ] **BUILD-03**: Spring component-scan, Flyway configuration, and security filter registration verified functional after each phase
+- [x] **BUILD-01**: `mvn verify` passes green (all unit + integration tests) after every phase commit — no deferred red phases
+- [x] **BUILD-02**: No functional behavior changes — all existing REST API contracts, database schemas, and Flyway migrations are unchanged
+- [x] **BUILD-03**: Spring component-scan, Flyway configuration, and security filter registration verified functional after each phase
 
 ## Future Requirements
 
@@ -87,10 +87,10 @@ Architectural reorganization from flat package explosion to explicit bounded con
 | CMN-04 | Phase 65 | Pending |
 | INFRA-01 | Phase 61 | Pending |
 | INFRA-02 | Phase 61 | Pending |
-| INFRA-03 | Phase 61 | Pending |
-| BUILD-01 | cross-cutting (61–65) | Pending |
-| BUILD-02 | cross-cutting (61–65) | Pending |
-| BUILD-03 | cross-cutting (61–65) | Pending |
+| INFRA-03 | Phase 61 | Complete |
+| BUILD-01 | cross-cutting (61–65) | Complete |
+| BUILD-02 | cross-cutting (61–65) | Complete |
+| BUILD-03 | cross-cutting (61–65) | Complete |
 
 **Coverage:**
 - v12 requirements: 24 total
