@@ -1,4 +1,4 @@
-package com.softropic.payam.config;
+package com.softropic.payam.infrastructure.config;
 
 import com.softropic.payam.common.threadpool.MdcDecorator;
 import com.softropic.payam.common.threadpool.TenantContextTaskDecorator;

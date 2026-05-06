@@ -9,7 +9,7 @@ import org.springframework.core.task.TaskDecorator;
  * to async worker threads and clears it after the task completes.
  *
  * <p>Mirrors the pattern established by {@link MdcDecorator} for MDC context propagation.
- * Registered in {@code com.softropic.payam.config.AsyncConfig} via
+ * Registered in {@code com.softropic.payam.infrastructure.config.AsyncConfig} via
  * {@code executor.setTaskDecorator()}.
  *
  * <p>Usage: the caller thread's {@code tenantId} is captured at task submission time

@@ -1,4 +1,4 @@
-package com.softropic.payam.config;
+package com.softropic.payam.infrastructure.config;
 
 import io.micrometer.core.aop.TimedAspect;
 import io.micrometer.core.instrument.MeterRegistry;
