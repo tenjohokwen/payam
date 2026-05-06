@@ -603,7 +603,11 @@ Plans:
   3. `infrastructure.persistence` contains all shared persistence base classes and JPA configuration previously in `common.persistence`
   4. Spring component-scan picks up all three new sub-packages — the application starts, health endpoints respond, and at least one API call succeeds end-to-end
   5. `mvn verify` passes with no import errors and no regressions in any unit or integration test
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 61-01-PLAN.md — INFRA-03: move 8 classes from common.persistence to infrastructure.persistence, update 38 production + 4 test imports, mvn verify (Wave 1)
+- [ ] 61-02-PLAN.md — INFRA-01: move 3 classes (AsyncConfig, DataSourceConfig, ObservabilityConfig) from config to infrastructure.config, update Javadoc reference, mvn verify (Wave 2)
+- [ ] 61-03-PLAN.md — INFRA-02: move ApiKeyAuthenticationFilter + TenantSecurityConfig + LoggingFilter to infrastructure.web, update SecurityConfiguration import, preserve FilterRegistrationBean(setEnabled=false), mvn verify (Wave 3)
 
 ### Phase 62: Platform Layer Reorganization
 **Goal**: All platform-supporting services are under the `platform` namespace — `tenant`, `security`, merged `platform.notification` (email + alert), merged `platform.monitoring` (health + ops), and merged `platform.admin` (admin + platform config) — with no cross-reference to the old flat packages
@@ -651,7 +655,6 @@ Plans:
   3. All domain-specific enums formerly in `common.enums` reside in their owning domain packages (e.g., payment-related enums in `payment.*`, platform enums in `platform.*`); no `common.enums.*` import exists
   4. The `com.softropic.payam.common` package directory is absent from the source tree — `find src -name "*.java" | xargs grep "com.softropic.payam.common"` returns no results
   5. `mvn verify` passes cleanly — all 474 unit tests and 301 integration tests green, confirming the full package hierarchy is correct with no broken imports
-**Plans**: TBD
 
 ## Progress
 
@@ -718,8 +721,9 @@ Plans:
 | 58. Integration & E2E Test Suite | v11 | 4/4 | Complete | 2026-05-05 |
 | 59. v11 Javadoc & Tech Debt Cleanup | v11 | 1/1 | Complete | 2026-05-05 |
 | 60. CLAIM-05 E2E Coverage | v11 | 1/1 | Complete | 2026-05-05 |
-| 61. Infrastructure Layer Creation | v12 | 0/TBD | Not started | - |
+| 61. Infrastructure Layer Creation | v12 | 0/3 | Not started | - |
 | 62. Platform Layer Reorganization | v12 | 0/TBD | Not started | - |
 | 63. Payment Domain Consolidation | v12 | 0/TBD | Not started | - |
 | 64. Provider Infrastructure Encapsulation | v12 | 0/TBD | Not started | - |
 | 65. Common Package Redistribution | v12 | 0/TBD | Not started | - |
+</content>
