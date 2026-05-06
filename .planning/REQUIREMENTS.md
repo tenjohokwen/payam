@@ -1,0 +1,102 @@
+# Requirements: Payam
+
+**Defined:** 2026-05-06
+**Core Value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
+
+## v12 Requirements
+
+Architectural reorganization from flat package explosion to explicit bounded contexts, following the spec in `requirements/architecture.md`.
+
+### Payment Bounded Context (PAY)
+
+- [ ] **PAY-01**: `payment` package (collection orchestration, MSISDN routing) is relocated to `payment.core` with all imports updated
+- [ ] **PAY-02**: `transaction` package (ledger, idempotency, transaction repository) is relocated to `payment.ledger` with all imports updated
+- [ ] **PAY-03**: `disbursement` package (payout orchestration) is relocated to `payment.disbursement` with all imports updated
+- [ ] **PAY-04**: `fee` package (fee evaluation and rules) is relocated to `payment.fee` with all imports updated
+- [ ] **PAY-05**: `reconciliation` package (provider reconciliation) is relocated to `payment.reconciliation` with all imports updated
+- [ ] **PAY-06**: `fraud` package (fraud detection) is relocated to `payment.fraud` with all imports updated
+- [ ] **PAY-07**: `webhook` package (outbound delivery subsystem) is relocated to `payment.webhook` with all imports updated
+
+### Provider Infrastructure (PROV)
+
+- [ ] **PROV-01**: `mtn` package is relocated to `payment.provider.mtn` (MTN clients, token services, callback controllers) with all imports updated
+- [ ] **PROV-02**: `orange` package is relocated to `payment.provider.orange` (Orange clients, token services, callback controllers) with all imports updated
+
+### Platform Layer (PLAT)
+
+- [ ] **PLAT-01**: `tenant` package is relocated to `platform.tenant` with all imports updated
+- [ ] **PLAT-02**: `security` package is relocated to `platform.security` with all imports updated
+- [ ] **PLAT-03**: `email` and `alert` packages are merged into `platform.notification` with all imports updated
+- [ ] **PLAT-04**: `health` and `ops` packages are merged into `platform.monitoring` with all imports updated
+- [ ] **PLAT-05**: `admin` and `platform` packages are merged into `platform.admin` with all imports updated
+
+### Common Redistribution (CMN)
+
+- [ ] **CMN-01**: `common.payment` and `common.refund` classes are relocated to `payment.core` with all imports updated
+- [ ] **CMN-02**: `common.persistence`, `common.logging`, `common.threadpool`, `common.client`, `common.config`, `common.util`, `common.message`, `common.exception`, `common.validation`, and remaining `common` classes are relocated to `infrastructure.*` sub-packages with all imports updated
+- [ ] **CMN-03**: Domain-specific enums in `common.enums` are moved to their owning domain packages with all imports updated
+- [ ] **CMN-04**: `common` package is fully emptied and removed after redistribution is complete
+
+### Infrastructure Layer (INFRA)
+
+- [ ] **INFRA-01**: `config` package (AsyncConfig, DataSourceConfig, ObservabilityConfig) is relocated to `infrastructure.config` with all imports updated
+- [ ] **INFRA-02**: Spring filters, interceptors, and web infrastructure are consolidated under `infrastructure.web`
+- [ ] **INFRA-03**: Shared persistence base classes and configuration are consolidated under `infrastructure.persistence`
+
+### Build Quality (BUILD)
+
+- [ ] **BUILD-01**: `mvn verify` passes green (all unit + integration tests) after every phase commit — no deferred red phases
+- [ ] **BUILD-02**: No functional behavior changes — all existing REST API contracts, database schemas, and Flyway migrations are unchanged
+- [ ] **BUILD-03**: Spring component-scan, Flyway configuration, and security filter registration verified functional after each phase
+
+## Future Requirements
+
+*(None identified — this milestone is a closed-scope refactoring with no planned follow-on scope)*
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| New functionality | Pure structural refactoring — no behavioral changes |
+| Flyway schema changes | Package moves do not require DDL changes (V32 remains the last migration) |
+| API contract changes | REST endpoints, request/response DTOs unchanged — only package locations move |
+| Microservice extraction | Bounded context naming does not imply service split; monolith architecture unchanged |
+| Sub-package re-ordering within moved packages | Internal sub-package structure (contract/repo/service/api) preserved as-is within each new location |
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| PAY-01 | — | Pending |
+| PAY-02 | — | Pending |
+| PAY-03 | — | Pending |
+| PAY-04 | — | Pending |
+| PAY-05 | — | Pending |
+| PAY-06 | — | Pending |
+| PAY-07 | — | Pending |
+| PROV-01 | — | Pending |
+| PROV-02 | — | Pending |
+| PLAT-01 | — | Pending |
+| PLAT-02 | — | Pending |
+| PLAT-03 | — | Pending |
+| PLAT-04 | — | Pending |
+| PLAT-05 | — | Pending |
+| CMN-01 | — | Pending |
+| CMN-02 | — | Pending |
+| CMN-03 | — | Pending |
+| CMN-04 | — | Pending |
+| INFRA-01 | — | Pending |
+| INFRA-02 | — | Pending |
+| INFRA-03 | — | Pending |
+| BUILD-01 | — | Pending |
+| BUILD-02 | — | Pending |
+| BUILD-03 | — | Pending |
+
+**Coverage:**
+- v12 requirements: 24 total
+- Mapped to phases: 0 (roadmap not yet created)
+- Unmapped: 24 ⚠️
+
+---
+*Requirements defined: 2026-05-06*
+*Last updated: 2026-05-06 after initial definition*
