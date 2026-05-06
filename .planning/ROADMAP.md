@@ -607,7 +607,7 @@ Plans:
 Plans:
 - [x] 61-01-PLAN.md — INFRA-03: move 8 classes from common.persistence to infrastructure.persistence, update 38 production + 4 test imports, mvn verify (Wave 1)
 - [ ] 61-02-PLAN.md — INFRA-01: move 3 classes (AsyncConfig, DataSourceConfig, ObservabilityConfig) from config to infrastructure.config, update Javadoc reference, mvn verify (Wave 2)
-- [ ] 61-03-PLAN.md — INFRA-02: move ApiKeyAuthenticationFilter + TenantSecurityConfig + LoggingFilter to infrastructure.web, update SecurityConfiguration import, preserve FilterRegistrationBean(setEnabled=false), mvn verify (Wave 3)
+- [x] 61-03-PLAN.md — INFRA-02: move ApiKeyAuthenticationFilter + TenantSecurityConfig + LoggingFilter to infrastructure.web, update SecurityConfiguration import, preserve FilterRegistrationBean(setEnabled=false), mvn verify (Wave 3)
 
 ### Phase 62: Platform Layer Reorganization
 **Goal**: All platform-supporting services are under the `platform` namespace — `tenant`, `security`, merged `platform.notification` (email + alert), merged `platform.monitoring` (health + ops), and merged `platform.admin` (admin + platform config) — with no cross-reference to the old flat packages
@@ -721,7 +721,7 @@ Plans:
 | 58. Integration & E2E Test Suite | v11 | 4/4 | Complete | 2026-05-05 |
 | 59. v11 Javadoc & Tech Debt Cleanup | v11 | 1/1 | Complete | 2026-05-05 |
 | 60. CLAIM-05 E2E Coverage | v11 | 1/1 | Complete | 2026-05-05 |
-| 61. Infrastructure Layer Creation | v12 | 1/3 | In Progress|  |
+| 61. Infrastructure Layer Creation | v12 | 2/3 | In Progress|  |
 | 62. Platform Layer Reorganization | v12 | 0/TBD | Not started | - |
 | 63. Payment Domain Consolidation | v12 | 0/TBD | Not started | - |
 | 64. Provider Infrastructure Encapsulation | v12 | 0/TBD | Not started | - |

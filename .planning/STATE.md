@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 61-01-PLAN.md (INFRA-03 complete)
-last_updated: "2026-05-06T18:39:57.867Z"
+stopped_at: Completed 61-03-PLAN.md (web-layer infrastructure move to infrastructure.web)
+last_updated: "2026-05-06T21:42:58.613Z"
 last_activity: 2026-05-06
 progress:
   total_phases: 36
-  completed_phases: 22
+  completed_phases: 21
   total_plans: 64
   completed_plans: 62
   percent: 0
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-06 — v12 milestone started)
 ## Current Position
 
 Phase: 61 (infrastructure-layer-creation) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-05-06
 
@@ -58,6 +58,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - Platform layer (Phase 62) depends on infrastructure base classes — infrastructure must move first (Phase 61)
 - [Phase 61]: @Component(AuditingDateTimeProvider.NAME) annotation preserved byte-for-byte — Spring @EnableJpaAuditing resolves dateTimeProvider by name convention; changing it would silently break JPA auditing
 - [Phase 61]: Atomic single commit for 8 moved files + 42 caller updates — partial commit leaves codebase uncompilable; both tasks must ship together
+- [Phase 61]: RotatedKeyCleanupSchedulerConfig stays in tenant.config (Quartz scheduler, not web infrastructure); moves with tenant package in Phase 62
+- [Phase 61]: infrastructure.web sub-package consolidates all Spring servlet filter infrastructure (ApiKeyAuthenticationFilter, TenantSecurityConfig, LoggingFilter); FilterRegistrationBean(setEnabled=false) is the critical pattern that prevents ApiKeyFilter from auto-registering globally
 
 ### v12 Phase Map
 
@@ -71,6 +73,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 BUILD-01, BUILD-02, BUILD-03 are cross-cutting and apply to every phase.
 | Phase 61 P01 | 35 | 2 tasks | 50 files |
+| Phase 61 P03 | 40 | 1 tasks | 7 files |
 
 ### Pending Todos
 
@@ -82,6 +85,6 @@ None — roadmap is defined, requirements are 100% mapped.
 
 ## Session Continuity
 
-Last session: 2026-05-06T18:39:57.858Z
-Stopped at: Completed 61-01-PLAN.md (INFRA-03 complete)
+Last session: 2026-05-06T21:42:58.601Z
+Stopped at: Completed 61-03-PLAN.md (web-layer infrastructure move to infrastructure.web)
 Resume: `/gsd:plan-phase 61`
