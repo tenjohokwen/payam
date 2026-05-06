@@ -1,4 +1,4 @@
-package com.softropic.payam.tenant.config;
+package com.softropic.payam.infrastructure.web;
 
 import com.softropic.payam.security.config.AppEndpoints;
 import com.softropic.payam.tenant.service.ApiKeyService;

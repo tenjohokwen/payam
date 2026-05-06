@@ -1,7 +1,7 @@
 package com.softropic.payam.security.config;
 
 
-import com.softropic.payam.security.audit.filter.LoggingFilter;
+import com.softropic.payam.infrastructure.web.LoggingFilter;
 import com.softropic.payam.security.service.LoginTokenManager;
 import com.softropic.payam.security.infrastructure.filter.SecondFactorLoginFilter;
 import com.softropic.payam.security.infrastructure.filter.SecurityAdviceFilter;
