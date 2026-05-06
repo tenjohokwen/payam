@@ -115,9 +115,22 @@ v11 complete (2026-05-05) — Transaction-Backed Disbursements shipped. Every di
 - ✓ `PaymentCommand` gains 14th nullable `BigDecimal feeAmount` component; backward-compat 13-arg constructor delegates to canonical with `feeAmount=null`; `withFeeAmount(BigDecimal)` wither method; `PaymentOrchestrator.initiate()` enriches in-flight command via `cmd = cmd.withFeeAmount(fee)` before port dispatch — v9 (Phase 49): CASHOUT-01
 - ✓ `OrangeMoneyPort.initiateCashout()` calls `orangeMoneyClient.cashout()`, guards on `is2xxSuccessful()`, posts `LedgerPosting.disbursement(principal, fee, currency)` via `transactionTemplate.execute` (no `@Transactional` on method); null `feeAmount` falls back to `BigDecimal.ZERO` — `OrangeMoneyPortIT`: 8/8 tests green — v9 (Phase 49): CASHOUT-02
 
+## Current Milestone: v12 Architectural Reorganization
+
+**Goal:** Restructure the flat `com.softropic.payam` package hierarchy into explicit bounded contexts (`payment`, `platform`, `infrastructure`), moving both `src/main` and `src/test` packages in lockstep so `mvn verify` (474 unit + 301 integration tests) passes green throughout.
+
+**Target features:**
+- Consolidate `payment.core`, `.disbursement`, `.ledger`, `.fee`, `.reconciliation`, `.fraud` under a single `payment` umbrella
+- Move provider adapters (`mtn`, `orange`) under `payment.provider` as infrastructure hexagonal adapters
+- Group platform services (`tenant`, `security`, `email`+`alert`, `health`+`ops`, `admin`) under `platform` namespace
+- Redistribute `common` package — domain logic to `payment.core`, infrastructure concerns to `infrastructure`, enums to owning domain packages
+- Create `infrastructure` layer: `config`, `web` (filters/interceptors), `persistence`
+- Mirror all package moves in `src/test/java` in lockstep with production code
+- `mvn verify` (full suite including Testcontainers ITs) must pass green after every phase commit
+
 ### Active
 
-*(No active requirements — start `/gsd:new-milestone` to define v12 requirements)*
+*(Requirements being defined for v12 — see Current Milestone above)*
 
 #### Phase 50 complete — Validated in Phase 50: BAL-01, BAL-02, BAL-03
 - ✓ Flyway V28: `main.disbursement`, `main.disbursement_aud`, `main.merchant_wallet_balance`, `main.merchant_wallet_balance_aud` with named constraints — v10 (Phase 50)
@@ -253,4 +266,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-05 after v11 milestone — Transaction-Backed Disbursements shipped; all 24 v11 requirements validated; 474 unit + 301 integration tests green*
+*Last updated: 2026-05-06 — v12 Architectural Reorganization milestone started*

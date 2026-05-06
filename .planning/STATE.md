@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v11
-milestone_name: Transaction-Backed Disbursements
-status: milestone_complete
-stopped_at: v11 milestone archived — 7 phases (54-60) complete, 17 plans, 24/24 requirements satisfied
-last_updated: "2026-05-05T23:59:00.000Z"
-last_activity: 2026-05-05
+milestone: v12
+milestone_name: Architectural Reorganization
+status: defining_requirements
+stopped_at: v12 milestone started — defining requirements
+last_updated: "2026-05-06T00:00:00.000Z"
+last_activity: 2026-05-06
 progress:
-  total_phases: 60
-  completed_phases: 60
-  total_plans: 17
-  completed_plans: 17
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,12 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-01 — v11 milestone started)
 
 ## Current Position
 
-Phase: 60
-Plan: Not started
-Status: Executing Phase 60
-Last activity: 2026-05-05
-
-Progress: [██████████] 96% (48/50 plans complete)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-05-06 — Milestone v12 started
 
 ## Performance Metrics
 
