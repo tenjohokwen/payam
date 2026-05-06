@@ -148,7 +148,7 @@
 
 **Milestone Goal:** Restructure the flat `com.softropic.payam` package hierarchy into explicit bounded contexts — `payment`, `platform`, `infrastructure` — so the codebase communicates business intent instead of technical noise, while `mvn verify` stays green on every commit.
 
-- [ ] **Phase 61: Infrastructure Layer Creation** - Create `infrastructure.config`, `infrastructure.web`, and `infrastructure.persistence` packages; move `config` package and web/persistence foundation classes
+- [x] **Phase 61: Infrastructure Layer Creation** - Create `infrastructure.config`, `infrastructure.web`, and `infrastructure.persistence` packages; move `config` package and web/persistence foundation classes (completed 2026-05-06)
 - [ ] **Phase 62: Platform Layer Reorganization** - Move `tenant`, `security`, `email`+`alert` (merged), `health`+`ops` (merged), and `admin`+`platform` (merged) into `platform.*` sub-packages
 - [ ] **Phase 63: Payment Domain Consolidation** - Move `payment`, `transaction`, `disbursement`, `fee`, `reconciliation`, `fraud`, and `webhook` into `payment.*` sub-packages
 - [ ] **Phase 64: Provider Infrastructure Encapsulation** - Move `mtn` and `orange` into `payment.provider.mtn` and `payment.provider.orange`
@@ -721,7 +721,7 @@ Plans:
 | 58. Integration & E2E Test Suite | v11 | 4/4 | Complete | 2026-05-05 |
 | 59. v11 Javadoc & Tech Debt Cleanup | v11 | 1/1 | Complete | 2026-05-05 |
 | 60. CLAIM-05 E2E Coverage | v11 | 1/1 | Complete | 2026-05-05 |
-| 61. Infrastructure Layer Creation | v12 | 2/3 | In Progress|  |
+| 61. Infrastructure Layer Creation | v12 | 2/3 | Complete    | 2026-05-06 |
 | 62. Platform Layer Reorganization | v12 | 0/TBD | Not started | - |
 | 63. Payment Domain Consolidation | v12 | 0/TBD | Not started | - |
 | 64. Provider Infrastructure Encapsulation | v12 | 0/TBD | Not started | - |
