@@ -1,8 +1,8 @@
 package com.softropic.payam.platform.monitoring;
 
 import com.softropic.payam.mtn.service.MtnMoMoPort;
-import com.softropic.payam.platform.contract.PlatformConfigDto;
-import com.softropic.payam.platform.service.PlatformConfigService;
+import com.softropic.payam.platform.admin.contract.PlatformConfigDto;
+import com.softropic.payam.platform.admin.service.PlatformConfigService;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;

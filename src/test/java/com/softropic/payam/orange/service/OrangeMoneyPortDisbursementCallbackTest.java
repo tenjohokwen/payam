@@ -6,7 +6,7 @@ import com.softropic.payam.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.orange.config.OrangeMoneyConfig;
 import com.softropic.payam.orange.contract.OrangeWebhookPayload;
 import com.softropic.payam.orange.infrastructure.OrangeMoneyClient;
-import com.softropic.payam.platform.service.PlatformConfigService;
+import com.softropic.payam.platform.admin.service.PlatformConfigService;
 import com.softropic.payam.transaction.contract.LedgerFlow;
 import com.softropic.payam.transaction.repo.TransactionRepository;
 import com.softropic.payam.transaction.service.EventLogService;

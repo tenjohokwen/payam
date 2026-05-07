@@ -1,7 +1,7 @@
 package com.softropic.payam.disbursement.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.softropic.payam.admin.service.PaymentMetricsService;
+import com.softropic.payam.platform.admin.service.PaymentMetricsService;
 import com.softropic.payam.mtn.contract.MtnCallbackPayload;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 

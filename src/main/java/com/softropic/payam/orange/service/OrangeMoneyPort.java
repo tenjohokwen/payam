@@ -14,7 +14,7 @@ import com.softropic.payam.orange.contract.dto.PayResponse;
 import com.softropic.payam.orange.contract.dto.SubscriberInfoResponse;
 import com.softropic.payam.orange.contract.exception.PayTokenExpiredException;
 import com.softropic.payam.orange.infrastructure.OrangeMoneyClient;
-import com.softropic.payam.platform.service.PlatformConfigService;
+import com.softropic.payam.platform.admin.service.PlatformConfigService;
 import com.softropic.payam.transaction.contract.LedgerPosting;
 import com.softropic.payam.transaction.contract.TransactionEventType;
 import com.softropic.payam.transaction.contract.TransactionStatus;

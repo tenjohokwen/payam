@@ -1,6 +1,6 @@
 package com.softropic.payam.e2e;
 
-import com.softropic.payam.platform.service.PlatformConfigService;
+import com.softropic.payam.platform.admin.service.PlatformConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;

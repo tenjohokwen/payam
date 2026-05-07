@@ -5,7 +5,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.config.TestDataCleaner;
 import com.softropic.payam.disbursement.service.DisbursementAdminApprovalExpiryJob;
-import com.softropic.payam.platform.service.PlatformConfigService;
+import com.softropic.payam.platform.admin.service.PlatformConfigService;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
 

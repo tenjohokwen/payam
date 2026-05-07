@@ -4,7 +4,7 @@ import com.softropic.payam.common.ClockProvider;
 import com.softropic.payam.platform.notification.contract.EmailTemplate;
 import com.softropic.payam.platform.notification.contract.Envelope;
 import com.softropic.payam.platform.notification.contract.Recipient;
-import com.softropic.payam.platform.contract.event.PlatformConfigChangedEvent;
+import com.softropic.payam.platform.admin.contract.event.PlatformConfigChangedEvent;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

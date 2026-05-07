@@ -2,7 +2,7 @@ package com.softropic.payam.platform.notification.infrastructure.listener;
 
 import com.softropic.payam.platform.notification.contract.EmailTemplate;
 import com.softropic.payam.platform.notification.contract.Envelope;
-import com.softropic.payam.platform.contract.event.PlatformConfigChangedEvent;
+import com.softropic.payam.platform.admin.contract.event.PlatformConfigChangedEvent;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

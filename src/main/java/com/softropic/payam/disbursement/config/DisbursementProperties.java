@@ -9,7 +9,7 @@ import java.math.BigDecimal;
  *
  * <p>Registered via {@link DisbursementConfig} which uses
  * {@code @EnableConfigurationProperties(DisbursementProperties.class)} — same pattern as
- * {@link com.softropic.payam.platform.config.PayamPlatformProperties}.
+ * {@link com.softropic.payam.platform.admin.config.PayamPlatformProperties}.
  *
  * <p>YAML binding example:
  * <pre>

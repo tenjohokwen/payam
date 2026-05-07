@@ -3,9 +3,9 @@ package com.softropic.payam.platform.notification.infrastructure.listener;
 import com.softropic.payam.common.ClockProvider;
 import com.softropic.payam.disbursement.contract.event.DisbursementAdminApprovalRequiredEvent;
 import com.softropic.payam.disbursement.contract.event.InsufficientFundsAlertEvent;
-import com.softropic.payam.email.contract.EmailTemplate;
-import com.softropic.payam.email.contract.Envelope;
-import com.softropic.payam.email.contract.Recipient;
+import com.softropic.payam.platform.notification.contract.EmailTemplate;
+import com.softropic.payam.platform.notification.contract.Envelope;
+import com.softropic.payam.platform.notification.contract.Recipient;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

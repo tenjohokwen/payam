@@ -7,7 +7,7 @@ import com.softropic.payam.config.TestDataCleaner;
 import com.softropic.payam.disbursement.contract.DisbursementOrchestratorError;
 import com.softropic.payam.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.disbursement.repo.MerchantWalletBalanceRepository;
-import com.softropic.payam.platform.service.PlatformConfigService;
+import com.softropic.payam.platform.admin.service.PlatformConfigService;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.service.TenantService;
 
