@@ -1,8 +1,8 @@
 package com.softropic.payam.webhook;
 
 import com.softropic.payam.config.TestConfig;
-import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
-import com.softropic.payam.tenant.service.TenantService;
+import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
+import com.softropic.payam.platform.tenant.service.TenantService;
 import com.softropic.payam.transaction.contract.TransactionStatus;
 import com.softropic.payam.webhook.contract.WebhookEnqueueRequestedEvent;
 import com.softropic.payam.webhook.repo.WebhookDeliveryLog;

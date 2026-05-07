@@ -1,13 +1,13 @@
 package com.softropic.payam.fraud;
 
-import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
+import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.common.payment.PaymentCommand;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.fraud.contract.FraudDecision;
 import com.softropic.payam.fraud.service.FraudRuleCache;
 import com.softropic.payam.fraud.service.FraudScoringService;
-import com.softropic.payam.tenant.service.TenantService;
+import com.softropic.payam.platform.tenant.service.TenantService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

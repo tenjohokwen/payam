@@ -5,10 +5,10 @@ import com.softropic.payam.platform.notification.contract.EmailTemplate;
 import com.softropic.payam.platform.notification.contract.Envelope;
 import com.softropic.payam.platform.notification.contract.Recipient;
 import com.softropic.payam.security.contract.util.ShortCode;
-import com.softropic.payam.tenant.contract.event.TenantApiKeyEvent;
-import com.softropic.payam.tenant.contract.event.TenantCreatedEvent;
-import com.softropic.payam.tenant.contract.event.TenantStatusChangedEvent;
-import com.softropic.payam.tenant.contract.event.TenantWebhookSecretRegeneratedEvent;
+import com.softropic.payam.platform.tenant.contract.event.TenantApiKeyEvent;
+import com.softropic.payam.platform.tenant.contract.event.TenantCreatedEvent;
+import com.softropic.payam.platform.tenant.contract.event.TenantStatusChangedEvent;
+import com.softropic.payam.platform.tenant.contract.event.TenantWebhookSecretRegeneratedEvent;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

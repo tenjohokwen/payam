@@ -2,9 +2,9 @@ package com.softropic.payam.webhook;
 
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.e2e.verify.QueryCountVerifier;
-import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
-import com.softropic.payam.tenant.repo.Tenant;
-import com.softropic.payam.tenant.service.TenantService;
+import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
+import com.softropic.payam.platform.tenant.repo.Tenant;
+import com.softropic.payam.platform.tenant.service.TenantService;
 import com.softropic.payam.webhook.repo.WebhookDeliveryLog;
 import com.softropic.payam.webhook.repo.WebhookDeliveryLogRepository;
 import com.softropic.payam.webhook.service.WebhookDeliveryService;

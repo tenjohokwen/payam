@@ -2,9 +2,9 @@ package com.softropic.payam.platform.notification.infrastructure.listener;
 
 import com.softropic.payam.platform.notification.contract.EmailTemplate;
 import com.softropic.payam.platform.notification.contract.Envelope;
-import com.softropic.payam.tenant.contract.event.TenantApiKeyEvent;
-import com.softropic.payam.tenant.contract.event.TenantStatusChangedEvent;
-import com.softropic.payam.tenant.contract.event.TenantWebhookSecretRegeneratedEvent;
+import com.softropic.payam.platform.tenant.contract.event.TenantApiKeyEvent;
+import com.softropic.payam.platform.tenant.contract.event.TenantStatusChangedEvent;
+import com.softropic.payam.platform.tenant.contract.event.TenantWebhookSecretRegeneratedEvent;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

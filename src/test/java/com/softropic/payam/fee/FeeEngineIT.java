@@ -3,8 +3,8 @@ package com.softropic.payam.fee;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.fee.service.FeeEvaluationService;
 import com.softropic.payam.fee.service.FeeRuleCache;
-import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
-import com.softropic.payam.tenant.service.TenantService;
+import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
+import com.softropic.payam.platform.tenant.service.TenantService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

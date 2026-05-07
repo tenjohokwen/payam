@@ -11,8 +11,8 @@ import com.softropic.payam.mtn.contract.MtnCallbackPayload;
 import com.softropic.payam.mtn.service.MtnStatusPollerJob;
 import com.softropic.payam.payment.contract.PaymentRequest;
 import com.softropic.payam.payment.contract.PaymentResponse;
-import com.softropic.payam.tenant.repo.TenantRepository;
-import com.softropic.payam.tenant.service.TenantService;
+import com.softropic.payam.platform.tenant.repo.TenantRepository;
+import com.softropic.payam.platform.tenant.service.TenantService;
 
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;

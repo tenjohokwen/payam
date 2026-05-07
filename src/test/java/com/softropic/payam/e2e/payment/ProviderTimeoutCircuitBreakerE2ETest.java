@@ -9,8 +9,8 @@ import com.softropic.payam.e2e.builder.TenantBuilder;
 import com.softropic.payam.e2e.verify.InvariantVerifier;
 import com.softropic.payam.payment.contract.PaymentRequest;
 import com.softropic.payam.payment.contract.PaymentResponse;
-import com.softropic.payam.tenant.repo.TenantRepository;
-import com.softropic.payam.tenant.service.TenantService;
+import com.softropic.payam.platform.tenant.repo.TenantRepository;
+import com.softropic.payam.platform.tenant.service.TenantService;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 

@@ -1,6 +1,6 @@
 package com.softropic.payam.webhook.contract;
 
-import com.softropic.payam.tenant.repo.Tenant;
+import com.softropic.payam.platform.tenant.repo.Tenant;
 import com.softropic.payam.webhook.repo.WebhookDeliveryLog;
 
 /**

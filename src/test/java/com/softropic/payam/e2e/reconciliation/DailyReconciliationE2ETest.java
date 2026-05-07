@@ -6,8 +6,8 @@ import com.softropic.payam.e2e.builder.TenantBuilder;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
 import com.softropic.payam.reconciliation.service.ReconciliationService;
-import com.softropic.payam.tenant.repo.TenantRepository;
-import com.softropic.payam.tenant.service.TenantService;
+import com.softropic.payam.platform.tenant.repo.TenantRepository;
+import com.softropic.payam.platform.tenant.service.TenantService;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

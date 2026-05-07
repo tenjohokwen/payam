@@ -9,7 +9,7 @@ import com.softropic.payam.disbursement.contract.DisbursementStatus;
 import com.softropic.payam.disbursement.repo.Disbursement;
 import com.softropic.payam.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.disbursement.service.DisbursementOrchestrator;
-import com.softropic.payam.tenant.contract.TenantPrincipal;
+import com.softropic.payam.platform.tenant.contract.TenantPrincipal;
 
 import io.micrometer.observation.annotation.Observed;
 import jakarta.validation.Valid;

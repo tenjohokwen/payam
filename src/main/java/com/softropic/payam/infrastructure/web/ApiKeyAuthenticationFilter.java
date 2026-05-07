@@ -3,10 +3,10 @@ package com.softropic.payam.infrastructure.web;
 import com.softropic.payam.security.common.util.TenantContext;
 import com.softropic.payam.security.config.AppEndpoints;
 import org.slf4j.MDC;
-import com.softropic.payam.tenant.contract.TenantPrincipal;
-import com.softropic.payam.tenant.contract.TenantStatus;
-import com.softropic.payam.tenant.repo.TenantApiKey;
-import com.softropic.payam.tenant.service.ApiKeyService;
+import com.softropic.payam.platform.tenant.contract.TenantPrincipal;
+import com.softropic.payam.platform.tenant.contract.TenantStatus;
+import com.softropic.payam.platform.tenant.repo.TenantApiKey;
+import com.softropic.payam.platform.tenant.service.ApiKeyService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -4,8 +4,8 @@ import com.softropic.payam.e2e.AbstractPayamE2ETest;
 import com.softropic.payam.e2e.builder.MtnWebhookPayloadBuilder;
 import com.softropic.payam.e2e.builder.TenantBuilder;
 import com.softropic.payam.mtn.contract.MtnCallbackPayload;
-import com.softropic.payam.tenant.repo.TenantRepository;
-import com.softropic.payam.tenant.service.TenantService;
+import com.softropic.payam.platform.tenant.repo.TenantRepository;
+import com.softropic.payam.platform.tenant.service.TenantService;
 
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;

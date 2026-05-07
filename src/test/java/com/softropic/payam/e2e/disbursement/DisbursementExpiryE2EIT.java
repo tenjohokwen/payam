@@ -8,8 +8,8 @@ import com.softropic.payam.disbursement.repo.MerchantWalletBalance;
 import com.softropic.payam.disbursement.repo.MerchantWalletBalanceRepository;
 import com.softropic.payam.disbursement.service.DisbursementExpiryJob;
 import com.softropic.payam.platform.admin.service.PlatformConfigService;
-import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
-import com.softropic.payam.tenant.service.TenantService;
+import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
+import com.softropic.payam.platform.tenant.service.TenantService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

@@ -3,7 +3,7 @@ package com.softropic.payam.e2e.domain;
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.e2e.AbstractPayamE2ETest;
 import com.softropic.payam.e2e.builder.TenantBuilder;
-import com.softropic.payam.tenant.service.TenantService;
+import com.softropic.payam.platform.tenant.service.TenantService;
 import com.softropic.payam.transaction.contract.TransactionStatus;
 import com.softropic.payam.transaction.contract.exception.IllegalStateTransitionException;
 import com.softropic.payam.transaction.repo.Transaction;
@@ -16,7 +16,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
-import com.softropic.payam.tenant.repo.TenantRepository;
+import com.softropic.payam.platform.tenant.repo.TenantRepository;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -44,7 +44,7 @@ public class StateMachineLegalTransitionsTest extends AbstractPayamE2ETest {
     private TenantService tenantService;
 
     @Autowired
-    private com.softropic.payam.tenant.repo.TenantRepository tenantRepository;
+    private com.softropic.payam.platform.tenant.repo.TenantRepository tenantRepository;
 
     @Autowired
     private TransactionRepository transactionRepository;
