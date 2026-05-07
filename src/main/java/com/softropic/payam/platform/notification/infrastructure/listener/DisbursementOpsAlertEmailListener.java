@@ -1,4 +1,4 @@
-package com.softropic.payam.email.infrastructure.listener;
+package com.softropic.payam.platform.notification.infrastructure.listener;
 
 import com.softropic.payam.common.ClockProvider;
 import com.softropic.payam.disbursement.contract.event.DisbursementAdminApprovalRequiredEvent;
