@@ -1,6 +1,6 @@
 package com.softropic.payam.config;
 
-import com.softropic.payam.email.service.MailManager;
+import com.softropic.payam.platform.notification.service.MailManager;
 import com.softropic.payam.utils.TestMailManager;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

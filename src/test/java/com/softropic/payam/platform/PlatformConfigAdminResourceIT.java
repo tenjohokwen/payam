@@ -70,7 +70,7 @@ class PlatformConfigAdminResourceIT {
     int port;
 
     @Autowired
-    private com.softropic.payam.email.service.MailManager mailManager;
+    private com.softropic.payam.platform.notification.service.MailManager mailManager;
 
     private RestTemplate restTemplate;
     private HttpHeaders adminCookies;
@@ -380,7 +380,7 @@ class PlatformConfigAdminResourceIT {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> latestEnvelopeData() {
-        java.util.Collection<com.softropic.payam.email.contract.Envelope> all =
+        java.util.Collection<com.softropic.payam.platform.notification.contract.Envelope> all =
             testMailManager().getEnvelopes().values();
         return all.stream()
                 .reduce((a, b) -> b)

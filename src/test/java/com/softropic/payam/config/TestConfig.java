@@ -1,6 +1,6 @@
 package com.softropic.payam.config;
 
-import com.softropic.payam.email.service.MailManager;
+import com.softropic.payam.platform.notification.service.MailManager;
 import com.softropic.payam.utils.TestMailManager;
 import com.softropic.payam.utils.sql.EntityFetchAsserter;
 import com.softropic.payam.utils.sql.QueryRecorderListener;

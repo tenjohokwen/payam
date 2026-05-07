@@ -2,8 +2,8 @@ package com.softropic.payam.security.infrastructure.listener;
 
 
 
-import com.softropic.payam.email.contract.Envelope;
-import com.softropic.payam.email.contract.Recipient;
+import com.softropic.payam.platform.notification.contract.Envelope;
+import com.softropic.payam.platform.notification.contract.Recipient;
 import com.softropic.payam.security.contract.event.SendMailEvent;
 import com.softropic.payam.security.repo.User;
 import com.softropic.payam.security.service.UserService;

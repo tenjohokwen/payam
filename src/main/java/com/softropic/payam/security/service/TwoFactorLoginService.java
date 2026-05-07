@@ -2,7 +2,7 @@ package com.softropic.payam.security.service;
 
 
 import com.softropic.payam.common.ClockProvider;
-import com.softropic.payam.email.contract.EmailTemplate;
+import com.softropic.payam.platform.notification.contract.EmailTemplate;
 import com.softropic.payam.security.contract.LoginData;
 import com.softropic.payam.security.contract.Principal;
 import com.softropic.payam.security.contract.event.SendMailEvent;

@@ -1,7 +1,7 @@
 package com.softropic.payam.security.contract.event;
 
 
-import com.softropic.payam.email.contract.EmailTemplate;
+import com.softropic.payam.platform.notification.contract.EmailTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
