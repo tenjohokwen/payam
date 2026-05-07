@@ -11,7 +11,7 @@ import java.util.UUID;
  * Fluent builder for creating additional API keys on an existing tenant (BUILD-02).
  *
  * <p>Useful for key-rotation and multi-key E2E scenarios. Uses the same hashing algorithm
- * ({@code DigestUtils.sha256Hex}) as {@link com.softropic.payam.security.filter.ApiKeyAuthenticationFilter}
+ * ({@code DigestUtils.sha256Hex}) as {@link com.softropic.payam.platform.security.filter.ApiKeyAuthenticationFilter}
  * so the generated key is accepted by the authentication filter.
  *
  * <p>Usage:

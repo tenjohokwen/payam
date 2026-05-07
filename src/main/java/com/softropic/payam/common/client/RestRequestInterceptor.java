@@ -5,7 +5,7 @@ import com.softropic.payam.common.TransactionIdProvider;
 import com.softropic.payam.common.client.exception.HttpClientException;
 import com.softropic.payam.common.client.exception.MomoError;
 import com.softropic.payam.common.util.BodySanitizer;
-import com.softropic.payam.security.common.util.RequestIdProvider;
+import com.softropic.payam.platform.security.common.util.RequestIdProvider;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;

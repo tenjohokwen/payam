@@ -3,7 +3,7 @@ package com.softropic.payam.platform.notification.api;
 import com.softropic.payam.platform.notification.repo.AlertRule;
 import com.softropic.payam.platform.notification.repo.AlertRuleRepository;
 import com.softropic.payam.platform.notification.service.AlertRuleCache;
-import com.softropic.payam.security.common.util.SecurityConstants;
+import com.softropic.payam.platform.security.common.util.SecurityConstants;
 
 import io.micrometer.observation.annotation.Observed;
 import jakarta.persistence.EntityNotFoundException;

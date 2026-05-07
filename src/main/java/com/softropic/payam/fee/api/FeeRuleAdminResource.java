@@ -4,7 +4,7 @@ import com.softropic.payam.fee.contract.FeeType;
 import com.softropic.payam.fee.repo.FeeRule;
 import com.softropic.payam.fee.repo.FeeRuleRepository;
 import com.softropic.payam.fee.service.FeeRuleCache;
-import com.softropic.payam.security.common.util.SecurityConstants;
+import com.softropic.payam.platform.security.common.util.SecurityConstants;
 
 import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;

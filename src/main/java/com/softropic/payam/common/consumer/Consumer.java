@@ -4,7 +4,7 @@ package com.softropic.payam.common.consumer;
 
 import com.softropic.payam.common.Gender;
 import com.softropic.payam.common.validation.PhoneNumber;
-import com.softropic.payam.security.repo.Address;
+import com.softropic.payam.platform.security.repo.Address;
 
 import java.io.Serializable;
 import java.time.LocalDate;

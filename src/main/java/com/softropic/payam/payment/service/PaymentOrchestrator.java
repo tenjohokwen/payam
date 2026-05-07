@@ -18,8 +18,8 @@ import com.softropic.payam.payment.contract.OrchestratorError;
 import com.softropic.payam.payment.contract.PaymentRequest;
 import com.softropic.payam.payment.contract.PaymentResponse;
 import com.softropic.payam.payment.contract.exception.UnknownMsisdnPrefixException;
-import com.softropic.payam.security.common.util.RequestMetadata;
-import com.softropic.payam.security.common.util.RequestMetadataProvider;
+import com.softropic.payam.platform.security.common.util.RequestMetadata;
+import com.softropic.payam.platform.security.common.util.RequestMetadataProvider;
 import com.softropic.payam.transaction.contract.CachedResponse;
 import com.softropic.payam.transaction.contract.TransactionEventType;
 import com.softropic.payam.transaction.contract.TransactionStatus;
@@ -33,7 +33,7 @@ import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
-import com.softropic.payam.security.common.util.TenantContext;
+import com.softropic.payam.platform.security.common.util.TenantContext;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

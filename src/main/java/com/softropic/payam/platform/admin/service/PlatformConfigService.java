@@ -6,8 +6,8 @@ import com.softropic.payam.platform.admin.contract.PlatformConfigDto;
 import com.softropic.payam.platform.admin.contract.event.PlatformConfigChangedEvent;
 import com.softropic.payam.platform.admin.repo.PlatformConfig;
 import com.softropic.payam.platform.admin.repo.PlatformConfigRepository;
-import com.softropic.payam.security.contract.util.Cryptopher;
-import com.softropic.payam.security.service.SecurityUtil;
+import com.softropic.payam.platform.security.contract.util.Cryptopher;
+import com.softropic.payam.platform.security.service.SecurityUtil;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -4,7 +4,7 @@ import com.softropic.payam.common.AdminLogin;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.platform.admin.contract.PinDto;
 import com.softropic.payam.platform.admin.contract.PlatformConfigDto;
-import com.softropic.payam.security.service.LoginAttemptsService;
+import com.softropic.payam.platform.security.service.LoginAttemptsService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

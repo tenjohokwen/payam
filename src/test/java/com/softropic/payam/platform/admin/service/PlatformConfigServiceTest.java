@@ -29,10 +29,10 @@ class PlatformConfigServiceTest {
     private ApplicationEventPublisher eventPublisher;
 
     @Mock
-    private com.softropic.payam.security.contract.util.Cryptopher pinCryptopher;
+    private com.softropic.payam.platform.security.contract.util.Cryptopher pinCryptopher;
 
     @Mock
-    private com.softropic.payam.security.service.SecurityUtil securityUtil;
+    private com.softropic.payam.platform.security.service.SecurityUtil securityUtil;
 
     @InjectMocks
     private PlatformConfigService platformConfigService;

@@ -1,7 +1,7 @@
 package com.softropic.payam.infrastructure.web;
 
-import com.softropic.payam.security.common.util.TenantContext;
-import com.softropic.payam.security.config.AppEndpoints;
+import com.softropic.payam.platform.security.common.util.TenantContext;
+import com.softropic.payam.platform.security.config.AppEndpoints;
 import org.slf4j.MDC;
 import com.softropic.payam.platform.tenant.contract.TenantPrincipal;
 import com.softropic.payam.platform.tenant.contract.TenantStatus;

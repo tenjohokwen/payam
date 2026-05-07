@@ -2,7 +2,7 @@ package com.softropic.payam.platform.tenant;
 
 import com.softropic.payam.common.AdminLogin;
 import com.softropic.payam.config.TestConfig;
-import com.softropic.payam.security.service.LoginAttemptsService;
+import com.softropic.payam.platform.security.service.LoginAttemptsService;
 import com.softropic.payam.platform.tenant.contract.ApiKeyDto;
 import com.softropic.payam.platform.tenant.service.ApiKeyService;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
