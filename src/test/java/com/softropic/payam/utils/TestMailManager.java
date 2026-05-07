@@ -2,8 +2,8 @@ package com.softropic.payam.utils;
 
 
 
-import com.softropic.payam.email.contract.Envelope;
-import com.softropic.payam.email.service.MailManager;
+import com.softropic.payam.platform.notification.contract.Envelope;
+import com.softropic.payam.platform.notification.service.MailManager;
 
 import org.springframework.context.event.EventListener;
 

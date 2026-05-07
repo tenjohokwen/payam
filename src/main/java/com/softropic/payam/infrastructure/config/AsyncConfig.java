@@ -10,7 +10,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 /**
  * General-purpose async executor configuration for multi-tenant payment processing.
  *
- * <p>This class is distinct from {@code com.softropic.payam.email.config.AsyncConfig},
+ * <p>This class is distinct from {@code com.softropic.payam.platform.notification.config.AsyncConfig},
  * which owns the email send pool ({@code "sendMailPool"} bean). Both classes co-exist
  * in different packages and declare different bean names — no conflict.
  *

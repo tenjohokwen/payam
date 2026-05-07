@@ -2,9 +2,9 @@ package com.softropic.payam.security.api;
 
 import com.softropic.payam.common.Gender;
 import com.softropic.payam.config.TestConfig;
-import com.softropic.payam.email.contract.EmailTemplate;
-import com.softropic.payam.email.contract.Envelope;
-import com.softropic.payam.email.service.MailManager;
+import com.softropic.payam.platform.notification.contract.EmailTemplate;
+import com.softropic.payam.platform.notification.contract.Envelope;
+import com.softropic.payam.platform.notification.service.MailManager;
 import com.softropic.payam.security.repo.Authority;
 import com.softropic.payam.security.contract.UserDto;
 import com.softropic.payam.security.contract.exception.ProfileActionException;

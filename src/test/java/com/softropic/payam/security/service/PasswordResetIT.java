@@ -1,8 +1,8 @@
 package com.softropic.payam.security.service;
 
 import com.softropic.payam.config.TestConfig;
-import com.softropic.payam.email.contract.Envelope;
-import com.softropic.payam.email.service.MailManager;
+import com.softropic.payam.platform.notification.contract.Envelope;
+import com.softropic.payam.platform.notification.service.MailManager;
 import com.softropic.payam.security.api.AccountManagementFacade;
 import com.softropic.payam.security.api.KeyAndPasswordDto;
 import com.softropic.payam.security.repo.User;

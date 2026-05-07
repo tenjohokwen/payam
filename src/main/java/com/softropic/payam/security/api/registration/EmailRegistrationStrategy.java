@@ -1,9 +1,9 @@
 package com.softropic.payam.security.api.registration;
 
 import com.softropic.payam.common.ClockProvider;
-import com.softropic.payam.email.contract.EmailTemplate;
-import com.softropic.payam.email.contract.Envelope;
-import com.softropic.payam.email.contract.Recipient;
+import com.softropic.payam.platform.notification.contract.EmailTemplate;
+import com.softropic.payam.platform.notification.contract.Envelope;
+import com.softropic.payam.platform.notification.contract.Recipient;
 import com.softropic.payam.security.common.util.ClientContextProvider;
 import com.softropic.payam.security.contract.util.ShortCode;
 import com.softropic.payam.security.contract.util.RateLimited;

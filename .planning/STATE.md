@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 62-01-PLAN.md — PLAT-04 health/ops to platform.monitoring
-last_updated: "2026-05-06T23:53:11.808Z"
-last_activity: 2026-05-06
+stopped_at: Completed 62-02-PLAN.md (PLAT-03 — merge email + alert into platform.notification)
+last_updated: "2026-05-07T00:13:59.920Z"
+last_activity: 2026-05-07
 progress:
   total_phases: 36
   completed_phases: 23
@@ -77,6 +77,48 @@ BUILD-01, BUILD-02, BUILD-03 are cross-cutting and apply to every phase.
 | Phase 61 P01 | 35 | 2 tasks | 50 files |
 | Phase 61 P03 | 40 | 1 tasks | 7 files |
 | Phase 62-platform-layer-reorganization P01 | 39 | 2 tasks | 4 files |
+| Phase 62-platform-layer-reorganization P02 | 39 | 2 tasks | ~30 files |
+
+**52-01 decisions:**
+
+- Null-safe legacy fallback in `attemptDeliveryInternal`: pre-V30 rows fall back to `eventType.contains("SUCCESS")` — avoids breaking in-flight retries during zero-downtime deploy
+- `OutboundWebhookPayload.of()` factory is additive — original record constructor preserved for existing test code
+- V30 backfill UPDATE derives from `event_type LIKE '%SUCCESS%'` for collection-era rows — consistent history serialization
+
+**51-02 decisions:**
+
+- Block threshold strictly > 80 (score == 80 allows through per SEC-03 spec) — blocklist alone doesn't block; combined signal does
+- Outlier signal skipped for tenants with <10 SUCCESS rows — fail-open for new tenants
+- DisbursementIdempotencyService created in 51-02 (Rule-3 deviation) to unblock compilation; uses idempotency:dsb: namespace confirmed distinct from collection path
+- Median computed from repository ORDER BY ASC — no in-service sorting needed
+
+Key context carried forward for v10:
+
+- Last Flyway migration: **V30** (transaction_status column on webhook_delivery_log + V29 poll_attempts on disbursement)
+- `LedgerService.postEntry(txId, tenantId, LedgerPosting)` is the current API — 3-arg, switch-routed
+- `OrangeMoneyClient.cashout()` calls `/cashout` (v9 path) — Phase 51 must verify whether this is `/ic2c/pay` or a different endpoint before wiring ic2cDisbursement
+- `MtnMoMoPort.initiateDisbursement()` and `fetchDisbursementToken()` exist — wire via `disbursementTransfer()` wrapper
+- No `@Transactional` on orchestrator methods that make HTTP calls — use `TransactionTemplate` (established pattern)
+- Idempotency namespace for disbursements: `idempotency:dsb:<tenantId>:<key>` (distinct from collections)
+- E2E base class (`AbstractPayamE2ETest`) needs a second WireMock server for `mtn.disbursement-base-url` before any disbursement E2E tests are written
+- `WalletBalance` must use `@Lock(PESSIMISTIC_WRITE)` — optimistic retry allows second drain after first succeeds
+- [Phase 50-schema-balance-infrastructure]: disbursement_status column name avoids AbstractAuditingEntity.status collision; reserved_amount on both disbursement + wallet tables for per-row precision + operational visibility
+- [Phase 50-schema-balance-infrastructure]: PESSIMISTIC_WRITE lock over optimistic-only for WalletBalanceService: optimistic retry allows second drain after first succeeds — defeats BAL-01 invariant
+- [Phase 50-schema-balance-infrastructure]: release() throws IllegalStateException on missing wallet (programmer bug contract) vs InsufficientBalanceException on missing wallet in checkAndReserve (tenant cannot disburse)
+- [Phase 51]: DisbursementIdempotencyService shares IdempotencyKeyRepository with IdempotencyService; no schema split needed — Redis namespace isolation (idempotency:dsb: vs idempotency:) prevents key collisions
+- [Phase 51-04]: findForTenant uses native SQL (not JPQL) to avoid PostgreSQL null enum type inference errors
+- [Phase 51-04]: findExpiredCandidates uses NOW() - INTERVAL DB-side to avoid Hibernate 6 Instant->TIMESTAMPTZ vs TIMESTAMP column skew
+- [Phase 52-04]: Standalone IT pattern (no AbstractPayamE2ETest): each IT configures own WireMock topology including mtn-disbursement server
+- [Phase 52-04]: JDBC seeding over JPA save in callback ITs: silent JPA failures in transactional test contexts; direct jdbcTemplate.update() is deterministic
+- [Phase 52-04]: walletRepo.findByTenantId() not findById(): BaseEntity id is TSID-generated Long, not the tenantId business key
+- [Phase 53-e2e-test-suite]: Ledger entries written at provider initiation time (not on callback outcome) — assertNoLedgerEntries for FAILED disbursements is incorrect by design
+- [Phase 53-e2e-test-suite]: OrangeMoneyPort.initiateDisbursement() production bug: was returning null providerRef; fixed to extract payToken from cashout response Map for callback correlation
+- [Phase 53-e2e-test-suite]: DisbursementVelocityService per-MSISDN daily bucket (capacity=10): concurrency race test must use unique MSISDN per thread to avoid DAILY_LIMIT_EXCEEDED contaminating INSUFFICIENT_BALANCE count
+- [Phase 53-e2e-test-suite]: DisbursementExpiryJob.executeInternal() cross-package test requires reflection (setAccessible=true) — do NOT make it public for test convenience
+- [Phase 62-01]: Package declaration changed only in platform.monitoring move — existing imports of platform.contract/service preserved for Plan 03/PLAT-05 atomic move
+- [Phase 62-01]: Single atomic rename commit for health/ and ops/ → platform/monitoring/: git detects 97-99% similarity preserving full history
+- [Phase 62-02]: Sed import sweep does not catch FQN references outside import blocks or package declarations without trailing dot — must complement with mvn test-compile verification
+- [Phase 62-02]: PLAT-03 complete: email/ and alert/ merged into platform.notification/ — AlertNotificationListener co-located with MailManager eliminates cross-package coupling
 
 ### Pending Todos
 
@@ -88,6 +130,6 @@ None — roadmap is defined, requirements are 100% mapped.
 
 ## Session Continuity
 
-Last session: 2026-05-06T23:53:11.793Z
-Stopped at: Completed 62-01-PLAN.md — PLAT-04 health/ops to platform.monitoring
-Resume: `/gsd:plan-phase 61`
+Last session: 2026-05-07T00:13:59.911Z
+Stopped at: Completed 62-02-PLAN.md (PLAT-03 — merge email + alert into platform.notification)
+Resume: `/gsd:execute-phase 62` — Wave 2 (62-03 admin consolidation)
