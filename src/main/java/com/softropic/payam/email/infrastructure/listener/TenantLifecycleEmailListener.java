@@ -4,7 +4,7 @@ import com.softropic.payam.common.ClockProvider;
 import com.softropic.payam.email.contract.EmailTemplate;
 import com.softropic.payam.email.contract.Envelope;
 import com.softropic.payam.email.contract.Recipient;
-import com.softropic.payam.security.contract.util.ShortCode;
+import com.softropic.payam.platform.security.contract.util.ShortCode;
 import com.softropic.payam.tenant.contract.event.TenantApiKeyEvent;
 import com.softropic.payam.tenant.contract.event.TenantCreatedEvent;
 import com.softropic.payam.tenant.contract.event.TenantStatusChangedEvent;

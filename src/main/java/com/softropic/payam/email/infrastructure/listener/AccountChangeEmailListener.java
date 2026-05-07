@@ -4,9 +4,9 @@ import com.softropic.payam.common.ClockProvider;
 import com.softropic.payam.email.contract.EmailTemplate;
 import com.softropic.payam.email.contract.Envelope;
 import com.softropic.payam.email.contract.Recipient;
-import com.softropic.payam.security.contract.event.AccountChangeEvent;
-import com.softropic.payam.security.contract.event.AccountChangeUserInfo;
-import com.softropic.payam.security.contract.util.ShortCode;
+import com.softropic.payam.platform.security.contract.event.AccountChangeEvent;
+import com.softropic.payam.platform.security.contract.event.AccountChangeUserInfo;
+import com.softropic.payam.platform.security.contract.util.ShortCode;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

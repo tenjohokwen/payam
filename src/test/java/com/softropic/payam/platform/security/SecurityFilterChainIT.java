@@ -1,4 +1,4 @@
-package com.softropic.payam.security;
+package com.softropic.payam.platform.security;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.softropic.payam.common.HttpTestClient;

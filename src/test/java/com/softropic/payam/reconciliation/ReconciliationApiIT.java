@@ -2,7 +2,7 @@ package com.softropic.payam.reconciliation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.softropic.payam.config.TestConfig;
-import com.softropic.payam.security.common.util.SecurityConstants;
+import com.softropic.payam.platform.security.common.util.SecurityConstants;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

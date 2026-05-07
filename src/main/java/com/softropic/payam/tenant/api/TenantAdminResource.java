@@ -1,6 +1,6 @@
 package com.softropic.payam.tenant.api;
 
-import com.softropic.payam.security.common.util.SecurityConstants;
+import com.softropic.payam.platform.security.common.util.SecurityConstants;
 import com.softropic.payam.tenant.contract.ApiKeyDto;
 import com.softropic.payam.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.tenant.contract.TenantDetailDto;

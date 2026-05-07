@@ -1,1 +1,1 @@
-package com.softropic.payam.security;
+package com.softropic.payam.platform.security;

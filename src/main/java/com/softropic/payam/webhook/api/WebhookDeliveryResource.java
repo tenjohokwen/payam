@@ -1,6 +1,6 @@
 package com.softropic.payam.webhook.api;
 
-import com.softropic.payam.security.common.util.SecurityConstants;
+import com.softropic.payam.platform.security.common.util.SecurityConstants;
 import com.softropic.payam.webhook.repo.WebhookDeliveryLog;
 import com.softropic.payam.webhook.service.WebhookDeliveryService;
 

@@ -3,7 +3,7 @@ package com.softropic.payam.platform.api;
 import com.softropic.payam.platform.contract.PinDto;
 import com.softropic.payam.platform.contract.PlatformConfigDto;
 import com.softropic.payam.platform.service.PlatformConfigService;
-import com.softropic.payam.security.common.util.SecurityConstants;
+import com.softropic.payam.platform.security.common.util.SecurityConstants;
 
 import io.micrometer.observation.annotation.Observed;
 import jakarta.validation.Valid;

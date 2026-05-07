@@ -2,7 +2,7 @@ package com.softropic.payam.admin.api;
 
 import com.softropic.payam.admin.contract.HashChainAuditSummaryDto;
 import com.softropic.payam.admin.contract.HashChainResultDto;
-import com.softropic.payam.security.common.util.SecurityConstants;
+import com.softropic.payam.platform.security.common.util.SecurityConstants;
 import com.softropic.payam.transaction.service.EventLogService;
 import com.softropic.payam.transaction.service.EventLogService.AuditPageResult;
 

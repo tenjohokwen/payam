@@ -1,6 +1,6 @@
 package com.softropic.payam.tenant.config;
 
-import com.softropic.payam.security.config.AppEndpoints;
+import com.softropic.payam.platform.security.config.AppEndpoints;
 import com.softropic.payam.tenant.service.ApiKeyService;
 
 import org.springframework.context.annotation.Bean;

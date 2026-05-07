@@ -1,7 +1,7 @@
 package com.softropic.payam.admin.api;
 
 import com.softropic.payam.admin.service.PaymentMetricsService;
-import com.softropic.payam.security.common.util.SecurityConstants;
+import com.softropic.payam.platform.security.common.util.SecurityConstants;
 
 import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;

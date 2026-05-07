@@ -1,7 +1,7 @@
 package com.softropic.payam.admin.api;
 
 import com.softropic.payam.admin.contract.ProviderStatusDto;
-import com.softropic.payam.security.common.util.SecurityConstants;
+import com.softropic.payam.platform.security.common.util.SecurityConstants;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;

@@ -2,7 +2,7 @@ package com.softropic.payam.common.persistence;
 
 
 
-import com.softropic.payam.security.common.util.RequestIdProvider;
+import com.softropic.payam.platform.security.common.util.RequestIdProvider;
 
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreRemove;

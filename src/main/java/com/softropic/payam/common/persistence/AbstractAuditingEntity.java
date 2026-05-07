@@ -1,7 +1,7 @@
 package com.softropic.payam.common.persistence;
 
 
-import com.softropic.payam.security.common.util.SessionIdAuditEntityListener;
+import com.softropic.payam.platform.security.common.util.SessionIdAuditEntityListener;
 
 import org.hibernate.envers.Audited;
 import org.springframework.data.annotation.CreatedBy;

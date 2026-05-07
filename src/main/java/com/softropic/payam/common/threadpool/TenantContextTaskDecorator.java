@@ -1,6 +1,6 @@
 package com.softropic.payam.common.threadpool;
 
-import com.softropic.payam.security.common.util.TenantContext;
+import com.softropic.payam.platform.security.common.util.TenantContext;
 
 import org.springframework.core.task.TaskDecorator;
 

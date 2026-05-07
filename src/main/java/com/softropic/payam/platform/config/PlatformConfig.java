@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.config;
 
-import com.softropic.payam.security.contract.util.Cryptopher;
+import com.softropic.payam.platform.security.contract.util.Cryptopher;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;

@@ -3,7 +3,7 @@ package com.softropic.payam.e2e.admin;
 import com.softropic.payam.common.AdminLogin;
 import com.softropic.payam.e2e.AbstractPayamE2ETest;
 import com.softropic.payam.e2e.builder.TenantBuilder;
-import com.softropic.payam.security.service.LoginAttemptsService;
+import com.softropic.payam.platform.security.service.LoginAttemptsService;
 import com.softropic.payam.tenant.repo.TenantRepository;
 import com.softropic.payam.tenant.service.TenantService;
 
