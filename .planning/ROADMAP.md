@@ -625,7 +625,7 @@ Plans:
 - [x] 62-01-PLAN.md — PLAT-04: move health and ops to platform.monitoring (Wave 1, smallest, zero external callers)
 - [x] 62-02-PLAN.md — PLAT-03: merge email and alert into platform.notification (Wave 1, parallel with 62-01)
 - [x] 62-03-PLAN.md — PLAT-05: merge admin and flat-platform into platform.admin (Wave 2, includes platform.monitoring import cascade)
-- [ ] 62-04-PLAN.md — PLAT-01: move tenant to platform.tenant with infrastructure.web cascade (Wave 3)
+- [x] 62-04-PLAN.md — PLAT-01: move tenant to platform.tenant with infrastructure.web cascade (Wave 3)
 - [ ] 62-05-PLAN.md — PLAT-02: move security to platform.security with infrastructure.web cascade (Wave 4, largest, 145 prod files)
 
 ### Phase 63: Payment Domain Consolidation
@@ -728,7 +728,7 @@ Plans:
 | 59. v11 Javadoc & Tech Debt Cleanup | v11 | 1/1 | Complete | 2026-05-05 |
 | 60. CLAIM-05 E2E Coverage | v11 | 1/1 | Complete | 2026-05-05 |
 | 61. Infrastructure Layer Creation | v12 | 2/3 | Complete    | 2026-05-06 |
-| 62. Platform Layer Reorganization | v12 | 3/5 | In Progress|  |
+| 62. Platform Layer Reorganization | v12 | 4/5 | In Progress|  |
 | 63. Payment Domain Consolidation | v12 | 0/TBD | Not started | - |
 | 64. Provider Infrastructure Encapsulation | v12 | 0/TBD | Not started | - |
 | 65. Common Package Redistribution | v12 | 0/TBD | Not started | - |
