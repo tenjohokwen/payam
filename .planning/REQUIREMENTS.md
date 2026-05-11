@@ -13,7 +13,7 @@ Architectural reorganization from flat package explosion to explicit bounded con
 - [ ] **PAY-02**: `transaction` package (ledger, idempotency, transaction repository) is relocated to `payment.ledger` with all imports updated
 - [ ] **PAY-03**: `disbursement` package (payout orchestration) is relocated to `payment.disbursement` with all imports updated
 - [x] **PAY-04**: `fee` package (fee evaluation and rules) is relocated to `payment.fee` with all imports updated
-- [ ] **PAY-05**: `reconciliation` package (provider reconciliation) is relocated to `payment.reconciliation` with all imports updated
+- [x] **PAY-05**: `reconciliation` package (provider reconciliation) is relocated to `payment.reconciliation` with all imports updated
 - [ ] **PAY-06**: `fraud` package (fraud detection) is relocated to `payment.fraud` with all imports updated
 - [ ] **PAY-07**: `webhook` package (outbound delivery subsystem) is relocated to `payment.webhook` with all imports updated
 
@@ -71,7 +71,7 @@ Architectural reorganization from flat package explosion to explicit bounded con
 | PAY-02 | Phase 63 | Pending |
 | PAY-03 | Phase 63 | Pending |
 | PAY-04 | Phase 63 | Complete |
-| PAY-05 | Phase 63 | Pending |
+| PAY-05 | Phase 63 | Complete |
 | PAY-06 | Phase 63 | Pending |
 | PAY-07 | Phase 63 | Pending |
 | PROV-01 | Phase 64 | Pending |
