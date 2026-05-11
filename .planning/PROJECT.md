@@ -10,7 +10,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ## Current State
 
-v12 in progress — Phase 62 complete (2026-05-07). Platform layer reorganized: `platform.monitoring` (3 prod), `platform.notification` (30 prod), `platform.admin` (22 prod), `platform.tenant` (24 prod), `platform.security` (145 prod). All PLAT-01..05 requirements satisfied. Phase 63 (payment domain consolidation) is next.
+v12 in progress — Phase 63 complete (2026-05-11). Payment domain fully consolidated under `payment.*`: `payment.core` (collection flow), `payment.fee`, `payment.fraud`, `payment.reconciliation`, `payment.webhook`, `payment.disbursement`, `payment.ledger` (was `transaction`). All PAY-01..07 requirements satisfied. Phase 64 (provider infrastructure encapsulation) is next.
 
 ## Shipped Milestone: v11 Transaction-Backed Disbursements ✅
 
