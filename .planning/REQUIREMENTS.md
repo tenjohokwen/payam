@@ -19,7 +19,7 @@ Architectural reorganization from flat package explosion to explicit bounded con
 
 ### Provider Infrastructure (PROV)
 
-- [ ] **PROV-01**: `mtn` package is relocated to `payment.provider.mtn` (MTN clients, token services, callback controllers) with all imports updated
+- [x] **PROV-01**: `mtn` package is relocated to `payment.provider.mtn` (MTN clients, token services, callback controllers) with all imports updated
 - [ ] **PROV-02**: `orange` package is relocated to `payment.provider.orange` (Orange clients, token services, callback controllers) with all imports updated
 
 ### Platform Layer (PLAT)
@@ -74,7 +74,7 @@ Architectural reorganization from flat package explosion to explicit bounded con
 | PAY-05 | Phase 63 | Complete |
 | PAY-06 | Phase 63 | Complete |
 | PAY-07 | Phase 63 | Complete |
-| PROV-01 | Phase 64 | Pending |
+| PROV-01 | Phase 64 | Complete |
 | PROV-02 | Phase 64 | Pending |
 | PLAT-01 | Phase 62 | Complete |
 | PLAT-02 | Phase 62 | Complete |
