@@ -120,7 +120,7 @@ class Fee02RegressionTest {
     @Test
     void disbursementProviderPortsDoNotCreateTransactionRows() throws IOException {
         Path orange = SRC_MAIN_JAVA.resolve(
-            "com/softropic/payam/orange/service/OrangeMoneyPort.java");
+            "com/softropic/payam/payment/provider/orange/service/OrangeMoneyPort.java");
         Path mtn = SRC_MAIN_JAVA.resolve(
             "com/softropic/payam/payment/provider/mtn/service/MtnMoMoPort.java");
 

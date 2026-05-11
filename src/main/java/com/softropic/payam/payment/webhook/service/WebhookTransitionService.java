@@ -3,7 +3,7 @@ package com.softropic.payam.payment.webhook.service;
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.payment.provider.mtn.service.MtnStatusMapper;
-import com.softropic.payam.orange.service.OrangeStatusMapper;
+import com.softropic.payam.payment.provider.orange.service.OrangeStatusMapper;
 import com.softropic.payam.payment.ledger.contract.LedgerPosting;
 import com.softropic.payam.payment.ledger.contract.TransactionEventType;
 import com.softropic.payam.payment.ledger.contract.TransactionStatus;

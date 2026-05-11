@@ -20,7 +20,7 @@ import com.softropic.payam.payment.disbursement.repo.Disbursement;
 import com.softropic.payam.payment.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.payment.fraud.contract.FraudDecision;
 import com.softropic.payam.payment.provider.mtn.service.MtnMoMoPort;
-import com.softropic.payam.orange.service.OrangeMoneyPort;
+import com.softropic.payam.payment.provider.orange.service.OrangeMoneyPort;
 import com.softropic.payam.payment.core.contract.exception.UnknownMsisdnPrefixException;
 import com.softropic.payam.payment.core.service.MsisdnRouter;
 import com.softropic.payam.payment.ledger.contract.CachedResponse;

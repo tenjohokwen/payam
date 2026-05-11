@@ -1,8 +1,8 @@
 package com.softropic.payam.payment.disbursement.api;
 
 import com.softropic.payam.platform.admin.service.PaymentMetricsService;
-import com.softropic.payam.orange.contract.OrangeWebhookPayload;
-import com.softropic.payam.orange.service.OrangeMoneyPort;
+import com.softropic.payam.payment.provider.orange.contract.OrangeWebhookPayload;
+import com.softropic.payam.payment.provider.orange.service.OrangeMoneyPort;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

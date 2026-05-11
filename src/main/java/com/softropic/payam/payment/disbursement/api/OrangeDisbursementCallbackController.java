@@ -1,8 +1,8 @@
 package com.softropic.payam.payment.disbursement.api;
 
 import com.softropic.payam.platform.admin.service.PaymentMetricsService;
-import com.softropic.payam.orange.contract.OrangeWebhookPayload;
-import com.softropic.payam.orange.service.OrangeMoneyPort;
+import com.softropic.payam.payment.provider.orange.contract.OrangeWebhookPayload;
+import com.softropic.payam.payment.provider.orange.service.OrangeMoneyPort;
 
 import io.micrometer.observation.annotation.Observed;
 import org.slf4j.Logger;

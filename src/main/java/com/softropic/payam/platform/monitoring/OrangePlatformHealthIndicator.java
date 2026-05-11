@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.monitoring;
 
-import com.softropic.payam.orange.service.OrangeMoneyPort;
+import com.softropic.payam.payment.provider.orange.service.OrangeMoneyPort;
 import com.softropic.payam.platform.admin.contract.PlatformConfigDto;
 import com.softropic.payam.platform.admin.service.PlatformConfigService;
 

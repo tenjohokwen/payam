@@ -1,7 +1,7 @@
 package com.softropic.payam.platform.security.api;
 
 import com.softropic.payam.payment.provider.mtn.web.MtnIpWhitelistInterceptor;
-import com.softropic.payam.orange.web.OrangeIpWhitelistInterceptor;
+import com.softropic.payam.payment.provider.orange.web.OrangeIpWhitelistInterceptor;
 import com.softropic.payam.platform.security.infrastructure.jwt.JwtSecretService;
 import com.softropic.payam.platform.security.service.LoginAttemptsService;
 

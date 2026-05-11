@@ -184,8 +184,8 @@ class PaymentOrchestratorIT {
                 .waitDurationInOpenState(java.time.Duration.ofSeconds(30))
                 .permittedNumberOfCallsInHalfOpenState(3)
                 .ignoreExceptions(
-                    com.softropic.payam.orange.contract.exception.SubscriberInactiveException.class,
-                    com.softropic.payam.orange.contract.exception.PayTokenExpiredException.class)
+                    com.softropic.payam.payment.provider.orange.contract.exception.SubscriberInactiveException.class,
+                    com.softropic.payam.payment.provider.orange.contract.exception.PayTokenExpiredException.class)
                 .build());
     }
 

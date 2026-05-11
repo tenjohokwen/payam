@@ -1,6 +1,6 @@
 package com.softropic.payam.e2e.domain;
 
-import com.softropic.payam.orange.service.OrangeTimeUtil;
+import com.softropic.payam.payment.provider.orange.service.OrangeTimeUtil;
 
 import org.junit.jupiter.api.Test;
 

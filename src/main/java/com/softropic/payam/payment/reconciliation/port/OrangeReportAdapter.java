@@ -1,7 +1,7 @@
 package com.softropic.payam.payment.reconciliation.port;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.orange.service.OrangeMoneyPort;
+import com.softropic.payam.payment.provider.orange.service.OrangeMoneyPort;
 import com.softropic.payam.payment.ledger.repo.Transaction;
 
 import org.slf4j.Logger;

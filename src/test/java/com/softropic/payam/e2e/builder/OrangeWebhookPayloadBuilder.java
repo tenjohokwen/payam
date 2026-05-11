@@ -1,7 +1,7 @@
 package com.softropic.payam.e2e.builder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.softropic.payam.orange.contract.OrangeWebhookPayload;
+import com.softropic.payam.payment.provider.orange.contract.OrangeWebhookPayload;
 
 import java.time.Instant;
 import java.time.ZoneId;

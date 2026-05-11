@@ -4,7 +4,7 @@ import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.payment.provider.mtn.service.MtnMoMoPort;
-import com.softropic.payam.orange.service.OrangeMoneyPort;
+import com.softropic.payam.payment.provider.orange.service.OrangeMoneyPort;
 import com.softropic.payam.payment.reconciliation.repo.ReconciliationDiscrepancyRepository;
 import com.softropic.payam.payment.reconciliation.repo.ReconciliationReport;
 import com.softropic.payam.payment.reconciliation.repo.ReconciliationReportRepository;
