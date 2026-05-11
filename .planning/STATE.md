@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 63-05-PLAN.md
-last_updated: "2026-05-11T12:36:08.040Z"
+stopped_at: Completed 63-07-PLAN.md — Phase 63 payment domain consolidation complete (PAY-02 satisfied, all 7 domains under payment.* umbrella)
+last_updated: "2026-05-11T17:25:29.594Z"
 last_activity: 2026-05-11
 progress:
   total_phases: 36
-  completed_phases: 24
+  completed_phases: 25
   total_plans: 76
-  completed_plans: 74
+  completed_plans: 76
   percent: 0
 ---
 
@@ -75,6 +75,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 63-04]: transaction.* and disbursement.* imports inside webhook files preserved verbatim — PAY-02 and PAY-03 sweep these in later plans (Plans 07 and 06 respectively)
 - [Phase 63-05]: collection-flow-restricted regex (payment.{api,contract,repo,service}.) applied in Steps D and F — prevents touching payment.fee/fraud/reconciliation/webhook imports
 - [Phase 63-05]: PaymentOrchestratorIT import at new path (payment/core/) required explicit re-application of sed after the grep-based callers list pointed to old (deleted) path
+- [Phase 63-payment-domain-consolidation]: [Phase 63-07]: macOS sed \b word boundary silently fails — use explicit per-suffix patterns for package declaration rewrites
+- [Phase 63-payment-domain-consolidation]: [Phase 63-07]: FQN references in code bodies (not just imports) also require sed sweep — WebhookDoubleCheckHandler used FQNs in method bodies, not import statements
 
 ### v12 Phase Map
 
@@ -139,6 +141,7 @@ Key context carried forward for v10:
 | Phase 63 P03 | 8 | 1 tasks | 34 files |
 | Phase 63-payment-domain-consolidation P04 | 25 | 1 tasks | 29 files |
 | Phase 63-payment-domain-consolidation P05 | 24 | 1 tasks | 39 files |
+| Phase 63-payment-domain-consolidation P07 | 113 | 1 tasks | 132 files |
 
 ### Pending Todos
 
@@ -150,6 +153,6 @@ None — roadmap is defined, requirements are 100% mapped.
 
 ## Session Continuity
 
-Last session: 2026-05-11T12:36:01.213Z
-Stopped at: Completed 63-05-PLAN.md
+Last session: 2026-05-11T17:25:29.585Z
+Stopped at: Completed 63-07-PLAN.md — Phase 63 payment domain consolidation complete (PAY-02 satisfied, all 7 domains under payment.* umbrella)
 Resume: `/gsd:execute-phase 63` — Wave 3 (63-03 next plan)

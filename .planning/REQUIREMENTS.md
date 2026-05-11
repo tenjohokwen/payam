@@ -10,7 +10,7 @@ Architectural reorganization from flat package explosion to explicit bounded con
 ### Payment Bounded Context (PAY)
 
 - [x] **PAY-01**: `payment` package (collection orchestration, MSISDN routing) is relocated to `payment.core` with all imports updated
-- [ ] **PAY-02**: `transaction` package (ledger, idempotency, transaction repository) is relocated to `payment.ledger` with all imports updated
+- [x] **PAY-02**: `transaction` package (ledger, idempotency, transaction repository) is relocated to `payment.ledger` with all imports updated
 - [ ] **PAY-03**: `disbursement` package (payout orchestration) is relocated to `payment.disbursement` with all imports updated
 - [x] **PAY-04**: `fee` package (fee evaluation and rules) is relocated to `payment.fee` with all imports updated
 - [x] **PAY-05**: `reconciliation` package (provider reconciliation) is relocated to `payment.reconciliation` with all imports updated
@@ -68,7 +68,7 @@ Architectural reorganization from flat package explosion to explicit bounded con
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | PAY-01 | Phase 63 | Complete |
-| PAY-02 | Phase 63 | Pending |
+| PAY-02 | Phase 63 | Complete |
 | PAY-03 | Phase 63 | Pending |
 | PAY-04 | Phase 63 | Complete |
 | PAY-05 | Phase 63 | Complete |
