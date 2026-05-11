@@ -22,7 +22,7 @@ import com.softropic.payam.disbursement.contract.exception.VelocityExceededExcep
 import com.softropic.payam.disbursement.repo.Disbursement;
 import com.softropic.payam.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.disbursement.repo.DisbursementTransactionRefRepository;
-import com.softropic.payam.fraud.contract.FraudDecision;
+import com.softropic.payam.payment.fraud.contract.FraudDecision;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
 import com.softropic.payam.payment.contract.exception.UnknownMsisdnPrefixException;

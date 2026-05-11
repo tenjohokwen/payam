@@ -6,7 +6,7 @@ import com.softropic.payam.e2e.builder.MtnWebhookPayloadBuilder;
 import com.softropic.payam.e2e.builder.PaymentRequestBuilder;
 import com.softropic.payam.e2e.builder.TenantBuilder;
 import com.softropic.payam.e2e.verify.InvariantVerifier;
-import com.softropic.payam.fraud.service.FraudRuleCache;
+import com.softropic.payam.payment.fraud.service.FraudRuleCache;
 import com.softropic.payam.mtn.contract.MtnCallbackPayload;
 import com.softropic.payam.mtn.service.MtnStatusPollerJob;
 import com.softropic.payam.payment.contract.PaymentRequest;

@@ -1,4 +1,4 @@
-package com.softropic.payam.fraud.contract;
+package com.softropic.payam.payment.fraud.contract;
 
 /**
  * Enumeration of fraud velocity signals.

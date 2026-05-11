@@ -6,7 +6,7 @@ import com.softropic.payam.e2e.PlatformConfigInitializer;
 import com.softropic.payam.e2e.builder.PaymentRequestBuilder;
 import com.softropic.payam.e2e.builder.TenantBuilder;
 import com.softropic.payam.e2e.verify.InvariantVerifier;
-import com.softropic.payam.fraud.service.FraudRuleCache;
+import com.softropic.payam.payment.fraud.service.FraudRuleCache;
 import com.softropic.payam.orange.service.OrangeStatusPollerJob;
 import com.softropic.payam.payment.contract.PaymentRequest;
 import com.softropic.payam.payment.contract.PaymentResponse;

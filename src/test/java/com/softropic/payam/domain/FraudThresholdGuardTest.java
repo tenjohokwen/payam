@@ -2,12 +2,12 @@ package com.softropic.payam.domain;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.common.payment.PaymentCommand;
-import com.softropic.payam.fraud.contract.FraudDecision;
-import com.softropic.payam.fraud.contract.FraudSignal;
-import com.softropic.payam.fraud.repo.FraudRule;
-import com.softropic.payam.fraud.service.FraudRuleCache;
-import com.softropic.payam.fraud.service.FraudScoringService;
-import com.softropic.payam.fraud.service.VelocityCheckService;
+import com.softropic.payam.payment.fraud.contract.FraudDecision;
+import com.softropic.payam.payment.fraud.contract.FraudSignal;
+import com.softropic.payam.payment.fraud.repo.FraudRule;
+import com.softropic.payam.payment.fraud.service.FraudRuleCache;
+import com.softropic.payam.payment.fraud.service.FraudScoringService;
+import com.softropic.payam.payment.fraud.service.VelocityCheckService;
 
 import org.junit.jupiter.api.Test;
 

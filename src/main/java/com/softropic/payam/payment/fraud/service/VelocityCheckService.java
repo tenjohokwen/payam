@@ -1,6 +1,6 @@
-package com.softropic.payam.fraud.service;
+package com.softropic.payam.payment.fraud.service;
 
-import com.softropic.payam.fraud.contract.FraudSignal;
+import com.softropic.payam.payment.fraud.contract.FraudSignal;
 
 import io.github.bucket4j.BucketConfiguration;
 import io.github.bucket4j.distributed.proxy.ProxyManager;

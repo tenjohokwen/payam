@@ -1,9 +1,9 @@
-package com.softropic.payam.fraud.service;
+package com.softropic.payam.payment.fraud.service;
 
 import com.softropic.payam.common.payment.PaymentCommand;
-import com.softropic.payam.fraud.contract.FraudDecision;
-import com.softropic.payam.fraud.contract.FraudSignal;
-import com.softropic.payam.fraud.repo.FraudRule;
+import com.softropic.payam.payment.fraud.contract.FraudDecision;
+import com.softropic.payam.payment.fraud.contract.FraudSignal;
+import com.softropic.payam.payment.fraud.repo.FraudRule;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 

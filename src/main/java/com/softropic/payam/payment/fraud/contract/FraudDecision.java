@@ -1,4 +1,4 @@
-package com.softropic.payam.fraud.contract;
+package com.softropic.payam.payment.fraud.contract;
 
 /**
  * Result of a fraud evaluation for a payment attempt.

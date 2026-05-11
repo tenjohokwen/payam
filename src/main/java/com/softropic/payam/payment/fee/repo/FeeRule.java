@@ -23,7 +23,7 @@ import java.math.BigDecimal;
  * requiring a JVM restart. A {@code null} tenantId means the rule applies globally to all
  * tenants that do not have a more specific tenant-level rule.
  *
- * <p>Modelled after {@link com.softropic.payam.fraud.repo.FraudRule} — same
+ * <p>Modelled after {@link com.softropic.payam.payment.fraud.repo.FraudRule} — same
  * {@link AbstractAuditingEntity} base and immutable-entity pattern.
  */
 @Entity

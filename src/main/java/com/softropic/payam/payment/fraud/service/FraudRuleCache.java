@@ -1,7 +1,7 @@
-package com.softropic.payam.fraud.service;
+package com.softropic.payam.payment.fraud.service;
 
-import com.softropic.payam.fraud.repo.FraudRule;
-import com.softropic.payam.fraud.repo.FraudRuleRepository;
+import com.softropic.payam.payment.fraud.repo.FraudRule;
+import com.softropic.payam.payment.fraud.repo.FraudRuleRepository;
 
 import io.micrometer.observation.annotation.Observed;
 import jakarta.annotation.PostConstruct;

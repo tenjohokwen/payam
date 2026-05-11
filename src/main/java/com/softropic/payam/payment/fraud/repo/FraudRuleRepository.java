@@ -1,4 +1,4 @@
-package com.softropic.payam.fraud.repo;
+package com.softropic.payam.payment.fraud.repo;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

@@ -1,7 +1,7 @@
 package com.softropic.payam.disbursement.service;
 
 import com.softropic.payam.disbursement.repo.DisbursementRepository;
-import com.softropic.payam.fraud.contract.FraudDecision;
+import com.softropic.payam.payment.fraud.contract.FraudDecision;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

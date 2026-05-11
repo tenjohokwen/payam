@@ -1,15 +1,14 @@
-package com.softropic.payam.fraud;
+package com.softropic.payam.payment.fraud;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.softropic.payam.config.TestConfig;
-import com.softropic.payam.fraud.service.FraudRuleCache;
+import com.softropic.payam.payment.fraud.service.FraudRuleCache;
 import com.softropic.payam.payment.contract.PaymentResponse;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.service.TenantService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,6 +19,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -37,16 +37,17 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * OPS-02 integration test: proves that a retry using the same idempotency key returns the
- * cached response without consuming an additional velocity token.
+ *  Non-profile files (application.yaml, application.properties) share the same priority tier, within which application.properties from test resources wins — so the ${mtn.collection-base-url}/token/ expression is used, token URL → WireMock → test passes.
+ *   - Profile-specific files (application-dev.yaml) always have higher priority than any non-profile file, including src/test/resources/application.properties.
  *
- * <p>The idempotency replay path in {@code PaymentOrchestrator.initiate()} returns the cached
- * {@code PaymentResponse} immediately after {@code idempotencyService.checkAndReserve()} — before
- * {@code fraudScoringService.evaluate()} is ever called. This means no velocity tokens are consumed
- * on a replay, satisfying OPS-02.
+ * End-to-end integration test for fraud engine wired into POST /v1/payments.
  *
- * <p>Boilerplate copied verbatim from {@link FraudEngineIT} — same annotations, same setUp/tearDown,
- * same helpers. No mocking: uses only the real production path.
+ * <p>Verifies two FRAUD-01 requirements end-to-end:
+ * <ol>
+ *   <li>A payment from an IP exceeding the velocity threshold returns HTTP 422 with FRAUD_BLOCKED.
+ *       The block fires before any provider call — WireMock receives zero requests for the blocked payment.</li>
+ *   <li>A non-blocked payment results in a Transaction row with non-null risk_score in the DB.</li>
+ * </ol>
  */
 @ActiveProfiles({"dev", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -60,7 +61,7 @@ import static org.assertj.core.api.Assertions.assertThat;
     @ConfigureWireMock(name = "orange", baseUrlProperties = {"orange.base-url", "orange.pay-url"}),
     @ConfigureWireMock(name = "mtn",    baseUrlProperties = {"mtn.collection-base-url"})
 })
-class FraudVelocityOrderingIT {
+class FraudEngineIT {
 
     @InjectWireMock("mtn")
     WireMockServer mtnServer;
@@ -110,7 +111,7 @@ class FraudVelocityOrderingIT {
         fraudRuleCache.refreshRules();
 
         // Create tenant for this test
-        TenantService.TenantCreationResult provision = tenantService.createTenant("fraud-velocity-ordering-it-" + UUID.randomUUID(), ApiKeyEnvironment.PROD);
+        TenantService.TenantCreationResult provision = tenantService.createTenant("fraud-engine-it-" + UUID.randomUUID(), ApiKeyEnvironment.PROD);
         tenantId = provision.tenant().getId();
         apiKey = provision.rawKey();
 
@@ -148,69 +149,135 @@ class FraudVelocityOrderingIT {
         });
     }
 
+    // ---- Test 1 ----
+
     /**
-     * OPS-02: A retry with the same idempotency key returns the cached response without
-     * consuming an additional velocity token.
-     *
-     * Proof: Set MSISDN_VELOCITY threshold to 1. Send a successful first payment (consumes
-     * the one available MSISDN token). Send an IDENTICAL second payment with the SAME
-     * idempotency key — this hits the idempotency replay path in PaymentOrchestrator,
-     * returns the cached 202 without calling fraudScoringService.evaluate(), and therefore
-     * does NOT consume a second token. A THIRD payment with a NEW idempotency key is then
-     * sent — it must be BLOCKED (422 FRAUD_BLOCKED) proving only ONE token was consumed
-     * total (by the first call), not two.
+     * Velocity block — lower the MSISDN_VELOCITY threshold to 1 so that the 2nd request to the
+     * same MSISDN is blocked. Choosing MSISDN_VELOCITY avoids IP-header injection complexities
+     * (ForwardedHeaderFilter may strip or rewrite the Forwarded header). The block fires before
+     * any provider call. Asserts HTTP 422 with errorCode=FRAUD_BLOCKED.
      */
     @Test
-    @DisplayName("OPS-02: idempotency replay does not consume an additional velocity token")
-    void idempotencyReplay_doesNotConsumeAdditionalVelocityToken() {
-        // Lower MSISDN_VELOCITY threshold to 1 so the MSISDN bucket has exactly 1 token.
+    void velocityBlockReturns422() {
+        // Lower MSISDN_VELOCITY threshold to 1 so the 2nd request to the same MSISDN is blocked.
+        // Wrap in transactionTemplate to ensure the JDBC update commits before refreshRules() reads it.
         transactionTemplate.execute(status -> {
             jdbc.update("UPDATE main.fraud_rule SET threshold = 1 WHERE signal_name = 'MSISDN_VELOCITY'");
             return null;
         });
         fraudRuleCache.refreshRules();
 
-        // Stub MTN for a successful payment
+        // Stub MTN for the first (allowed) request
         mtnServer.stubFor(get(urlPathMatching("/v1_0/accountholder/MSISDN/.*/basicuserinfo"))
             .willReturn(okJson("{}")));
         mtnServer.stubFor(post(urlPathEqualTo("/v1_0/requesttopay"))
             .willReturn(aResponse().withStatus(202)));
 
-        String sharedMsisdn     = "+237671000020";
-        String sharedIdemKey    = "idem-ops02-replay-" + UUID.randomUUID();
-        String differentIdemKey = "idem-ops02-new-"   + UUID.randomUUID();
+        String msisdn = "+237671000001";
 
-        // --- Call 1: first payment, unique idempotency key → consumes the 1 available MSISDN token ---
-        String body1 = buildMtnRequest(sharedMsisdn, sharedIdemKey);
+        // First request — should pass (MSISDN_VELOCITY bucket has capacity=1, first request consumes it)
+        String body1 = buildMtnRequest(msisdn, "idem-fraud-001-" + UUID.randomUUID());
         ResponseEntity<PaymentResponse> resp1 = postPayment(body1);
         assertThat(resp1.getStatusCode().value())
-            .as("First request must be accepted (202) — MSISDN bucket has 1 token")
-            .isEqualTo(202);
+                .as("First request should be accepted (202)")
+                .isEqualTo(202);
 
-        // --- Call 2: SAME idempotency key → replay path; evaluate() NOT called; no token consumed ---
-        String body2 = buildMtnRequest(sharedMsisdn, sharedIdemKey);
+        // Reset WireMock request tracking but keep stubs — second request must NOT reach provider
+        mtnServer.resetRequests();
+
+        // Second request to same MSISDN — bucket exhausted, should be blocked before provider call
+        String body2 = buildMtnRequest(msisdn, "idem-fraud-002-" + UUID.randomUUID());
         ResponseEntity<PaymentResponse> resp2 = postPayment(body2);
-        assertThat(resp2.getStatusCode().value())
-            .as("Second request with SAME idempotency key must return cached 202 (replay path — no evaluate() called)")
-            .isEqualTo(202);
-        assertThat(resp2.getBody()).isNotNull();
-        assertThat(resp2.getBody().transactionId()).as("Replayed response must carry the same transactionId as the first response").isEqualTo(resp1.getBody().transactionId());
 
-        // --- Call 3: NEW idempotency key, same MSISDN → evaluate() called, bucket exhausted → BLOCKED ---
-        // If Call 2 had consumed a token, the bucket would now have -1 tokens and this would still
-        // be blocked. But the CRITICAL proof is that only ONE token was ever consumed (by Call 1).
-        // We verify this by confirming Call 3 IS blocked (proving Call 1 exhausted the single token)
-        // and that Call 2's replay returned the identical response to Call 1 (proving it took the
-        // idempotency cache path, not the fraud-evaluation path).
-        String body3 = buildMtnRequest(sharedMsisdn, differentIdemKey);
-        ResponseEntity<PaymentResponse> resp3 = postPayment(body3);
-        assertThat(resp3.getStatusCode().value())
-            .as("Third request with NEW idempotency key must be FRAUD_BLOCKED (422) — bucket exhausted by Call 1 only")
-            .isEqualTo(422);
-        assertThat(resp3.getBody()).isNotNull();
-        assertThat(resp3.getBody().errorCode())
-            .as("Error code must be FRAUD_BLOCKED")
-            .isEqualTo("FRAUD_BLOCKED");
+        assertThat(resp2.getStatusCode())
+                .as("Second request to same MSISDN should be blocked with 422")
+                .isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(resp2.getBody()).isNotNull();
+        assertThat(resp2.getBody().errorCode())
+                .as("Error code must be FRAUD_BLOCKED")
+                .isEqualTo("FRAUD_BLOCKED");
+
+        // Verify no provider call was made for the blocked request (fraud fires before dispatch)
+        mtnServer.verify(0, postRequestedFor(urlPathEqualTo("/v1_0/requesttopay")));
+
+        // Reset threshold back to default after test
+        transactionTemplate.execute(status -> {
+            jdbc.update("UPDATE main.fraud_rule SET threshold = 5 WHERE signal_name = 'MSISDN_VELOCITY'");
+            return null;
+        });
+        fraudRuleCache.refreshRules();
+    }
+
+    // ---- Test 2 ----
+
+    /**
+     * Normal payment — asserts that a non-blocked payment produces a Transaction row with
+     * non-null risk_score in the DB (FRAUD-01 score persistence requirement).
+     */
+    @Test
+    void normalPaymentHasRiskScoreInDb() {
+        // Stub MTN endpoints for a successful payment
+        mtnServer.stubFor(get(urlPathMatching("/v1_0/accountholder/MSISDN/.*/basicuserinfo"))
+            .willReturn(okJson("{}")));
+        mtnServer.stubFor(post(urlPathEqualTo("/v1_0/requesttopay"))
+            .willReturn(aResponse().withStatus(202)));
+
+        // Use a MSISDN not shared with velocityBlockReturns422 test to avoid cross-test velocity state
+        String body = buildMtnRequest("+237671000003", "idem-fraud-score-" + UUID.randomUUID());
+
+        ResponseEntity<PaymentResponse> response = postPayment(body);
+
+        assertThat(response.getStatusCode().value())
+                .as("Payment should be accepted (202)")
+                .isEqualTo(202);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().transactionId()).isNotNull();
+
+        // Query DB to confirm risk_score is persisted and within valid range
+        Integer score = jdbc.queryForObject(
+            "SELECT risk_score FROM main.transaction WHERE tenant_id = ? ORDER BY created_date DESC LIMIT 1",
+            Integer.class, tenantId);
+
+        assertThat(score)
+                .as("risk_score must not be null — fraud evaluation must run before provider dispatch")
+                .isNotNull();
+        assertThat(score)
+                .as("risk_score must be within valid range 0-100")
+                .isBetween(0, 100);
+    }
+
+    // ---- Test 3 ----
+
+    /**
+     * Device fingerprint persistence — asserts that a payment submitted with a non-null
+     * deviceFingerprint is stored in the device_fingerprint column of main.transaction (FRAUD-01).
+     */
+    @Test
+    void deviceFingerprintIsPersistedInDb() {
+        // Stub MTN endpoints for a successful payment
+        mtnServer.stubFor(get(urlPathMatching("/v1_0/accountholder/MSISDN/.*/basicuserinfo"))
+            .willReturn(okJson("{}")));
+        mtnServer.stubFor(post(urlPathEqualTo("/v1_0/requesttopay"))
+            .willReturn(aResponse().withStatus(202)));
+
+        // Use a MSISDN not shared with other tests to avoid cross-test velocity state
+        String body = buildMtnRequestWithFingerprint("+237671000005", "idem-fraud-fp-" + UUID.randomUUID(), "fp-test-abc123");
+
+        ResponseEntity<PaymentResponse> response = postPayment(body);
+
+        assertThat(response.getStatusCode().value())
+                .as("Payment should be accepted (202)")
+                .isEqualTo(202);
+        assertThat(response.getBody()).isNotNull();
+
+        // Query DB to confirm device_fingerprint is persisted with the submitted value
+        String deviceFingerprint = jdbc.queryForObject(
+            "SELECT device_fingerprint FROM main.transaction WHERE tenant_id = ? ORDER BY created_date DESC LIMIT 1",
+            String.class, tenantId);
+
+        assertThat(deviceFingerprint)
+                .as("device_fingerprint must not be null and must equal the submitted value")
+                .isEqualTo("fp-test-abc123");
     }
 
     // ---- helpers ----
@@ -233,8 +300,16 @@ class FraudVelocityOrderingIT {
     private String buildMtnRequest(String msisdn, String idempotencyKey) {
         return String.format(
             "{\"msisdn\":\"%s\",\"amount\":500,\"currency\":\"XAF\"," +
-            "\"externalReference\":\"TEST-FVO\",\"idempotencyKey\":\"%s\"}",
+            "\"externalReference\":\"TEST-FE\",\"idempotencyKey\":\"%s\"}",
             msisdn, idempotencyKey);
+    }
+
+    private String buildMtnRequestWithFingerprint(String msisdn, String idempotencyKey, String fingerprint) {
+        return String.format(
+            "{\"msisdn\":\"%s\",\"amount\":500,\"currency\":\"XAF\"," +
+            "\"externalReference\":\"TEST-FE\",\"idempotencyKey\":\"%s\"," +
+            "\"deviceFingerprint\":\"%s\"}",
+            msisdn, idempotencyKey, fingerprint);
     }
 
     private void deleteVelocityKeys() {
