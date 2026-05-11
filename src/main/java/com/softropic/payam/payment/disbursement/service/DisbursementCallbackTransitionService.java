@@ -7,7 +7,7 @@ import com.softropic.payam.payment.disbursement.contract.DisbursementStatus;
 import com.softropic.payam.payment.disbursement.contract.event.InsufficientFundsAlertEvent;
 import com.softropic.payam.payment.disbursement.repo.Disbursement;
 import com.softropic.payam.payment.disbursement.repo.DisbursementRepository;
-import com.softropic.payam.mtn.service.MtnStatusMapper;
+import com.softropic.payam.payment.provider.mtn.service.MtnStatusMapper;
 import com.softropic.payam.orange.service.OrangeStatusMapper;
 import com.softropic.payam.payment.ledger.contract.TransactionStatus;
 import com.softropic.payam.payment.webhook.contract.WebhookEnqueueRequestedEvent;

@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * OPS-01: Pins the @Transactional(timeout = 300) annotation on
  * {@link OrangeStatusPollerJob#executeInternal(JobExecutionContext)}.
  *
- * See {@link com.softropic.payam.mtn.service.MtnStatusPollerJobTimeoutTest} for rationale.
+ * See {@link com.softropic.payam.payment.provider.mtn.service.MtnStatusPollerJobTimeoutTest} for rationale.
  */
 class OrangeStatusPollerJobTimeoutTest {
 

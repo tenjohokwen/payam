@@ -4,7 +4,7 @@ import com.softropic.payam.e2e.AbstractPayamE2ETest;
 import com.softropic.payam.e2e.builder.MtnWebhookPayloadBuilder;
 import com.softropic.payam.e2e.builder.TenantBuilder;
 import com.softropic.payam.e2e.verify.InvariantVerifier;
-import com.softropic.payam.mtn.contract.MtnCallbackPayload;
+import com.softropic.payam.payment.provider.mtn.contract.MtnCallbackPayload;
 import com.softropic.payam.platform.tenant.repo.TenantRepository;
 import com.softropic.payam.platform.tenant.service.TenantService;
 

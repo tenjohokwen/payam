@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.monitoring;
 
-import com.softropic.payam.mtn.service.MtnMoMoPort;
+import com.softropic.payam.payment.provider.mtn.service.MtnMoMoPort;
 import com.softropic.payam.platform.admin.contract.PlatformConfigDto;
 import com.softropic.payam.platform.admin.service.PlatformConfigService;
 

@@ -1,6 +1,6 @@
 package com.softropic.payam.e2e.builder;
 
-import com.softropic.payam.mtn.contract.MtnCallbackPayload;
+import com.softropic.payam.payment.provider.mtn.contract.MtnCallbackPayload;
 
 import java.util.UUID;
 

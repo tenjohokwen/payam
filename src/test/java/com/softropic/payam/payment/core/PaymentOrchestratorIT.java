@@ -170,7 +170,7 @@ class PaymentOrchestratorIT {
             .minimumNumberOfCalls(5)
             .waitDurationInOpenState(java.time.Duration.ofSeconds(30))
             .permittedNumberOfCallsInHalfOpenState(3)
-            .ignoreExceptions(com.softropic.payam.mtn.contract.exception.MtnAccountInactiveException.class)
+            .ignoreExceptions(com.softropic.payam.payment.provider.mtn.contract.exception.MtnAccountInactiveException.class)
             .build();
         circuitBreakerRegistry.remove("mtn");
         circuitBreakerRegistry.circuitBreaker("mtn", smallWindowConfig);

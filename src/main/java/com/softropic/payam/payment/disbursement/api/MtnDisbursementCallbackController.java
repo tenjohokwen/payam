@@ -1,8 +1,8 @@
 package com.softropic.payam.payment.disbursement.api;
 
 import com.softropic.payam.platform.admin.service.PaymentMetricsService;
-import com.softropic.payam.mtn.contract.MtnCallbackPayload;
-import com.softropic.payam.mtn.service.MtnMoMoPort;
+import com.softropic.payam.payment.provider.mtn.contract.MtnCallbackPayload;
+import com.softropic.payam.payment.provider.mtn.service.MtnMoMoPort;
 
 import io.micrometer.observation.annotation.Observed;
 import jakarta.servlet.http.HttpServletRequest;

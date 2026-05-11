@@ -122,7 +122,7 @@ class Fee02RegressionTest {
         Path orange = SRC_MAIN_JAVA.resolve(
             "com/softropic/payam/orange/service/OrangeMoneyPort.java");
         Path mtn = SRC_MAIN_JAVA.resolve(
-            "com/softropic/payam/mtn/service/MtnMoMoPort.java");
+            "com/softropic/payam/payment/provider/mtn/service/MtnMoMoPort.java");
 
         for (Path port : List.of(orange, mtn)) {
             String content = Files.readString(port);

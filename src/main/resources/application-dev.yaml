@@ -250,7 +250,7 @@ resilience4j:
         slidingWindowSize: 10
         permittedNumberOfCallsInHalfOpenState: 3
         ignoreExceptions:
-          - com.softropic.payam.mtn.contract.exception.MtnAccountInactiveException
+          - com.softropic.payam.payment.provider.mtn.contract.exception.MtnAccountInactiveException
   retry:
     instances:
       orange:

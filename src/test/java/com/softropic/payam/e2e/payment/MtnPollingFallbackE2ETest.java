@@ -7,7 +7,7 @@ import com.softropic.payam.e2e.builder.PaymentRequestBuilder;
 import com.softropic.payam.e2e.builder.TenantBuilder;
 import com.softropic.payam.e2e.verify.CacheVerifier;
 import com.softropic.payam.e2e.verify.InvariantVerifier;
-import com.softropic.payam.mtn.service.MtnStatusPollerJob;
+import com.softropic.payam.payment.provider.mtn.service.MtnStatusPollerJob;
 import com.softropic.payam.payment.core.contract.PaymentRequest;
 import com.softropic.payam.payment.core.contract.PaymentResponse;
 import com.softropic.payam.platform.tenant.repo.TenantRepository;

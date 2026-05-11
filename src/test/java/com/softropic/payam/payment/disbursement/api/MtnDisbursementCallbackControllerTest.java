@@ -2,8 +2,8 @@ package com.softropic.payam.payment.disbursement.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.softropic.payam.platform.admin.service.PaymentMetricsService;
-import com.softropic.payam.mtn.contract.MtnCallbackPayload;
-import com.softropic.payam.mtn.service.MtnMoMoPort;
+import com.softropic.payam.payment.provider.mtn.contract.MtnCallbackPayload;
+import com.softropic.payam.payment.provider.mtn.service.MtnMoMoPort;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
