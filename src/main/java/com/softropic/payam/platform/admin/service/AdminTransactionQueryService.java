@@ -3,10 +3,10 @@ package com.softropic.payam.platform.admin.service;
 import com.softropic.payam.platform.admin.contract.EventLogEntryDto;
 import com.softropic.payam.platform.admin.contract.TransactionDetailDto;
 import com.softropic.payam.platform.admin.contract.TransactionSummaryDto;
-import com.softropic.payam.transaction.repo.PaymentEventLog;
-import com.softropic.payam.transaction.repo.PaymentEventLogRepository;
-import com.softropic.payam.transaction.repo.Transaction;
-import com.softropic.payam.transaction.repo.TransactionRepository;
+import com.softropic.payam.payment.ledger.repo.PaymentEventLog;
+import com.softropic.payam.payment.ledger.repo.PaymentEventLogRepository;
+import com.softropic.payam.payment.ledger.repo.Transaction;
+import com.softropic.payam.payment.ledger.repo.TransactionRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;

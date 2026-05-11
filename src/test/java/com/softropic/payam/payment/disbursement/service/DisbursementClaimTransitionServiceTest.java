@@ -1,7 +1,7 @@
-package com.softropic.payam.disbursement.service;
+package com.softropic.payam.payment.disbursement.service;
 
-import com.softropic.payam.disbursement.contract.DisbursementRefStatus;
-import com.softropic.payam.disbursement.repo.DisbursementTransactionRefRepository;
+import com.softropic.payam.payment.disbursement.contract.DisbursementRefStatus;
+import com.softropic.payam.payment.disbursement.repo.DisbursementTransactionRefRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

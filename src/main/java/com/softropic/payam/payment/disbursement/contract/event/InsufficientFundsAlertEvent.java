@@ -1,4 +1,4 @@
-package com.softropic.payam.disbursement.contract.event;
+package com.softropic.payam.payment.disbursement.contract.event;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 

@@ -1,7 +1,7 @@
-package com.softropic.payam.disbursement.contract;
+package com.softropic.payam.payment.disbursement.contract;
 
 /**
- * Lifecycle state for a {@link com.softropic.payam.disbursement.repo.DisbursementTransactionRef}
+ * Lifecycle state for a {@link com.softropic.payam.payment.disbursement.repo.DisbursementTransactionRef}
  * row — the per-collection-transaction claim that backs a disbursement (v11 TXN-03, CLAIM-01..05).
  *
  * <p>State semantics:

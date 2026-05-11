@@ -3,11 +3,11 @@ package com.softropic.payam.mtn.service;
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.mtn.config.MtnMoMoConfig;
 import com.softropic.payam.mtn.contract.exception.MtnApiException;
-import com.softropic.payam.transaction.contract.TransactionEventType;
-import com.softropic.payam.transaction.contract.TransactionStatus;
-import com.softropic.payam.transaction.repo.Transaction;
-import com.softropic.payam.transaction.repo.TransactionRepository;
-import com.softropic.payam.transaction.service.EventLogService;
+import com.softropic.payam.payment.ledger.contract.TransactionEventType;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.repo.Transaction;
+import com.softropic.payam.payment.ledger.repo.TransactionRepository;
+import com.softropic.payam.payment.ledger.service.EventLogService;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
@@ -150,7 +150,7 @@ public class MtnStatusPollerJob extends QuartzJobBean {
         }
 
         try {
-            var result = tx.getEffectiveFlow() == com.softropic.payam.transaction.contract.LedgerFlow.COLLECTION
+            var result = tx.getEffectiveFlow() == com.softropic.payam.payment.ledger.contract.LedgerFlow.COLLECTION
                 ? mtnMoMoPort.getCollectionTransactionStatus(tx.getProviderRef())
                 : mtnMoMoPort.getDisbursementTransactionStatus(tx.getProviderRef());
             if (!result.pending()) {

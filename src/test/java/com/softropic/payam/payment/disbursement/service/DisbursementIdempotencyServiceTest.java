@@ -1,8 +1,8 @@
-package com.softropic.payam.disbursement.service;
+package com.softropic.payam.payment.disbursement.service;
 
-import com.softropic.payam.transaction.contract.CachedResponse;
-import com.softropic.payam.transaction.repo.IdempotencyKey;
-import com.softropic.payam.transaction.repo.IdempotencyKeyRepository;
+import com.softropic.payam.payment.ledger.contract.CachedResponse;
+import com.softropic.payam.payment.ledger.repo.IdempotencyKey;
+import com.softropic.payam.payment.ledger.repo.IdempotencyKeyRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

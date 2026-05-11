@@ -1,6 +1,6 @@
-package com.softropic.payam.disbursement.repo;
+package com.softropic.payam.payment.disbursement.repo;
 
-import com.softropic.payam.disbursement.contract.DisbursementRefStatus;
+import com.softropic.payam.payment.disbursement.contract.DisbursementRefStatus;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

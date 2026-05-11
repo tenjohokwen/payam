@@ -1,7 +1,7 @@
 package com.softropic.payam.domain;
 
-import com.softropic.payam.transaction.contract.TransactionStatus;
-import com.softropic.payam.transaction.contract.exception.IllegalStateTransitionException;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.contract.exception.IllegalStateTransitionException;
 
 import org.junit.jupiter.api.Test;
 

@@ -1,6 +1,6 @@
-package com.softropic.payam.disbursement.repo;
+package com.softropic.payam.payment.disbursement.repo;
 
-import com.softropic.payam.disbursement.contract.DisbursementStatus;
+import com.softropic.payam.payment.disbursement.contract.DisbursementStatus;
 
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
@@ -34,7 +34,7 @@ public interface DisbursementRepository extends JpaRepository<Disbursement, Long
      * failed/pending disbursements do not skew the baseline.
      */
     @Query("SELECT d.amount FROM Disbursement d WHERE d.tenantId = :tenantId " +
-           "AND d.disbursementStatus = com.softropic.payam.disbursement.contract.DisbursementStatus.SUCCESS " +
+           "AND d.disbursementStatus = com.softropic.payam.payment.disbursement.contract.DisbursementStatus.SUCCESS " +
            "ORDER BY d.amount ASC")
     List<BigDecimal> findSuccessfulAmountsForTenant(@Param("tenantId") Long tenantId);
 

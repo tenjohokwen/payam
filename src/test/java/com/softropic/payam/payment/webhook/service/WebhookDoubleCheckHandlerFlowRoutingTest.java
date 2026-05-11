@@ -5,7 +5,7 @@ import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.payment.disbursement.service.DisbursementCallbackTransitionService;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
-import com.softropic.payam.transaction.contract.LedgerFlow;
+import com.softropic.payam.payment.ledger.contract.LedgerFlow;
 import com.softropic.payam.payment.webhook.contract.WebhookReceivedEvent;
 
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;

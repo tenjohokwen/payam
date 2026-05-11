@@ -20,7 +20,7 @@ public interface ProviderReportPort {
      * @param reportDate  The date being reconciled (for context/logging)
      * @return A record with the provider's status and amount, or unconfirmed=true if unreachable
      */
-    ProviderTransactionRecord fetchProviderRecord(com.softropic.payam.transaction.repo.Transaction tx, LocalDate reportDate);
+    ProviderTransactionRecord fetchProviderRecord(com.softropic.payam.payment.ledger.repo.Transaction tx, LocalDate reportDate);
 
     /**
      * The provider this port implementation handles.

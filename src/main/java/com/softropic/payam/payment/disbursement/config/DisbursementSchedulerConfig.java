@@ -1,7 +1,7 @@
-package com.softropic.payam.disbursement.config;
+package com.softropic.payam.payment.disbursement.config;
 
-import com.softropic.payam.disbursement.service.DisbursementAdminApprovalExpiryJob;
-import com.softropic.payam.disbursement.service.DisbursementExpiryJob;
+import com.softropic.payam.payment.disbursement.service.DisbursementAdminApprovalExpiryJob;
+import com.softropic.payam.payment.disbursement.service.DisbursementExpiryJob;
 
 import org.quartz.CronScheduleBuilder;
 import org.quartz.DateBuilder;

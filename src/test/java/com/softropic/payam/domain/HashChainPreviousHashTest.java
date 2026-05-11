@@ -1,8 +1,8 @@
 package com.softropic.payam.domain;
 
-import com.softropic.payam.transaction.contract.TransactionEventType;
-import com.softropic.payam.transaction.contract.TransactionStatus;
-import com.softropic.payam.transaction.repo.PaymentEventLog;
+import com.softropic.payam.payment.ledger.contract.TransactionEventType;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.repo.PaymentEventLog;
 
 import org.junit.jupiter.api.Test;
 

@@ -1,7 +1,7 @@
 package com.softropic.payam.domain;
 
-import com.softropic.payam.transaction.repo.IdempotencyKeyRepository;
-import com.softropic.payam.transaction.service.IdempotencyService;
+import com.softropic.payam.payment.ledger.repo.IdempotencyKeyRepository;
+import com.softropic.payam.payment.ledger.service.IdempotencyService;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.StringRedisTemplate;

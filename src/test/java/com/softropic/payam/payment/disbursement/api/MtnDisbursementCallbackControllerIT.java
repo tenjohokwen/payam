@@ -1,13 +1,13 @@
-package com.softropic.payam.disbursement.api;
+package com.softropic.payam.payment.disbursement.api;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.config.TestConfig;
-import com.softropic.payam.disbursement.contract.DisbursementStatus;
-import com.softropic.payam.disbursement.repo.Disbursement;
-import com.softropic.payam.disbursement.repo.DisbursementRepository;
-import com.softropic.payam.disbursement.repo.MerchantWalletBalance;
-import com.softropic.payam.disbursement.repo.MerchantWalletBalanceRepository;
+import com.softropic.payam.payment.disbursement.contract.DisbursementStatus;
+import com.softropic.payam.payment.disbursement.repo.Disbursement;
+import com.softropic.payam.payment.disbursement.repo.DisbursementRepository;
+import com.softropic.payam.payment.disbursement.repo.MerchantWalletBalance;
+import com.softropic.payam.payment.disbursement.repo.MerchantWalletBalanceRepository;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

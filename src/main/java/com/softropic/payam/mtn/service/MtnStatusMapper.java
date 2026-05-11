@@ -1,6 +1,6 @@
 package com.softropic.payam.mtn.service;
 
-import com.softropic.payam.transaction.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
 
 public final class MtnStatusMapper {
 

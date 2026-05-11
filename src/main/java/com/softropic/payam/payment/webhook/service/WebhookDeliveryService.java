@@ -3,7 +3,7 @@ package com.softropic.payam.payment.webhook.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.softropic.payam.platform.tenant.repo.Tenant;
 import com.softropic.payam.platform.tenant.repo.TenantRepository;
-import com.softropic.payam.transaction.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
 import com.softropic.payam.payment.webhook.contract.OutboundWebhookPayload;
 import com.softropic.payam.payment.webhook.contract.WebhookEnqueueRequestedEvent;
 import com.softropic.payam.payment.webhook.repo.WebhookDeliveryLog;

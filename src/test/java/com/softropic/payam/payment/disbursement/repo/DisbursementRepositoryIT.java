@@ -1,8 +1,8 @@
-package com.softropic.payam.disbursement.repo;
+package com.softropic.payam.payment.disbursement.repo;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.config.TestConfig;
-import com.softropic.payam.disbursement.contract.DisbursementStatus;
+import com.softropic.payam.payment.disbursement.contract.DisbursementStatus;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;

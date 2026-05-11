@@ -1,8 +1,8 @@
-package com.softropic.payam.disbursement.repo;
+package com.softropic.payam.payment.disbursement.repo;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
-import com.softropic.payam.disbursement.contract.DisbursementStatus;
+import com.softropic.payam.payment.disbursement.contract.DisbursementStatus;
 
 import org.hibernate.envers.Audited;
 

@@ -11,10 +11,10 @@ import com.softropic.payam.orange.service.OrangeMoneyPort;
 import com.softropic.payam.platform.admin.service.PlatformConfigService;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.service.TenantService;
-import com.softropic.payam.transaction.contract.LedgerDirection;
-import com.softropic.payam.transaction.repo.LedgerEntry;
-import com.softropic.payam.transaction.repo.LedgerEntryRepository;
-import com.softropic.payam.transaction.service.TransactionService;
+import com.softropic.payam.payment.ledger.contract.LedgerDirection;
+import com.softropic.payam.payment.ledger.repo.LedgerEntry;
+import com.softropic.payam.payment.ledger.repo.LedgerEntryRepository;
+import com.softropic.payam.payment.ledger.service.TransactionService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

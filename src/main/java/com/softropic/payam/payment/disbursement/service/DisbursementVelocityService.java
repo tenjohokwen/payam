@@ -1,7 +1,7 @@
-package com.softropic.payam.disbursement.service;
+package com.softropic.payam.payment.disbursement.service;
 
-import com.softropic.payam.disbursement.contract.exception.DailyLimitExceededException;
-import com.softropic.payam.disbursement.contract.exception.VelocityExceededException;
+import com.softropic.payam.payment.disbursement.contract.exception.DailyLimitExceededException;
+import com.softropic.payam.payment.disbursement.contract.exception.VelocityExceededException;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.BucketConfiguration;

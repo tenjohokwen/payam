@@ -1,4 +1,4 @@
-package com.softropic.payam.disbursement.repo;
+package com.softropic.payam.payment.disbursement.repo;
 
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,10 +1,10 @@
-package com.softropic.payam.disbursement.service;
+package com.softropic.payam.payment.disbursement.service;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.disbursement.contract.DisbursementRequest;
-import com.softropic.payam.disbursement.contract.DisbursementStatus;
-import com.softropic.payam.disbursement.repo.Disbursement;
-import com.softropic.payam.disbursement.repo.DisbursementRepository;
+import com.softropic.payam.payment.disbursement.contract.DisbursementRequest;
+import com.softropic.payam.payment.disbursement.contract.DisbursementStatus;
+import com.softropic.payam.payment.disbursement.repo.Disbursement;
+import com.softropic.payam.payment.disbursement.repo.DisbursementRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

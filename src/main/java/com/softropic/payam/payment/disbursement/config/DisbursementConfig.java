@@ -1,4 +1,4 @@
-package com.softropic.payam.disbursement.config;
+package com.softropic.payam.payment.disbursement.config;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;

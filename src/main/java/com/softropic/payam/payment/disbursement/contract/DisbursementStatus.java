@@ -1,6 +1,6 @@
-package com.softropic.payam.disbursement.contract;
+package com.softropic.payam.payment.disbursement.contract;
 
-import com.softropic.payam.transaction.contract.exception.IllegalStateTransitionException;
+import com.softropic.payam.payment.ledger.contract.exception.IllegalStateTransitionException;
 
 import java.util.EnumSet;
 import java.util.Set;

@@ -1,9 +1,9 @@
 package com.softropic.payam.platform.monitoring;
 
 import com.softropic.payam.config.TestConfig;
-import com.softropic.payam.transaction.contract.TransactionEventType;
-import com.softropic.payam.transaction.contract.TransactionStatus;
-import com.softropic.payam.transaction.service.EventLogService;
+import com.softropic.payam.payment.ledger.contract.TransactionEventType;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.service.EventLogService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

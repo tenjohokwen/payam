@@ -3,8 +3,8 @@ package com.softropic.payam.platform.admin.api;
 import com.softropic.payam.platform.admin.contract.HashChainAuditSummaryDto;
 import com.softropic.payam.platform.admin.contract.HashChainResultDto;
 import com.softropic.payam.platform.security.common.util.SecurityConstants;
-import com.softropic.payam.transaction.service.EventLogService;
-import com.softropic.payam.transaction.service.EventLogService.AuditPageResult;
+import com.softropic.payam.payment.ledger.service.EventLogService;
+import com.softropic.payam.payment.ledger.service.EventLogService.AuditPageResult;
 
 import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;

@@ -1,23 +1,23 @@
-package com.softropic.payam.disbursement.service;
+package com.softropic.payam.payment.disbursement.service;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.config.TestDataCleaner;
-import com.softropic.payam.disbursement.contract.DisbursementOrchestratorError;
-import com.softropic.payam.disbursement.contract.DisbursementRefStatus;
-import com.softropic.payam.disbursement.contract.DisbursementRequest;
-import com.softropic.payam.disbursement.contract.DisbursementResponse;
-import com.softropic.payam.disbursement.repo.DisbursementRepository;
-import com.softropic.payam.disbursement.repo.DisbursementTransactionRefRepository;
-import com.softropic.payam.disbursement.repo.MerchantWalletBalanceRepository;
+import com.softropic.payam.payment.disbursement.contract.DisbursementOrchestratorError;
+import com.softropic.payam.payment.disbursement.contract.DisbursementRefStatus;
+import com.softropic.payam.payment.disbursement.contract.DisbursementRequest;
+import com.softropic.payam.payment.disbursement.contract.DisbursementResponse;
+import com.softropic.payam.payment.disbursement.repo.DisbursementRepository;
+import com.softropic.payam.payment.disbursement.repo.DisbursementTransactionRefRepository;
+import com.softropic.payam.payment.disbursement.repo.MerchantWalletBalanceRepository;
 import com.softropic.payam.platform.admin.service.PlatformConfigService;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.service.TenantService;
-import com.softropic.payam.transaction.contract.LedgerFlow;
-import com.softropic.payam.transaction.contract.TransactionStatus;
-import com.softropic.payam.transaction.repo.Transaction;
-import com.softropic.payam.transaction.repo.TransactionRepository;
+import com.softropic.payam.payment.ledger.contract.LedgerFlow;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.repo.Transaction;
+import com.softropic.payam.payment.ledger.repo.TransactionRepository;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

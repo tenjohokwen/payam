@@ -1,10 +1,10 @@
 package com.softropic.payam.domain;
 
-import com.softropic.payam.transaction.contract.LedgerDirection;
-import com.softropic.payam.transaction.contract.LedgerPosting;
-import com.softropic.payam.transaction.repo.LedgerEntry;
-import com.softropic.payam.transaction.repo.LedgerEntryRepository;
-import com.softropic.payam.transaction.service.LedgerService;
+import com.softropic.payam.payment.ledger.contract.LedgerDirection;
+import com.softropic.payam.payment.ledger.contract.LedgerPosting;
+import com.softropic.payam.payment.ledger.repo.LedgerEntry;
+import com.softropic.payam.payment.ledger.repo.LedgerEntryRepository;
+import com.softropic.payam.payment.ledger.service.LedgerService;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;

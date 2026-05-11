@@ -1,19 +1,19 @@
-package com.softropic.payam.disbursement.service;
+package com.softropic.payam.payment.disbursement.service;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.config.TestDataCleaner;
-import com.softropic.payam.disbursement.contract.DisbursementOrchestratorError;
-import com.softropic.payam.disbursement.contract.DisbursementRefStatus;
-import com.softropic.payam.disbursement.contract.DisbursementRequest;
-import com.softropic.payam.disbursement.contract.DisbursementResponse;
-import com.softropic.payam.disbursement.repo.DisbursementTransactionRefRepository;
+import com.softropic.payam.payment.disbursement.contract.DisbursementOrchestratorError;
+import com.softropic.payam.payment.disbursement.contract.DisbursementRefStatus;
+import com.softropic.payam.payment.disbursement.contract.DisbursementRequest;
+import com.softropic.payam.payment.disbursement.contract.DisbursementResponse;
+import com.softropic.payam.payment.disbursement.repo.DisbursementTransactionRefRepository;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.service.TenantService;
-import com.softropic.payam.transaction.contract.LedgerFlow;
-import com.softropic.payam.transaction.contract.TransactionStatus;
-import com.softropic.payam.transaction.repo.Transaction;
-import com.softropic.payam.transaction.repo.TransactionRepository;
+import com.softropic.payam.payment.ledger.contract.LedgerFlow;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.repo.Transaction;
+import com.softropic.payam.payment.ledger.repo.TransactionRepository;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -303,7 +303,7 @@ class DisbursementClaimConcurrencyIT {
      *
      * <p>Thread A submits transactions in order [t1, t2, t3]; thread B submits in [t3, t2, t1].
      * Without the {@code ORDER BY transactionId ASC} inside
-     * {@link com.softropic.payam.transaction.repo.TransactionRepository#findByTransactionIdsForUpdate},
+     * {@link com.softropic.payam.payment.ledger.repo.TransactionRepository#findByTransactionIdsForUpdate},
      * thread A would lock t1 first while thread B locks t3 first, then each waits for the
      * other's held lock — a classic deadlock cycle. The repository's ascending sort ensures
      * both threads acquire locks in the same sequence, eliminating the cycle.

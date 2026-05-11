@@ -1,4 +1,4 @@
-package com.softropic.payam.disbursement.repo;
+package com.softropic.payam.payment.disbursement.repo;
 
 import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
 

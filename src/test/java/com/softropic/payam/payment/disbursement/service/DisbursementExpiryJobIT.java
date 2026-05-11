@@ -1,12 +1,12 @@
-package com.softropic.payam.disbursement.service;
+package com.softropic.payam.payment.disbursement.service;
 
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.config.TestDataCleaner;
-import com.softropic.payam.disbursement.contract.DisbursementStatus;
-import com.softropic.payam.disbursement.repo.Disbursement;
-import com.softropic.payam.disbursement.repo.DisbursementRepository;
-import com.softropic.payam.disbursement.repo.MerchantWalletBalance;
-import com.softropic.payam.disbursement.repo.MerchantWalletBalanceRepository;
+import com.softropic.payam.payment.disbursement.contract.DisbursementStatus;
+import com.softropic.payam.payment.disbursement.repo.Disbursement;
+import com.softropic.payam.payment.disbursement.repo.DisbursementRepository;
+import com.softropic.payam.payment.disbursement.repo.MerchantWalletBalance;
+import com.softropic.payam.payment.disbursement.repo.MerchantWalletBalanceRepository;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.service.TenantService;
 

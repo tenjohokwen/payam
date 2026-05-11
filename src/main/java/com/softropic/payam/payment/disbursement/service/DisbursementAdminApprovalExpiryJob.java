@@ -1,10 +1,10 @@
-package com.softropic.payam.disbursement.service;
+package com.softropic.payam.payment.disbursement.service;
 
-import com.softropic.payam.disbursement.config.DisbursementProperties;
-import com.softropic.payam.disbursement.contract.DisbursementRefStatus;
-import com.softropic.payam.disbursement.contract.DisbursementStatus;
-import com.softropic.payam.disbursement.repo.Disbursement;
-import com.softropic.payam.disbursement.repo.DisbursementRepository;
+import com.softropic.payam.payment.disbursement.config.DisbursementProperties;
+import com.softropic.payam.payment.disbursement.contract.DisbursementRefStatus;
+import com.softropic.payam.payment.disbursement.contract.DisbursementStatus;
+import com.softropic.payam.payment.disbursement.repo.Disbursement;
+import com.softropic.payam.payment.disbursement.repo.DisbursementRepository;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 

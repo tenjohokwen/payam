@@ -1,11 +1,11 @@
-package com.softropic.payam.disbursement.service;
+package com.softropic.payam.payment.disbursement.service;
 
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.config.TestDataCleaner;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.service.TenantService;
-import com.softropic.payam.transaction.contract.CachedResponse;
-import com.softropic.payam.transaction.service.IdempotencyService;
+import com.softropic.payam.payment.ledger.contract.CachedResponse;
+import com.softropic.payam.payment.ledger.service.IdempotencyService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

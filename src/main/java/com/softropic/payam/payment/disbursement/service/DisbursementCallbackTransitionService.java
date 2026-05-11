@@ -1,15 +1,15 @@
-package com.softropic.payam.disbursement.service;
+package com.softropic.payam.payment.disbursement.service;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.common.payment.ProviderResult;
-import com.softropic.payam.disbursement.contract.DisbursementRefStatus;
-import com.softropic.payam.disbursement.contract.DisbursementStatus;
-import com.softropic.payam.disbursement.contract.event.InsufficientFundsAlertEvent;
-import com.softropic.payam.disbursement.repo.Disbursement;
-import com.softropic.payam.disbursement.repo.DisbursementRepository;
+import com.softropic.payam.payment.disbursement.contract.DisbursementRefStatus;
+import com.softropic.payam.payment.disbursement.contract.DisbursementStatus;
+import com.softropic.payam.payment.disbursement.contract.event.InsufficientFundsAlertEvent;
+import com.softropic.payam.payment.disbursement.repo.Disbursement;
+import com.softropic.payam.payment.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.mtn.service.MtnStatusMapper;
 import com.softropic.payam.orange.service.OrangeStatusMapper;
-import com.softropic.payam.transaction.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
 import com.softropic.payam.payment.webhook.contract.WebhookEnqueueRequestedEvent;
 import com.softropic.payam.payment.webhook.contract.WebhookReceivedEvent;
 

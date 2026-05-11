@@ -1,8 +1,8 @@
-package com.softropic.payam.disbursement.service;
+package com.softropic.payam.payment.disbursement.service;
 
-import com.softropic.payam.disbursement.contract.exception.InsufficientBalanceException;
-import com.softropic.payam.disbursement.repo.MerchantWalletBalance;
-import com.softropic.payam.disbursement.repo.MerchantWalletBalanceRepository;
+import com.softropic.payam.payment.disbursement.contract.exception.InsufficientBalanceException;
+import com.softropic.payam.payment.disbursement.repo.MerchantWalletBalance;
+import com.softropic.payam.payment.disbursement.repo.MerchantWalletBalanceRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

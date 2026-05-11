@@ -3,8 +3,8 @@ package com.softropic.payam.platform.admin.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.softropic.payam.platform.admin.contract.MetricsSnapshotDto;
-import com.softropic.payam.transaction.contract.TransactionStatus;
-import com.softropic.payam.transaction.repo.TransactionRepository;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.repo.TransactionRepository;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;

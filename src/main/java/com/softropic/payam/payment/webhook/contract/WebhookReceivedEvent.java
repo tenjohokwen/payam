@@ -1,7 +1,7 @@
 package com.softropic.payam.payment.webhook.contract;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.transaction.contract.LedgerFlow;
+import com.softropic.payam.payment.ledger.contract.LedgerFlow;
 
 /**
  * Internal Spring event published after an inbound webhook dedup check passes.

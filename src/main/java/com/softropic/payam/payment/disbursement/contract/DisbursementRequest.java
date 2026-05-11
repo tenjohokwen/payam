@@ -1,4 +1,4 @@
-package com.softropic.payam.disbursement.contract;
+package com.softropic.payam.payment.disbursement.contract;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;

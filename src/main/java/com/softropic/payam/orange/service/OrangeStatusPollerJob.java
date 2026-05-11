@@ -4,11 +4,11 @@ import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.orange.config.OrangeMoneyConfig;
 import com.softropic.payam.orange.contract.exception.OrangeApiException;
 import com.softropic.payam.orange.contract.exception.PayTokenExpiredException;
-import com.softropic.payam.transaction.contract.TransactionEventType;
-import com.softropic.payam.transaction.contract.TransactionStatus;
-import com.softropic.payam.transaction.repo.Transaction;
-import com.softropic.payam.transaction.repo.TransactionRepository;
-import com.softropic.payam.transaction.service.EventLogService;
+import com.softropic.payam.payment.ledger.contract.TransactionEventType;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.repo.Transaction;
+import com.softropic.payam.payment.ledger.repo.TransactionRepository;
+import com.softropic.payam.payment.ledger.service.EventLogService;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
@@ -167,7 +167,7 @@ public class OrangeStatusPollerJob extends QuartzJobBean {
         }
 
         try {
-            var result = tx.getEffectiveFlow() == com.softropic.payam.transaction.contract.LedgerFlow.COLLECTION
+            var result = tx.getEffectiveFlow() == com.softropic.payam.payment.ledger.contract.LedgerFlow.COLLECTION
                 ? orangeMoneyPort.getCollectionTransactionStatus(tx.getPayToken())
                 : orangeMoneyPort.getDisbursementTransactionStatus(tx.getPayToken());
             if (!result.pending()) {

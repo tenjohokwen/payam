@@ -13,12 +13,12 @@ import com.softropic.payam.mtn.contract.dto.TransferStatusResponse;
 import com.softropic.payam.mtn.contract.exception.MtnAccountInactiveException;
 import com.softropic.payam.mtn.contract.exception.MtnApiException;
 import com.softropic.payam.mtn.infrastructure.MtnMoMoClient;
-import com.softropic.payam.transaction.contract.LedgerPosting;
-import com.softropic.payam.transaction.contract.TransactionEventType;
-import com.softropic.payam.transaction.contract.TransactionStatus;
-import com.softropic.payam.transaction.repo.TransactionRepository;
-import com.softropic.payam.transaction.service.EventLogService;
-import com.softropic.payam.transaction.service.LedgerService;
+import com.softropic.payam.payment.ledger.contract.LedgerPosting;
+import com.softropic.payam.payment.ledger.contract.TransactionEventType;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.repo.TransactionRepository;
+import com.softropic.payam.payment.ledger.service.EventLogService;
+import com.softropic.payam.payment.ledger.service.LedgerService;
 
 import java.math.BigDecimal;
 
@@ -275,7 +275,7 @@ public class MtnMoMoPort implements MobileMoneyPort {
             String providerRef = tx.getProviderRef(); // referenceId UUID stored by initiateMerchantPayment
             String txId = tx.getTransactionId();
             String traceId = tx.getTraceId();
-            com.softropic.payam.transaction.contract.LedgerFlow flow = tx.getEffectiveFlow();
+            com.softropic.payam.payment.ledger.contract.LedgerFlow flow = tx.getEffectiveFlow();
             // Publish inside a transaction boundary so @TransactionalEventListener(AFTER_COMMIT) fires
             transactionTemplate.execute(status -> {
                 eventPublisher.publishEvent(new WebhookReceivedEvent(
@@ -340,7 +340,7 @@ public class MtnMoMoPort implements MobileMoneyPort {
                     com.softropic.payam.common.payment.MobilePaymentProvider.MTN,
                     providerRef,
                     dsbId,    // traceId — disbursementId doubles as traceId for callbacks
-                    com.softropic.payam.transaction.contract.LedgerFlow.DISBURSEMENT
+                    com.softropic.payam.payment.ledger.contract.LedgerFlow.DISBURSEMENT
                 ));
                 return null;
             });

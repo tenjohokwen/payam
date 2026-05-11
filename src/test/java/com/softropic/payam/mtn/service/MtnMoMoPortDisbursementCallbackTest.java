@@ -6,10 +6,10 @@ import com.softropic.payam.payment.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.mtn.config.MtnMoMoConfig;
 import com.softropic.payam.mtn.contract.MtnCallbackPayload;
 import com.softropic.payam.mtn.infrastructure.MtnMoMoClient;
-import com.softropic.payam.transaction.contract.LedgerFlow;
-import com.softropic.payam.transaction.repo.TransactionRepository;
-import com.softropic.payam.transaction.service.EventLogService;
-import com.softropic.payam.transaction.service.LedgerService;
+import com.softropic.payam.payment.ledger.contract.LedgerFlow;
+import com.softropic.payam.payment.ledger.repo.TransactionRepository;
+import com.softropic.payam.payment.ledger.service.EventLogService;
+import com.softropic.payam.payment.ledger.service.LedgerService;
 import com.softropic.payam.payment.webhook.contract.WebhookReceivedEvent;
 
 import org.junit.jupiter.api.BeforeEach;

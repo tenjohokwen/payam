@@ -1,4 +1,4 @@
-package com.softropic.payam.disbursement.contract;
+package com.softropic.payam.payment.disbursement.contract;
 
 import com.softropic.payam.common.exception.ErrorCode;
 
@@ -29,7 +29,7 @@ public enum DisbursementOrchestratorError implements ErrorCode {
 
     /**
      * Merchant wallet balance is insufficient to cover the disbursement amount plus fee.
-     * Triggered by {@link com.softropic.payam.disbursement.service.WalletBalanceService#checkAndReserve}.
+     * Triggered by {@link com.softropic.payam.payment.disbursement.service.WalletBalanceService#checkAndReserve}.
      * Maps to HTTP 422.
      */
     INSUFFICIENT_BALANCE,

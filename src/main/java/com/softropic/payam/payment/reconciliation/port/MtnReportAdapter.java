@@ -2,7 +2,7 @@ package com.softropic.payam.payment.reconciliation.port;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
-import com.softropic.payam.transaction.repo.Transaction;
+import com.softropic.payam.payment.ledger.repo.Transaction;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +41,7 @@ public class MtnReportAdapter implements ProviderReportPort {
     public ProviderTransactionRecord fetchProviderRecord(Transaction tx, LocalDate reportDate) {
         String providerRef = tx.getProviderRef();
         try {
-            var result = tx.getEffectiveFlow() == com.softropic.payam.transaction.contract.LedgerFlow.COLLECTION
+            var result = tx.getEffectiveFlow() == com.softropic.payam.payment.ledger.contract.LedgerFlow.COLLECTION
                 ? mtnMoMoPort.getCollectionTransactionStatus(providerRef)
                 : mtnMoMoPort.getDisbursementTransactionStatus(providerRef);
             // MTN status API does not return amount; providerAmount stays null

@@ -1,10 +1,10 @@
-package com.softropic.payam.disbursement.api;
+package com.softropic.payam.payment.disbursement.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.config.TestDataCleaner;
-import com.softropic.payam.disbursement.repo.DisbursementRepository;
+import com.softropic.payam.payment.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.platform.admin.service.PlatformConfigService;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.service.TenantService;

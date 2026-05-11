@@ -1,6 +1,6 @@
 package com.softropic.payam.payment.webhook.contract;
 
-import com.softropic.payam.transaction.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
 
 import java.math.BigDecimal;
 

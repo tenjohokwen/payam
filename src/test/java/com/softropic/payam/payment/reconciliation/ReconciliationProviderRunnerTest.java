@@ -7,9 +7,9 @@ import com.softropic.payam.payment.reconciliation.repo.ReconciliationDiscrepancy
 import com.softropic.payam.payment.reconciliation.repo.ReconciliationReport;
 import com.softropic.payam.payment.reconciliation.repo.ReconciliationReportRepository;
 import com.softropic.payam.payment.reconciliation.service.ReconciliationProviderRunner;
-import com.softropic.payam.transaction.repo.Transaction;
-import com.softropic.payam.transaction.repo.TransactionRepository;
-import com.softropic.payam.transaction.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.repo.Transaction;
+import com.softropic.payam.payment.ledger.repo.TransactionRepository;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

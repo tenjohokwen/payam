@@ -1,4 +1,4 @@
-package com.softropic.payam.disbursement.service;
+package com.softropic.payam.payment.disbursement.service;
 
 import org.junit.jupiter.api.Test;
 

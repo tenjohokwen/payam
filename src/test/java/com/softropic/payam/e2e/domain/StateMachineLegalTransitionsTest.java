@@ -4,10 +4,10 @@ import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.e2e.AbstractPayamE2ETest;
 import com.softropic.payam.e2e.builder.TenantBuilder;
 import com.softropic.payam.platform.tenant.service.TenantService;
-import com.softropic.payam.transaction.contract.TransactionStatus;
-import com.softropic.payam.transaction.contract.exception.IllegalStateTransitionException;
-import com.softropic.payam.transaction.repo.Transaction;
-import com.softropic.payam.transaction.repo.TransactionRepository;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.contract.exception.IllegalStateTransitionException;
+import com.softropic.payam.payment.ledger.repo.Transaction;
+import com.softropic.payam.payment.ledger.repo.TransactionRepository;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

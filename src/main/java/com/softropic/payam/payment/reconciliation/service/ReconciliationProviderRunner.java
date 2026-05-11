@@ -9,8 +9,8 @@ import com.softropic.payam.payment.reconciliation.repo.ReconciliationDiscrepancy
 import com.softropic.payam.payment.reconciliation.repo.ReconciliationDiscrepancyRepository;
 import com.softropic.payam.payment.reconciliation.repo.ReconciliationReport;
 import com.softropic.payam.payment.reconciliation.repo.ReconciliationReportRepository;
-import com.softropic.payam.transaction.repo.Transaction;
-import com.softropic.payam.transaction.repo.TransactionRepository;
+import com.softropic.payam.payment.ledger.repo.Transaction;
+import com.softropic.payam.payment.ledger.repo.TransactionRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

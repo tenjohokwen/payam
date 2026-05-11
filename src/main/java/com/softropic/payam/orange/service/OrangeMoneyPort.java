@@ -15,12 +15,12 @@ import com.softropic.payam.orange.contract.dto.SubscriberInfoResponse;
 import com.softropic.payam.orange.contract.exception.PayTokenExpiredException;
 import com.softropic.payam.orange.infrastructure.OrangeMoneyClient;
 import com.softropic.payam.platform.admin.service.PlatformConfigService;
-import com.softropic.payam.transaction.contract.LedgerPosting;
-import com.softropic.payam.transaction.contract.TransactionEventType;
-import com.softropic.payam.transaction.contract.TransactionStatus;
-import com.softropic.payam.transaction.repo.TransactionRepository;
-import com.softropic.payam.transaction.service.EventLogService;
-import com.softropic.payam.transaction.service.LedgerService;
+import com.softropic.payam.payment.ledger.contract.LedgerPosting;
+import com.softropic.payam.payment.ledger.contract.TransactionEventType;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.repo.TransactionRepository;
+import com.softropic.payam.payment.ledger.service.EventLogService;
+import com.softropic.payam.payment.ledger.service.LedgerService;
 import com.softropic.payam.payment.webhook.contract.WebhookReceivedEvent;
 
 import org.slf4j.Logger;
@@ -266,7 +266,7 @@ public class OrangeMoneyPort implements MobileMoneyPort {
                 kv("transactionId", txId),
                 kv("externalReference", tx.getExternalReference()),
                 kv("providerStatus", payload.getStatus()));
-            com.softropic.payam.transaction.contract.LedgerFlow flow = tx.getEffectiveFlow();
+            com.softropic.payam.payment.ledger.contract.LedgerFlow flow = tx.getEffectiveFlow();
             // Publish inside a transaction boundary so @TransactionalEventListener(AFTER_COMMIT) fires
             transactionTemplate.execute(status -> {
                 eventPublisher.publishEvent(new WebhookReceivedEvent(
@@ -343,7 +343,7 @@ public class OrangeMoneyPort implements MobileMoneyPort {
                     com.softropic.payam.common.payment.MobilePaymentProvider.ORANGE,
                     payToken,
                     dsbId,    // traceId — disbursementId doubles as traceId for callbacks
-                    com.softropic.payam.transaction.contract.LedgerFlow.DISBURSEMENT
+                    com.softropic.payam.payment.ledger.contract.LedgerFlow.DISBURSEMENT
                 ));
                 return null;
             });

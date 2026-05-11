@@ -95,7 +95,7 @@ class PaymentOrchestratorIT {
     com.softropic.payam.payment.fee.service.FeeEvaluationService feeSpy;
 
     @MockitoSpyBean
-    com.softropic.payam.transaction.repo.TransactionRepository txRepoSpy;
+    com.softropic.payam.payment.ledger.repo.TransactionRepository txRepoSpy;
 
     @LocalServerPort
     int serverPort;

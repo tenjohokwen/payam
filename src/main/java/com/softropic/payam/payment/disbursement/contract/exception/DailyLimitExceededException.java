@@ -1,4 +1,4 @@
-package com.softropic.payam.disbursement.contract.exception;
+package com.softropic.payam.payment.disbursement.contract.exception;
 
 /**
  * Thrown by DisbursementVelocityService.checkMsisdnDailyLimit when the per-(tenant,MSISDN)

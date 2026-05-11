@@ -1,7 +1,7 @@
-package com.softropic.payam.disbursement.service;
+package com.softropic.payam.payment.disbursement.service;
 
-import com.softropic.payam.transaction.contract.CachedResponse;
-import com.softropic.payam.transaction.repo.IdempotencyKeyRepository;
+import com.softropic.payam.payment.ledger.contract.CachedResponse;
+import com.softropic.payam.payment.ledger.repo.IdempotencyKeyRepository;
 
 import io.hypersistence.tsid.TSID;
 import org.slf4j.Logger;
@@ -20,7 +20,7 @@ import java.util.Optional;
  * Disbursement-namespaced idempotency service.
  *
  * <p>Uses Redis prefix {@code "idempotency:dsb:"} — distinct from the collection
- * {@link com.softropic.payam.transaction.service.IdempotencyService} prefix
+ * {@link com.softropic.payam.payment.ledger.service.IdempotencyService} prefix
  * {@code "idempotency:"}. This prevents key collision when a tenant submits the
  * same idempotency key for a payment AND a disbursement.
  *

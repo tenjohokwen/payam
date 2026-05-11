@@ -9,7 +9,7 @@ import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.service.TenantService;
-import com.softropic.payam.transaction.service.TransactionService;
+import com.softropic.payam.payment.ledger.service.TransactionService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

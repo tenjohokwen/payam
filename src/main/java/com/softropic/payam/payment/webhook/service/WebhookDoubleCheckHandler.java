@@ -57,11 +57,11 @@ public class WebhookDoubleCheckHandler {
         ProviderResult result;
         try {
             if (event.provider() == MobilePaymentProvider.ORANGE) {
-                result = event.flow() == com.softropic.payam.transaction.contract.LedgerFlow.COLLECTION
+                result = event.flow() == com.softropic.payam.payment.ledger.contract.LedgerFlow.COLLECTION
                     ? orangeMoneyPort.getCollectionTransactionStatus(event.providerRef())
                     : orangeMoneyPort.getDisbursementTransactionStatus(event.providerRef());
             } else {
-                result = event.flow() == com.softropic.payam.transaction.contract.LedgerFlow.COLLECTION
+                result = event.flow() == com.softropic.payam.payment.ledger.contract.LedgerFlow.COLLECTION
                     ? mtnMoMoPort.getCollectionTransactionStatus(event.providerRef())
                     : mtnMoMoPort.getDisbursementTransactionStatus(event.providerRef());
             }
@@ -96,7 +96,7 @@ public class WebhookDoubleCheckHandler {
         // COLLECTION continues to WebhookTransitionService (ledger posting on SUCCESS happens
         // inside its REQUIRES_NEW transaction). Both beans are separate from this handler so
         // @Transactional is honoured by Spring AOP (self-invocation would bypass the proxy).
-        if (event.flow() == com.softropic.payam.transaction.contract.LedgerFlow.DISBURSEMENT) {
+        if (event.flow() == com.softropic.payam.payment.ledger.contract.LedgerFlow.DISBURSEMENT) {
             disbursementCallbackTransitionService.applyDisbursementTransition(event, result);
         } else {
             webhookTransitionService.applyFinalTransition(event, result);

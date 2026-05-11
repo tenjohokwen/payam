@@ -1,7 +1,7 @@
 package com.softropic.payam.payment.webhook.repo;
 
 import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
-import com.softropic.payam.transaction.contract.TransactionStatus;
+import com.softropic.payam.payment.ledger.contract.TransactionStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;

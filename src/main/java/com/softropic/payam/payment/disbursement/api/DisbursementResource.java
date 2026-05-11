@@ -1,14 +1,14 @@
-package com.softropic.payam.disbursement.api;
+package com.softropic.payam.payment.disbursement.api;
 
 import com.softropic.payam.common.exception.ResourceNotFoundException;
-import com.softropic.payam.disbursement.contract.DisbursementListItem;
-import com.softropic.payam.disbursement.contract.DisbursementOrchestratorError;
-import com.softropic.payam.disbursement.contract.DisbursementRequest;
-import com.softropic.payam.disbursement.contract.DisbursementResponse;
-import com.softropic.payam.disbursement.contract.DisbursementStatus;
-import com.softropic.payam.disbursement.repo.Disbursement;
-import com.softropic.payam.disbursement.repo.DisbursementRepository;
-import com.softropic.payam.disbursement.service.DisbursementOrchestrator;
+import com.softropic.payam.payment.disbursement.contract.DisbursementListItem;
+import com.softropic.payam.payment.disbursement.contract.DisbursementOrchestratorError;
+import com.softropic.payam.payment.disbursement.contract.DisbursementRequest;
+import com.softropic.payam.payment.disbursement.contract.DisbursementResponse;
+import com.softropic.payam.payment.disbursement.contract.DisbursementStatus;
+import com.softropic.payam.payment.disbursement.repo.Disbursement;
+import com.softropic.payam.payment.disbursement.repo.DisbursementRepository;
+import com.softropic.payam.payment.disbursement.service.DisbursementOrchestrator;
 import com.softropic.payam.platform.tenant.contract.TenantPrincipal;
 
 import io.micrometer.observation.annotation.Observed;
