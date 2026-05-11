@@ -1,7 +1,7 @@
-package com.softropic.payam.fee.service;
+package com.softropic.payam.payment.fee.service;
 
-import com.softropic.payam.fee.repo.FeeRule;
-import com.softropic.payam.fee.repo.FeeRuleRepository;
+import com.softropic.payam.payment.fee.repo.FeeRule;
+import com.softropic.payam.payment.fee.repo.FeeRuleRepository;
 
 import io.micrometer.observation.annotation.Observed;
 import jakarta.annotation.PostConstruct;

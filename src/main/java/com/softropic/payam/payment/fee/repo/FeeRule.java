@@ -1,7 +1,7 @@
-package com.softropic.payam.fee.repo;
+package com.softropic.payam.payment.fee.repo;
 
 import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
-import com.softropic.payam.fee.contract.FeeType;
+import com.softropic.payam.payment.fee.contract.FeeType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -19,7 +19,7 @@ import java.math.BigDecimal;
 /**
  * Fee rule entity — stores fee configuration for a tenant or globally (when tenantId is null).
  *
- * <p>Rules are hot-reloaded by {@link com.softropic.payam.fee.service.FeeRuleCache} without
+ * <p>Rules are hot-reloaded by {@link com.softropic.payam.payment.fee.service.FeeRuleCache} without
  * requiring a JVM restart. A {@code null} tenantId means the rule applies globally to all
  * tenants that do not have a more specific tenant-level rule.
  *

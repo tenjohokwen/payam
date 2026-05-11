@@ -7,7 +7,7 @@ import com.softropic.payam.common.payment.PaymentCommand;
 import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.common.util.JsonUtil;
 import com.softropic.payam.platform.admin.service.PaymentMetricsService;
-import com.softropic.payam.fee.service.FeeEvaluationService;
+import com.softropic.payam.payment.fee.service.FeeEvaluationService;
 import com.softropic.payam.fraud.contract.FraudDecision;
 import com.softropic.payam.fraud.service.FraudScoringService;
 import com.softropic.payam.mtn.contract.exception.MtnAccountInactiveException;

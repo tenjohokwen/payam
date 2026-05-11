@@ -1,4 +1,4 @@
-package com.softropic.payam.fee.repo;
+package com.softropic.payam.payment.fee.repo;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Repository for {@link FeeRule} entities.
  *
- * <p>Used by {@link com.softropic.payam.fee.service.FeeRuleCache} to load enabled rules
+ * <p>Used by {@link com.softropic.payam.payment.fee.service.FeeRuleCache} to load enabled rules
  * on startup and on scheduled refresh intervals.
  */
 public interface FeeRuleRepository extends JpaRepository<FeeRule, Long> {

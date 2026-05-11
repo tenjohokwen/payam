@@ -1,9 +1,9 @@
-package com.softropic.payam.fee.api;
+package com.softropic.payam.payment.fee.api;
 
-import com.softropic.payam.fee.contract.FeeType;
-import com.softropic.payam.fee.repo.FeeRule;
-import com.softropic.payam.fee.repo.FeeRuleRepository;
-import com.softropic.payam.fee.service.FeeRuleCache;
+import com.softropic.payam.payment.fee.contract.FeeType;
+import com.softropic.payam.payment.fee.repo.FeeRule;
+import com.softropic.payam.payment.fee.repo.FeeRuleRepository;
+import com.softropic.payam.payment.fee.service.FeeRuleCache;
 import com.softropic.payam.platform.security.common.util.SecurityConstants;
 
 import io.micrometer.observation.annotation.Observed;

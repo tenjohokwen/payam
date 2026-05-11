@@ -1,7 +1,7 @@
-package com.softropic.payam.fee.contract;
+package com.softropic.payam.payment.fee.contract;
 
 /**
- * Fee calculation type for a {@link com.softropic.payam.fee.repo.FeeRule}.
+ * Fee calculation type for a {@link com.softropic.payam.payment.fee.repo.FeeRule}.
  *
  * <ul>
  *   <li>{@link #FEE_FIXED} — a flat amount stored in {@code fixed_amount} regardless of payment amount</li>

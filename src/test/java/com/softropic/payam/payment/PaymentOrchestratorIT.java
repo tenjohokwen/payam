@@ -2,7 +2,7 @@ package com.softropic.payam.payment;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.softropic.payam.config.TestConfig;
-import com.softropic.payam.fee.service.FeeRuleCache;
+import com.softropic.payam.payment.fee.service.FeeRuleCache;
 import com.softropic.payam.payment.contract.PaymentResponse;
 import com.softropic.payam.platform.admin.service.PlatformConfigService;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
@@ -92,7 +92,7 @@ class PaymentOrchestratorIT {
 
 
     @MockitoSpyBean
-    com.softropic.payam.fee.service.FeeEvaluationService feeSpy;
+    com.softropic.payam.payment.fee.service.FeeEvaluationService feeSpy;
 
     @MockitoSpyBean
     com.softropic.payam.transaction.repo.TransactionRepository txRepoSpy;

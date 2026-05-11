@@ -17,7 +17,7 @@ import lombok.experimental.SuperBuilder;
  * <p>One row per provider (ORANGE, MTN). Pre-seeded by Flyway V17 with empty MSISDNs;
  * updated at runtime via {@link PlatformConfigRepository} without app restart.
  *
- * <p>Modelled after {@link com.softropic.payam.fee.repo.FeeRule} — same
+ * <p>Modelled after {@link com.softropic.payam.payment.fee.repo.FeeRule} — same
  * {@link AbstractAuditingEntity} base and immutable-field pattern.
  */
 @Entity

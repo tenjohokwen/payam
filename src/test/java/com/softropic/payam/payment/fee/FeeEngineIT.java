@@ -1,8 +1,8 @@
-package com.softropic.payam.fee;
+package com.softropic.payam.payment.fee;
 
 import com.softropic.payam.config.TestConfig;
-import com.softropic.payam.fee.service.FeeEvaluationService;
-import com.softropic.payam.fee.service.FeeRuleCache;
+import com.softropic.payam.payment.fee.service.FeeEvaluationService;
+import com.softropic.payam.payment.fee.service.FeeRuleCache;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.service.TenantService;
 
