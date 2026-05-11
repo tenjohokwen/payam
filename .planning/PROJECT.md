@@ -10,7 +10,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ## Current State
 
-v12 in progress — Phase 63 complete (2026-05-11). Payment domain fully consolidated under `payment.*`: `payment.core` (collection flow), `payment.fee`, `payment.fraud`, `payment.reconciliation`, `payment.webhook`, `payment.disbursement`, `payment.ledger` (was `transaction`). All PAY-01..07 requirements satisfied. Phase 64 (provider infrastructure encapsulation) is next.
+v12 in progress — Phase 64 complete (2026-05-11). Both flat provider packages encapsulated: `payment.provider.mtn` (23 prod + 5 test files) and `payment.provider.orange` (26 prod + 6 test files). Zero stale `mtn.*` or `orange.*` references remain anywhere in `src/`. All PROV-01, PROV-02 requirements satisfied. Phase 65 (common package redistribution) is next.
 
 ## Shipped Milestone: v11 Transaction-Backed Disbursements ✅
 
