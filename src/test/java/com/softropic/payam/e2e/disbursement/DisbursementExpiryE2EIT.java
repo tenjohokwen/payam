@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.config.TestDataCleaner;
-import com.softropic.payam.disbursement.repo.MerchantWalletBalance;
-import com.softropic.payam.disbursement.repo.MerchantWalletBalanceRepository;
-import com.softropic.payam.disbursement.service.DisbursementExpiryJob;
+import com.softropic.payam.payment.disbursement.repo.MerchantWalletBalance;
+import com.softropic.payam.payment.disbursement.repo.MerchantWalletBalanceRepository;
+import com.softropic.payam.payment.disbursement.service.DisbursementExpiryJob;
 import com.softropic.payam.platform.admin.service.PlatformConfigService;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.service.TenantService;
@@ -275,9 +275,9 @@ class DisbursementExpiryE2EIT {
      * lock until ops manually reconciles the underlying transactions with the provider.
      *
      * <p>The production invariant is enforced by omission:
-     * {@link com.softropic.payam.disbursement.service.DisbursementCallbackTransitionService}
+     * {@link com.softropic.payam.payment.disbursement.service.DisbursementCallbackTransitionService}
      * only calls {@code claimTransitionService.transitionClaims} for SUCCESS and FAILED
-     * targets; {@link com.softropic.payam.disbursement.service.DisbursementExpiryJob}
+     * targets; {@link com.softropic.payam.payment.disbursement.service.DisbursementExpiryJob}
      * only handles {@code PENDING_CONFIRMATION} (never {@code PROCESSING}). This test
      * proves the invariant holds against the real database.
      *

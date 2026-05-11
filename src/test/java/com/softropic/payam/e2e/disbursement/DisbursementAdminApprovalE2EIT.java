@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.config.TestDataCleaner;
-import com.softropic.payam.disbursement.service.DisbursementAdminApprovalExpiryJob;
+import com.softropic.payam.payment.disbursement.service.DisbursementAdminApprovalExpiryJob;
 import com.softropic.payam.platform.admin.service.PlatformConfigService;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.service.TenantService;

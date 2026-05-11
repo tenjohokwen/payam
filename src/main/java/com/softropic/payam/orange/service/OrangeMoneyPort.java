@@ -4,7 +4,7 @@ import com.softropic.payam.common.payment.MobileMoneyPort;
 import com.softropic.payam.common.payment.PaymentCommand;
 import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.common.payment.SubscriberStatus;
-import com.softropic.payam.disbursement.repo.DisbursementRepository;
+import com.softropic.payam.payment.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.orange.config.OrangeMoneyConfig;
 import com.softropic.payam.orange.contract.OrangeWebhookPayload;
 import com.softropic.payam.orange.contract.dto.CashoutRequest;
@@ -330,7 +330,7 @@ public class OrangeMoneyPort implements MobileMoneyPort {
             kv("providerStatus", status));
 
         // Look up Disbursement by providerRef (Orange payToken) first; fall back to merchant reference
-        java.util.Optional<com.softropic.payam.disbursement.repo.Disbursement> dsbOpt =
+        java.util.Optional<com.softropic.payam.payment.disbursement.repo.Disbursement> dsbOpt =
             disbursementRepository.findByProviderRef(payToken);
         if (dsbOpt.isEmpty() && payload.getTxnid() != null) {
             dsbOpt = disbursementRepository.findByReference(payload.getTxnid());
