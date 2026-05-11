@@ -132,7 +132,7 @@
 </details>
 
 <details>
-<summary>✅ v11 Transaction-Backed Disbursements (Phases 54–60) — SHIPPED 2026-05-05</summary>
+<summary>✅ v11 Transaction-Backed Disbursements (Phases 54–60) — SHIPPED 2026-05-05) — see [milestones/v11-ROADMAP.md](milestones/v11-ROADMAP.md)</summary>
 
 - [x] **Phase 54: V31 Schema Migration** — `disbursement_transaction_ref` table, `admin_note` + `retry_count` columns, `reserved_amount` removal, `PENDING_ADMIN_APPROVAL` status, pre-flight assertion, `merchant_wallet_balance` application-layer retirement (completed 2026-05-02)
 - [x] **Phase 55: Transaction Validation & Fee Removal** — `transactionIds` field on `DisbursementRequest`, claim validation in `DisbursementOrchestrator` (tenant ownership, status, flow, active-claim check, amount equality, deadlock-safe SELECT FOR UPDATE), `FeeEvaluationService` bypass (completed 2026-05-04)
@@ -649,7 +649,10 @@ Plans:
   2. `payment.provider.orange` contains all Orange-specific clients, token services, and callback controllers; `POST /v1/callbacks/orange/payment` processes a WireMock-mocked Orange callback and transitions the transaction to SUCCESS
   3. The hexagonal adapter boundary is respected — no `payment.provider.*` class is referenced directly from `payment.core`, `payment.disbursement`, or any other domain package (dependency points inward only)
   4. `mvn verify` passes with all MTN and Orange E2E tests green, including callback replay dedup and double-check handler routing
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 64-01-PLAN.md — PROV-01: move mtn → payment.provider.mtn, update 8 prod + 22 test caller imports, update 3 YAML Resilience4j FQNs + 1 inline FQN body ref in PaymentOrchestratorIT, atomic commit, mvn verify (Wave 1)
+- [ ] 64-02-PLAN.md — PROV-02: move orange → payment.provider.orange, update 8 prod + 13 test caller imports, update 3 YAML Resilience4j FQNs + 2 inline FQN body refs in PaymentOrchestratorIT, atomic commit, mvn verify, close Phase 64 (Wave 2)
 
 ### Phase 65: Common Package Redistribution
 **Goal**: The `common` package is fully emptied and removed — `common.payment`/`common.refund` moved to `payment.core`, all infrastructure sub-packages moved to `infrastructure.*`, domain-specific enums moved to their owning packages — and the codebase compiles with zero `common.*` references
@@ -730,6 +733,6 @@ Plans:
 | 61. Infrastructure Layer Creation | v12 | 2/3 | Complete    | 2026-05-06 |
 | 62. Platform Layer Reorganization | v12 | 4/5 | Complete    | 2026-05-07 |
 | 63. Payment Domain Consolidation | v12 | 7/7 | Complete    | 2026-05-11 |
-| 64. Provider Infrastructure Encapsulation | v12 | 0/TBD | Not started | - |
+| 64. Provider Infrastructure Encapsulation | v12 | 0/2 | Not started | - |
 | 65. Common Package Redistribution | v12 | 0/TBD | Not started | - |
 </content>
