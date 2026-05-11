@@ -151,7 +151,7 @@
 - [x] **Phase 61: Infrastructure Layer Creation** - Create `infrastructure.config`, `infrastructure.web`, and `infrastructure.persistence` packages; move `config` package and web/persistence foundation classes (completed 2026-05-06)
 - [x] **Phase 62: Platform Layer Reorganization** - Move `tenant`, `security`, `email`+`alert` (merged), `health`+`ops` (merged), and `admin`+`platform` (merged) into `platform.*` sub-packages (completed 2026-05-07)
 - [x] **Phase 63: Payment Domain Consolidation** - Move `payment`, `transaction`, `disbursement`, `fee`, `reconciliation`, `fraud`, and `webhook` into `payment.*` sub-packages (completed 2026-05-11)
-- [ ] **Phase 64: Provider Infrastructure Encapsulation** - Move `mtn` and `orange` into `payment.provider.mtn` and `payment.provider.orange`
+- [x] **Phase 64: Provider Infrastructure Encapsulation** - Move `mtn` and `orange` into `payment.provider.mtn` and `payment.provider.orange` (completed 2026-05-11)
 - [ ] **Phase 65: Common Package Redistribution** - Redistribute all `common.*` sub-packages to their owning domain destinations and remove the now-empty `common` package
 
 ## Phase Details
@@ -652,7 +652,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 64-01-PLAN.md — PROV-01: move mtn → payment.provider.mtn, update 8 prod + 22 test caller imports, update 3 YAML Resilience4j FQNs + 1 inline FQN body ref in PaymentOrchestratorIT, atomic commit, mvn verify (Wave 1)
-- [ ] 64-02-PLAN.md — PROV-02: move orange → payment.provider.orange, update 8 prod + 13 test caller imports, update 3 YAML Resilience4j FQNs + 2 inline FQN body refs in PaymentOrchestratorIT, atomic commit, mvn verify, close Phase 64 (Wave 2)
+- [x] 64-02-PLAN.md — PROV-02: move orange → payment.provider.orange, update 8 prod + 13 test caller imports, update 3 YAML Resilience4j FQNs + 2 inline FQN body refs in PaymentOrchestratorIT, atomic commit, mvn verify, close Phase 64 (Wave 2)
 
 ### Phase 65: Common Package Redistribution
 **Goal**: The `common` package is fully emptied and removed — `common.payment`/`common.refund` moved to `payment.core`, all infrastructure sub-packages moved to `infrastructure.*`, domain-specific enums moved to their owning packages — and the codebase compiles with zero `common.*` references
@@ -733,6 +733,6 @@ Plans:
 | 61. Infrastructure Layer Creation | v12 | 2/3 | Complete    | 2026-05-06 |
 | 62. Platform Layer Reorganization | v12 | 4/5 | Complete    | 2026-05-07 |
 | 63. Payment Domain Consolidation | v12 | 7/7 | Complete    | 2026-05-11 |
-| 64. Provider Infrastructure Encapsulation | v12 | 1/2 | In Progress|  |
+| 64. Provider Infrastructure Encapsulation | v12 | 2/2 | Complete   | 2026-05-11 |
 | 65. Common Package Redistribution | v12 | 0/TBD | Not started | - |
 </content>
