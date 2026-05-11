@@ -22,6 +22,9 @@
 * [ ] Ensure observability with client requests. (may have to modify RestRequestInterceptor)
 * [ ] Ensure observability server URLs are configured for prod (the server URL of each LGTM component)
 * [ ] Ensure redis server, postgres and LGTM servers are up
+* [ ] Use the following to ensure you are using UTC correctly... https://chatgpt.com/c/69f95cd6-5b38-8332-8e9a-2ee47e8c1553
+* [ ] Ensure AuditingDateTimeProvider uses UTC
+* [ ] Ensure ClockProvider uses UTC as default. See https://chatgpt.com/c/69f95cd6-5b38-8332-8e9a-2ee47e8c1553
 * [ ] Turn on HTTPS
 * [ ] Ensure you have scripts that clean up the various tables (AI should write them and also write tests that clean up mid way and continue inserting data and verify that data well inserted and nothing is lost)
 * [ ] prepare the following env variables

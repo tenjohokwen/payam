@@ -50,6 +50,7 @@ class ApiKeyConcurrentRotationIT {
         transactionTemplate.execute(status -> {
             jdbcTemplate.execute("DELETE FROM main.tenant_api_key_aud");
             jdbcTemplate.execute("DELETE FROM main.tenant_aud");
+            jdbcTemplate.execute("DELETE FROM main.transaction_aud");
             jdbcTemplate.execute("DELETE FROM main.revinfo");
             jdbcTemplate.execute("DELETE FROM main.tenant_api_key");
             jdbcTemplate.execute("DELETE FROM main.tenant");
