@@ -15,7 +15,7 @@ Architectural reorganization from flat package explosion to explicit bounded con
 - [x] **PAY-04**: `fee` package (fee evaluation and rules) is relocated to `payment.fee` with all imports updated
 - [x] **PAY-05**: `reconciliation` package (provider reconciliation) is relocated to `payment.reconciliation` with all imports updated
 - [x] **PAY-06**: `fraud` package (fraud detection) is relocated to `payment.fraud` with all imports updated
-- [ ] **PAY-07**: `webhook` package (outbound delivery subsystem) is relocated to `payment.webhook` with all imports updated
+- [x] **PAY-07**: `webhook` package (outbound delivery subsystem) is relocated to `payment.webhook` with all imports updated
 
 ### Provider Infrastructure (PROV)
 
@@ -73,7 +73,7 @@ Architectural reorganization from flat package explosion to explicit bounded con
 | PAY-04 | Phase 63 | Complete |
 | PAY-05 | Phase 63 | Complete |
 | PAY-06 | Phase 63 | Complete |
-| PAY-07 | Phase 63 | Pending |
+| PAY-07 | Phase 63 | Complete |
 | PROV-01 | Phase 64 | Pending |
 | PROV-02 | Phase 64 | Pending |
 | PLAT-01 | Phase 62 | Complete |

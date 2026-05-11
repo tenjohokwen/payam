@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 63-03-PLAN.md
-last_updated: "2026-05-11T11:40:37.722Z"
+stopped_at: Completed 63-04-PLAN.md
+last_updated: "2026-05-11T12:08:26.137Z"
 last_activity: 2026-05-11
 progress:
   total_phases: 36
   completed_phases: 24
   total_plans: 76
-  completed_plans: 72
+  completed_plans: 73
   percent: 0
 ---
 
@@ -71,6 +71,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 63-02]: transaction.* imports in reconciliation port files preserved verbatim — MtnReportAdapter, OrangeReportAdapter, ProviderReportPort, ReconciliationProviderRunner retain com.softropic.payam.transaction.* until PAY-02 moves transaction in Plan 07
 - [Phase 63]: macOS sed does not support word boundary — two-pass explicit per-suffix patterns required for fraud package (contract, repo, service, root)
 - [Phase 63]: FeeRule.java fraud reference was Javadoc @link only (not Java import) — updated Javadoc FQN to payment.fraud.repo.FraudRule for documentation consistency
+- [Phase 63-04]: grep -v '/webhook/' alone does not find all external callers — callers in paths containing '/webhook/' also need updating (DisbursementWebhookDeliveryIT, OutboundWebhookDeliveryE2ETest discovered as extras)
+- [Phase 63-04]: transaction.* and disbursement.* imports inside webhook files preserved verbatim — PAY-02 and PAY-03 sweep these in later plans (Plans 07 and 06 respectively)
 
 ### v12 Phase Map
 
@@ -133,6 +135,7 @@ Key context carried forward for v10:
 | Phase 62 P04 | 1907 | 2 tasks | 109 files |
 | Phase 63-payment-domain-consolidation P01 | 40 | 1 tasks | 10 files |
 | Phase 63 P03 | 8 | 1 tasks | 34 files |
+| Phase 63-payment-domain-consolidation P04 | 25 | 1 tasks | 29 files |
 
 ### Pending Todos
 
@@ -144,6 +147,6 @@ None — roadmap is defined, requirements are 100% mapped.
 
 ## Session Continuity
 
-Last session: 2026-05-11T11:40:37.714Z
-Stopped at: Completed 63-03-PLAN.md
+Last session: 2026-05-11T12:08:26.129Z
+Stopped at: Completed 63-04-PLAN.md
 Resume: `/gsd:execute-phase 63` — Wave 3 (63-03 next plan)
