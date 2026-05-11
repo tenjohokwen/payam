@@ -13,9 +13,9 @@ import com.softropic.payam.platform.tenant.repo.TenantRepository;
 import com.softropic.payam.platform.tenant.service.TenantService;
 import com.softropic.payam.transaction.contract.LedgerFlow;
 import com.softropic.payam.transaction.contract.TransactionStatus;
-import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
-import com.softropic.payam.webhook.repo.WebhookDeliveryLog;
-import com.softropic.payam.webhook.repo.WebhookDeliveryLogRepository;
+import com.softropic.payam.payment.webhook.contract.WebhookReceivedEvent;
+import com.softropic.payam.payment.webhook.repo.WebhookDeliveryLog;
+import com.softropic.payam.payment.webhook.repo.WebhookDeliveryLogRepository;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

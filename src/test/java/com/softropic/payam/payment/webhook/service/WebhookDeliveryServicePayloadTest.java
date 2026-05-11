@@ -1,7 +1,7 @@
-package com.softropic.payam.webhook.service;
+package com.softropic.payam.payment.webhook.service;
 
 import com.softropic.payam.transaction.contract.TransactionStatus;
-import com.softropic.payam.webhook.contract.OutboundWebhookPayload;
+import com.softropic.payam.payment.webhook.contract.OutboundWebhookPayload;
 
 import org.junit.jupiter.api.Test;
 

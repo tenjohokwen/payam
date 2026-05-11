@@ -15,9 +15,9 @@ import com.softropic.payam.e2e.verify.WebhookDeliveryVerifier;
 import com.softropic.payam.mtn.contract.MtnCallbackPayload;
 import com.softropic.payam.platform.tenant.repo.TenantRepository;
 import com.softropic.payam.platform.tenant.service.TenantService;
-import com.softropic.payam.webhook.repo.WebhookDeliveryLog;
-import com.softropic.payam.webhook.repo.WebhookDeliveryLogRepository;
-import com.softropic.payam.webhook.service.WebhookDeliveryService;
+import com.softropic.payam.payment.webhook.repo.WebhookDeliveryLog;
+import com.softropic.payam.payment.webhook.repo.WebhookDeliveryLogRepository;
+import com.softropic.payam.payment.webhook.service.WebhookDeliveryService;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 

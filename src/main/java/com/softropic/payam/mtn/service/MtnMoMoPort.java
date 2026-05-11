@@ -25,7 +25,7 @@ import java.math.BigDecimal;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 
-import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
+import com.softropic.payam.payment.webhook.contract.WebhookReceivedEvent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

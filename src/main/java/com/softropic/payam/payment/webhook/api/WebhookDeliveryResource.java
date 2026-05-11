@@ -1,8 +1,8 @@
-package com.softropic.payam.webhook.api;
+package com.softropic.payam.payment.webhook.api;
 
 import com.softropic.payam.platform.security.common.util.SecurityConstants;
-import com.softropic.payam.webhook.repo.WebhookDeliveryLog;
-import com.softropic.payam.webhook.service.WebhookDeliveryService;
+import com.softropic.payam.payment.webhook.repo.WebhookDeliveryLog;
+import com.softropic.payam.payment.webhook.service.WebhookDeliveryService;
 
 import io.micrometer.observation.annotation.Observed;
 import org.springframework.http.ResponseEntity;

@@ -1,13 +1,13 @@
-package com.softropic.payam.webhook;
+package com.softropic.payam.payment.webhook;
 
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.e2e.verify.QueryCountVerifier;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.repo.Tenant;
 import com.softropic.payam.platform.tenant.service.TenantService;
-import com.softropic.payam.webhook.repo.WebhookDeliveryLog;
-import com.softropic.payam.webhook.repo.WebhookDeliveryLogRepository;
-import com.softropic.payam.webhook.service.WebhookDeliveryService;
+import com.softropic.payam.payment.webhook.repo.WebhookDeliveryLog;
+import com.softropic.payam.payment.webhook.repo.WebhookDeliveryLogRepository;
+import com.softropic.payam.payment.webhook.service.WebhookDeliveryService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

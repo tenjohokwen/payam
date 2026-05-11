@@ -1,7 +1,7 @@
-package com.softropic.payam.webhook.contract;
+package com.softropic.payam.payment.webhook.contract;
 
 import com.softropic.payam.platform.tenant.repo.Tenant;
-import com.softropic.payam.webhook.repo.WebhookDeliveryLog;
+import com.softropic.payam.payment.webhook.repo.WebhookDeliveryLog;
 
 /**
  * Internal Spring application event published by WebhookDeliveryService.enqueue() after the

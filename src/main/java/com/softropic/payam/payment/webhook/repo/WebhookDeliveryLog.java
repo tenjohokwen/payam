@@ -1,4 +1,4 @@
-package com.softropic.payam.webhook.repo;
+package com.softropic.payam.payment.webhook.repo;
 
 import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
 import com.softropic.payam.transaction.contract.TransactionStatus;

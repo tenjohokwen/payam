@@ -1,4 +1,4 @@
-package com.softropic.payam.webhook.config;
+package com.softropic.payam.payment.webhook.config;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.client.ClientHttpRequestFactory;

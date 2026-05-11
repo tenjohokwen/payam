@@ -1,4 +1,4 @@
-package com.softropic.payam.webhook.service;
+package com.softropic.payam.payment.webhook.service;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.common.payment.ProviderResult;
@@ -11,8 +11,8 @@ import com.softropic.payam.transaction.repo.Transaction;
 import com.softropic.payam.transaction.repo.TransactionRepository;
 import com.softropic.payam.transaction.service.EventLogService;
 import com.softropic.payam.transaction.service.LedgerService;
-import com.softropic.payam.webhook.contract.WebhookEnqueueRequestedEvent;
-import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
+import com.softropic.payam.payment.webhook.contract.WebhookEnqueueRequestedEvent;
+import com.softropic.payam.payment.webhook.contract.WebhookReceivedEvent;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 

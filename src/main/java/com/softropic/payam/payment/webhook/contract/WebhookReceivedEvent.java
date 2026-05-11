@@ -1,4 +1,4 @@
-package com.softropic.payam.webhook.contract;
+package com.softropic.payam.payment.webhook.contract;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.transaction.contract.LedgerFlow;

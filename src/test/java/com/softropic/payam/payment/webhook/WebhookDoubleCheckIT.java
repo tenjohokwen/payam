@@ -1,4 +1,4 @@
-package com.softropic.payam.webhook;
+package com.softropic.payam.payment.webhook;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.softropic.payam.config.TestConfig;

@@ -1,6 +1,6 @@
-package com.softropic.payam.webhook.config;
+package com.softropic.payam.payment.webhook.config;
 
-import com.softropic.payam.webhook.service.WebhookDeliveryJob;
+import com.softropic.payam.payment.webhook.service.WebhookDeliveryJob;
 
 import org.quartz.JobBuilder;
 import org.quartz.JobDetail;

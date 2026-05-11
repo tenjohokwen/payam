@@ -1,4 +1,4 @@
-package com.softropic.payam.webhook;
+package com.softropic.payam.payment.webhook;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
@@ -10,8 +10,8 @@ import com.softropic.payam.platform.tenant.service.TenantService;
 import com.softropic.payam.platform.tenant.repo.TenantRepository;
 import com.softropic.payam.transaction.contract.TransactionStatus;
 import com.softropic.payam.transaction.repo.TransactionRepository;
-import com.softropic.payam.webhook.repo.WebhookDeliveryLog;
-import com.softropic.payam.webhook.repo.WebhookDeliveryLogRepository;
+import com.softropic.payam.payment.webhook.repo.WebhookDeliveryLog;
+import com.softropic.payam.payment.webhook.repo.WebhookDeliveryLogRepository;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 

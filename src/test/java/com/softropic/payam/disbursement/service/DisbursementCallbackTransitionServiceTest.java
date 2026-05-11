@@ -9,8 +9,8 @@ import com.softropic.payam.disbursement.repo.Disbursement;
 import com.softropic.payam.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.transaction.contract.LedgerFlow;
 import com.softropic.payam.transaction.contract.TransactionStatus;
-import com.softropic.payam.webhook.contract.WebhookEnqueueRequestedEvent;
-import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
+import com.softropic.payam.payment.webhook.contract.WebhookEnqueueRequestedEvent;
+import com.softropic.payam.payment.webhook.contract.WebhookReceivedEvent;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

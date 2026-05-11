@@ -1,11 +1,11 @@
-package com.softropic.payam.webhook.service;
+package com.softropic.payam.payment.webhook.service;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.disbursement.service.DisbursementCallbackTransitionService;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
-import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
+import com.softropic.payam.payment.webhook.contract.WebhookReceivedEvent;
 
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 

@@ -21,7 +21,7 @@ import com.softropic.payam.transaction.contract.TransactionStatus;
 import com.softropic.payam.transaction.repo.TransactionRepository;
 import com.softropic.payam.transaction.service.EventLogService;
 import com.softropic.payam.transaction.service.LedgerService;
-import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
+import com.softropic.payam.payment.webhook.contract.WebhookReceivedEvent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

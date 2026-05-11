@@ -1,4 +1,4 @@
-package com.softropic.payam.webhook.repo;
+package com.softropic.payam.payment.webhook.repo;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

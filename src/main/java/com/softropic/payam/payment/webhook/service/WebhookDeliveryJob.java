@@ -1,7 +1,7 @@
-package com.softropic.payam.webhook.service;
+package com.softropic.payam.payment.webhook.service;
 
 import com.softropic.payam.platform.tenant.repo.Tenant;
-import com.softropic.payam.webhook.repo.WebhookDeliveryLog;
+import com.softropic.payam.payment.webhook.repo.WebhookDeliveryLog;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 

@@ -10,8 +10,8 @@ import com.softropic.payam.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.mtn.service.MtnStatusMapper;
 import com.softropic.payam.orange.service.OrangeStatusMapper;
 import com.softropic.payam.transaction.contract.TransactionStatus;
-import com.softropic.payam.webhook.contract.WebhookEnqueueRequestedEvent;
-import com.softropic.payam.webhook.contract.WebhookReceivedEvent;
+import com.softropic.payam.payment.webhook.contract.WebhookEnqueueRequestedEvent;
+import com.softropic.payam.payment.webhook.contract.WebhookReceivedEvent;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
