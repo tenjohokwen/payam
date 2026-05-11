@@ -1,4 +1,4 @@
-package com.softropic.payam.reconciliation.contract;
+package com.softropic.payam.payment.reconciliation.contract;
 
 /**
  * Severity levels for reconciliation discrepancies.

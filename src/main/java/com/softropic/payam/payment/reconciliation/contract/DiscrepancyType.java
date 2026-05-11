@@ -1,4 +1,4 @@
-package com.softropic.payam.reconciliation.contract;
+package com.softropic.payam.payment.reconciliation.contract;
 
 /**
  * Types of reconciliation discrepancies that can be detected.

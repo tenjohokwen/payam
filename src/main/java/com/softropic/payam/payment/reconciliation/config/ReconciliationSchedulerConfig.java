@@ -1,6 +1,6 @@
-package com.softropic.payam.reconciliation.config;
+package com.softropic.payam.payment.reconciliation.config;
 
-import com.softropic.payam.reconciliation.service.ReconciliationJob;
+import com.softropic.payam.payment.reconciliation.service.ReconciliationJob;
 
 import org.quartz.CronScheduleBuilder;
 import org.quartz.JobBuilder;

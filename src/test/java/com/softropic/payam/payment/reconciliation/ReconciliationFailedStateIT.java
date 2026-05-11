@@ -1,14 +1,14 @@
-package com.softropic.payam.reconciliation;
+package com.softropic.payam.payment.reconciliation;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.common.payment.ProviderResult;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
-import com.softropic.payam.reconciliation.repo.ReconciliationDiscrepancyRepository;
-import com.softropic.payam.reconciliation.repo.ReconciliationReport;
-import com.softropic.payam.reconciliation.repo.ReconciliationReportRepository;
-import com.softropic.payam.reconciliation.service.ReconciliationService;
+import com.softropic.payam.payment.reconciliation.repo.ReconciliationDiscrepancyRepository;
+import com.softropic.payam.payment.reconciliation.repo.ReconciliationReport;
+import com.softropic.payam.payment.reconciliation.repo.ReconciliationReportRepository;
+import com.softropic.payam.payment.reconciliation.service.ReconciliationService;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.service.TenantService;
 

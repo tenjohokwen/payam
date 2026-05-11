@@ -5,7 +5,7 @@ import com.softropic.payam.e2e.AbstractPayamE2ETest;
 import com.softropic.payam.e2e.builder.TenantBuilder;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
-import com.softropic.payam.reconciliation.service.ReconciliationService;
+import com.softropic.payam.payment.reconciliation.service.ReconciliationService;
 import com.softropic.payam.platform.tenant.repo.TenantRepository;
 import com.softropic.payam.platform.tenant.service.TenantService;
 

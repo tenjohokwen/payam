@@ -1,4 +1,4 @@
-package com.softropic.payam.reconciliation;
+package com.softropic.payam.payment.reconciliation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.softropic.payam.config.TestConfig;

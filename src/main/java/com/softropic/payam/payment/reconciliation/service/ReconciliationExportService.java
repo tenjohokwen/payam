@@ -1,9 +1,9 @@
-package com.softropic.payam.reconciliation.service;
+package com.softropic.payam.payment.reconciliation.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.softropic.payam.reconciliation.contract.ReconciliationDiscrepancyDto;
-import com.softropic.payam.reconciliation.repo.ReconciliationDiscrepancy;
-import com.softropic.payam.reconciliation.repo.ReconciliationReport;
+import com.softropic.payam.payment.reconciliation.contract.ReconciliationDiscrepancyDto;
+import com.softropic.payam.payment.reconciliation.repo.ReconciliationDiscrepancy;
+import com.softropic.payam.payment.reconciliation.repo.ReconciliationReport;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

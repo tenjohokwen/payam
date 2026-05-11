@@ -1,12 +1,12 @@
-package com.softropic.payam.reconciliation;
+package com.softropic.payam.payment.reconciliation;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.reconciliation.port.ProviderReportPort;
-import com.softropic.payam.reconciliation.port.ProviderTransactionRecord;
-import com.softropic.payam.reconciliation.repo.ReconciliationDiscrepancyRepository;
-import com.softropic.payam.reconciliation.repo.ReconciliationReport;
-import com.softropic.payam.reconciliation.repo.ReconciliationReportRepository;
-import com.softropic.payam.reconciliation.service.ReconciliationProviderRunner;
+import com.softropic.payam.payment.reconciliation.port.ProviderReportPort;
+import com.softropic.payam.payment.reconciliation.port.ProviderTransactionRecord;
+import com.softropic.payam.payment.reconciliation.repo.ReconciliationDiscrepancyRepository;
+import com.softropic.payam.payment.reconciliation.repo.ReconciliationReport;
+import com.softropic.payam.payment.reconciliation.repo.ReconciliationReportRepository;
+import com.softropic.payam.payment.reconciliation.service.ReconciliationProviderRunner;
 import com.softropic.payam.transaction.repo.Transaction;
 import com.softropic.payam.transaction.repo.TransactionRepository;
 import com.softropic.payam.transaction.contract.TransactionStatus;

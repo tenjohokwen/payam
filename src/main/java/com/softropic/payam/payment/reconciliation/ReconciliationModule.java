@@ -1,4 +1,4 @@
-package com.softropic.payam.reconciliation;
+package com.softropic.payam.payment.reconciliation;
 
 /**
  * Spring Modulith boundary marker for the Reconciliation module.

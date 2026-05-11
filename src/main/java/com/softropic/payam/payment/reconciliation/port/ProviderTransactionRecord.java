@@ -1,4 +1,4 @@
-package com.softropic.payam.reconciliation.port;
+package com.softropic.payam.payment.reconciliation.port;
 
 import java.math.BigDecimal;
 

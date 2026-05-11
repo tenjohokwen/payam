@@ -1,6 +1,6 @@
-package com.softropic.payam.reconciliation.contract;
+package com.softropic.payam.payment.reconciliation.contract;
 
-import com.softropic.payam.reconciliation.repo.ReconciliationReport;
+import com.softropic.payam.payment.reconciliation.repo.ReconciliationReport;
 
 /**
  * DTO for a reconciliation run summary, returned by GET /v1/admin/reconciliation/reports.

@@ -1,4 +1,4 @@
-package com.softropic.payam.reconciliation.repo;
+package com.softropic.payam.payment.reconciliation.repo;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.infrastructure.persistence.BaseEntity;

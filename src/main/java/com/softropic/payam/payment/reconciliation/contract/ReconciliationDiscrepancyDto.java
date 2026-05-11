@@ -1,6 +1,6 @@
-package com.softropic.payam.reconciliation.contract;
+package com.softropic.payam.payment.reconciliation.contract;
 
-import com.softropic.payam.reconciliation.repo.ReconciliationDiscrepancy;
+import com.softropic.payam.payment.reconciliation.repo.ReconciliationDiscrepancy;
 
 import java.math.BigDecimal;
 

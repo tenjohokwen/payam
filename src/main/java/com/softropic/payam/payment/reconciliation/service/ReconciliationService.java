@@ -1,8 +1,8 @@
-package com.softropic.payam.reconciliation.service;
+package com.softropic.payam.payment.reconciliation.service;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.reconciliation.port.ProviderReportPort;
-import com.softropic.payam.reconciliation.repo.ReconciliationReport;
+import com.softropic.payam.payment.reconciliation.port.ProviderReportPort;
+import com.softropic.payam.payment.reconciliation.repo.ReconciliationReport;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
