@@ -1,6 +1,6 @@
 package com.softropic.payam.e2e.builder;
 
-import com.softropic.payam.payment.contract.PaymentRequest;
+import com.softropic.payam.payment.core.contract.PaymentRequest;
 
 import java.math.BigDecimal;
 import java.util.UUID;

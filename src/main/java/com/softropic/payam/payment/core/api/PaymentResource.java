@@ -1,9 +1,9 @@
-package com.softropic.payam.payment.api;
+package com.softropic.payam.payment.core.api;
 
-import com.softropic.payam.payment.contract.OrchestratorError;
-import com.softropic.payam.payment.contract.PaymentRequest;
-import com.softropic.payam.payment.contract.PaymentResponse;
-import com.softropic.payam.payment.service.PaymentOrchestrator;
+import com.softropic.payam.payment.core.contract.OrchestratorError;
+import com.softropic.payam.payment.core.contract.PaymentRequest;
+import com.softropic.payam.payment.core.contract.PaymentResponse;
+import com.softropic.payam.payment.core.service.PaymentOrchestrator;
 import com.softropic.payam.platform.tenant.contract.TenantPrincipal;
 
 import io.micrometer.observation.annotation.Observed;

@@ -1,4 +1,4 @@
-package com.softropic.payam.payment.service;
+package com.softropic.payam.payment.core.service;
 
 import com.softropic.payam.common.client.exception.HttpClientException;
 import com.softropic.payam.common.payment.MobileMoneyPort;
@@ -14,10 +14,10 @@ import com.softropic.payam.mtn.contract.exception.MtnAccountInactiveException;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 import com.softropic.payam.orange.contract.exception.SubscriberInactiveException;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
-import com.softropic.payam.payment.contract.OrchestratorError;
-import com.softropic.payam.payment.contract.PaymentRequest;
-import com.softropic.payam.payment.contract.PaymentResponse;
-import com.softropic.payam.payment.contract.exception.UnknownMsisdnPrefixException;
+import com.softropic.payam.payment.core.contract.OrchestratorError;
+import com.softropic.payam.payment.core.contract.PaymentRequest;
+import com.softropic.payam.payment.core.contract.PaymentResponse;
+import com.softropic.payam.payment.core.contract.exception.UnknownMsisdnPrefixException;
 import com.softropic.payam.platform.security.common.util.RequestMetadata;
 import com.softropic.payam.platform.security.common.util.RequestMetadataProvider;
 import com.softropic.payam.transaction.contract.CachedResponse;

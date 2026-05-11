@@ -1,4 +1,4 @@
-package com.softropic.payam.payment.contract;
+package com.softropic.payam.payment.core.contract;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 /**
  * Request DTO for payment initiation via POST /v1/payments.
  *
- * <p>All fields are validated by {@code @Valid} in {@link com.softropic.payam.payment.api.PaymentResource}.
+ * <p>All fields are validated by {@code @Valid} in {@link com.softropic.payam.payment.core.api.PaymentResource}.
  * The {@code idempotencyKey} must be provided by the client and is used to deduplicate
  * concurrent or retried payment requests within a 24-hour window.
  */

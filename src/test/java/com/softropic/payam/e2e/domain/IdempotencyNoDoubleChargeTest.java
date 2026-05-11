@@ -4,8 +4,8 @@ import com.softropic.payam.e2e.AbstractPayamE2ETest;
 import com.softropic.payam.e2e.builder.PaymentRequestBuilder;
 import com.softropic.payam.e2e.builder.TenantBuilder;
 import com.softropic.payam.payment.fraud.service.FraudRuleCache;
-import com.softropic.payam.payment.contract.PaymentRequest;
-import com.softropic.payam.payment.contract.PaymentResponse;
+import com.softropic.payam.payment.core.contract.PaymentRequest;
+import com.softropic.payam.payment.core.contract.PaymentResponse;
 import com.softropic.payam.platform.tenant.repo.TenantRepository;
 import com.softropic.payam.platform.tenant.service.TenantService;
 

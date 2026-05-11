@@ -3,7 +3,7 @@ package com.softropic.payam.payment.fraud;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.payment.fraud.service.FraudRuleCache;
-import com.softropic.payam.payment.contract.PaymentResponse;
+import com.softropic.payam.payment.core.contract.PaymentResponse;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.service.TenantService;
 

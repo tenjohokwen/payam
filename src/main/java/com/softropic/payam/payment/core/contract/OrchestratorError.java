@@ -1,4 +1,4 @@
-package com.softropic.payam.payment.contract;
+package com.softropic.payam.payment.core.contract;
 
 import com.softropic.payam.common.exception.ErrorCode;
 

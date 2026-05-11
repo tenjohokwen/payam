@@ -1,4 +1,4 @@
-package com.softropic.payam.payment.repo;
+package com.softropic.payam.payment.core.repo;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
 import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
@@ -19,10 +19,10 @@ import lombok.experimental.SuperBuilder;
  *
  * <p>Each row maps a two-character national MSISDN prefix (e.g. "65", "69") to a
  * {@link MobilePaymentProvider}. Rows are hot-reloaded by
- * {@link com.softropic.payam.payment.service.MsisdnPrefixRouteCache} without restart.
+ * {@link com.softropic.payam.payment.core.service.MsisdnPrefixRouteCache} without restart.
  *
  * <p>This entity replaces the hardcoded prefix logic in
- * {@link com.softropic.payam.payment.service.MsisdnRouter} (Phase 10 hardening — OPS-01).
+ * {@link com.softropic.payam.payment.core.service.MsisdnRouter} (Phase 10 hardening — OPS-01).
  */
 @Entity
 @Table(name = "msisdn_prefix_route", schema = "main")

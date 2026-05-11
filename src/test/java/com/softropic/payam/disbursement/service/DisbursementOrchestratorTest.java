@@ -21,8 +21,8 @@ import com.softropic.payam.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.payment.fraud.contract.FraudDecision;
 import com.softropic.payam.mtn.service.MtnMoMoPort;
 import com.softropic.payam.orange.service.OrangeMoneyPort;
-import com.softropic.payam.payment.contract.exception.UnknownMsisdnPrefixException;
-import com.softropic.payam.payment.service.MsisdnRouter;
+import com.softropic.payam.payment.core.contract.exception.UnknownMsisdnPrefixException;
+import com.softropic.payam.payment.core.service.MsisdnRouter;
 import com.softropic.payam.transaction.contract.CachedResponse;
 
 import org.junit.jupiter.api.BeforeEach;

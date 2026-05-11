@@ -1,9 +1,9 @@
-package com.softropic.payam.payment;
+package com.softropic.payam.payment.core;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.payment.fee.service.FeeRuleCache;
-import com.softropic.payam.payment.contract.PaymentResponse;
+import com.softropic.payam.payment.core.contract.PaymentResponse;
 import com.softropic.payam.platform.admin.service.PlatformConfigService;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.service.TenantService;

@@ -1,8 +1,8 @@
-package com.softropic.payam.payment.service;
+package com.softropic.payam.payment.core.service;
 
 import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.payment.repo.MsisdnPrefixRoute;
-import com.softropic.payam.payment.repo.MsisdnPrefixRouteRepository;
+import com.softropic.payam.payment.core.repo.MsisdnPrefixRoute;
+import com.softropic.payam.payment.core.repo.MsisdnPrefixRouteRepository;
 
 import io.micrometer.observation.annotation.Observed;
 import jakarta.annotation.PostConstruct;

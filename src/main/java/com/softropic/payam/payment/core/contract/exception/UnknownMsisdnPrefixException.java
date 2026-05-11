@@ -1,7 +1,7 @@
-package com.softropic.payam.payment.contract.exception;
+package com.softropic.payam.payment.core.contract.exception;
 
 /**
- * Thrown by {@link com.softropic.payam.payment.service.MsisdnRouter} when the MSISDN prefix
+ * Thrown by {@link com.softropic.payam.payment.core.service.MsisdnRouter} when the MSISDN prefix
  * cannot be matched to any known Cameroonian mobile money operator (Orange, MTN).
  */
 public class UnknownMsisdnPrefixException extends RuntimeException {
