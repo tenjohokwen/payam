@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.security.api.dto;
 
-import com.softropic.payam.common.Gender;
+import com.softropic.payam.platform.security.contract.Gender;
 import jakarta.validation.constraints.Size;
 
 /**

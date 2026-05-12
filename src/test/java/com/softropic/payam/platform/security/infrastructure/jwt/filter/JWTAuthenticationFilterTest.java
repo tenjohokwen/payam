@@ -1,7 +1,7 @@
 package com.softropic.payam.platform.security.infrastructure.jwt.filter;
 
 
-import com.softropic.payam.common.Gender;
+import com.softropic.payam.platform.security.contract.Gender;
 import com.softropic.payam.platform.security.common.event.AuthEvent;
 import com.softropic.payam.platform.security.common.event.AuthenticationAction;
 import com.softropic.payam.platform.security.service.LoginTokenManager;

@@ -1,4 +1,4 @@
-package com.softropic.payam.common;
+package com.softropic.payam.platform.security.contract;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 

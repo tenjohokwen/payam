@@ -2,7 +2,7 @@ package com.softropic.payam.platform.security.repo;
 
 
 
-import com.softropic.payam.common.consumer.Consumer;
+import com.softropic.payam.platform.security.contract.Consumer;
 import com.softropic.payam.platform.security.repo.User;
 
 import org.springframework.data.jpa.repository.EntityGraph;

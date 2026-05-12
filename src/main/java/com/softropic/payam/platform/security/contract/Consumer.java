@@ -1,8 +1,8 @@
-package com.softropic.payam.common.consumer;
+package com.softropic.payam.platform.security.contract;
 
 
 
-import com.softropic.payam.common.Gender;
+import com.softropic.payam.platform.security.contract.Gender;
 import com.softropic.payam.infrastructure.validation.PhoneNumber;
 import com.softropic.payam.platform.security.repo.Address;
 

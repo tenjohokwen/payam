@@ -2,7 +2,7 @@ package com.softropic.payam.platform.security.service;
 
 
 
-import com.softropic.payam.common.consumer.Consumer;
+import com.softropic.payam.platform.security.contract.Consumer;
 import com.softropic.payam.platform.security.repo.UserRepository;
 
 import org.springframework.stereotype.Service;

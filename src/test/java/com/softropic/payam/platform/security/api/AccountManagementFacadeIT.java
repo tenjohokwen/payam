@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.security.api;
 
-import com.softropic.payam.common.Gender;
+import com.softropic.payam.platform.security.contract.Gender;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.platform.notification.contract.EmailTemplate;
 import com.softropic.payam.platform.notification.contract.Envelope;

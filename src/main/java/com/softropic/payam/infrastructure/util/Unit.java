@@ -1,4 +1,4 @@
-package com.softropic.payam.common.enums;
+package com.softropic.payam.infrastructure.util;
 
 public enum Unit {
     KILOGRAM,

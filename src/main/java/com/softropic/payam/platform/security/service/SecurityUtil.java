@@ -2,7 +2,7 @@ package com.softropic.payam.platform.security.service;
 
 
 
-import com.softropic.payam.common.Gender;
+import com.softropic.payam.platform.security.contract.Gender;
 import com.softropic.payam.platform.security.contract.util.AuthoritiesConstants;
 import com.softropic.payam.platform.security.common.util.RequestMetadataProvider;
 import com.softropic.payam.platform.security.service.LoginTokenManager;

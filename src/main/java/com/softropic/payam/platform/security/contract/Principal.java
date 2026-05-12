@@ -2,7 +2,7 @@ package com.softropic.payam.platform.security.contract;
 
 
 
-import com.softropic.payam.common.Gender;
+import com.softropic.payam.platform.security.contract.Gender;
 
 import org.apache.commons.text.CaseUtils;
 import org.springframework.security.core.GrantedAuthority;

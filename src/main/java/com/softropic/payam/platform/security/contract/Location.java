@@ -1,4 +1,4 @@
-package com.softropic.payam.common.consumer;
+package com.softropic.payam.platform.security.contract;
 
 public interface Location {
      String getCompanyName();
