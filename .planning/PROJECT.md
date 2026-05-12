@@ -10,7 +10,7 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ## Current State
 
-v12 in progress — Phase 64 complete (2026-05-11). Both flat provider packages encapsulated: `payment.provider.mtn` (23 prod + 5 test files) and `payment.provider.orange` (26 prod + 6 test files). Zero stale `mtn.*` or `orange.*` references remain anywhere in `src/`. All PROV-01, PROV-02 requirements satisfied. Phase 65 (common package redistribution) is next.
+v12 complete — Phase 65 complete (2026-05-12). All 5 phases of the v12 architectural refactor shipped: infrastructure layer creation (61), platform layer reorganization (62), payment domain consolidation (63), provider encapsulation (64), and common package redistribution (65). The `com.softropic.payam.common` package no longer exists in the source tree — all types redistributed to `infrastructure.*`, `payment.core.contract`, and `platform.security.contract`. All CMN-01 through CMN-04 requirements satisfied. `mvn verify` green (775+ tests). Ready for `/gsd:complete-milestone`.
 
 ## Shipped Milestone: v11 Transaction-Backed Disbursements ✅
 
