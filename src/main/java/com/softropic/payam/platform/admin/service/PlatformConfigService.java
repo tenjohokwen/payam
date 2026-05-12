@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.admin.service;
 
-import com.softropic.payam.common.exception.ResourceNotFoundException;
+import com.softropic.payam.infrastructure.exception.ResourceNotFoundException;
 import com.softropic.payam.platform.admin.contract.PinDto;
 import com.softropic.payam.platform.admin.contract.PlatformConfigDto;
 import com.softropic.payam.platform.admin.contract.event.PlatformConfigChangedEvent;

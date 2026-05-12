@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.monitoring;
 
-import com.softropic.payam.common.exception.AppSetupException;
+import com.softropic.payam.infrastructure.exception.AppSetupException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

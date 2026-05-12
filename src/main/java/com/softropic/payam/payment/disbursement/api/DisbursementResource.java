@@ -1,6 +1,6 @@
 package com.softropic.payam.payment.disbursement.api;
 
-import com.softropic.payam.common.exception.ResourceNotFoundException;
+import com.softropic.payam.infrastructure.exception.ResourceNotFoundException;
 import com.softropic.payam.payment.disbursement.contract.DisbursementListItem;
 import com.softropic.payam.payment.disbursement.contract.DisbursementOrchestratorError;
 import com.softropic.payam.payment.disbursement.contract.DisbursementRequest;

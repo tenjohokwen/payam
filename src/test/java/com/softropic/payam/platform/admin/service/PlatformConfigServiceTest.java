@@ -255,7 +255,7 @@ class PlatformConfigServiceTest {
         // so that ApiAdvice maps it to HTTP 404 (PIN-05 not-found semantics)
         org.assertj.core.api.Assertions.assertThatThrownBy(
                 () -> platformConfigService.findPinByProvider("ORANGE"))
-            .isInstanceOf(com.softropic.payam.common.exception.ResourceNotFoundException.class)
+            .isInstanceOf(com.softropic.payam.infrastructure.exception.ResourceNotFoundException.class)
             .hasMessageContaining("ORANGE");
         verify(pinCryptopher, never()).decrypt(any());
     }

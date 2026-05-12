@@ -2,8 +2,8 @@ package com.softropic.payam.common.validation;
 
 
 import com.softropic.payam.common.dto.PhoneNumberDto;
-import com.softropic.payam.common.exception.ApplicationException;
-import com.softropic.payam.common.exception.ErrorCode;
+import com.softropic.payam.infrastructure.exception.ApplicationException;
+import com.softropic.payam.infrastructure.exception.ErrorCode;
 
 import org.apache.commons.lang3.StringUtils;
 

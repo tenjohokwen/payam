@@ -1,7 +1,7 @@
 package com.softropic.payam.platform.security.contract.exception;
 
 
-import com.softropic.payam.common.exception.ErrorCode;
+import com.softropic.payam.infrastructure.exception.ErrorCode;
 
 public enum SecurityError implements ErrorCode {
     MISSING_RIGHTS, //this is when required rights are not available

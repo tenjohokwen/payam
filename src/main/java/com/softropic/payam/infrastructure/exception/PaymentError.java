@@ -1,4 +1,4 @@
-package com.softropic.payam.common.exception;
+package com.softropic.payam.infrastructure.exception;
 
 public enum PaymentError implements ErrorCode {
     MOBILE_PAY_DATA_NOT_FOUND,

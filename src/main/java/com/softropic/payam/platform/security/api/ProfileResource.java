@@ -1,8 +1,8 @@
 package com.softropic.payam.platform.security.api;
 
-import com.softropic.payam.common.message.Failure;
-import com.softropic.payam.common.message.Response;
-import com.softropic.payam.common.message.Success;
+import com.softropic.payam.infrastructure.message.Failure;
+import com.softropic.payam.infrastructure.message.Response;
+import com.softropic.payam.infrastructure.message.Success;
 import com.softropic.payam.platform.security.api.dto.AddressDto;
 import com.softropic.payam.platform.security.api.dto.ChangePasswordRequestDto;
 import com.softropic.payam.platform.security.api.dto.ChangePhoneDto;

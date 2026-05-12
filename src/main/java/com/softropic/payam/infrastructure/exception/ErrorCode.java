@@ -1,4 +1,4 @@
-package com.softropic.payam.common.exception;
+package com.softropic.payam.infrastructure.exception;
 
 import java.io.Serializable;
 

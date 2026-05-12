@@ -1,7 +1,7 @@
 package com.softropic.payam.platform.security.infrastructure.jwt;
 
 
-import com.softropic.payam.common.exception.AppSetupException;
+import com.softropic.payam.infrastructure.exception.AppSetupException;
 import com.softropic.payam.platform.security.infrastructure.jwt.JwtSecretProvider;
 import com.softropic.payam.platform.security.service.SecretService;
 import com.softropic.payam.platform.security.repo.Secret;

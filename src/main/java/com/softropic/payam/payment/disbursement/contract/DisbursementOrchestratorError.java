@@ -1,6 +1,6 @@
 package com.softropic.payam.payment.disbursement.contract;
 
-import com.softropic.payam.common.exception.ErrorCode;
+import com.softropic.payam.infrastructure.exception.ErrorCode;
 
 /**
  * Standardized error vocabulary for the disbursement orchestration layer.

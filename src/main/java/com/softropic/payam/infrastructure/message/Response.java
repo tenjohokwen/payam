@@ -1,4 +1,4 @@
-package com.softropic.payam.common.message;
+package com.softropic.payam.infrastructure.message;
 
 public interface Response {
     String helpCode();
