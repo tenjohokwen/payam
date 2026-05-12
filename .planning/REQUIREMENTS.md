@@ -35,7 +35,7 @@ Architectural reorganization from flat package explosion to explicit bounded con
 - [x] **CMN-01**: `common.payment` and `common.refund` classes are relocated to `payment.core` with all imports updated
 - [x] **CMN-02**: `common.persistence`, `common.logging`, `common.threadpool`, `common.client`, `common.config`, `common.util`, `common.message`, `common.exception`, `common.validation`, and remaining `common` classes are relocated to `infrastructure.*` sub-packages with all imports updated
 - [x] **CMN-03**: Domain-specific enums in `common.enums` are moved to their owning domain packages with all imports updated
-- [ ] **CMN-04**: `common` package is fully emptied and removed after redistribution is complete
+- [x] **CMN-04**: `common` package is fully emptied and removed after redistribution is complete
 
 ### Infrastructure Layer (INFRA)
 
@@ -84,7 +84,7 @@ Architectural reorganization from flat package explosion to explicit bounded con
 | CMN-01 | Phase 65 | Complete |
 | CMN-02 | Phase 65 | Complete |
 | CMN-03 | Phase 65 | Complete |
-| CMN-04 | Phase 65 | Pending |
+| CMN-04 | Phase 65 | Complete |
 | INFRA-01 | Phase 61 | Complete |
 | INFRA-02 | Phase 61 | Complete |
 | INFRA-03 | Phase 61 | Complete |

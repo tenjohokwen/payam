@@ -152,7 +152,7 @@
 - [x] **Phase 62: Platform Layer Reorganization** - Move `tenant`, `security`, `email`+`alert` (merged), `health`+`ops` (merged), and `admin`+`platform` (merged) into `platform.*` sub-packages (completed 2026-05-07)
 - [x] **Phase 63: Payment Domain Consolidation** - Move `payment`, `transaction`, `disbursement`, `fee`, `reconciliation`, `fraud`, and `webhook` into `payment.*` sub-packages (completed 2026-05-11)
 - [x] **Phase 64: Provider Infrastructure Encapsulation** - Move `mtn` and `orange` into `payment.provider.mtn` and `payment.provider.orange` (completed 2026-05-11)
-- [ ] **Phase 65: Common Package Redistribution** - Redistribute all `common.*` sub-packages to their owning domain destinations and remove the now-empty `common` package
+- [x] **Phase 65: Common Package Redistribution** - Redistribute all `common.*` sub-packages to their owning domain destinations and remove the now-empty `common` package (completed 2026-05-12)
 
 ## Phase Details
 
@@ -669,8 +669,8 @@ Plans:
 - [x] 65-01-PLAN.md — CMN-02 wave 1: move common.{exception,message,config,logging} to infrastructure.* (17 files + ~29 callers + 1 FQN body ref)
 - [x] 65-02-PLAN.md — CMN-02 wave 2: move common.{client,threadpool,util,validation,dto.PhoneNumberDto} + 5 root utilities (ClockProvider, Constants, Predicate, TimeGuru, TransactionIdProvider) to infrastructure.* (37 prod + 4 test files + ~50-60 callers + 1 FQN body ref in MtnMoMoClient)
 - [x] 65-03-PLAN.md — CMN-01: move common.payment + common.refund (9 files) to payment.core.contract (~56 callers + 3 FQN body refs in MtnMoMoPort/OrangeMoneyPort/DisbursementResponse)
-- [ ] 65-04-PLAN.md — CMN-03: move common.{consumer,Gender} to platform.security.contract; common.enums to infrastructure.util (5 files + ~17 callers; preserves Pitfall 4 Address import in Consumer)
-- [ ] 65-05-PLAN.md — CMN-04: relocate 4 test stragglers to e2e/infrastructure trees, delete empty common/ shells, definitive grep-gate (zero com.softropic.payam.common refs), final mvn verify (v12 quality gate)
+- [x] 65-04-PLAN.md — CMN-03: move common.{consumer,Gender} to platform.security.contract; common.enums to infrastructure.util (5 files + ~17 callers; preserves Pitfall 4 Address import in Consumer)
+- [x] 65-05-PLAN.md — CMN-04: relocate 4 test stragglers to e2e/infrastructure trees, delete empty common/ shells, definitive grep-gate (zero com.softropic.payam.common refs), final mvn verify (v12 quality gate)
 
 ## Progress
 
@@ -741,5 +741,5 @@ Plans:
 | 62. Platform Layer Reorganization | v12 | 4/5 | Complete    | 2026-05-07 |
 | 63. Payment Domain Consolidation | v12 | 7/7 | Complete    | 2026-05-11 |
 | 64. Provider Infrastructure Encapsulation | v12 | 2/2 | Complete    | 2026-05-11 |
-| 65. Common Package Redistribution | v12 | 3/5 | In Progress|  |
+| 65. Common Package Redistribution | v12 | 5/5 | Complete   | 2026-05-12 |
 </content>

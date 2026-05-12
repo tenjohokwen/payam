@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 65-04-PLAN.md — common.consumer + common.Gender moved to platform.security.contract; common.enums moved to infrastructure.util; CMN-03 satisfied
-last_updated: "2026-05-12T09:02:11.768Z"
+stopped_at: Completed 65-05-PLAN.md — Phase 65 common package redistribution complete (CMN-04 satisfied); v12 architectural reorganization (Phases 61-65) fully shipped
+last_updated: "2026-05-12T09:30:43.189Z"
 last_activity: 2026-05-12
 progress:
   total_phases: 36
-  completed_phases: 24
+  completed_phases: 27
   total_plans: 83
-  completed_plans: 79
+  completed_plans: 83
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-06 — v12 milestone started)
 ## Current Position
 
 Phase: 65 (common-package-redistribution) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-05-12
 
@@ -89,6 +89,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 65]: macOS sed cannot handle multiple file paths in a shell variable — must loop or call sed once per file (same as Plans 01-03)
 - [Phase 65]: [Phase 65-04]: Principal.java and UserDto.java retain same-package import for Gender after move to platform.security.contract — redundant but legal Java; compiler accepts without error
 - [Phase 65]: [Phase 65-04]: Consumer.java's import of platform.security.repo.Address preserved byte-for-byte (Pitfall 4 invariant) — intra-domain import legal after Consumer moves to platform.security.contract
+- [Phase 65]: Production common/ was already absent before Plan 05 ran — Plans 01-04 deleted the directory shell; Plan 05 only needed to confirm absence and remove test/common/
+- [Phase 65]: HttpTestClient.java infrastructure.client.Client import was already retargeted by Plan 02 (Pitfall 8 was a no-op in Plan 05)
 
 ### v12 Phase Map
 
@@ -160,6 +162,7 @@ Key context carried forward for v10:
 | Phase 65 P02 | 1109 | 1 tasks | 88 files |
 | Phase 65-common-package-redistribution P03 | 22min | 1 tasks | 65 files |
 | Phase 65-common-package-redistribution P04 | 5 | 1 tasks | 21 files |
+| Phase 65-common-package-redistribution P05 | 10 | 1 tasks | 10 files |
 
 ### Pending Todos
 
@@ -171,6 +174,6 @@ None — roadmap is defined, requirements are 100% mapped.
 
 ## Session Continuity
 
-Last session: 2026-05-12T09:02:11.755Z
-Stopped at: Completed 65-04-PLAN.md — common.consumer + common.Gender moved to platform.security.contract; common.enums moved to infrastructure.util; CMN-03 satisfied
+Last session: 2026-05-12T09:30:43.181Z
+Stopped at: Completed 65-05-PLAN.md — Phase 65 common package redistribution complete (CMN-04 satisfied); v12 architectural reorganization (Phases 61-65) fully shipped
 Resume: `/gsd:execute-phase 63` — Wave 3 (63-03 next plan)
