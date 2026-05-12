@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.tenant.service;
 
-import com.softropic.payam.common.ClockProvider;
+import com.softropic.payam.infrastructure.util.ClockProvider;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.contract.ApiKeyStatus;
 import com.softropic.payam.platform.tenant.contract.event.TenantApiKeyEvent;

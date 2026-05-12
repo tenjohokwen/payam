@@ -1,7 +1,7 @@
 package com.softropic.payam.payment.provider.mtn.infrastructure;
 
-import com.softropic.payam.common.client.AbstractClient;
-import com.softropic.payam.common.client.RestRequestInterceptor;
+import com.softropic.payam.infrastructure.client.AbstractClient;
+import com.softropic.payam.infrastructure.client.RestRequestInterceptor;
 import com.softropic.payam.payment.provider.mtn.config.MtnMoMoConfig;
 import com.softropic.payam.payment.provider.mtn.contract.dto.AccountBalanceResponse;
 import com.softropic.payam.payment.provider.mtn.contract.dto.AccountHolderInfoResponse;
@@ -168,7 +168,7 @@ public class MtnMoMoClient extends AbstractClient {
                         + ", status: " + response.getStatusCode());
             }
             return response.getBody();
-        } catch (com.softropic.payam.common.client.exception.HttpClientException e) {
+        } catch (com.softropic.payam.infrastructure.client.exception.HttpClientException e) {
             // RestRequestInterceptor converts 4xx/5xx to HttpClientException before RestTemplate
             // can throw HttpClientErrorException. Check httpStatusCode string for 404.
             if (e.getHttpStatusCode() != null && e.getHttpStatusCode().contains("404")) {

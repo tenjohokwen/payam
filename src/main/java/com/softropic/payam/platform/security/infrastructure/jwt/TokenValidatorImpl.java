@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.security.infrastructure.jwt;
 
-import com.softropic.payam.common.ClockProvider;
+import com.softropic.payam.infrastructure.util.ClockProvider;
 import com.softropic.payam.platform.security.common.util.CookieUtil;
 import com.softropic.payam.platform.security.contract.exception.AuthorizationException;
 import com.softropic.payam.platform.security.contract.exception.InvalidJWTDataException;

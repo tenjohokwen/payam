@@ -1,7 +1,7 @@
 package com.softropic.payam.platform.security.infrastructure.jwt;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.softropic.payam.common.ClockProvider;
+import com.softropic.payam.infrastructure.util.ClockProvider;
 import com.softropic.payam.platform.security.contract.Principal;
 import com.softropic.payam.platform.security.contract.exception.InvalidJWTDataException;
 import com.softropic.payam.platform.security.common.util.RequestMetadataProvider;

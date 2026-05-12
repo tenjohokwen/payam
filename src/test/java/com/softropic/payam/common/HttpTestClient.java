@@ -2,7 +2,7 @@ package com.softropic.payam.common;
 
 import com.google.common.collect.ImmutableList;
 
-import com.softropic.payam.common.client.Client;
+import com.softropic.payam.infrastructure.client.Client;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;

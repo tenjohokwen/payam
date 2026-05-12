@@ -2,7 +2,7 @@ package com.softropic.payam.platform.security.contract;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.softropic.payam.common.Gender;
-import com.softropic.payam.common.validation.CamPhone;
+import com.softropic.payam.infrastructure.validation.CamPhone;
 import com.softropic.payam.platform.security.api.dto.AddressDto;
 
 import java.time.LocalDate;

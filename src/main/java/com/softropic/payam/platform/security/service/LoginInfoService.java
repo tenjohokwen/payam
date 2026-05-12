@@ -2,7 +2,7 @@ package com.softropic.payam.platform.security.service;
 
 
 
-import com.softropic.payam.common.ClockProvider;
+import com.softropic.payam.infrastructure.util.ClockProvider;
 import com.softropic.payam.platform.security.contract.LoginData;
 import com.softropic.payam.platform.security.common.util.SecurityConstants;
 import com.softropic.payam.platform.security.contract.exception.SecException;

@@ -2,7 +2,7 @@ package com.softropic.payam.platform.security.repo;
 
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.softropic.payam.common.ClockProvider;
+import com.softropic.payam.infrastructure.util.ClockProvider;
 import com.softropic.payam.platform.security.contract.LoginIdType;
 
 import org.hibernate.envers.Audited;

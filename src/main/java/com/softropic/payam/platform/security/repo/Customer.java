@@ -5,7 +5,7 @@ package com.softropic.payam.platform.security.repo;
 import com.softropic.payam.common.Gender;
 import com.softropic.payam.common.consumer.Consumer;
 import com.softropic.payam.infrastructure.persistence.AbstractAuditingEntity;
-import com.softropic.payam.common.validation.PhoneNumber;
+import com.softropic.payam.infrastructure.validation.PhoneNumber;
 
 import org.apache.commons.lang3.StringUtils;
 

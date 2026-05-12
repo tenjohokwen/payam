@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.security.api.dto;
 
-import com.softropic.payam.common.validation.CamPhone;
+import com.softropic.payam.infrastructure.validation.CamPhone;
 import jakarta.validation.constraints.NotNull;
 
 /**

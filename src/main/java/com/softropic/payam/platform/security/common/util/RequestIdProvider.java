@@ -2,7 +2,7 @@ package com.softropic.payam.platform.security.common.util;
 
 
 
-import com.softropic.payam.common.Constants;
+import com.softropic.payam.infrastructure.util.Constants;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.MDC;
@@ -12,7 +12,7 @@ import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import static com.softropic.payam.common.Constants.REQUEST_ID_HEADER_NAME;
+import static com.softropic.payam.infrastructure.util.Constants.REQUEST_ID_HEADER_NAME;
 
 
 /**

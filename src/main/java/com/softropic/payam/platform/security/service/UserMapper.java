@@ -2,8 +2,8 @@ package com.softropic.payam.platform.security.service;
 
 
 
-import com.softropic.payam.common.util.PhoneNumberUtil;
-import com.softropic.payam.common.validation.PhoneNumber;
+import com.softropic.payam.infrastructure.util.PhoneNumberUtil;
+import com.softropic.payam.infrastructure.validation.PhoneNumber;
 import com.softropic.payam.platform.security.api.dto.AddressDto;
 import com.softropic.payam.platform.security.repo.Address;
 import com.softropic.payam.platform.security.contract.UserDto;

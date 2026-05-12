@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.notification.infrastructure.listener;
 
-import com.softropic.payam.common.ClockProvider;
+import com.softropic.payam.infrastructure.util.ClockProvider;
 import com.softropic.payam.platform.notification.contract.EmailTemplate;
 import com.softropic.payam.platform.notification.contract.Envelope;
 import com.softropic.payam.platform.notification.contract.Recipient;

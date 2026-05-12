@@ -3,7 +3,7 @@ package com.softropic.payam.infrastructure.persistence;
 
 
 
-import com.softropic.payam.common.ClockProvider;
+import com.softropic.payam.infrastructure.util.ClockProvider;
 
 import org.springframework.data.auditing.DateTimeProvider;
 import org.springframework.stereotype.Component;

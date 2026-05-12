@@ -1,8 +1,8 @@
 package com.softropic.payam.platform.security.repo;
 
 
-import com.softropic.payam.common.validation.PhoneNumber;
-import com.softropic.payam.common.validation.Provider;
+import com.softropic.payam.infrastructure.validation.PhoneNumber;
+import com.softropic.payam.infrastructure.validation.Provider;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.platform.security.SecurityIT;
 import com.softropic.payam.platform.security.repo.Address;

@@ -1,8 +1,8 @@
 package com.softropic.payam.platform.security.service;
 
 import com.softropic.payam.common.Gender;
-import com.softropic.payam.common.util.PhoneNumberUtil;
-import com.softropic.payam.common.validation.PhoneNumber;
+import com.softropic.payam.infrastructure.util.PhoneNumberUtil;
+import com.softropic.payam.infrastructure.validation.PhoneNumber;
 import com.softropic.payam.platform.security.contract.event.AccountChangeEvent;
 import com.softropic.payam.platform.security.contract.event.AccountChangeUserInfo;
 import com.softropic.payam.platform.security.common.util.SecurityConstants;

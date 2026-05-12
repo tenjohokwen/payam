@@ -2,7 +2,7 @@ package com.softropic.payam.platform.security.api.util;
 
 
 
-import com.softropic.payam.common.validation.InputValidator;
+import com.softropic.payam.infrastructure.validation.InputValidator;
 
 import org.junit.jupiter.api.Test;
 

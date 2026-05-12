@@ -3,7 +3,7 @@ package com.softropic.payam.platform.notification.config;
 
 
 
-import com.softropic.payam.common.threadpool.MdcDecorator;
+import com.softropic.payam.infrastructure.threadpool.MdcDecorator;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

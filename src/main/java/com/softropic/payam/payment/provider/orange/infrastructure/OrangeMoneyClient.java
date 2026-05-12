@@ -1,7 +1,7 @@
 package com.softropic.payam.payment.provider.orange.infrastructure;
 
-import com.softropic.payam.common.client.AbstractClient;
-import com.softropic.payam.common.client.RestRequestInterceptor;
+import com.softropic.payam.infrastructure.client.AbstractClient;
+import com.softropic.payam.infrastructure.client.RestRequestInterceptor;
 import com.softropic.payam.payment.provider.orange.config.OrangeMoneyConfig;
 import com.softropic.payam.payment.provider.orange.contract.dto.CashoutRequest;
 import com.softropic.payam.payment.provider.orange.contract.dto.C2CRequest;

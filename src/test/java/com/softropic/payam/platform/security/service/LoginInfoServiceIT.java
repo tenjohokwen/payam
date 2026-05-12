@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.security.service;
 
-import com.softropic.payam.common.TestClockProvider;
+import com.softropic.payam.infrastructure.util.TestClockProvider;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.platform.security.contract.LoginData;
 import com.softropic.payam.platform.security.repo.LoginInfo;

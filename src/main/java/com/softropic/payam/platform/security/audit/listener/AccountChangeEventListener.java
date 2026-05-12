@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.security.audit.listener;
 
-import com.softropic.payam.common.ClockProvider;
+import com.softropic.payam.infrastructure.util.ClockProvider;
 import com.softropic.payam.platform.security.audit.api.AuditTrail;
 import com.softropic.payam.platform.security.audit.service.TrailService;
 import com.softropic.payam.platform.security.contract.event.AccountChangeEvent;

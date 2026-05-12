@@ -1,7 +1,7 @@
 package com.softropic.payam.platform.security.service;
 
-import com.softropic.payam.common.ClockProvider;
-import com.softropic.payam.common.util.RandomUtil;
+import com.softropic.payam.infrastructure.util.ClockProvider;
+import com.softropic.payam.infrastructure.util.RandomUtil;
 import com.softropic.payam.platform.security.contract.SecurityProperties;
 import com.softropic.payam.platform.security.repo.User;
 import com.softropic.payam.platform.security.contract.ChangePasswordDto;

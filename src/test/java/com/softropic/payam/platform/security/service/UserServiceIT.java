@@ -1,11 +1,11 @@
 package com.softropic.payam.platform.security.service;
 
-import com.softropic.payam.common.ClockProvider;
+import com.softropic.payam.infrastructure.util.ClockProvider;
 import com.softropic.payam.common.Gender;
 import com.softropic.payam.infrastructure.persistence.EntityStatus;
-import com.softropic.payam.common.util.RandomUtil;
-import com.softropic.payam.common.validation.PhoneNumber;
-import com.softropic.payam.common.validation.Provider;
+import com.softropic.payam.infrastructure.util.RandomUtil;
+import com.softropic.payam.infrastructure.validation.PhoneNumber;
+import com.softropic.payam.infrastructure.validation.Provider;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.platform.security.service.UserMapper;
 import com.softropic.payam.platform.security.repo.Address;

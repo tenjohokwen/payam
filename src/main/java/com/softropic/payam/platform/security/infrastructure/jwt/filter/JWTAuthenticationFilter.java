@@ -3,7 +3,7 @@ package com.softropic.payam.platform.security.infrastructure.jwt.filter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.softropic.payam.infrastructure.exception.ApplicationException;
 import com.softropic.payam.infrastructure.message.Success;
-import com.softropic.payam.common.validation.InputValidator;
+import com.softropic.payam.infrastructure.validation.InputValidator;
 import com.softropic.payam.platform.security.common.event.AuthenticationAction;
 import com.softropic.payam.platform.security.common.event.AuthEvent;
 import com.softropic.payam.platform.security.common.event.PreAuthEvent;

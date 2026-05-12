@@ -1,7 +1,7 @@
 package com.softropic.payam.infrastructure.config;
 
-import com.softropic.payam.common.threadpool.MdcDecorator;
-import com.softropic.payam.common.threadpool.TenantContextTaskDecorator;
+import com.softropic.payam.infrastructure.threadpool.MdcDecorator;
+import com.softropic.payam.infrastructure.threadpool.TenantContextTaskDecorator;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

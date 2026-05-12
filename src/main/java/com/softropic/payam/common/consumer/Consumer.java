@@ -3,7 +3,7 @@ package com.softropic.payam.common.consumer;
 
 
 import com.softropic.payam.common.Gender;
-import com.softropic.payam.common.validation.PhoneNumber;
+import com.softropic.payam.infrastructure.validation.PhoneNumber;
 import com.softropic.payam.platform.security.repo.Address;
 
 import java.io.Serializable;
