@@ -1,4 +1,4 @@
-package com.softropic.payam.common.configtest;
+package com.softropic.payam.infrastructure.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.softropic.payam.infrastructure.config.CommonConfig;

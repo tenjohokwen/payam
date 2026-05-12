@@ -1,4 +1,4 @@
-package com.softropic.payam.common;
+package com.softropic.payam.e2e;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;

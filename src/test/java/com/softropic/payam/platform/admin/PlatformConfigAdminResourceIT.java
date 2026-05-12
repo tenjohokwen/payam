@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.admin;
 
-import com.softropic.payam.common.AdminLogin;
+import com.softropic.payam.e2e.AdminLogin;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.platform.admin.contract.PinDto;
 import com.softropic.payam.platform.admin.contract.PlatformConfigDto;

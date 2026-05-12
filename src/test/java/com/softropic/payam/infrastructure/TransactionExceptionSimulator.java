@@ -1,4 +1,4 @@
-package com.softropic.payam.common;
+package com.softropic.payam.infrastructure;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;

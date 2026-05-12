@@ -1,4 +1,4 @@
-package com.softropic.payam.common;
+package com.softropic.payam.e2e;
 
 import com.google.common.collect.ImmutableList;
 

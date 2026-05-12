@@ -1,7 +1,7 @@
 package com.softropic.payam.platform.security;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.softropic.payam.common.HttpTestClient;
+import com.softropic.payam.e2e.HttpTestClient;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.platform.notification.contract.Envelope;
 import com.softropic.payam.platform.notification.service.MailManager;

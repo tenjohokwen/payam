@@ -3,7 +3,7 @@ package com.softropic.payam.platform.security;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.softropic.payam.platform.security.contract.Gender;
-import com.softropic.payam.common.HttpTestClient;
+import com.softropic.payam.e2e.HttpTestClient;
 import com.softropic.payam.infrastructure.config.CommonConfig;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.platform.notification.contract.Envelope;
