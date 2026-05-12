@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 64-02-PLAN.md — Phase 64 provider infrastructure encapsulation complete (PROV-02 satisfied, both mtn and orange under payment.provider.*)
-last_updated: "2026-05-11T21:33:38.747Z"
-last_activity: 2026-05-11
+status: executing
+stopped_at: Completed 65-01-PLAN.md — common.exception/message/config/logging moved to infrastructure.* (CMN-02 Wave 1)
+last_updated: "2026-05-12T06:52:13.656Z"
+last_activity: 2026-05-12
 progress:
   total_phases: 36
   completed_phases: 26
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-06 — v12 milestone started)
 
 **Core value:** Reliable, fraud-resistant payment processing with full traceability — no double charges, no blind trust of webhooks, no silent failures.
-**Current focus:** Phase 64 — provider-infrastructure-encapsulation
+**Current focus:** Phase 65 — common-package-redistribution
 
 ## Current Position
 
-Phase: 65
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-05-11
+Phase: 65 (common-package-redistribution) — EXECUTING
+Plan: 1 of 5
+Status: Wave 1 complete — executing Wave 2
+Last activity: 2026-05-12
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -80,6 +80,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 64-01]: Fee02RegressionTest.java had hardcoded old path mtn/service/MtnMoMoPort.java — updated to payment/provider/mtn/service/MtnMoMoPort.java (Rule 1 bug fix: static analysis test references obsolete file path after package move)
 - [Phase 64]: Fee02RegressionTest.java had hardcoded old path orange/service/OrangeMoneyPort.java — updated to payment/provider/orange/service/OrangeMoneyPort.java (Rule 1 bug fix: same pattern as Plan 01 mtn fix)
 - [Phase 64]: [Phase 64-02]: Testcontainers/Ryuk Docker contention from parallel agent execution causes transient E2E test failures during mvn verify — not caused by package moves; test-compile exits 0 and pure unit tests pass green
+- [Phase 65]: 5 common.* sibling files in common.util/client/validation that referenced common.exception.*/common.config.* were retargeted in Plan 01 even though those files move in Plans 02-04 — zero-stale-reference invariant requires immediate retarget
+- [Phase 65]: Phase 64 commits merged into worktree branch before starting Wave 1 — worktree was at Phase 63 state; 0464d86 merge brought both mtn and orange provider encapsulations into scope
 
 ### v12 Phase Map
 
@@ -147,6 +149,7 @@ Key context carried forward for v10:
 | Phase 63-payment-domain-consolidation P07 | 113 | 1 tasks | 132 files |
 | Phase 64-provider-infrastructure-encapsulation P01 | 60 | 1 tasks | 62 files |
 | Phase 64 P02 | 11 | 1 tasks | 57 files |
+| Phase 65 P01 | 34 | 1 tasks | 52 files |
 
 ### Pending Todos
 
@@ -158,6 +161,6 @@ None — roadmap is defined, requirements are 100% mapped.
 
 ## Session Continuity
 
-Last session: 2026-05-11T21:27:39.165Z
-Stopped at: Completed 64-02-PLAN.md — Phase 64 provider infrastructure encapsulation complete (PROV-02 satisfied, both mtn and orange under payment.provider.*)
+Last session: 2026-05-12T06:52:13.643Z
+Stopped at: Completed 65-01-PLAN.md — common.exception/message/config/logging moved to infrastructure.* (CMN-02 Wave 1)
 Resume: `/gsd:execute-phase 63` — Wave 3 (63-03 next plan)

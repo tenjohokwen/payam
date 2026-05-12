@@ -1,7 +1,7 @@
-package com.softropic.payam.common.logging;
+package com.softropic.payam.infrastructure.logging;
 
 
-import com.softropic.payam.common.exception.ErrorCode;
+import com.softropic.payam.infrastructure.exception.ErrorCode;
 
 public enum InventoryCode implements ErrorCode {
     INV_1001, //release count more than reserve count

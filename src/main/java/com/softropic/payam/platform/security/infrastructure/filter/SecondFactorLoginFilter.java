@@ -1,7 +1,7 @@
 package com.softropic.payam.platform.security.infrastructure.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.softropic.payam.common.message.Success;
+import com.softropic.payam.infrastructure.message.Success;
 import com.softropic.payam.platform.security.contract.LoginData;
 import com.softropic.payam.platform.security.common.event.AuthenticationAction;
 import com.softropic.payam.platform.security.common.event.AuthEvent;

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.softropic.payam.common.Gender;
 import com.softropic.payam.common.HttpTestClient;
-import com.softropic.payam.common.config.CommonConfig;
+import com.softropic.payam.infrastructure.config.CommonConfig;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.platform.notification.contract.Envelope;
 import com.softropic.payam.platform.notification.service.MailManager;

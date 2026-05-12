@@ -2,7 +2,7 @@ package com.softropic.payam.platform.security.contract.event;
 
 
 
-import com.softropic.payam.common.exception.ApplicationException;
+import com.softropic.payam.infrastructure.exception.ApplicationException;
 
 import org.springframework.security.core.AuthenticationException;
 

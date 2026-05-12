@@ -1,4 +1,4 @@
-package com.softropic.payam.common.message;
+package com.softropic.payam.infrastructure.message;
 
 import java.util.Map;
 

@@ -2,7 +2,7 @@ package com.softropic.payam.platform.security.infrastructure.jwt;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.softropic.payam.common.exception.AppSetupException;
+import com.softropic.payam.infrastructure.exception.AppSetupException;
 import com.softropic.payam.platform.security.config.SimpleGrantedAuthorityMixin;
 import com.softropic.payam.platform.security.contract.exception.InvalidJWTDataException;
 import com.softropic.payam.platform.security.service.SecretService;

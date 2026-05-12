@@ -1,7 +1,7 @@
 package com.softropic.payam.platform.security.contract.exception;
 
 
-import com.softropic.payam.common.exception.ErrorCode;
+import com.softropic.payam.infrastructure.exception.ErrorCode;
 
 public enum EncryptionError implements ErrorCode {
     MISSING_SECRET,

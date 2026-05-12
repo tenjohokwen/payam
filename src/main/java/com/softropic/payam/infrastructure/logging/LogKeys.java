@@ -1,4 +1,4 @@
-package com.softropic.payam.common.logging;
+package com.softropic.payam.infrastructure.logging;
 
 public final class LogKeys {
     private LogKeys() {}

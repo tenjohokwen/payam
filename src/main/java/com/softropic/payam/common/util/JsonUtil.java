@@ -4,9 +4,9 @@ package com.softropic.payam.common.util;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.softropic.payam.common.config.CommonConfig;
-import com.softropic.payam.common.exception.ApplicationException;
-import com.softropic.payam.common.exception.ErrorCode;
+import com.softropic.payam.infrastructure.config.CommonConfig;
+import com.softropic.payam.infrastructure.exception.ApplicationException;
+import com.softropic.payam.infrastructure.exception.ErrorCode;
 
 import java.io.IOException;
 import java.net.URI;

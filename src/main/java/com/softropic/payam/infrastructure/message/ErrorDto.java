@@ -1,4 +1,4 @@
-package com.softropic.payam.common.message;
+package com.softropic.payam.infrastructure.message;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;

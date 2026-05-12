@@ -1,4 +1,4 @@
-package com.softropic.payam.common.config;
+package com.softropic.payam.infrastructure.config;
 
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;

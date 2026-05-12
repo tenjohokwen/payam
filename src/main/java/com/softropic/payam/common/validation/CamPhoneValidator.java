@@ -45,7 +45,7 @@ public class CamPhoneValidator implements ConstraintValidator<CamPhone, String> 
      * Maps CamMobileValidator error codes to i18n message keys and fallback messages.
      * Returns array: [messageKey, fallbackMessage]
      */
-    private String[] mapErrorCodeToMessage(com.softropic.payam.common.exception.ErrorCode errorCode) {
+    private String[] mapErrorCodeToMessage(com.softropic.payam.infrastructure.exception.ErrorCode errorCode) {
         if (errorCode == null) {
             return new String[]{"validation.phone.invalid", "Invalid phone number format"};
         }

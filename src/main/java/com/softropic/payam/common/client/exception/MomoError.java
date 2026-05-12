@@ -1,7 +1,7 @@
 package com.softropic.payam.common.client.exception;
 
 
-import com.softropic.payam.common.exception.ErrorCode;
+import com.softropic.payam.infrastructure.exception.ErrorCode;
 
 public enum MomoError implements ErrorCode {
     PAYEE_NOT_FOUND("MOBILE_NUMBER_NOT_FOUND"),

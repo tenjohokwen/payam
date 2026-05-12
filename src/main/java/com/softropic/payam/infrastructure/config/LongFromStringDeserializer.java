@@ -1,4 +1,4 @@
-package com.softropic.payam.common.config;
+package com.softropic.payam.infrastructure.config;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;

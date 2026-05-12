@@ -1,7 +1,7 @@
 package com.softropic.payam.common.configtest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.softropic.payam.common.config.CommonConfig;
+import com.softropic.payam.infrastructure.config.CommonConfig;
 
 class JacksonTest {
 

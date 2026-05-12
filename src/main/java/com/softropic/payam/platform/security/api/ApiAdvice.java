@@ -1,10 +1,10 @@
 package com.softropic.payam.platform.security.api;
 
 
-import com.softropic.payam.common.exception.ApplicationException;
-import com.softropic.payam.common.exception.ResourceNotFoundException;
-import com.softropic.payam.common.message.ErrorDto;
-import com.softropic.payam.common.message.ErrorMsg;
+import com.softropic.payam.infrastructure.exception.ApplicationException;
+import com.softropic.payam.infrastructure.exception.ResourceNotFoundException;
+import com.softropic.payam.infrastructure.message.ErrorDto;
+import com.softropic.payam.infrastructure.message.ErrorMsg;
 import com.softropic.payam.platform.security.contract.event.SecurityAlertEvent;
 import com.softropic.payam.platform.security.common.event.BadCredentialsEvent;
 import com.softropic.payam.platform.security.contract.exception.ProfileActionException;
