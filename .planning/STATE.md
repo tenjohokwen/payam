@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
-status: executing
-stopped_at: Completed 64-01-PLAN.md — MTN package relocated to payment.provider.mtn, PROV-01 satisfied
-last_updated: "2026-05-11T21:12:19.493Z"
-last_activity: 2026-05-11
+status: verifying
+stopped_at: Completed 65-01-PLAN.md — common.exception/message/config/logging moved to infrastructure.* (CMN-02 Wave 1)
+last_updated: "2026-05-12T06:52:13.656Z"
+last_activity: 2026-05-12
 progress:
   total_phases: 36
-  completed_phases: 25
+  completed_phases: 23
   total_plans: 78
-  completed_plans: 77
+  completed_plans: 76
   percent: 0
 ---
 
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-05-06 — v12 milestone started)
 
 Phase: 64 (provider-infrastructure-encapsulation) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
-Last activity: 2026-05-11
+Status: Phase complete — ready for verification
+Last activity: 2026-05-12
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -78,6 +78,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 63-payment-domain-consolidation]: [Phase 63-07]: macOS sed \b word boundary silently fails — use explicit per-suffix patterns for package declaration rewrites
 - [Phase 63-payment-domain-consolidation]: [Phase 63-07]: FQN references in code bodies (not just imports) also require sed sweep — WebhookDoubleCheckHandler used FQNs in method bodies, not import statements
 - [Phase 64-01]: Fee02RegressionTest.java had hardcoded old path mtn/service/MtnMoMoPort.java — updated to payment/provider/mtn/service/MtnMoMoPort.java (Rule 1 bug fix: static analysis test references obsolete file path after package move)
+- [Phase 65]: 5 common.* sibling files in common.util/client/validation that referenced common.exception.*/common.config.* were retargeted in Plan 01 even though those files move in Plans 02-04 — zero-stale-reference invariant requires immediate retarget
+- [Phase 65]: Phase 64 commits merged into worktree branch before starting Wave 1 — worktree was at Phase 63 state; 0464d86 merge brought both mtn and orange provider encapsulations into scope
 
 ### v12 Phase Map
 
@@ -144,6 +146,7 @@ Key context carried forward for v10:
 | Phase 63-payment-domain-consolidation P05 | 24 | 1 tasks | 39 files |
 | Phase 63-payment-domain-consolidation P07 | 113 | 1 tasks | 132 files |
 | Phase 64-provider-infrastructure-encapsulation P01 | 60 | 1 tasks | 62 files |
+| Phase 65 P01 | 34 | 1 tasks | 52 files |
 
 ### Pending Todos
 
@@ -155,6 +158,6 @@ None — roadmap is defined, requirements are 100% mapped.
 
 ## Session Continuity
 
-Last session: 2026-05-11T21:12:19.485Z
-Stopped at: Completed 64-01-PLAN.md — MTN package relocated to payment.provider.mtn, PROV-01 satisfied
+Last session: 2026-05-12T06:52:13.643Z
+Stopped at: Completed 65-01-PLAN.md — common.exception/message/config/logging moved to infrastructure.* (CMN-02 Wave 1)
 Resume: `/gsd:execute-phase 63` — Wave 3 (63-03 next plan)
