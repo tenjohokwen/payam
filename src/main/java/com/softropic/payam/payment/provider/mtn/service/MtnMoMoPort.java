@@ -1,9 +1,9 @@
 package com.softropic.payam.payment.provider.mtn.service;
 
-import com.softropic.payam.common.payment.MobileMoneyPort;
-import com.softropic.payam.common.payment.PaymentCommand;
-import com.softropic.payam.common.payment.ProviderResult;
-import com.softropic.payam.common.payment.SubscriberStatus;
+import com.softropic.payam.payment.core.contract.MobileMoneyPort;
+import com.softropic.payam.payment.core.contract.PaymentCommand;
+import com.softropic.payam.payment.core.contract.ProviderResult;
+import com.softropic.payam.payment.core.contract.SubscriberStatus;
 import com.softropic.payam.payment.provider.mtn.config.MtnMoMoConfig;
 import com.softropic.payam.payment.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.payment.provider.mtn.contract.MtnCallbackPayload;
@@ -280,7 +280,7 @@ public class MtnMoMoPort implements MobileMoneyPort {
             transactionTemplate.execute(status -> {
                 eventPublisher.publishEvent(new WebhookReceivedEvent(
                     txId,
-                    com.softropic.payam.common.payment.MobilePaymentProvider.MTN,
+                    com.softropic.payam.payment.core.contract.MobilePaymentProvider.MTN,
                     providerRef,
                     traceId,
                     flow
@@ -337,7 +337,7 @@ public class MtnMoMoPort implements MobileMoneyPort {
             transactionTemplate.execute(s -> {
                 eventPublisher.publishEvent(new WebhookReceivedEvent(
                     dsbId,
-                    com.softropic.payam.common.payment.MobilePaymentProvider.MTN,
+                    com.softropic.payam.payment.core.contract.MobilePaymentProvider.MTN,
                     providerRef,
                     dsbId,    // traceId — disbursementId doubles as traceId for callbacks
                     com.softropic.payam.payment.ledger.contract.LedgerFlow.DISBURSEMENT

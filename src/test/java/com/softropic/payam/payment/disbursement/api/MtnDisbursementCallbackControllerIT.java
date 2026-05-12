@@ -1,7 +1,7 @@
 package com.softropic.payam.payment.disbursement.api;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.payment.disbursement.contract.DisbursementStatus;
 import com.softropic.payam.payment.disbursement.repo.Disbursement;

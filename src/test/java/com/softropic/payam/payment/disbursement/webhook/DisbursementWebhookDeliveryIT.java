@@ -2,8 +2,8 @@ package com.softropic.payam.payment.disbursement.webhook;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
-import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.common.payment.ProviderResult;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.ProviderResult;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.payment.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.payment.disbursement.repo.MerchantWalletBalanceRepository;

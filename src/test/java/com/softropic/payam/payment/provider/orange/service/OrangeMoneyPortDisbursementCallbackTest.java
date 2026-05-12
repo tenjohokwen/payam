@@ -1,6 +1,6 @@
 package com.softropic.payam.payment.provider.orange.service;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
 import com.softropic.payam.payment.disbursement.repo.Disbursement;
 import com.softropic.payam.payment.disbursement.repo.DisbursementRepository;
 import com.softropic.payam.payment.provider.orange.config.OrangeMoneyConfig;

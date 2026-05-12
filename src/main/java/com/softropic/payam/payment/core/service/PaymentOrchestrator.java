@@ -1,10 +1,10 @@
 package com.softropic.payam.payment.core.service;
 
 import com.softropic.payam.infrastructure.client.exception.HttpClientException;
-import com.softropic.payam.common.payment.MobileMoneyPort;
-import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.common.payment.PaymentCommand;
-import com.softropic.payam.common.payment.ProviderResult;
+import com.softropic.payam.payment.core.contract.MobileMoneyPort;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.PaymentCommand;
+import com.softropic.payam.payment.core.contract.ProviderResult;
 import com.softropic.payam.infrastructure.util.JsonUtil;
 import com.softropic.payam.platform.admin.service.PaymentMetricsService;
 import com.softropic.payam.payment.fee.service.FeeEvaluationService;

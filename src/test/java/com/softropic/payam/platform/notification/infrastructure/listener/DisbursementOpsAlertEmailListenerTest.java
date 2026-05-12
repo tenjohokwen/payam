@@ -1,6 +1,6 @@
 package com.softropic.payam.platform.notification.infrastructure.listener;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
 import com.softropic.payam.payment.disbursement.contract.event.DisbursementAdminApprovalRequiredEvent;
 import com.softropic.payam.payment.disbursement.contract.event.InsufficientFundsAlertEvent;
 import com.softropic.payam.platform.notification.contract.EmailTemplate;

@@ -1,10 +1,10 @@
 package com.softropic.payam.payment.provider.orange;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.common.payment.PaymentCommand;
-import com.softropic.payam.common.payment.ProviderResult;
-import com.softropic.payam.common.payment.SubscriberStatus;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.PaymentCommand;
+import com.softropic.payam.payment.core.contract.ProviderResult;
+import com.softropic.payam.payment.core.contract.SubscriberStatus;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.payment.provider.orange.contract.exception.PayTokenExpiredException;
 import com.softropic.payam.payment.provider.orange.service.OrangeMoneyPort;

@@ -1,6 +1,6 @@
 package com.softropic.payam.payment.reconciliation.service;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
 import com.softropic.payam.payment.reconciliation.contract.DiscrepancySeverity;
 import com.softropic.payam.payment.reconciliation.contract.DiscrepancyType;
 import com.softropic.payam.payment.reconciliation.port.ProviderReportPort;

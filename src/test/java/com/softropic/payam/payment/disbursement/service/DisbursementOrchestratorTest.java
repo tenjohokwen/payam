@@ -1,8 +1,8 @@
 package com.softropic.payam.payment.disbursement.service;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.common.payment.ProviderResult;
-import com.softropic.payam.common.payment.SubscriberStatus;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.ProviderResult;
+import com.softropic.payam.payment.core.contract.SubscriberStatus;
 import com.softropic.payam.payment.disbursement.config.DisbursementProperties;
 import com.softropic.payam.payment.disbursement.contract.DisbursementOrchestratorError;
 import com.softropic.payam.payment.disbursement.contract.DisbursementRefStatus;

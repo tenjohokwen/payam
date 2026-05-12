@@ -1,7 +1,7 @@
 package com.softropic.payam.payment.webhook.service;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.common.payment.ProviderResult;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.ProviderResult;
 import com.softropic.payam.payment.disbursement.service.DisbursementCallbackTransitionService;
 import com.softropic.payam.payment.provider.mtn.service.MtnMoMoPort;
 import com.softropic.payam.payment.provider.orange.service.OrangeMoneyPort;

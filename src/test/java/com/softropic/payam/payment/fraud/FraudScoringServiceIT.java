@@ -1,8 +1,8 @@
 package com.softropic.payam.payment.fraud;
 
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
-import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.common.payment.PaymentCommand;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.PaymentCommand;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.payment.fraud.contract.FraudDecision;
 import com.softropic.payam.payment.fraud.service.FraudRuleCache;

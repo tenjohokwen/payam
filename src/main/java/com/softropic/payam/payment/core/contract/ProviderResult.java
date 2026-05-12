@@ -1,4 +1,4 @@
-package com.softropic.payam.common.payment;
+package com.softropic.payam.payment.core.contract;
 
 public record ProviderResult(
     String providerRef,        // payToken (Orange) or financialTransactionId (MTN)

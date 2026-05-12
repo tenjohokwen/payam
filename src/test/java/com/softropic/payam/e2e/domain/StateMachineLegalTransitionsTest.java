@@ -1,6 +1,6 @@
 package com.softropic.payam.e2e.domain;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
 import com.softropic.payam.e2e.AbstractPayamE2ETest;
 import com.softropic.payam.e2e.builder.TenantBuilder;
 import com.softropic.payam.platform.tenant.service.TenantService;

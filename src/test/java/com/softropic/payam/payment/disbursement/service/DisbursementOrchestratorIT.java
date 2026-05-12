@@ -1,7 +1,7 @@
 package com.softropic.payam.payment.disbursement.service;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.config.TestDataCleaner;
 import com.softropic.payam.payment.disbursement.contract.DisbursementOrchestratorError;

@@ -1,6 +1,6 @@
 package com.softropic.payam.payment.core.service;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
 import com.softropic.payam.payment.core.repo.MsisdnPrefixRoute;
 import com.softropic.payam.payment.core.repo.MsisdnPrefixRouteRepository;
 

@@ -1,6 +1,6 @@
 package com.softropic.payam.e2e.reconciliation;
 
-import com.softropic.payam.common.payment.ProviderResult;
+import com.softropic.payam.payment.core.contract.ProviderResult;
 import com.softropic.payam.e2e.AbstractPayamE2ETest;
 import com.softropic.payam.e2e.builder.TenantBuilder;
 import com.softropic.payam.payment.provider.mtn.service.MtnMoMoPort;

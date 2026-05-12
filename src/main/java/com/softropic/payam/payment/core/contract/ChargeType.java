@@ -1,4 +1,4 @@
-package com.softropic.payam.common.refund;
+package com.softropic.payam.payment.core.contract;
 
 public enum ChargeType {
     FIXED, PERCENT, NONE

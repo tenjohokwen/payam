@@ -1,6 +1,6 @@
 package com.softropic.payam.payment.ledger.service;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
 import com.softropic.payam.payment.ledger.contract.TransactionStatus;
 import com.softropic.payam.payment.ledger.repo.Transaction;
 import com.softropic.payam.payment.ledger.repo.TransactionRepository;

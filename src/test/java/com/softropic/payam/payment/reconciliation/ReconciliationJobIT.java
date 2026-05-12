@@ -1,8 +1,8 @@
 package com.softropic.payam.payment.reconciliation;
 
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
-import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.common.payment.ProviderResult;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.ProviderResult;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.payment.provider.mtn.service.MtnMoMoPort;
 import com.softropic.payam.payment.provider.orange.service.OrangeMoneyPort;

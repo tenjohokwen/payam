@@ -47,7 +47,7 @@ public record DisbursementResponse(
         String reference,
 
         /**
-         * String form of {@link com.softropic.payam.common.payment.MobilePaymentProvider}
+         * String form of {@link com.softropic.payam.payment.core.contract.MobilePaymentProvider}
          * (e.g. "MTN", "ORANGE"). Null on early failures before routing.
          */
         String provider,
@@ -75,7 +75,7 @@ public record DisbursementResponse(
      * @param fee             applied fee; set to {@link BigDecimal#ZERO} when null
      * @param currency        ISO-4217 currency code
      * @param reference       tenant-side external reference
-     * @param provider        string form of {@link com.softropic.payam.common.payment.MobilePaymentProvider}
+     * @param provider        string form of {@link com.softropic.payam.payment.core.contract.MobilePaymentProvider}
      */
     public static DisbursementResponse accepted(
             String disbursementId,

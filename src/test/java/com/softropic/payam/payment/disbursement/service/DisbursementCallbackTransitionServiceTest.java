@@ -1,7 +1,7 @@
 package com.softropic.payam.payment.disbursement.service;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.common.payment.ProviderResult;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.ProviderResult;
 import com.softropic.payam.payment.disbursement.contract.DisbursementRefStatus;
 import com.softropic.payam.payment.disbursement.contract.DisbursementStatus;
 import com.softropic.payam.payment.disbursement.contract.event.InsufficientFundsAlertEvent;

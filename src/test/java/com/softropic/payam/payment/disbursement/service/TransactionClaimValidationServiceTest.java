@@ -1,6 +1,6 @@
 package com.softropic.payam.payment.disbursement.service;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
 import com.softropic.payam.payment.disbursement.contract.DisbursementRefStatus;
 import com.softropic.payam.payment.disbursement.contract.exception.AmountMismatchException;
 import com.softropic.payam.payment.disbursement.contract.exception.InvalidTransactionException;

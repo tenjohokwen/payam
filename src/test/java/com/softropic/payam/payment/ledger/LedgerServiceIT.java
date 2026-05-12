@@ -1,6 +1,6 @@
 package com.softropic.payam.payment.ledger;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
 import com.softropic.payam.config.TestConfig;
 import com.softropic.payam.platform.tenant.contract.ApiKeyEnvironment;
 import com.softropic.payam.platform.tenant.service.TenantService;

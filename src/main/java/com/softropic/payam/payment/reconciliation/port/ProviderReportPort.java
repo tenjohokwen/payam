@@ -1,6 +1,6 @@
 package com.softropic.payam.payment.reconciliation.port;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
 
 import java.time.LocalDate;
 

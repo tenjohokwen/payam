@@ -1,6 +1,6 @@
 package com.softropic.payam.payment.disbursement.service;
 
-import com.softropic.payam.common.payment.ProviderResult;
+import com.softropic.payam.payment.core.contract.ProviderResult;
 
 import org.junit.jupiter.api.Test;
 

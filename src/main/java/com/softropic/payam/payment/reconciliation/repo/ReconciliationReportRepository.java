@@ -1,6 +1,6 @@
 package com.softropic.payam.payment.reconciliation.repo;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

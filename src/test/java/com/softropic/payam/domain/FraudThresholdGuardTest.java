@@ -1,7 +1,7 @@
 package com.softropic.payam.domain;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
-import com.softropic.payam.common.payment.PaymentCommand;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.PaymentCommand;
 import com.softropic.payam.payment.fraud.contract.FraudDecision;
 import com.softropic.payam.payment.fraud.contract.FraudSignal;
 import com.softropic.payam.payment.fraud.repo.FraudRule;

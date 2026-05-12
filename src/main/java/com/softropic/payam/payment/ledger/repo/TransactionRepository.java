@@ -1,6 +1,6 @@
 package com.softropic.payam.payment.ledger.repo;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
 import com.softropic.payam.payment.ledger.contract.TransactionStatus;
 
 import jakarta.persistence.LockModeType;

@@ -1,6 +1,6 @@
 package com.softropic.payam.payment.provider.mtn.service;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
 import com.softropic.payam.payment.provider.mtn.config.MtnMoMoConfig;
 import com.softropic.payam.payment.provider.mtn.contract.exception.MtnApiException;
 import com.softropic.payam.payment.ledger.contract.TransactionEventType;

@@ -1,6 +1,6 @@
 package com.softropic.payam.payment.disbursement.contract.event;
 
-import com.softropic.payam.common.payment.MobilePaymentProvider;
+import com.softropic.payam.payment.core.contract.MobilePaymentProvider;
 
 import java.math.BigDecimal;
 import java.time.Instant;
