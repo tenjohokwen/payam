@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 65-03-PLAN.md — common.payment + common.refund moved to payment.core.contract (CMN-01)
-last_updated: "2026-05-12T08:23:02.608Z"
+stopped_at: Completed 65-04-PLAN.md — common.consumer + common.Gender moved to platform.security.contract; common.enums moved to infrastructure.util; CMN-03 satisfied
+last_updated: "2026-05-12T09:02:11.768Z"
 last_activity: 2026-05-12
 progress:
   total_phases: 36
-  completed_phases: 26
+  completed_phases: 24
   total_plans: 83
-  completed_plans: 81
+  completed_plans: 79
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-06 — v12 milestone started)
 ## Current Position
 
 Phase: 65 (common-package-redistribution) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-05-12
 
@@ -86,6 +86,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 65-02]: TestClockProvider co-located in infrastructure.util (same package as ClockProvider) to preserve package-private setClock() access
 - [Phase 65-02]: PhoneNumberDto placed in infrastructure.validation (not infrastructure.dto): both validators and utils depend on it; infrastructure cannot depend upward on platform
 - [Phase 65-common-package-redistribution]: [Phase 65-03]: common.refund (zero external callers) placed in payment.core.contract per RESEARCH.md Open Question 1 — consistent with CMN-01 destination mapping
+- [Phase 65]: macOS sed cannot handle multiple file paths in a shell variable — must loop or call sed once per file (same as Plans 01-03)
+- [Phase 65]: [Phase 65-04]: Principal.java and UserDto.java retain same-package import for Gender after move to platform.security.contract — redundant but legal Java; compiler accepts without error
+- [Phase 65]: [Phase 65-04]: Consumer.java's import of platform.security.repo.Address preserved byte-for-byte (Pitfall 4 invariant) — intra-domain import legal after Consumer moves to platform.security.contract
 
 ### v12 Phase Map
 
@@ -156,6 +159,7 @@ Key context carried forward for v10:
 | Phase 65 P01 | 34 | 1 tasks | 52 files |
 | Phase 65 P02 | 1109 | 1 tasks | 88 files |
 | Phase 65-common-package-redistribution P03 | 22min | 1 tasks | 65 files |
+| Phase 65-common-package-redistribution P04 | 5 | 1 tasks | 21 files |
 
 ### Pending Todos
 
@@ -167,6 +171,6 @@ None — roadmap is defined, requirements are 100% mapped.
 
 ## Session Continuity
 
-Last session: 2026-05-12T08:23:02.593Z
-Stopped at: Completed 65-03-PLAN.md — common.payment + common.refund moved to payment.core.contract (CMN-01)
+Last session: 2026-05-12T09:02:11.755Z
+Stopped at: Completed 65-04-PLAN.md — common.consumer + common.Gender moved to platform.security.contract; common.enums moved to infrastructure.util; CMN-03 satisfied
 Resume: `/gsd:execute-phase 63` — Wave 3 (63-03 next plan)
