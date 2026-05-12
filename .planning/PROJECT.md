@@ -10,7 +10,15 @@ Reliable, fraud-resistant payment processing with full traceability — no doubl
 
 ## Current State
 
-v12 complete — Phase 65 complete (2026-05-12). All 5 phases of the v12 architectural refactor shipped: infrastructure layer creation (61), platform layer reorganization (62), payment domain consolidation (63), provider encapsulation (64), and common package redistribution (65). The `com.softropic.payam.common` package no longer exists in the source tree — all types redistributed to `infrastructure.*`, `payment.core.contract`, and `platform.security.contract`. All CMN-01 through CMN-04 requirements satisfied. `mvn verify` green (775+ tests). Ready for `/gsd:complete-milestone`.
+v12 complete — shipped 2026-05-12. All 5 phases of the v12 architectural refactor shipped and archived. The codebase now has explicit bounded contexts: `payment.*` (core, ledger, disbursement, fee, reconciliation, fraud, webhook, provider), `platform.*` (tenant, security, notification, monitoring, admin), `infrastructure.*` (persistence, config, web). The `com.softropic.payam.common` package no longer exists — all 685 Java source files compile under the new hierarchy with `mvn verify` green (775+ tests).
+
+**Next:** `/gsd:new-milestone` — define v13 requirements
+
+## Shipped Milestone: v12 Architectural Reorganization ✅
+
+**Shipped:** 2026-05-12 — 5 phases (61–65), 22 plans
+
+**Delivered:** Restructured the flat `com.softropic.payam` package hierarchy into explicit bounded contexts. Created `infrastructure.*` layer (persistence, config, web). Consolidated `payment.*` domain (core, ledger, disbursement, fee, reconciliation, fraud, webhook). Encapsulated provider adapters under `payment.provider.{mtn,orange}`. Grouped platform services under `platform.*`. Eliminated `common` package entirely — zero `common.*` imports remain. All 24 v12 requirements satisfied (INFRA-01..03, PLAT-01..05, PAY-01..07, PROV-01..02, CMN-01..04, BUILD-01..03).
 
 ## Shipped Milestone: v11 Transaction-Backed Disbursements ✅
 
@@ -115,22 +123,9 @@ v12 complete — Phase 65 complete (2026-05-12). All 5 phases of the v12 archite
 - ✓ `PaymentCommand` gains 14th nullable `BigDecimal feeAmount` component; backward-compat 13-arg constructor delegates to canonical with `feeAmount=null`; `withFeeAmount(BigDecimal)` wither method; `PaymentOrchestrator.initiate()` enriches in-flight command via `cmd = cmd.withFeeAmount(fee)` before port dispatch — v9 (Phase 49): CASHOUT-01
 - ✓ `OrangeMoneyPort.initiateCashout()` calls `orangeMoneyClient.cashout()`, guards on `is2xxSuccessful()`, posts `LedgerPosting.disbursement(principal, fee, currency)` via `transactionTemplate.execute` (no `@Transactional` on method); null `feeAmount` falls back to `BigDecimal.ZERO` — `OrangeMoneyPortIT`: 8/8 tests green — v9 (Phase 49): CASHOUT-02
 
-## Current Milestone: v12 Architectural Reorganization
-
-**Goal:** Restructure the flat `com.softropic.payam` package hierarchy into explicit bounded contexts (`payment`, `platform`, `infrastructure`), moving both `src/main` and `src/test` packages in lockstep so `mvn verify` (474 unit + 301 integration tests) passes green throughout.
-
-**Target features:**
-- Consolidate `payment.core`, `.disbursement`, `.ledger`, `.fee`, `.reconciliation`, `.fraud` under a single `payment` umbrella
-- Move provider adapters (`mtn`, `orange`) under `payment.provider` as infrastructure hexagonal adapters
-- Group platform services (`tenant`, `security`, `email`+`alert`, `health`+`ops`, `admin`) under `platform` namespace
-- Redistribute `common` package — domain logic to `payment.core`, infrastructure concerns to `infrastructure`, enums to owning domain packages
-- Create `infrastructure` layer: `config`, `web` (filters/interceptors), `persistence`
-- Mirror all package moves in `src/test/java` in lockstep with production code
-- `mvn verify` (full suite including Testcontainers ITs) must pass green after every phase commit
-
 ### Active
 
-*(Requirements being defined for v12 — see Current Milestone above)*
+*(v13 requirements TBD — run `/gsd:new-milestone` to define)*
 
 #### Phase 50 complete — Validated in Phase 50: BAL-01, BAL-02, BAL-03
 - ✓ Flyway V28: `main.disbursement`, `main.disbursement_aud`, `main.merchant_wallet_balance`, `main.merchant_wallet_balance_aud` with named constraints — v10 (Phase 50)
@@ -265,5 +260,11 @@ This document evolves at phase transitions and milestone boundaries.
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
+- ✓ `infrastructure.persistence` (8 JPA base classes), `infrastructure.config` (AsyncConfig, DataSourceConfig, ObservabilityConfig), `infrastructure.web` (ApiKeyAuthenticationFilter, TenantSecurityConfig, LoggingFilter) — v12 (Phase 61): INFRA-01, INFRA-02, INFRA-03
+- ✓ `platform.tenant`, `platform.security`, `platform.notification` (email+alert), `platform.monitoring` (health+ops), `platform.admin` (admin+platform config) — v12 (Phase 62): PLAT-01, PLAT-02, PLAT-03, PLAT-04, PLAT-05
+- ✓ `payment.core` (collection), `payment.ledger` (transaction/idempotency/event-log), `payment.disbursement`, `payment.fee`, `payment.reconciliation`, `payment.fraud`, `payment.webhook` — v12 (Phase 63): PAY-01..07
+- ✓ `payment.provider.mtn` and `payment.provider.orange` — hexagonal boundary enforced, no domain package references provider directly — v12 (Phase 64): PROV-01, PROV-02
+- ✓ `com.softropic.payam.common` package fully eliminated — all types redistributed to owning bounded contexts; CMN-04 grep gate passes (zero matches) — v12 (Phase 65): CMN-01, CMN-02, CMN-03, CMN-04
+
 ---
-*Last updated: 2026-05-07 — Phase 62 complete: platform layer reorganization (PLAT-01..05)*
+*Last updated: 2026-05-12 — v12 complete: architectural reorganization shipped (Phases 61–65)*

@@ -1,5 +1,29 @@
 # Project Milestones: Payam
 
+## v12 Architectural Reorganization (Shipped: 2026-05-12)
+
+**Delivered:** Restructured the flat `com.softropic.payam` package hierarchy into explicit bounded contexts — `payment`, `platform`, `infrastructure` — across 5 phases and 22 plans. The `com.softropic.payam.common` package no longer exists; all 685 Java source files compile and `mvn verify` (775+ tests) passes green.
+
+**Phases completed:** 5 phases (61–65), 22 plans
+
+**Stats:**
+
+- 74 commits
+- 722 files changed, +18,694 / -3,049 lines
+- 6 days (2026-05-06 → 2026-05-12)
+
+**Key accomplishments:**
+
+- **Infrastructure layer created (Phase 61):** `infrastructure.persistence` (8 JPA base classes from `common.persistence`), `infrastructure.config` (AsyncConfig, DataSourceConfig, ObservabilityConfig from top-level `config/`), `infrastructure.web` (ApiKeyAuthenticationFilter, TenantSecurityConfig, LoggingFilter) — `FilterRegistrationBean(setEnabled=false)` preserved verbatim
+- **Platform layer reorganized (Phase 62):** 145-file `security/` package relocated to `platform.security`; `tenant/` to `platform.tenant`; `email/` + `alert/` merged into `platform.notification`; `health/` + `ops/` merged into `platform.monitoring`; `admin/` + `platform/` merged into `platform.admin` — all 5 PLAT requirements satisfied
+- **Payment domain consolidated (Phase 63):** 7 packages unified under `payment.*` — `payment.core` (collection orchestration), `payment.ledger` (transaction/idempotency/event-log), `payment.disbursement`, `payment.fee`, `payment.reconciliation`, `payment.fraud`, `payment.webhook` — 132-file atomic commit for ledger relocation
+- **Provider adapters encapsulated (Phase 64):** MTN adapter relocated to `payment.provider.mtn`, Orange adapter to `payment.provider.orange`; hexagonal boundary enforced — no `payment.provider.*` class referenced from domain packages; 3 YAML Resilience4j FQNs updated per provider
+- **Common package eliminated (Phase 65):** `common.payment`+`common.refund` → `payment.core.contract`; `common.{exception,message,config,logging,client,threadpool,util,validation}` → `infrastructure.*`; `common.{consumer,Gender,enums}` → `platform.security.contract` + `infrastructure.util`; 4 test stragglers relocated; `com.softropic.payam.common` package fully absent from source tree (CMN-04 grep gate: zero matches)
+
+**Archive:** `.planning/milestones/v12-ROADMAP.md`
+
+---
+
 ## v11 Transaction-Backed Disbursements (Shipped: 2026-05-05)
 
 **Delivered:** Replaced the pre-funded wallet-balance model with claim-based locking — every disbursement is now explicitly backed by validated collection transactions with atomic `SELECT FOR UPDATE` claim creation, full claim lifecycle management (PENDING → CLAIMED | RELEASED), admin approval gate with configurable threshold and Quartz auto-expiry, idempotency retry recovery that reactivates existing claims (no new rows), and high-priority insufficient funds alerting to Platform Ops.
@@ -7,6 +31,7 @@
 **Phases completed:** 7 phases (54–60), 17 plans
 
 **Stats:**
+
 - 107 commits
 - 7 days (2026-04-28 → 2026-05-05)
 - 685 Java files, ~70k LOC total codebase
@@ -21,21 +46,6 @@
 - Full E2E machine-verification: MTN/Orange claim lifecycle (PENDING→CLAIMED/RELEASED), admin-approval HTTP initiation + Quartz expiry + CLAIMED release, idempotency retry recovery (RELEASED→PENDING + retry_count increment), CLAIM-05 PROCESSING→EXPIRED invariant proof via raw SQL on `disbursement_transaction_ref`; `mvn verify` 474 unit + 301 integration tests, 0 failures (Phases 58, 60)
 
 **Archive:** `.planning/milestones/v11-ROADMAP.md`
-- One-liner:
-- 1. [Rule 3 - Blocking] spring.jpa.generate-ddl=true caused Hibernate to re-add reserved_amount after V31 dropped it
-- DisbursementStatus extended to 7 values with PENDING_ADMIN_APPROVAL state, completing Phase 54's SCHEMA-03 requirement to retire the wallet model at the application layer
-- DisbursementRequest record
-- 1. Worktree was behind main (Phase 55-01 changes absent)
-- Three-scenario deadlock-free concurrency proof (TXN-05) + FEE-02 static-analysis regression guard + DisbursementOrchestratorIT wired with real SUCCESS/COLLECTION transaction seeding for claim validation
-- File:
-- FAILED->INITIATED state machine transition + conservative classifier (PROVIDER_ERROR/PROVIDER_UNAVAILABLE=RETRIABLE) + DisbursementOrchestrator.handleRetry routing RELEASED->PENDING reactivation with audit-trail preservation, end-to-end verified by 3 WireMock+Testcontainers integration tests
-- V32 Flyway migration drops merchant_wallet_balance + _aud with IF EXISTS guards and OPS SIGN-OFF gate; V32MigrationIT verifies via flyway_schema_history and idempotency re-apply because Hibernate recreates tables from @Entity post-migration
-- MtnDisbursementE2EIT.java
-- OrangeDisbursementE2EIT gains CLAIM-01/CLAIM-02 assertions (PENDING at init, CLAIMED after SUCCESSFULL) and a new CLAIM-03 test proving FAILED callback releases claims to RELEASED and RELEASED transactionIds unblock a second disbursement.
-- DisbursementAdminApprovalE2EIT.java
-- Full mvn verify suite passes green (474 unit tests + 300 IT runs, 0 failures, 0 errors) — Phase 58 SC-5 satisfied; v11 milestone machine-verified
-- Case A (no edit needed):
-- Focused run:
 
 ---
 

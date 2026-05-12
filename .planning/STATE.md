@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0.2
-milestone_name: milestone
-status: executing
-stopped_at: Completed 65-05-PLAN.md — Phase 65 common package redistribution complete (CMN-04 satisfied); v12 architectural reorganization (Phases 61-65) fully shipped
-last_updated: "2026-05-12T11:33:43.692Z"
+milestone: v12
+milestone_name: Architectural Reorganization
+status: complete
+stopped_at: v12 milestone archived — 5 phases (61-65), 22 plans shipped; ROADMAP.md collapsed; PROJECT.md evolved; git tag v12 created
+last_updated: "2026-05-12T13:45:00.000Z"
 last_activity: 2026-05-12
 progress:
-  total_phases: 36
-  completed_phases: 27
-  total_plans: 83
-  completed_plans: 83
-  percent: 0
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 22
+  completed_plans: 22
+  percent: 100
 ---
 
 # Project State

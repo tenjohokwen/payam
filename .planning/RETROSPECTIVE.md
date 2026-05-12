@@ -4,6 +4,47 @@
 
 ---
 
+## Milestone: v12 — Architectural Reorganization
+
+**Shipped:** 2026-05-12
+**Phases:** 5 (61–65) | **Plans:** 22 | **Files changed:** 722
+
+### What Was Built
+- `infrastructure.*` bounded context: persistence base classes, global Spring config, web filters/interceptors
+- `platform.*` bounded context: tenant, security, notification (email+alert), monitoring (health+ops), admin (admin+platform config)
+- `payment.*` bounded context: core, ledger, disbursement, fee, reconciliation, fraud, webhook — plus `payment.provider.{mtn,orange}`
+- Full elimination of `com.softropic.payam.common` package — all 685 source files compile at new locations
+
+### What Worked
+- **Wave-based sequencing with firm dependency order:** infrastructure → platform → payment → providers → common was the correct order — every phase compiled because its dependencies were already at their final locations
+- **Atomic single commit per plan:** Each wave moved files + updated all callers in one commit, keeping HEAD always compilable; partial state never hit main
+- **macOS BSD sed two-pass pattern:** Discovered early (Phase 62-02); standardized across all subsequent plans — sub-package decls first (ending with dot), root decls second (ending with semicolon)
+- **git mv for history preservation:** All large package moves used `git mv` for directory-level renames, preserving 77-99% similarity scores and full git blame history
+- **CMN-04 grep gate:** `find src -name "*.java" | xargs grep "com.softropic.payam.common"` as the definitive completion check for Phase 65 was clean and unambiguous
+
+### What Was Inefficient
+- **Phase 61 Plan 02 (INFRA-01) SUMMARY.md not committed:** Code was committed (`b3e3445`) but the SUMMARY.md was left untracked, causing a discrepancy in the progress table (showed 2/3 instead of 3/3). Document files must be staged with their code changes.
+- **FQN body references missed by sed import sweeps:** Each phase discovered FQN-in-method-body references (e.g., `PaymentOrchestratorIT` `@MockitoSpyBean` using FQN, `WebhookDoubleCheckHandler` FQN in method body). These require a dedicated post-sweep grep step.
+- **Worktree Phase 64-02 Docker contention:** Parallel agent execution caused transient Testcontainers/Ryuk failures unrelated to package moves — caused unnecessary investigation time.
+
+### Patterns Established
+- **Two-pass macOS sed for package declarations:** `sed -i '' "s/\.old\./\.new\./g"` (sub-packages), then `sed -i '' "s/com\.softropic\.payam\.old;/com.softropic.payam.new;/g"` (root decls)
+- **Post-sed FQN body grep gate:** After every import sweep, run `grep -r "com.softropic.payam.old" src/ | grep -v ".java:import \|.java:package "` to catch non-import references
+- **Test file parallelism:** Always move `src/test/java/...` alongside `src/main/java/...` in the same commit — test-only moves missed in the same commit always surface as compile errors in the next CI run
+
+### Key Lessons
+1. **Document commits must be staged with code commits.** A SUMMARY.md left untracked after the code commit causes false "incomplete" signals in tooling.
+2. **Always grep for FQN body references post-import-sweep.** Import lines are easy to catch with sed; method body FQNs are invisible to import-scoped tools.
+3. **Atomic commit = compilable HEAD invariant.** Every plan in this milestone maintained this — zero red HEAD states throughout 74 commits.
+4. **common package last is correct.** Attempting to move common before its destinations exist would cause circular dependency failures. The ordering constraint is real and must be enforced in planning.
+
+### Cost Observations
+- Sessions: ~3 (2026-05-06 → 2026-05-12)
+- 74 commits, 722 files, 6 days
+- Notable: pure refactoring with zero behavioral changes — test count unchanged, no new Flyway migrations
+
+---
+
 ## Milestone: v3 — E2E Test Suite
 
 **Shipped:** 2026-03-28
