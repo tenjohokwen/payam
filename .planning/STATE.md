@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0.2
 milestone_name: milestone
 status: executing
-stopped_at: Completed 65-01-PLAN.md — common.exception/message/config/logging moved to infrastructure.* (CMN-02 Wave 1)
-last_updated: "2026-05-12T06:52:13.656Z"
+stopped_at: Completed 65-02-PLAN.md — common.{client,threadpool,util,validation} + 5 root utilities moved to infrastructure.* (CMN-02)
+last_updated: "2026-05-12T07:20:55.178Z"
 last_activity: 2026-05-12
 progress:
   total_phases: 36
-  completed_phases: 26
-  total_plans: 78
-  completed_plans: 78
+  completed_phases: 24
+  total_plans: 83
+  completed_plans: 77
   percent: 0
 ---
 
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-05-06 — v12 milestone started)
 ## Current Position
 
 Phase: 65 (common-package-redistribution) — EXECUTING
-Plan: 1 of 5
-Status: Wave 1 complete — executing Wave 2
+Plan: 2 of 5
+Status: Ready to execute
 Last activity: 2026-05-12
 
 Progress: [░░░░░░░░░░] 0%
@@ -82,6 +82,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 64]: [Phase 64-02]: Testcontainers/Ryuk Docker contention from parallel agent execution causes transient E2E test failures during mvn verify — not caused by package moves; test-compile exits 0 and pure unit tests pass green
 - [Phase 65]: 5 common.* sibling files in common.util/client/validation that referenced common.exception.*/common.config.* were retargeted in Plan 01 even though those files move in Plans 02-04 — zero-stale-reference invariant requires immediate retarget
 - [Phase 65]: Phase 64 commits merged into worktree branch before starting Wave 1 — worktree was at Phase 63 state; 0464d86 merge brought both mtn and orange provider encapsulations into scope
+- [Phase 65-02]: HttpTestClient.java + Consumer.java were not captured by external caller grep (excluded common/ paths) — fixed as Rule 1 auto-fix during Step I zero-stale check
+- [Phase 65-02]: TestClockProvider co-located in infrastructure.util (same package as ClockProvider) to preserve package-private setClock() access
+- [Phase 65-02]: PhoneNumberDto placed in infrastructure.validation (not infrastructure.dto): both validators and utils depend on it; infrastructure cannot depend upward on platform
 
 ### v12 Phase Map
 
@@ -150,6 +153,7 @@ Key context carried forward for v10:
 | Phase 64-provider-infrastructure-encapsulation P01 | 60 | 1 tasks | 62 files |
 | Phase 64 P02 | 11 | 1 tasks | 57 files |
 | Phase 65 P01 | 34 | 1 tasks | 52 files |
+| Phase 65 P02 | 1109 | 1 tasks | 88 files |
 
 ### Pending Todos
 
@@ -161,6 +165,6 @@ None — roadmap is defined, requirements are 100% mapped.
 
 ## Session Continuity
 
-Last session: 2026-05-12T06:52:13.643Z
-Stopped at: Completed 65-01-PLAN.md — common.exception/message/config/logging moved to infrastructure.* (CMN-02 Wave 1)
+Last session: 2026-05-12T07:20:55.168Z
+Stopped at: Completed 65-02-PLAN.md — common.{client,threadpool,util,validation} + 5 root utilities moved to infrastructure.* (CMN-02)
 Resume: `/gsd:execute-phase 63` — Wave 3 (63-03 next plan)
